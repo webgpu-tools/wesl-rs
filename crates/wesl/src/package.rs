@@ -9,9 +9,9 @@ use crate::{
 use quote::{format_ident, quote};
 use wgsl_parse::{
     lexer::{Lexer, Token},
-    syntax::TranslationUnit,
+    syntax::{Declaration, Function, GlobalDeclaration, Struct, TranslationUnit, TypeAlias},
 };
-use wgsl_types::idents::RESERVED_WORDS;
+use wgsl_types::{Type, idents::RESERVED_WORDS};
 
 /// WGSL identifier predicate, including reserved words, but excluding keywords.
 fn is_mod_ident(name: &str) -> bool {
@@ -294,6 +294,133 @@ impl PkgBuilder {
     }
 }
 
+pub trait CodegenDocs {
+    fn codegen_docs(&self) -> proc_macro2::TokenStream;
+}
+
+impl CodegenDocs for Type {
+    fn codegen_docs(&self) -> proc_macro2::TokenStream {
+        self.to_string().parse().unwrap()
+    }
+}
+
+impl CodegenDocs for Declaration {
+    fn codegen_docs(&self) -> proc_macro2::TokenStream {
+        let ty = match &self.ty {
+            Some(ty) => ty.to_string().parse().unwrap(),
+            None => quote! { Unknown },
+        };
+        let name = format_ident!("{}", self.ident.name().as_str());
+        let kind = self.kind;
+        let doc = format!("`{kind}` declaration of type `{ty}`");
+
+        quote! {
+            unsafe extern {
+                #[cfg(doc)]
+                #[doc = #doc]
+                pub static #name: #ty;
+            }
+        }
+    }
+}
+
+impl CodegenDocs for TypeAlias {
+    fn codegen_docs(&self) -> proc_macro2::TokenStream {
+        let name = format_ident!("{}", self.ident.name().as_str());
+        let alias: proc_macro2::TokenStream = self.ty.to_string().parse().unwrap();
+        let doc = format!("Alias of [`{alias}`]");
+
+        quote! {
+            #[cfg(doc)]
+            #[doc = #doc]
+            pub type #name = #alias;
+        }
+    }
+}
+
+impl CodegenDocs for Struct {
+    fn codegen_docs(&self) -> proc_macro2::TokenStream {
+        let name = format_ident!("{}", self.ident.name().as_str());
+
+        let members = self.members.iter().map(|mem| {
+            let name = format_ident!("{}", mem.ident.name().as_str());
+            let ty: proc_macro2::TokenStream = mem.ty.to_string().parse().unwrap();
+            quote! { #name: #ty }
+        });
+
+        quote! {
+            #[cfg(doc)]
+            pub struct #name {
+                #(#members,)*
+            }
+        }
+    }
+}
+
+impl CodegenDocs for Function {
+    fn codegen_docs(&self) -> proc_macro2::TokenStream {
+        let name = format_ident!("{}", self.ident.name().as_str());
+
+        let params = self.parameters.iter().map(|param| {
+            let name = format_ident!("{}", param.ident.name().as_str());
+            let ty: proc_macro2::TokenStream = param.ty.to_string().parse().unwrap();
+            quote! { #name: #ty }
+        });
+
+        let ret_ty = if let Some(ty) = &self.return_type {
+            let ty: proc_macro2::TokenStream = ty.to_string().parse().unwrap();
+            quote! { -> #ty }
+        } else {
+            quote! {}
+        };
+
+        let doc = if let Some(ty) = &self.return_type {
+            format!("Returns `{}`", ty.to_string())
+        } else {
+            format!("No return type")
+        };
+
+        quote! {
+            unsafe extern {
+                #[cfg(doc)]
+                #[doc = #doc]
+                pub fn #name( #(#params),* ) #ret_ty;
+            }
+        }
+    }
+}
+
+impl CodegenDocs for GlobalDeclaration {
+    fn codegen_docs(&self) -> proc_macro2::TokenStream {
+        match self {
+            GlobalDeclaration::Void => quote! {},
+            GlobalDeclaration::Declaration(decl) => decl.codegen_docs(),
+            GlobalDeclaration::TypeAlias(_) => quote! {},
+            GlobalDeclaration::Struct(decl) => decl.codegen_docs(),
+            GlobalDeclaration::Function(decl) => decl.codegen_docs(),
+            GlobalDeclaration::ConstAssert(_) => quote! {},
+        }
+    }
+}
+
+impl CodegenDocs for TranslationUnit {
+    fn codegen_docs(&self) -> proc_macro2::TokenStream {
+        let decls = self
+            .global_declarations
+            .iter()
+            .map(|decl| decl.codegen_docs());
+
+        quote! {
+            #[cfg(doc)]
+            use super::wgsl;
+            #[cfg(doc)]
+            use super::wgsl::*;
+
+            #(#decls)*
+        }
+    }
+}
+
 impl Module {
     fn codegen(&self) -> proc_macro2::TokenStream {
         let mod_ident = format_ident!("{}", self.name);
@@ -308,16 +435,24 @@ impl Module {
 
         let submods = self.submodules.iter().map(|submod| submod.codegen());
 
+        let wgsl: TranslationUnit = source.parse().unwrap();
+        let documentation = wgsl.codegen_docs();
+
         quote! {
             pub mod #mod_ident {
                 use super::CodegenModule;
+
+                #documentation
+
                 pub const MODULE: CodegenModule = CodegenModule {
                     name: #name,
                     source: #source,
                     submodules: &[#(#submodules),*]
                 };
 
-                #(#submods)*
+                #(
+                    #submods
+                )*
             }
         }
     }
@@ -368,7 +503,15 @@ impl Pkg {
 
         let submods = self.root.submodules.iter().map(|submod| submod.codegen());
 
+        let builtin_doc: proc_macro2::TokenStream =
+            include_str!("./wgsl_docsrs.rs").parse().unwrap();
+
         let tokens = quote! {
+            #[cfg(doc)]
+            pub mod wgsl {
+                #builtin_doc
+            }
+
             pub const PACKAGE: CodegenPkg = CodegenPkg {
                 crate_name: #crate_name,
                 root: &MODULE,
@@ -381,7 +524,9 @@ impl Pkg {
                 submodules: &[#(#submodules),*]
             };
 
-            #(#submods)*
+            #(
+                #submods
+            )*
         };
 
         tokens.to_string()

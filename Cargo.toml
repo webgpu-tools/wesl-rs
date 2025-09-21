@@ -8,7 +8,7 @@ members = [
   "crates/wesl-cli",
   "crates/wesl-macros",
   "crates/wesl-test",
-  "crates/wesl-web",
+  "crates/wesl-web", "crates/wgsl-docsrs",
   "crates/wgsl-parse",
   "crates/wgsl-types",
   "examples/random_wgsl",

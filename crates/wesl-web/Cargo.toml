@@ -34,6 +34,7 @@ wesl = { workspace = true, features = ["eval", "serde"] }
 [features]
 default = ["ansi-to-html", "naga"]
 debug = ["console_error_panic_hook", "console_log"]
+naga-ext = ["wesl/naga-ext"]
 
 [lints]
 workspace = true

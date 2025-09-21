@@ -1315,6 +1315,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "wgsl-docsrs"
+version = "0.2.0"
+
+[[package]]
 name = "wgsl-parse"
 version = "0.2.0"
 dependencies = [

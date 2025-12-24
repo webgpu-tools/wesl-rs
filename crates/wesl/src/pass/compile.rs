@@ -1,11 +1,15 @@
 use std::collections::{HashMap, HashSet};
 
-use wgsl_parse::syntax::{Ident, ModulePath, TranslationUnit, Visibility};
+use itertools::Itertools;
+use wgsl_parse::{
+    SyntaxNode,
+    syntax::{Ident, ModulePath, TranslationUnit, Visibility},
+};
 
 use crate::{
     SyntaxUtil,
     error::{Diagnostic, Error},
-    pass::{self, CompileResult, CompilerDriver, Module, UsedItems},
+    pass::{self, CompileResult, CompilerDriver, ImportedItem, Module, UsedItems},
     resolver::{AsyncResolver, Resolver},
 };
 
@@ -43,6 +47,63 @@ pub async fn load_module_async(
     Ok(module)
 }
 
+fn get_or_load_module<'a>(
+    path: &ModulePath,
+    modules: &'a mut HashMap<ModulePath, Module>,
+    driver: &mut impl CompilerDriver,
+) -> Result<&'a mut Module, Error> {
+    let canonical_path = driver.canonical_path(path);
+    ensure_module_loaded(&canonical_path, modules, driver)?;
+
+    Ok(modules
+        .get_mut(&canonical_path)
+        .unwrap(/* SAFETY: module was just loaded */))
+}
+
+fn ensure_module_loaded(
+    canonical_path: &ModulePath,
+    modules: &mut HashMap<ModulePath, Module>,
+    driver: &mut impl CompilerDriver,
+) -> Result<(), Error> {
+    if modules.contains_key(canonical_path) {
+        return Ok(());
+    }
+
+    let syntax = driver.load_module(canonical_path)?;
+    let mut module = Module::new(canonical_path.clone(), syntax);
+    // take the wildcards out and insert imports below in the for loop
+    let wildcards = std::mem::take(&mut module.imports.wildcards);
+    modules.insert(canonical_path.clone(), module);
+
+    for wildcard_path in wildcards {
+        let wildcard_imports = get_or_load_module(&wildcard_path, modules, driver)?
+            .syntax
+            .global_declarations
+            .iter()
+            .filter_map(|decl| decl.ident())
+            .map(|ident| {
+                (
+                    ident.clone(),
+                    ImportedItem {
+                        path: wildcard_path.clone(),
+                        ident,
+                        visibility: Visibility::Private, // TODO wildcard visibility
+                    },
+                )
+            })
+            .collect_vec();
+
+        modules
+            .get_mut(canonical_path)
+            .unwrap(/* SAFETY: module was inserted above */)
+            .imports
+            .idents
+            .extend(wildcard_imports);
+    }
+
+    Ok(())
+}
+
 /// Default implementation of [`CompilerDriver::compile`]
 pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error> {
     let main_path = driver.main_path().clone();
@@ -53,8 +114,8 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
         .map(|ident| (ident, Visibility::Private)) // No visibility requirements for entry points
         .collect::<HashMap<Ident, Visibility>>();
 
-    let mut modules = Vec::new();
-    modules.push(Module::new(main_path.clone(), main_module));
+    let mut modules = HashMap::new();
+    get_or_load_module(&main_path, &mut modules, driver)?;
 
     let mut used_items = UsedItems::new();
     let mut to_analyze = UsedItems::new();
@@ -64,15 +125,7 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
         let mut next_to_analyze = UsedItems::new();
 
         for (path, items_to_analyze) in to_analyze.iter() {
-            let path = driver.canonical_path(path);
-            let module = match modules.iter().find(|module| module.path == path) {
-                Some(module) => module,
-                None => {
-                    let module = driver.load_module(&path)?;
-                    modules.push_mut(Module::new(path, module))
-                }
-            };
-
+            let module = get_or_load_module(path, &mut modules, driver)?;
             driver.module_usage_analysis(module, &mut used_items, &mut next_to_analyze)?;
 
             for (item, min_vis) in items_to_analyze {
@@ -93,6 +146,7 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
         to_analyze = next_to_analyze;
     }
 
+    let mut modules = modules.into_values().collect_vec();
     let final_module = driver.link(&mut modules, &used_items)?;
 
     Ok(CompileResult {

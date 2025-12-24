@@ -98,6 +98,7 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
                     .iter_mut()
                     .flat_map(|import| rec(&mut import.content))
                     .boxed(),
+                ImportContent::Wildcard => std::iter::empty().boxed(),
             }
         }
         imports
@@ -448,6 +449,7 @@ pub fn retarget_modules(modules: &mut [Module], used_items: &UsedItems, resolver
                         ty.ident = ident;
                         return;
                     } else if let Some((_, item)) = module_imports
+                        .idents
                         .iter()
                         .find(|(ident, _)| *ident.name() == *ty.ident.name())
                         && item.public
@@ -477,6 +479,7 @@ pub fn retarget_modules(modules: &mut [Module], used_items: &UsedItems, resolver
                         return;
                     } else if let Some((_, item)) = import_module
                         .imports
+                        .idents
                         .iter()
                         .find(|(ident, _)| *ident.name() == *import_ident.name())
                         && item.public

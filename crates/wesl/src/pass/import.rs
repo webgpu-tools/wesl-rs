@@ -9,7 +9,11 @@ pub struct ImportedItem {
     pub public: bool,
 }
 
-pub type Imports = HashMap<Ident, ImportedItem>;
+#[derive(Clone, Debug, Default)]
+pub struct Imports {
+    pub idents: HashMap<Ident, ImportedItem>,
+    pub wildcards: Vec<ModulePath>,
+}
 
 /// Flatten imports to a list.
 pub fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Imports {
@@ -17,7 +21,7 @@ pub fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Import
         match content {
             ImportContent::Item(item) => {
                 let ident = item.rename.as_ref().unwrap_or(&item.ident).clone();
-                res.insert(
+                res.idents.insert(
                     ident,
                     ImportedItem {
                         path,
@@ -32,9 +36,7 @@ pub fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Import
                     rec(&import.content, path, public, res);
                 }
             }
-            ImportContent::Wildcard => {
-                todo!()
-            }
+            ImportContent::Wildcard => res.wildcards.push(path),
         }
     }
 
@@ -69,7 +71,8 @@ pub fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Import
                         }
                     }
                     ImportContent::Wildcard => {
-                        todo!()
+                        // TODO
+                        // `import *`, this should be invalid? We just ignore it for now.
                     }
                 }
             }
@@ -92,7 +95,10 @@ pub fn imported_item_path(
         match &path.origin {
             PathOrigin::Package(pkg_name) => {
                 // the path could be either a package, or referencing an imported module alias.
-                let imported_item = imports.iter().find(|(ident, _)| *ident.name() == *pkg_name);
+                let imported_item = imports
+                    .idents
+                    .iter()
+                    .find(|(ident, _)| *ident.name() == *pkg_name);
 
                 if let Some((_, ext_item)) = imported_item {
                     // this inline path references an imported item. Example:
@@ -113,6 +119,7 @@ pub fn imported_item_path(
         }
     } else {
         imports
+            .idents
             .get(&ty_expr.ident)
             .map(|item| (item.path.clone(), item.ident.clone()))
     }

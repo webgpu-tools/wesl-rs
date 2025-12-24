@@ -32,6 +32,9 @@ pub fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Import
                     rec(&import.content, path, public, res);
                 }
             }
+            ImportContent::Wildcard => {
+                todo!()
+            }
         }
     }
 
@@ -64,6 +67,9 @@ pub fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Import
                                 rec(&import.content, path, public, &mut res);
                             }
                         }
+                    }
+                    ImportContent::Wildcard => {
+                        todo!()
                     }
                 }
             }

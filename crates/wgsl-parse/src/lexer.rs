@@ -442,11 +442,9 @@ pub enum Token {
     AbstractFloat(f64),
     #[regex(r#"(0|[1-9]\d*)i"#, parse_dec_i32)]
     #[regex(r#"0[xX][\da-fA-F]+i"#, parse_hex_i32)]
-    // hex
     I32(i32),
     #[regex(r#"(0|[1-9]\d*)u"#, parse_dec_u32)]
     #[regex(r#"0[xX][\da-fA-F]+u"#, parse_hex_u32)]
-    // hex
     U32(u32),
     #[regex(r#"(\d+\.\d*|\.\d+)([eE][+-]?\d+)?f"#, parse_dec_f32)]
     #[regex(r#"\d+([eE][+-]?\d+)?f"#, parse_dec_f32)]
@@ -459,14 +457,14 @@ pub enum Token {
     #[regex(r#"0[xX][\da-fA-F]+\.[\da-fA-F]*[pP][+-]?\d+h"#, parse_hex_f16)]
     #[regex(r#"0[xX]\.[\da-fA-F]+[pP][+-]?\d+h"#, parse_hex_f16)]
     #[regex(r#"0[xX][\da-fA-F]+[pP][+-]?\d+h"#, parse_hex_f16)]
+    F16(f32),
+
     TemplateArgsStart,
     TemplateArgsEnd,
 
-    F16(f32),
     // extension: naga-ext
     #[regex(r#"(0|[1-9]\d*)li"#, parse_dec_i64)]
     #[regex(r#"0[xX][\da-fA-F]+li"#, parse_hex_i64)]
-    // hex
     I64(i64),
     // extension: naga-ext
     #[regex(r#"(0|[1-9]\d*)lu"#, parse_dec_u64)]

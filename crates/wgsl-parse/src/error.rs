@@ -30,6 +30,8 @@ pub enum ErrorKind {
     Attribute(&'static str, &'static str),
     #[error("invalid `var` template arguments, {0}")]
     VarTemplate(&'static str),
+    #[error("unsupported feature `{0}`")]
+    UnsupportedFeature(&'static str),
 }
 
 #[derive(Default, Clone, Debug, PartialEq)]
@@ -40,6 +42,7 @@ pub enum ParseError {
     DiagnosticSeverity,
     Attribute(&'static str, &'static str),
     VarTemplate(&'static str),
+    UnsupportedFeature(&'static str),
 }
 
 type LalrpopError = lalrpop_util::ParseError<usize, Token, (usize, ParseError, usize)>;
@@ -108,6 +111,7 @@ impl From<LalrpopError> for Error {
                     ParseError::DiagnosticSeverity => ErrorKind::DiagnosticSeverity,
                     ParseError::Attribute(attr, expected) => ErrorKind::Attribute(attr, expected),
                     ParseError::VarTemplate(reason) => ErrorKind::VarTemplate(reason),
+                    ParseError::UnsupportedFeature(feat) => ErrorKind::UnsupportedFeature(feat),
                 };
                 Self { span, error }
             }

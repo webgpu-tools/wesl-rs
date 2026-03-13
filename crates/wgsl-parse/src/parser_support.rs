@@ -332,3 +332,20 @@ pub(crate) fn parse_var_template(
         None => Ok(None),
     }
 }
+
+macro_rules! lang_ext {
+    ($feat:literal, $l:expr, $r:expr, $expr:expr) => {{
+        #[cfg(feature = $feat)]
+        {
+            Ok($expr)
+        }
+        #[cfg(not(feature = $feat))]
+        {
+            Err(lalrpop_util::ParseError::User {
+                error: ($l, ParseError::UnsupportedFeature($feat), $r),
+            })
+        }
+    }};
+}
+
+pub(super) use lang_ext;

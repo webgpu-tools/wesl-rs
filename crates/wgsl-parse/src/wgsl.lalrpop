@@ -209,9 +209,9 @@ pub Literal: LiteralExpression = {
     BoolLiteral,
 
     // naga extensions
-    TokI64 => LiteralExpression::I64(<>),
-    TokU64 => LiteralExpression::U64(<>),
-    TokF64 => LiteralExpression::F64(<>),
+    <l: @L> <t: TokI64> <r: @R> =>? lang_ext!("naga-ext", l, r, LiteralExpression::I64(t)),
+    <l: @L> <t: TokU64> <r: @R> =>? lang_ext!("naga-ext", l, r, LiteralExpression::U64(t)),
+    <l: @L> <t: TokF64> <r: @R> =>? lang_ext!("naga-ext", l, r, LiteralExpression::F64(t)),
 };
 
 BoolLiteral: LiteralExpression = {

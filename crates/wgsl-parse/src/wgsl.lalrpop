@@ -496,21 +496,17 @@ SingleComponentOrSwizzleSpecifier: Component = {
 }
 
 UnaryExpression: Expression = {
-    "-" <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::Negation, operand
+    <operator: UnaryOperator> <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
+        operator, operand
     }),
-    "!" <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::LogicalNegation, operand
-    }),
-    "~" <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::BitwiseComplement, operand
-    }),
-    "*" <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::Indirection, operand
-    }),
-    "&" <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::AddressOf, operand
-    }),
+};
+
+UnaryOperator: UnaryOperator = {
+    "-" => UnaryOperator::Negation,
+    "!" => UnaryOperator::LogicalNegation,
+    "~" => UnaryOperator::BitwiseComplement,
+    "*" => UnaryOperator::Indirection,
+    "&" => UnaryOperator::AddressOf,
 };
 
 SingularExpression: Expression = {
@@ -533,11 +529,8 @@ LhsExpressionNoParen: Expression = {
             None => expression
         }
     },
-    "*" <operand: Spanned<LhsExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::Indirection, operand
-    }),
-    "&" <operand: Spanned<LhsExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::AddressOf, operand
+    <operator: LhsOperator> <operand: Spanned<LhsExpression>> => Expression::Unary(UnaryExpression {
+        operator, operand
     }),
 };
 LhsExpressionParen: Expression = {
@@ -549,6 +542,11 @@ LhsExpressionParen: Expression = {
             None => expression
         }
     },
+};
+
+LhsOperator: UnaryOperator = {
+    "*" => UnaryOperator::Indirection,
+    "&" => UnaryOperator::AddressOf,
 };
 
 LhsExpression: Expression = {
@@ -590,33 +588,29 @@ AdditiveOperator: BinaryOperator = {
 };
 
 ShiftExpression: Expression = {
-    <left: Spanned<UnaryExpression>> "<<" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::ShiftLeft, left, right
-    }),
-    <left: Spanned<UnaryExpression>> ">>" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::ShiftRight, left, right
+    <left: Spanned<UnaryExpression>> <operator: ShiftOperator> <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
+        operator, left, right
     }),
 };
 
+ShiftOperator: BinaryOperator = {
+    "<<" => BinaryOperator::ShiftLeft,
+    ">>" => BinaryOperator::ShiftRight,
+};
+
 RelationalExpression: Expression = {
-    <left: Spanned<ShiftExpression>> "<" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
+    <left: Spanned<ShiftExpression>> <operator: RelationalOperator> <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
         operator: BinaryOperator::LessThan, left, right
     }),
-    <left: Spanned<ShiftExpression>> ">" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::GreaterThan, left, right
-    }),
-    <left: Spanned<ShiftExpression>> "<=" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::LessThanEqual, left, right
-    }),
-    <left: Spanned<ShiftExpression>> ">=" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::GreaterThanEqual, left, right
-    }),
-    <left: Spanned<ShiftExpression>> "==" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::Equality, left, right
-    }),
-    <left: Spanned<ShiftExpression>> "!=" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::Inequality, left, right
-    }),
+};
+
+RelationalOperator: BinaryOperator = {
+    "<" => BinaryOperator::LessThan,
+    ">" => BinaryOperator::GreaterThan,
+    "<=" => BinaryOperator::LessThanEqual,
+    ">=" => BinaryOperator::GreaterThanEqual,
+    "==" => BinaryOperator::Equality,
+    "!=" => BinaryOperator::Inequality,
 };
 
 ShortCircuitAndExpression: Expression = {
@@ -648,29 +642,6 @@ BinaryXorExpression: Expression = {
         operator: BinaryOperator::BitwiseXor, left, right
     }),
 };
-
-// BitwiseExpression: Expression = {
-//     <left: Spanned<BinaryAndExpression>> "&" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-//         operator: BinaryOperator::BitwiseAnd, left, right
-//     }),
-//     <left: Spanned<BinaryOrExpression>> "|" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-//         operator: BinaryOperator::BitwiseOr, left, right
-//     }),
-//     <left: Spanned<BinaryXorExpression>> "^" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-//         operator: BinaryOperator::BitwiseXor, left, right
-//     }),
-// };
-
-// pub Expression: Expression = {
-//     RelationalExpression,
-//     <left: Spanned<ShortCircuitOrExpression>> "||" <right: Spanned<RelationalExpression>> => Expression::Binary(BinaryExpression {
-//         operator: BinaryOperator::ShortCircuitOr, left, right
-//     }),
-//     <left: Spanned<ShortCircuitAndExpression>> "&&" <right: Spanned<RelationalExpression>> => Expression::Binary(BinaryExpression {
-//         operator: BinaryOperator::ShortCircuitAnd, left, right
-//     }),
-//     BitwiseExpression,
-// };
 
 pub Expression: Expression = {
     #[precedence(level="0")]

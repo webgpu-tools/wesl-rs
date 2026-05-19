@@ -1,6 +1,6 @@
 //! The Command-line interface for `wesl-rs`.
 
-use clap::{Args, Parser, Subcommand, ValueEnum, command};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 use std::{
     convert::Infallible,
     error::Error,

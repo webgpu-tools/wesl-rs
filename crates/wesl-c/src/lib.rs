@@ -17,14 +17,6 @@ use wesl::{
     syntax::{AccessMode, AddressSpace},
 };
 
-pub mod native {
-    #![allow(non_upper_case_globals)]
-    #![allow(non_camel_case_types)]
-    #![allow(non_snake_case)]
-    #![allow(dead_code)]
-    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
-}
-
 // TODO: this seems unfinished. only wesl_create/destroy_compiler is implemented.
 #[allow(unused)]
 pub struct WeslCompiler {
@@ -35,27 +27,204 @@ pub struct WeslTranslationUnit {
     unit: TranslationUnit,
 }
 
-fn map_mangler_kind(value: native::WeslManglerKind) -> Option<wesl::ManglerKind> {
+/// cbindgen:rename-all=ScreamingSnakeCase
+#[repr(u8)]
+#[derive(Copy, Clone)]
+pub enum WeslManglerKind {
+    WeslManglerEscape = 0,
+    WeslManglerHash = 1,
+    WeslManglerNone = 2,
+}
+
+/// cbindgen:rename-all=ScreamingSnakeCase
+#[repr(u8)]
+#[derive(Copy, Clone)]
+pub enum WeslBindingType {
+    WeslBindingUniform = 0,
+    WeslBindingStorage = 1,
+    WeslBindingReadOnlyStorage = 2,
+    WeslBindingFiltering = 3,
+    WeslBindingNonFiltering = 4,
+    WeslBindingComparison = 5,
+    WeslBindingFloat = 6,
+    WeslBindingUnfilterableFloat = 7,
+    WeslBindingSint = 8,
+    WeslBindingUint = 9,
+    WeslBindingDepth = 10,
+    WeslBindingWriteOnly = 11,
+    WeslBindingReadWrite = 12,
+    WeslBindingReadOnly = 13,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct WeslBinding {
+    pub group: u32,
+    pub binding: u32,
+    pub kind: WeslBindingType,
+    pub data_len: usize,
+    pub data: *const u8,
+}
+
+#[repr(C)]
+pub struct WeslResolveSourceResult {
+    pub success: bool,
+    pub source: *const c_char,
+}
+
+#[repr(C)]
+pub struct WeslResolveModuleResult {
+    pub success: bool,
+    pub module: *mut WeslTranslationUnit,
+}
+
+pub type WeslResolveSourceFunction = unsafe extern "C" fn(
+    path: *const c_char,
+    userdata: *mut c_void,
+) -> *mut WeslResolveSourceResult;
+
+pub type WeslResolveSourceFreeFunction =
+    unsafe extern "C" fn(result: *const WeslResolveSourceResult, userdata: *mut c_void);
+
+pub type WeslResolveModuleFunction = unsafe extern "C" fn(
+    path: *const c_char,
+    userdata: *mut c_void,
+) -> *mut WeslResolveModuleResult;
+pub type WeslResolveModuleFreeFunction =
+    unsafe extern "C" fn(result: *const WeslResolveModuleResult, userdata: *mut c_void);
+
+// Workaround for https://github.com/mozilla/cbindgen/issues/326
+
+pub type WeslResolveModuleFunctionOption = Option<
+    unsafe extern "C" fn(
+        path: *const c_char,
+        userdata: *mut c_void,
+    ) -> *mut WeslResolveModuleResult,
+>;
+pub type WeslResolveModuleFreeFunctionOption =
+    Option<unsafe extern "C" fn(result: *const WeslResolveModuleResult, userdata: *mut c_void)>;
+
+pub type WeslResolveStringFunction =
+    unsafe extern "C" fn(path: *const c_char, userdata: *mut c_void) -> *const c_char;
+pub type WeslResolveFreeStringFunction =
+    unsafe extern "C" fn(result: *const c_char, userdata: *mut c_void);
+
+pub type WeslResolveStringFunctionOption =
+    Option<unsafe extern "C" fn(path: *const c_char, userdata: *mut c_void) -> *const c_char>;
+pub type WeslResolveFreeStringFunctionOption =
+    Option<unsafe extern "C" fn(result: *const c_char, userdata: *mut c_void)>;
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct WeslResolverOptions {
+    pub userdata: *mut std::ffi::c_void,
+
+    pub resolve_source: WeslResolveSourceFunction,
+    pub resolve_source_free: WeslResolveSourceFreeFunction,
+
+    pub resolve_module: WeslResolveModuleFunctionOption,
+    pub resolve_module_free: WeslResolveModuleFreeFunctionOption,
+
+    pub display_name: WeslResolveStringFunctionOption,
+    pub free_display_name: WeslResolveFreeStringFunctionOption,
+
+    pub fs_path: WeslResolveStringFunctionOption,
+    pub free_fs_path: WeslResolveFreeStringFunctionOption,
+}
+
+#[repr(C)]
+pub struct WeslCompileOptions {
+    pub mangler: WeslManglerKind,
+    pub sourcemap: bool,
+    pub imports: bool,
+    pub condcomp: bool,
+    pub generics: bool,
+    pub strip: bool,
+    pub lower: bool,
+    pub validate: bool,
+    pub naga: bool,
+    pub lazy: bool,
+    pub keep_root: bool,
+    pub mangle_root: bool,
+    pub resolver: *const WeslResolverOptions,
+}
+#[repr(C)]
+pub struct WeslStringMap {
+    pub keys: *const *const c_char,
+    pub values: *const *const c_char,
+    pub len: usize,
+}
+
+#[repr(C)]
+pub struct WeslBoolMap {
+    pub keys: *const *const c_char,
+    pub values: *const bool,
+    pub len: usize,
+}
+#[repr(C)]
+pub struct WeslStringArray {
+    pub items: *const *const c_char,
+    pub len: usize,
+}
+
+#[repr(C)]
+pub struct WeslBindingArray {
+    pub items: *const WeslBinding,
+    pub len: usize,
+}
+
+#[repr(C)]
+pub struct WeslDiagnostic {
+    pub file: *const c_char,
+    pub span_start: usize,
+    pub span_end: usize,
+    pub title: *const c_char,
+}
+
+#[repr(C)]
+pub struct WeslError {
+    pub source: *const c_char,
+    pub message: *const c_char,
+    pub diagnostics: *const WeslDiagnostic,
+    pub diagnostics_len: usize,
+}
+
+#[repr(C)]
+pub struct WeslResult {
+    pub success: bool,
+    pub data: *const c_char,
+    pub error: WeslError,
+}
+
+#[repr(C)]
+pub struct WeslParseResult {
+    pub success: bool,
+    pub data: *const WeslTranslationUnit,
+    pub error: WeslError,
+}
+
+#[repr(C)]
+pub struct WeslExecResult {
+    pub success: bool,
+    pub resources: *const WeslBindingArray,
+    pub error: WeslError,
+}
+
+fn map_mangler_kind(value: WeslManglerKind) -> Option<wesl::ManglerKind> {
     match value {
-        native::WESL_MANGLER_NONE => Some(wesl::ManglerKind::None),
-        native::WESL_MANGLER_HASH => Some(wesl::ManglerKind::Hash),
-        native::WESL_MANGLER_ESCAPE => Some(wesl::ManglerKind::Escape),
-        _ => None,
+        WeslManglerKind::WeslManglerNone => Some(wesl::ManglerKind::None),
+        WeslManglerKind::WeslManglerHash => Some(wesl::ManglerKind::Hash),
+        WeslManglerKind::WeslManglerEscape => Some(wesl::ManglerKind::Escape),
     }
 }
 
 // -- helpers
 
-unsafe fn string_map_to_hashmap(map: *const native::WeslStringMap) -> HashMap<String, String> {
-    if map.is_null() {
-        return HashMap::new();
-    }
+unsafe fn string_map_to_hashmap(map: &WeslStringMap) -> HashMap<String, String> {
+    let mut result = HashMap::new();
 
-    unsafe {
-        let map = &*map;
-        let mut result = HashMap::new();
-
-        for i in 0..map.len {
+    for i in 0..map.len {
+        unsafe {
             let key_ptr = *map.keys.add(i);
             let value_ptr = *map.values.add(i);
 
@@ -65,21 +234,16 @@ unsafe fn string_map_to_hashmap(map: *const native::WeslStringMap) -> HashMap<St
                 result.insert(key, value);
             }
         }
-
-        result
     }
+
+    result
 }
 
-unsafe fn bool_map_to_hashmap(map: *const native::WeslBoolMap) -> HashMap<String, bool> {
-    if map.is_null() {
-        return HashMap::new();
-    }
+unsafe fn bool_map_to_hashmap(map: &WeslBoolMap) -> HashMap<String, bool> {
+    let mut result = HashMap::new();
 
-    unsafe {
-        let map = &*map;
-        let mut result = HashMap::new();
-
-        for i in 0..map.len {
+    for i in 0..map.len {
+        unsafe {
             let key_ptr = *map.keys.add(i);
             let value = *map.values.add(i);
 
@@ -88,30 +252,25 @@ unsafe fn bool_map_to_hashmap(map: *const native::WeslBoolMap) -> HashMap<String
                 result.insert(key, value);
             }
         }
-
-        result
     }
+
+    result
 }
 
-unsafe fn string_array_to_vec(array: *const native::WeslStringArray) -> Option<Vec<String>> {
-    if array.is_null() {
-        return None;
-    }
+unsafe fn string_array_to_vec(array: &WeslStringArray) -> Option<Vec<String>> {
+    let mut result = Vec::new();
 
-    unsafe {
-        let array = &*array;
-        let mut result = Vec::new();
-
-        for i in 0..array.len {
+    for i in 0..array.len {
+        unsafe {
             let item_ptr = *array.items.add(i);
             if !item_ptr.is_null() {
                 let item = CStr::from_ptr(item_ptr).to_string_lossy().into_owned();
                 result.push(item);
             }
         }
-
-        Some(result)
     }
+
+    Some(result)
 }
 
 fn create_c_string(s: &str) -> *const c_char {
@@ -125,14 +284,14 @@ fn create_c_string(s: &str) -> *const c_char {
     }
 }
 
-fn wesl_error_to_c(e: wesl::Error) -> native::WeslError {
+fn wesl_error_to_c(e: wesl::Error) -> WeslError {
     let d = wesl::Diagnostic::from(e);
 
     let diagnostics = if let (Some(span), Some(res)) = (&d.detail.span, &d.detail.module_path) {
-        let diag = native::WeslDiagnostic {
+        let diag = WeslDiagnostic {
             file: create_c_string(&res.components.join("/")),
-            span_start: span.start as u32,
-            span_end: span.end as u32,
+            span_start: span.start,
+            span_end: span.end,
             title: create_c_string(&d.error.to_string()),
         };
 
@@ -143,7 +302,7 @@ fn wesl_error_to_c(e: wesl::Error) -> native::WeslError {
         ptr::null()
     };
 
-    native::WeslError {
+    WeslError {
         source: d
             .detail
             .output
@@ -160,33 +319,22 @@ fn wesl_error_to_c(e: wesl::Error) -> native::WeslError {
 }
 
 #[cfg(feature = "eval")]
-unsafe fn binding_array_to_vec(array: *const native::WeslBindingArray) -> Vec<native::WeslBinding> {
-    if array.is_null() {
-        return Vec::new();
+unsafe fn binding_array_to_vec(array: &WeslBindingArray) -> Vec<WeslBinding> {
+    let mut result = Vec::new();
+
+    for i in 0..array.len {
+        let binding = unsafe { *array.items.add(i) };
+        result.push(binding);
     }
 
-    unsafe {
-        let array = &*array;
-        let mut result = Vec::new();
-
-        for i in 0..array.len {
-            let binding = *array.items.add(i);
-            result.push(binding);
-        }
-
-        result
-    }
+    result
 }
 
 #[cfg(feature = "eval")]
 fn parse_c_binding(
-    b: &native::WeslBinding,
+    b: &WeslBinding,
     wgsl: &wesl::syntax::TranslationUnit,
 ) -> Result<((u32, u32), RefInstance), wesl::Error> {
-    use crate::native::{
-        WESL_BINDING_READ_ONLY_STORAGE, WESL_BINDING_STORAGE, WESL_BINDING_UNIFORM,
-    };
-
     let mut ctx = wesl::eval::Context::new(wgsl);
 
     let ty_expr = wgsl
@@ -214,9 +362,9 @@ fn parse_c_binding(
         .map_err(|e| wesl::Error::Custom(format!("Failed to evaluate type: {e}")))?;
 
     let (storage, access) = match b.kind {
-        WESL_BINDING_UNIFORM => (AddressSpace::Uniform, AccessMode::Read),
-        WESL_BINDING_STORAGE => (AddressSpace::Storage, AccessMode::ReadWrite),
-        WESL_BINDING_READ_ONLY_STORAGE => (AddressSpace::Storage, AccessMode::Read),
+        WeslBindingType::WeslBindingUniform => (AddressSpace::Uniform, AccessMode::Read),
+        WeslBindingType::WeslBindingStorage => (AddressSpace::Storage, AccessMode::ReadWrite),
+        WeslBindingType::WeslBindingReadOnlyStorage => (AddressSpace::Storage, AccessMode::Read),
         _ => return Err(wesl::Error::Custom("Unsupported binding type".to_string())),
     };
 
@@ -238,16 +386,16 @@ fn parse_c_binding(
 }
 
 #[cfg(feature = "eval")]
-fn create_c_binding_array(bindings: Vec<native::WeslBinding>) -> *const native::WeslBindingArray {
+fn create_c_binding_array(bindings: Vec<WeslBinding>) -> *const WeslBindingArray {
     if bindings.is_empty() {
         return ptr::null();
     }
 
     let items = bindings.into_boxed_slice();
     let len = items.len();
-    let items_ptr = Box::into_raw(items) as *const native::WeslBinding;
+    let items_ptr = Box::into_raw(items) as *const WeslBinding;
 
-    let array = Box::new(native::WeslBindingArray {
+    let array = Box::new(WeslBindingArray {
         items: items_ptr,
         len,
     });
@@ -269,8 +417,8 @@ pub unsafe extern "C" fn wesl_destroy_compiler(compiler: *mut WeslCompiler) {
     }
 }
 
-fn error_from_str(s: &str) -> native::WeslError {
-    native::WeslError {
+fn error_from_str(s: &str) -> WeslError {
+    WeslError {
         source: ptr::null(),
         message: create_c_string(s),
         diagnostics: ptr::null(),
@@ -278,19 +426,19 @@ fn error_from_str(s: &str) -> native::WeslError {
     }
 }
 
-fn result_from_str(s: &str) -> native::WeslResult {
-    native::WeslResult {
+fn result_from_str(s: &str) -> WeslResult {
+    WeslResult {
         success: false,
         data: ptr::null(),
         error: error_from_str(s),
     }
 }
 
-fn result_invalid_parameters() -> native::WeslResult {
+fn result_invalid_parameters() -> WeslResult {
     result_from_str("Invalid parameters")
 }
 
-const NO_ERROR: native::WeslError = native::WeslError {
+const NO_ERROR: WeslError = WeslError {
     source: ptr::null(),
     message: ptr::null(),
     diagnostics: ptr::null(),
@@ -298,7 +446,7 @@ const NO_ERROR: native::WeslError = native::WeslError {
 };
 
 struct CustomResolver {
-    pub options: native::WeslResolverOptions,
+    pub options: WeslResolverOptions,
 }
 
 struct FreeGuard<T> {
@@ -323,7 +471,7 @@ impl<T> Deref for FreeGuard<T> {
     }
 }
 
-impl FreeGuard<i8> {
+impl FreeGuard<c_char> {
     unsafe fn c_str(&self) -> &CStr {
         unsafe { CStr::from_ptr(self.data) }
     }
@@ -338,8 +486,8 @@ fn mod_path_to_cstring(path: &ModulePath) -> CString {
 unsafe fn resolver_path_to_string<T, F: FnOnce(Cow<'_, str>) -> T>(
     path: &ModulePath,
     transform: F,
-    get_func: native::WeslResolveStringFunction,
-    free_func: native::WeslResolveFreeStringFunction,
+    get_func: Option<WeslResolveStringFunction>,
+    free_func: Option<WeslResolveFreeStringFunction>,
     userdata: *mut c_void,
 ) -> Option<T> {
     let get_func = get_func?;
@@ -383,9 +531,8 @@ impl wesl::Resolver for CustomResolver {
     ) -> Result<std::borrow::Cow<'a, str>, ResolveError> {
         let cstring = mod_path_to_cstring(path);
 
-        let result = unsafe {
-            self.options.resolve_source.unwrap()(cstring.as_ptr(), self.options.userdata)
-        };
+        let result =
+            unsafe { (self.options.resolve_source)(cstring.as_ptr(), self.options.userdata) };
 
         if result.is_null() {
             return Err(ResolveError::Error(
@@ -395,7 +542,7 @@ impl wesl::Resolver for CustomResolver {
 
         let result = FreeGuard {
             data: result,
-            free_function: self.options.resolve_source_free.unwrap(),
+            free_function: self.options.resolve_source_free,
             free_userdata: self.options.userdata,
         };
 
@@ -472,11 +619,7 @@ impl wesl::Resolver for CustomResolver {
     }
 }
 
-fn validate_resolver_options(options: &native::WeslResolverOptions) -> Result<(), &'static str> {
-    if options.resolve_source.is_none() || options.resolve_source_free.is_none() {
-        return Err("resolve_source and resolve_source_free must be provided");
-    }
-
+fn validate_resolver_options(options: &WeslResolverOptions) -> Result<(), &'static str> {
     if options.resolve_module.is_none() ^ options.resolve_module_free.is_none() {
         return Err("resolve_module and resolve_module_free must both be provide if either is");
     }
@@ -494,18 +637,17 @@ fn validate_resolver_options(options: &native::WeslResolverOptions) -> Result<()
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn wesl_compile(
-    files: *const native::WeslStringMap,
+    files: Option<&WeslStringMap>,
     root: *const c_char,
-    options: *const native::WeslCompileOptions,
-    keep: *const native::WeslStringArray,
-    features: *const native::WeslBoolMap,
-) -> native::WeslResult {
-    if root.is_null() || options.is_null() {
+    options: &WeslCompileOptions,
+    keep: &WeslStringArray,
+    features: &WeslBoolMap,
+) -> WeslResult {
+    if root.is_null() {
         return result_invalid_parameters();
     }
 
     let root_str = unsafe { CStr::from_ptr(root).to_string_lossy() };
-    let opts = unsafe { &*options };
     let keep_vec = unsafe { string_array_to_vec(keep) };
     let features_map = unsafe { bool_map_to_hashmap(features) };
 
@@ -514,8 +656,8 @@ pub unsafe extern "C" fn wesl_compile(
         Err(e) => return result_from_str(&format!("Invalid root path: {e}")),
     };
 
-    let resolver: Box<dyn wesl::Resolver> = match (files.is_null(), opts.resolver.is_null()) {
-        (false, true) => {
+    let resolver: Box<dyn wesl::Resolver> = match (files, options.resolver.is_null()) {
+        (Some(files), true) => {
             let files_map = unsafe { string_map_to_hashmap(files) };
             let mut resolver = VirtualResolver::new();
             for (path, source) in files_map {
@@ -526,8 +668,8 @@ pub unsafe extern "C" fn wesl_compile(
 
             Box::new(resolver)
         }
-        (true, false) => {
-            let resolver_options = unsafe { &*opts.resolver };
+        (None, false) => {
+            let resolver_options = unsafe { &*options.resolver };
             if let Err(msg) = validate_resolver_options(resolver_options) {
                 return result_from_str(msg);
             }
@@ -536,27 +678,27 @@ pub unsafe extern "C" fn wesl_compile(
                 options: *resolver_options,
             })
         }
-        (false, false) => {
+        (Some(_), false) => {
             return result_from_str("Files and custom resolver cannot be specified at once");
         }
         _ => return result_from_str("Files or custom resolver must be specified"),
     };
 
-    let Some(mangler) = map_mangler_kind(opts.mangler) else {
+    let Some(mangler) = map_mangler_kind(options.mangler) else {
         return result_from_str("Invalid mangler kind specified");
     };
 
     let mut compiler = Wesl::new_barebones().set_custom_resolver(resolver);
     let compiler = compiler
         .set_options(wesl::CompileOptions {
-            imports: opts.imports,
-            condcomp: opts.condcomp,
-            generics: opts.generics,
-            strip: opts.strip,
-            lower: opts.lower,
-            validate: opts.validate,
-            lazy: opts.lazy,
-            mangle_root: opts.mangle_root,
+            imports: options.imports,
+            condcomp: options.condcomp,
+            generics: options.generics,
+            strip: options.strip,
+            lower: options.lower,
+            validate: options.validate,
+            lazy: options.lazy,
+            mangle_root: options.mangle_root,
             keep: keep_vec,
             features: wesl::Features {
                 default: wesl::Feature::Disable,
@@ -565,21 +707,21 @@ pub unsafe extern "C" fn wesl_compile(
                     .map(|(k, v)| (k, v.into()))
                     .collect(),
             },
-            keep_root: opts.keep_root,
+            keep_root: options.keep_root,
         })
-        .use_sourcemap(opts.sourcemap)
+        .use_sourcemap(options.sourcemap)
         .set_mangler(mangler);
 
     match compiler.compile(&root_path) {
         Ok(result) => {
             let output = result.to_string();
-            native::WeslResult {
+            WeslResult {
                 success: true,
                 data: create_c_string(&output),
                 error: NO_ERROR,
             }
         }
-        Err(e) => native::WeslResult {
+        Err(e) => WeslResult {
             success: false,
             data: ptr::null(),
             error: wesl_error_to_c(e),
@@ -588,9 +730,9 @@ pub unsafe extern "C" fn wesl_compile(
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn wesl_parse(source: *const c_char) -> native::WeslParseResult {
+pub unsafe extern "C" fn wesl_parse(source: *const c_char) -> WeslParseResult {
     if source.is_null() {
-        return native::WeslParseResult {
+        return WeslParseResult {
             success: false,
             data: ptr::null_mut(),
             error: error_from_str("Invalid parameters"),
@@ -599,7 +741,7 @@ pub unsafe extern "C" fn wesl_parse(source: *const c_char) -> native::WeslParseR
 
     let cstr = unsafe { CStr::from_ptr(source) };
     let Ok(str) = cstr.to_str() else {
-        return native::WeslParseResult {
+        return WeslParseResult {
             success: false,
             data: ptr::null_mut(),
             error: error_from_str("Source is not valid UTF-8"),
@@ -609,13 +751,13 @@ pub unsafe extern "C" fn wesl_parse(source: *const c_char) -> native::WeslParseR
     match str.parse::<TranslationUnit>() {
         Ok(unit) => {
             let ptr = Box::into_raw(Box::new(WeslTranslationUnit { unit }));
-            native::WeslParseResult {
+            WeslParseResult {
                 success: true,
                 data: ptr,
                 error: NO_ERROR,
             }
         }
-        Err(e) => native::WeslParseResult {
+        Err(e) => WeslParseResult {
             success: false,
             data: ptr::null_mut(),
             error: wesl_error_to_c(wesl::Error::ParseError(e)),
@@ -626,38 +768,26 @@ pub unsafe extern "C" fn wesl_parse(source: *const c_char) -> native::WeslParseR
 #[cfg(feature = "eval")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn wesl_eval(
-    files: *const native::WeslStringMap,
+    files: &WeslStringMap,
     root: *const c_char,
     expression: *const c_char,
-    options: *const native::WeslCompileOptions,
-    features: *const native::WeslBoolMap,
-) -> native::WeslResult {
-    if files.is_null() || root.is_null() || expression.is_null() || options.is_null() {
-        return native::WeslResult {
-            success: false,
-            data: ptr::null(),
-            error: native::WeslError {
-                source: ptr::null(),
-                message: create_c_string("Invalid parameters"),
-                diagnostics: ptr::null(),
-                diagnostics_len: 0,
-            },
-        };
-    }
-
+    options: &WeslCompileOptions,
+    features: Option<&WeslBoolMap>,
+) -> WeslResult {
     let files_map = unsafe { string_map_to_hashmap(files) };
     let root_str = unsafe { CStr::from_ptr(root).to_string_lossy() };
     let expr_str = unsafe { CStr::from_ptr(expression).to_string_lossy() };
-    let opts = unsafe { &*options };
-    let features_map = unsafe { bool_map_to_hashmap(features) };
+    let features_map = features
+        .map(|features| unsafe { bool_map_to_hashmap(features) })
+        .unwrap_or_default();
 
     let root_path = match root_str.parse() {
         Ok(path) => path,
         Err(e) => {
-            return native::WeslResult {
+            return WeslResult {
                 success: false,
                 data: ptr::null(),
-                error: native::WeslError {
+                error: WeslError {
                     source: ptr::null(),
                     message: create_c_string(&format!("Invalid root path: {e}")),
                     diagnostics: ptr::null(),
@@ -677,14 +807,14 @@ pub unsafe extern "C" fn wesl_eval(
     let mut compiler = Wesl::new_barebones().set_custom_resolver(resolver);
     let compiler = compiler
         .set_options(wesl::CompileOptions {
-            imports: opts.imports,
-            condcomp: opts.condcomp,
-            generics: opts.generics,
-            strip: opts.strip,
-            lower: opts.lower,
-            validate: opts.validate,
-            lazy: opts.lazy,
-            mangle_root: opts.mangle_root,
+            imports: options.imports,
+            condcomp: options.condcomp,
+            generics: options.generics,
+            strip: options.strip,
+            lower: options.lower,
+            validate: options.validate,
+            lazy: options.lazy,
+            mangle_root: options.mangle_root,
             keep: None,
             features: wesl::Features {
                 default: wesl::Feature::Disable,
@@ -693,30 +823,30 @@ pub unsafe extern "C" fn wesl_eval(
                     .map(|(k, v)| (k, v.into()))
                     .collect(),
             },
-            keep_root: opts.keep_root,
+            keep_root: options.keep_root,
         })
-        .use_sourcemap(opts.sourcemap)
-        .set_mangler(map_mangler_kind(opts.mangler).expect("invalid mangler kind"));
+        .use_sourcemap(options.sourcemap)
+        .set_mangler(map_mangler_kind(options.mangler).expect("invalid mangler kind"));
 
     match compiler.compile(&root_path) {
         Ok(result) => match result.eval(&expr_str) {
-            Ok(eval_result) => native::WeslResult {
+            Ok(eval_result) => WeslResult {
                 success: true,
                 data: create_c_string(&eval_result.inst.to_string()),
-                error: native::WeslError {
+                error: WeslError {
                     source: ptr::null(),
                     message: ptr::null(),
                     diagnostics: ptr::null(),
                     diagnostics_len: 0,
                 },
             },
-            Err(e) => native::WeslResult {
+            Err(e) => WeslResult {
                 success: false,
                 data: ptr::null(),
                 error: wesl_error_to_c(e),
             },
         },
-        Err(e) => native::WeslResult {
+        Err(e) => WeslResult {
             success: false,
             data: ptr::null(),
             error: wesl_error_to_c(e),
@@ -727,54 +857,46 @@ pub unsafe extern "C" fn wesl_eval(
 #[cfg(not(feature = "eval"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn wesl_eval(
-    _files: *const native::WeslStringMap,
+    _files: *const WeslStringMap,
     _root: *const c_char,
     _expression: *const c_char,
-    _options: *const native::WeslCompileOptions,
-    _features: *const native::WeslBoolMap,
-) -> native::WeslResult {
+    _options: *const WeslCompileOptions,
+    _features: *const WeslBoolMap,
+) -> WeslResult {
     result_from_str("wesl_eval requires the 'eval' feature to be enabled")
 }
 
 #[cfg(feature = "eval")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn wesl_exec(
-    files: *const native::WeslStringMap,
-    root: *const c_char,
-    entrypoint: *const c_char,
-    options: *const native::WeslCompileOptions,
-    resources: *const native::WeslBindingArray,
-    overrides: *const native::WeslStringMap,
-    features: *const native::WeslBoolMap,
-) -> native::WeslExecResult {
-    if files.is_null() || root.is_null() || entrypoint.is_null() || options.is_null() {
-        return native::WeslExecResult {
-            success: false,
-            resources: ptr::null(),
-            error: native::WeslError {
-                source: ptr::null(),
-                message: create_c_string("Invalid parameters"),
-                diagnostics: ptr::null(),
-                diagnostics_len: 0,
-            },
-        };
-    }
-
+    files: &WeslStringMap,
+    root: &c_char,
+    entrypoint: &c_char,
+    options: &WeslCompileOptions,
+    resources: Option<&WeslBindingArray>,
+    overrides: Option<&WeslStringMap>,
+    features: Option<&WeslBoolMap>,
+) -> WeslExecResult {
     let files_map = unsafe { string_map_to_hashmap(files) };
     let root_str = unsafe { CStr::from_ptr(root).to_string_lossy() };
     let entrypoint_str = unsafe { CStr::from_ptr(entrypoint).to_string_lossy() };
-    let opts = unsafe { &*options };
-    let resources_vec = unsafe { binding_array_to_vec(resources) };
-    let overrides_map = unsafe { string_map_to_hashmap(overrides) };
-    let features_map = unsafe { bool_map_to_hashmap(features) };
+    let resources_vec = resources
+        .map(|resources| unsafe { binding_array_to_vec(resources) })
+        .unwrap_or_default();
+    let overrides_map = overrides
+        .map(|overrides| unsafe { string_map_to_hashmap(overrides) })
+        .unwrap_or_default();
+    let features_map: HashMap<String, bool> = features
+        .map(|features| unsafe { bool_map_to_hashmap(features) })
+        .unwrap_or_default();
 
     let root_path = match root_str.parse() {
         Ok(path) => path,
         Err(e) => {
-            return native::WeslExecResult {
+            return WeslExecResult {
                 success: false,
                 resources: ptr::null(),
-                error: native::WeslError {
+                error: WeslError {
                     source: ptr::null(),
                     message: create_c_string(&format!("Invalid root path: {e}")),
                     diagnostics: ptr::null(),
@@ -794,14 +916,14 @@ pub unsafe extern "C" fn wesl_exec(
     let mut compiler = Wesl::new_barebones().set_custom_resolver(resolver);
     let compiler = compiler
         .set_options(wesl::CompileOptions {
-            imports: opts.imports,
-            condcomp: opts.condcomp,
-            generics: opts.generics,
-            strip: opts.strip,
-            lower: opts.lower,
-            validate: opts.validate,
-            lazy: opts.lazy,
-            mangle_root: opts.mangle_root,
+            imports: options.imports,
+            condcomp: options.condcomp,
+            generics: options.generics,
+            strip: options.strip,
+            lower: options.lower,
+            validate: options.validate,
+            lazy: options.lazy,
+            mangle_root: options.mangle_root,
             keep: None,
             features: wesl::Features {
                 default: wesl::Feature::Disable,
@@ -810,10 +932,10 @@ pub unsafe extern "C" fn wesl_exec(
                     .map(|(k, v)| (k, v.into()))
                     .collect(),
             },
-            keep_root: opts.keep_root,
+            keep_root: options.keep_root,
         })
-        .use_sourcemap(opts.sourcemap)
-        .set_mangler(map_mangler_kind(opts.mangler).expect("invalid mangler kind"));
+        .use_sourcemap(options.sourcemap)
+        .set_mangler(map_mangler_kind(options.mangler).expect("invalid mangler kind"));
 
     match compiler.compile(&root_path) {
         Ok(result) => {
@@ -827,7 +949,7 @@ pub unsafe extern "C" fn wesl_exec(
             let parsed_resources = match parsed_resources {
                 Ok(resources) => resources,
                 Err(e) => {
-                    return native::WeslExecResult {
+                    return WeslExecResult {
                         success: false,
                         resources: ptr::null(),
                         error: wesl_error_to_c(e),
@@ -853,7 +975,7 @@ pub unsafe extern "C" fn wesl_exec(
             let parsed_overrides = match parsed_overrides {
                 Ok(overrides) => overrides,
                 Err(e) => {
-                    return native::WeslExecResult {
+                    return WeslExecResult {
                         success: false,
                         resources: ptr::null(),
                         error: wesl_error_to_c(e),
@@ -866,7 +988,7 @@ pub unsafe extern "C" fn wesl_exec(
             match result.exec(&entrypoint_str, inputs, parsed_resources, parsed_overrides) {
                 Ok(exec_result) => {
                     // convert resources back to C format
-                    let output_resources: Vec<native::WeslBinding> = resources_vec
+                    let output_resources: Vec<WeslBinding> = resources_vec
                         .iter()
                         .filter_map(|r| {
                             let resource = exec_result.resource(r.group, r.binding)?;
@@ -881,10 +1003,10 @@ pub unsafe extern "C" fn wesl_exec(
                         })
                         .collect();
 
-                    native::WeslExecResult {
+                    WeslExecResult {
                         success: true,
                         resources: create_c_binding_array(output_resources),
-                        error: native::WeslError {
+                        error: WeslError {
                             source: ptr::null(),
                             message: ptr::null(),
                             diagnostics: ptr::null(),
@@ -892,14 +1014,14 @@ pub unsafe extern "C" fn wesl_exec(
                         },
                     }
                 }
-                Err(e) => native::WeslExecResult {
+                Err(e) => WeslExecResult {
                     success: false,
                     resources: ptr::null(),
                     error: wesl_error_to_c(e),
                 },
             }
         }
-        Err(e) => native::WeslExecResult {
+        Err(e) => WeslExecResult {
             success: false,
             resources: ptr::null(),
             error: wesl_error_to_c(e),
@@ -910,15 +1032,15 @@ pub unsafe extern "C" fn wesl_exec(
 #[cfg(not(feature = "eval"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn wesl_exec(
-    _files: *const native::WeslStringMap,
+    _files: *const WeslStringMap,
     _root: *const c_char,
     _entrypoint: *const c_char,
-    _options: *const native::WeslCompileOptions,
-    _resources: *const native::WeslBindingArray,
-    _overrides: *const native::WeslStringMap,
-    _features: *const native::WeslBoolMap,
-) -> native::WeslExecResult {
-    native::WeslExecResult {
+    _options: *const WeslCompileOptions,
+    _resources: *const WeslBindingArray,
+    _overrides: *const WeslStringMap,
+    _features: *const WeslBoolMap,
+) -> WeslExecResult {
+    WeslExecResult {
         success: false,
         resources: ptr::null(),
         error: error_from_str("wesl_exec requires the 'eval' feature to be enabled"),
@@ -934,7 +1056,7 @@ pub unsafe extern "C" fn wesl_free_string(ptr: *const c_char) {
     }
 }
 
-unsafe fn free_error(error: &native::WeslError) {
+unsafe fn free_error(error: &WeslError) {
     unsafe {
         if !error.source.is_null() {
             wesl_free_string(error.source);
@@ -952,13 +1074,13 @@ unsafe fn free_error(error: &native::WeslError) {
             if !diag.title.is_null() {
                 wesl_free_string(diag.title);
             }
-            let _ = Box::from_raw(error.diagnostics as *mut native::WeslDiagnostic);
+            let _ = Box::from_raw(error.diagnostics as *mut WeslDiagnostic);
         }
     }
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn wesl_free_result(result: *mut native::WeslResult) {
+pub unsafe extern "C" fn wesl_free_result(result: *mut WeslResult) {
     if !result.is_null() {
         unsafe {
             let result = &mut *result;
@@ -971,7 +1093,7 @@ pub unsafe extern "C" fn wesl_free_result(result: *mut native::WeslResult) {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn wesl_free_exec_result(result: *mut native::WeslExecResult) {
+pub unsafe extern "C" fn wesl_free_exec_result(result: *mut WeslExecResult) {
     if !result.is_null() {
         unsafe {
             let result = &mut *result;
@@ -991,11 +1113,11 @@ pub unsafe extern "C" fn wesl_free_exec_result(result: *mut native::WeslExecResu
                 }
 
                 let _ = Box::from_raw(std::ptr::slice_from_raw_parts_mut(
-                    resources.items as *mut native::WeslBinding,
+                    resources.items as *mut WeslBinding,
                     resources.len,
                 ));
 
-                let _ = Box::from_raw(result.resources as *mut native::WeslBindingArray);
+                let _ = Box::from_raw(result.resources as *mut WeslBindingArray);
             }
 
             free_error(&result.error);
@@ -1004,7 +1126,7 @@ pub unsafe extern "C" fn wesl_free_exec_result(result: *mut native::WeslExecResu
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn wesl_free_parse_result(result: *mut native::WeslParseResult) {
+pub unsafe extern "C" fn wesl_free_parse_result(result: *mut WeslParseResult) {
     if !result.is_null() {
         unsafe {
             let result = &*result;

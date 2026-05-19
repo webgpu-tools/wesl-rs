@@ -272,16 +272,12 @@ pub fn scan_from_config(
     base_dir: &Path,
     config: &WeslToml,
 ) -> Result<ScanResult, ScanTomlError> {
-    let root_path = &config.package.root;
-    let root_path = base_dir.join(root_path);
+    let root_path = std::path::absolute(base_dir.join(&config.package.root))?;
 
-    let matched_files = collect_glob_filtered(base_dir, &config.package.include, Path::is_file)?;
-    let exclude_paths = collect_glob_filtered(base_dir, &config.package.exclude, |_| true)?;
+    let include = compile_patterns(&config.package.include)?;
+    let exclude = compile_patterns(&config.package.exclude)?;
 
-    let matched_files: HashSet<_> = matched_files
-        .into_iter()
-        .filter(|file| !is_excluded(file, &exclude_paths))
-        .collect();
+    let matched_files = walk_directory(base_dir, &root_path, &include, &exclude)?;
 
     if matched_files.is_empty() {
         return Err(ScanTomlError::NoFilesMatched);
@@ -291,42 +287,64 @@ pub fn scan_from_config(
     Ok(ScanResult { module, warnings })
 }
 
-/// Collect paths matching glob patterns, filtered by a predicate.
-fn collect_glob_filtered(
+/// Compile glob pattern strings into `glob::Pattern` values.
+fn compile_patterns(patterns: &[String]) -> Result<Vec<glob::Pattern>, ScanTomlError> {
+    patterns
+        .iter()
+        .map(|p| {
+            let stripped = p.strip_prefix("./").unwrap_or(p);
+            glob::Pattern::new(stripped).map_err(|e| ScanTomlError::InvalidGlob(p.clone(), e))
+        })
+        .collect()
+}
+
+/// Walk `root_dir` recursively, collecting files that match any include pattern
+/// and no exclude pattern. Patterns are matched against paths relative to
+/// `base_dir` (the directory containing wesl.toml). Directories containing
+/// their own `wesl.toml` are treated as separate packages and skipped entirely.
+fn walk_directory(
     base_dir: &Path,
-    patterns: &[String],
-    filter: impl Fn(&Path) -> bool,
+    root_dir: &Path,
+    include: &[glob::Pattern],
+    exclude: &[glob::Pattern],
 ) -> Result<HashSet<PathBuf>, ScanTomlError> {
-    let mut paths = HashSet::new();
+    let mut files = HashSet::new();
+    let mut stack = vec![root_dir.to_path_buf()];
 
-    for pattern in patterns {
-        // Join with base_dir so glob resolves relative to wesl.toml, not cwd
-        let pattern_path = pattern
-            .strip_prefix("./")
-            .map_or_else(|| base_dir.join(pattern), |s| base_dir.join(s));
+    while let Some(dir) = stack.pop() {
+        let entries = match std::fs::read_dir(&dir) {
+            Ok(rd) => rd,
+            Err(e) => return Err(ScanTomlError::Io(e)),
+        };
 
-        let pattern_str = pattern_path.to_string_lossy();
-        let glob_iter =
-            glob::glob(&pattern_str).map_err(|e| ScanTomlError::InvalidGlob(pattern.clone(), e))?;
+        for entry in entries {
+            let path = entry?.path();
+            let rel = path.strip_prefix(base_dir).unwrap_or(&path);
 
-        for path in glob_iter.flatten().filter(|p| filter(p)) {
-            let canonical = path.canonicalize().unwrap_or(path);
-            paths.insert(canonical);
+            if glob_match(exclude, rel) {
+                // skip excluded paths
+            } else if path.is_dir() {
+                let is_nested_pkg = path != root_dir && path.join("wesl.toml").is_file();
+                if !is_nested_pkg {
+                    stack.push(path);
+                }
+            } else if path.is_file() && glob_match(include, rel) {
+                files.insert(path);
+            }
         }
     }
 
-    Ok(paths)
+    Ok(files)
 }
 
-/// Check if a file should be excluded.
-///
-/// A file is excluded if it matches an exclude path directly,
-/// or if it's inside an excluded directory.
-fn is_excluded(file: &Path, exclude_paths: &HashSet<PathBuf>) -> bool {
-    exclude_paths.contains(file)
-        || exclude_paths
-            .iter()
-            .any(|excl| excl.is_dir() && file.starts_with(excl))
+/// Check if a path matches any of the given glob patterns.
+fn glob_match(patterns: &[glob::Pattern], path: &Path) -> bool {
+    let opts = glob::MatchOptions {
+        case_sensitive: true,
+        require_literal_separator: false,
+        require_literal_leading_dot: false,
+    };
+    patterns.iter().any(|pat| pat.matches_path_with(path, opts))
 }
 
 struct FileEntry {
@@ -385,18 +403,10 @@ fn derive_module_paths(
     files: &HashSet<PathBuf>,
     root_path: &Path,
 ) -> Result<(Vec<FileEntry>, Vec<ScanWarning>), ScanTomlError> {
-    let canonical_root = root_path
-        .canonicalize()
-        .unwrap_or_else(|_| root_path.to_path_buf());
-
     let mut entries = Vec::new();
     let mut warnings = Vec::new();
     for file_path in files {
-        let canonical_file = file_path
-            .canonicalize()
-            .unwrap_or_else(|_| file_path.clone());
-
-        let relative = canonical_file.strip_prefix(&canonical_root).map_err(|_| {
+        let relative = file_path.strip_prefix(root_path).map_err(|_| {
             ScanTomlError::FileOutsideRoot(file_path.clone(), root_path.to_path_buf())
         })?;
 
@@ -641,13 +651,13 @@ mod tests {
 
     #[test]
     fn test_overlapping_patterns_deduplicated() {
-        // Overlapping patterns that resolve to the same files should be deduplicated
+        // Overlapping patterns matching the same files should be deduplicated
         let base = fixtures_dir().join("basic");
         let config = WeslToml::parse_str(
             r#"
             edition = "2026_pre"
             root = "./shaders/"
-            include = ["./shaders/**/*.wesl", "./shaders/../shaders/**/*.wesl"]
+            include = ["shaders/**/*.wesl", "shaders/**/*.wesl"]
             "#,
         )
         .unwrap();
@@ -655,5 +665,23 @@ mod tests {
 
         // Should still be 2 modules (main + utils), not duplicated
         assert_eq!(result.module.submodules.len(), 2);
+    }
+
+    #[test]
+    fn test_nested_wesl_toml_excluded() {
+        // A subdirectory with its own wesl.toml should be excluded from scanning
+        let base = fixtures_dir().join("nested");
+        let config = WeslToml::parse_str(
+            r#"
+            edition = "2026_pre"
+            root = "./shaders/"
+            "#,
+        )
+        .unwrap();
+        let result = scan_from_config("my_pkg", &base, &config).unwrap();
+
+        // Should only contain `main`, not `subpkg/inner`
+        assert_eq!(result.module.submodules.len(), 1);
+        assert_eq!(result.module.submodules[0].name, "main");
     }
 }

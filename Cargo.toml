@@ -27,7 +27,7 @@ default-members = [
 ]
 
 [workspace.package]
-version = "0.3.2"
+version = "0.4.0"
 edition = "2024"
 rust-version = "1.87.0"
 repository = "https://github.com/wgsl-tooling-wg/wesl-rs"
@@ -36,11 +36,11 @@ license = "MIT OR Apache-2.0"
 [workspace.dependencies]
 tokrepr = { path = "crates/tokrepr", version = "0.1.0" }
 tokrepr-derive = { path = "crates/tokrepr-derive", version = "0.1.0" }
-wesl = { path = "crates/wesl", version = "0.3.2" }
-wesl-macros = { path = "crates/wesl-macros", version = "0.3.2" }
-wesl-quote = { path = "crates/wesl-quote", version = "0.3.2" }
-wgsl-parse = { path = "crates/wgsl-parse", version = "0.3.2" }
-wgsl-types = { path = "crates/wgsl-types", version = "0.3.2" }
+wesl = { path = "crates/wesl", version = "0.4.0" }
+wesl-macros = { path = "crates/wesl-macros", version = "0.4.0" }
+wesl-quote = { path = "crates/wesl-quote", version = "0.4.0" }
+wgsl-parse = { path = "crates/wgsl-parse", version = "0.4.0" }
+wgsl-types = { path = "crates/wgsl-types", version = "0.4.0" }
 
 [workspace.lints.clippy]
 # TODO: change eventually

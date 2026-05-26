@@ -50,7 +50,7 @@ Try out WESL and its implementations, `wesl-js` and `wesl-rs` on the [playground
 ## Status
 
 > [!NOTE]
-> last update: 2025-07
+> last update: 2026-05
 
 **WESL 0.2** was released and supports the following features:
 

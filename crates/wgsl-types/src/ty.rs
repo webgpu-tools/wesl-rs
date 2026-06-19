@@ -263,6 +263,10 @@ pub enum Type {
     Struct(Box<StructType>),
     Array(Box<Type>, Option<usize>),
     Vec(u8, Box<Type>),
+    #[cfg(feature = "complex")]
+    Complex(Box<Type>),
+    #[cfg(feature = "complex")]
+    Quat(Box<Type>),
     Mat(u8, u8, Box<Type>),
     Atomic(Box<Type>),
     Ptr(AddressSpace, Box<Type>, AccessMode),
@@ -341,6 +345,8 @@ impl Type {
             Type::AbstractInt => true,
             Type::AbstractFloat => true,
             Type::Array(ty, _) | Type::Vec(_, ty) | Type::Mat(_, _, ty) => ty.is_abstract(),
+            #[cfg(feature = "complex")]
+            Type::Complex(ty) | Type::Quat(ty) => ty.is_abstract(),
             _ => false,
         }
     }
@@ -363,6 +369,8 @@ impl Type {
                 | Type::Vec(_, _)
                 | Type::Mat(_, _, _)
                 | Type::Atomic(_) => true,
+                #[cfg(feature = "complex")]
+                Type::Complex(_) | Type::Quat(_) => true,
                 #[cfg(feature = "naga-ext")]
                 Type::I64 | Type::U64 | Type::F64 => true,
                 _ => false,
@@ -374,6 +382,14 @@ impl Type {
     }
     pub fn is_vec(&self) -> bool {
         matches!(self, Type::Vec(_, _))
+    }
+    #[cfg(feature = "complex")]
+    pub fn is_complex(&self) -> bool {
+        matches!(self, Type::Complex(_))
+    }
+    #[cfg(feature = "complex")]
+    pub fn is_quat(&self) -> bool {
+        matches!(self, Type::Quat(_))
     }
     pub fn is_i32(&self) -> bool {
         matches!(self, Type::I32)
@@ -426,6 +442,22 @@ impl Type {
             val => panic!("called `Type::unwrap_vec()` on a `{val}` value"),
         }
     }
+
+    #[cfg(feature = "complex")]
+    pub fn unwrap_complex(self) -> Box<Type> {
+        match self {
+            Type::Complex(ty) => ty,
+            val => panic!("called `Type::unwrap_complex()` on a `{val}` value"),
+        }
+    }
+
+    #[cfg(feature = "complex")]
+    pub fn unwrap_quat(self) -> Box<Type> {
+        match self {
+            Type::Quat(ty) => ty,
+            val => panic!("called `Type::unwrap_complex()` on a `{val}` value"),
+        }
+    }
 }
 
 pub trait Ty {
@@ -457,6 +489,10 @@ impl Ty for Type {
             Type::Struct(_) => self.clone(),
             Type::Array(ty, _) => ty.ty(),
             Type::Vec(_, ty) => ty.ty(),
+            #[cfg(feature = "complex")]
+            Type::Complex(ty) => ty.ty(),
+            #[cfg(feature = "complex")]
+            Type::Quat(ty) => ty.ty(),
             Type::Mat(_, _, ty) => ty.ty(),
             Type::Atomic(ty) => ty.ty(),
             Type::Ptr(_, ty, _) => ty.ty(),
@@ -486,6 +522,10 @@ impl Ty for Instance {
             Instance::Struct(s) => s.ty(),
             Instance::Array(a) => a.ty(),
             Instance::Vec(v) => v.ty(),
+            #[cfg(feature = "complex")]
+            Instance::Complex(c) => c.ty(),
+            #[cfg(feature = "complex")]
+            Instance::Quat(q) => q.ty(),
             Instance::Mat(m) => m.ty(),
             Instance::Ptr(p) => p.ty(),
             Instance::Ref(r) => r.ty(),
@@ -499,6 +539,10 @@ impl Ty for Instance {
             Instance::Struct(s) => s.inner_ty(),
             Instance::Array(a) => a.inner_ty(),
             Instance::Vec(v) => v.inner_ty(),
+            #[cfg(feature = "complex")]
+            Instance::Complex(c) => c.inner_ty(),
+            #[cfg(feature = "complex")]
+            Instance::Quat(q) => q.inner_ty(),
             Instance::Mat(m) => m.inner_ty(),
             Instance::Ptr(p) => p.inner_ty(),
             Instance::Ref(r) => r.inner_ty(),
@@ -549,6 +593,26 @@ impl Ty for ArrayInstance {
 impl Ty for VecInstance {
     fn ty(&self) -> Type {
         Type::Vec(self.n() as u8, Box::new(self.inner_ty()))
+    }
+    fn inner_ty(&self) -> Type {
+        self.get(0).unwrap().ty()
+    }
+}
+
+#[cfg(feature = "complex")]
+impl Ty for ComplexInstance {
+    fn ty(&self) -> Type {
+        Type::Complex(Box::new(self.inner_ty()))
+    }
+    fn inner_ty(&self) -> Type {
+        self.get(0).unwrap().ty()
+    }
+}
+
+#[cfg(feature = "complex")]
+impl Ty for QuatInstance {
+    fn ty(&self) -> Type {
+        Type::Quat(Box::new(self.inner_ty()))
     }
     fn inner_ty(&self) -> Type {
         self.get(0).unwrap().ty()

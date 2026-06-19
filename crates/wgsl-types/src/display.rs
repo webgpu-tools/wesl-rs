@@ -13,6 +13,9 @@ use crate::{
     ty::{SamplerType, TextureType, Ty, Type},
 };
 
+#[cfg(feature = "complex")]
+use crate::inst::{ComplexInstance, QuatInstance};
+
 impl Display for TpltParam {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -44,6 +47,10 @@ impl Display for Instance {
             Instance::Struct(inst) => write!(f, "{inst}"),
             Instance::Array(inst) => write!(f, "{inst}"),
             Instance::Vec(inst) => write!(f, "{inst}"),
+            #[cfg(feature = "complex")]
+            Instance::Complex(inst) => write!(f, "{inst}"),
+            #[cfg(feature = "complex")]
+            Instance::Quat(inst) => write!(f, "{inst}"),
             Instance::Mat(inst) => write!(f, "{inst}"),
             Instance::Ptr(inst) => write!(f, "{inst}"),
             Instance::Ref(inst) => write!(f, "{inst}"),
@@ -97,6 +104,22 @@ impl Display for VecInstance {
         let n = self.n();
         let comps = self.iter().format(", ");
         write!(f, "vec{n}({comps})")
+    }
+}
+
+#[cfg(feature = "complex")]
+impl Display for ComplexInstance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let comps = self.iter().format(", ");
+        write!(f, "complex({comps})")
+    }
+}
+
+#[cfg(feature = "complex")]
+impl Display for QuatInstance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let comps = self.iter().format(", ");
+        write!(f, "quat({comps})")
     }
 }
 
@@ -183,6 +206,10 @@ impl Display for Type {
             Type::Array(ty, Some(n)) => write!(f, "array<{ty}, {n}>"),
             Type::Array(ty, None) => write!(f, "array<{ty}>"),
             Type::Vec(n, ty) => write!(f, "vec{n}<{ty}>"),
+            #[cfg(feature = "complex")]
+            Type::Complex(ty) => write!(f, "complex<{ty}>"),
+            #[cfg(feature = "complex")]
+            Type::Quat(ty) => write!(f, "quat<{ty}>"),
             Type::Mat(m, n, ty) => write!(f, "mat{m}x{n}<{ty}>"),
             Type::Atomic(ty) => write!(f, "atomic<{ty}>"),
             Type::Ptr(a_s, ty, a_m) => write!(f, "ptr<{a_s}, {ty}, {a_m}>"),

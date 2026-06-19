@@ -16,6 +16,9 @@ use crate::{
     ty::{Ty, Type},
 };
 
+#[cfg(feature = "complex")]
+use crate::inst::{ComplexInstance, QuatInstance};
+
 pub trait Convert: Sized + Clone + Ty {
     /// Convert an instance to another type, if a feasible conversion exists.
     ///
@@ -59,6 +62,12 @@ impl Convert for Type {
             Type::Vec(n, inner) => inner
                 .convert_to(ty)
                 .map(|inner| Type::Vec(*n, inner.into())),
+            #[cfg(feature = "complex")]
+            Type::Complex(inner) => inner
+                .convert_to(ty)
+                .map(|inner| Type::Complex(inner.into())),
+            #[cfg(feature = "complex")]
+            Type::Quat(inner) => inner.convert_to(ty).map(|inner| Type::Quat(inner.into())),
             Type::Mat(c, r, inner) => inner
                 .convert_to(ty)
                 .map(|inner| Type::Mat(*c, *r, inner.into())),
@@ -82,6 +91,10 @@ impl Type {
             Self::AbstractFloat => Type::F32,
             Self::Array(ty, n) => Type::Array(ty.concretize().into(), *n),
             Self::Vec(n, ty) => Type::Vec(*n, ty.concretize().into()),
+            #[cfg(feature = "complex")]
+            Self::Complex(ty) => Type::Complex(ty.concretize().into()),
+            #[cfg(feature = "complex")]
+            Self::Quat(ty) => Type::Quat(ty.concretize().into()),
             Self::Mat(c, r, ty) if ty.is_abstract() => Type::Mat(*c, *r, Type::F32.into()),
             _ => self.clone(),
         }
@@ -187,6 +200,7 @@ impl Convert for ArrayInstance {
 
 impl Convert for VecInstance {
     fn convert_to(&self, ty: &Type) -> Option<Self> {
+        // TODO: Add conversion to complex/quat here?
         if let Type::Vec(n, c_ty) = ty {
             if *n as usize == self.n() {
                 self.convert_inner_to(c_ty)
@@ -203,6 +217,44 @@ impl Convert for VecInstance {
             .map(|c| c.convert_to(ty))
             .collect::<Option<Vec<_>>>()?;
         Some(VecInstance::new(components))
+    }
+}
+
+#[cfg(feature = "complex")]
+impl Convert for ComplexInstance {
+    fn convert_to(&self, ty: &Type) -> Option<Self> {
+        // TODO: Add conversion to vec2 here?
+        if let Type::Complex(c_ty) = ty {
+            self.convert_inner_to(c_ty)
+        } else {
+            None
+        }
+    }
+    fn convert_inner_to(&self, ty: &Type) -> Option<Self> {
+        let components = self
+            .iter()
+            .map(|c| c.convert_to(ty))
+            .collect::<Option<Vec<_>>>()?;
+        Some(ComplexInstance::new(components))
+    }
+}
+
+#[cfg(feature = "complex")]
+impl Convert for QuatInstance {
+    fn convert_to(&self, ty: &Type) -> Option<Self> {
+        // TODO: Add conversion to vec4 here?
+        if let Type::Quat(c_ty) = ty {
+            self.convert_inner_to(c_ty)
+        } else {
+            None
+        }
+    }
+    fn convert_inner_to(&self, ty: &Type) -> Option<Self> {
+        let components = self
+            .iter()
+            .map(|c| c.convert_to(ty))
+            .collect::<Option<Vec<_>>>()?;
+        Some(QuatInstance::new(components))
     }
 }
 
@@ -274,6 +326,10 @@ impl Convert for Instance {
             Self::Struct(s) => s.convert_to(ty).map(Self::Struct),
             Self::Array(a) => a.convert_to(ty).map(Self::Array),
             Self::Vec(v) => v.convert_to(ty).map(Self::Vec),
+            #[cfg(feature = "complex")]
+            Self::Complex(c) => c.convert_to(ty).map(Self::Complex),
+            #[cfg(feature = "complex")]
+            Self::Quat(q) => q.convert_to(ty).map(Self::Quat),
             Self::Mat(m) => m.convert_to(ty).map(Self::Mat),
             Self::Ptr(_) => None,
             Self::Ref(r) => r.read().ok().and_then(|r| r.convert_to(ty)), // this is the "load rule". Also performed by `eval_value`.
@@ -288,6 +344,10 @@ impl Convert for Instance {
             Self::Struct(_) => None,
             Self::Array(a) => a.convert_inner_to(ty).map(Self::Array),
             Self::Vec(v) => v.convert_inner_to(ty).map(Self::Vec),
+            #[cfg(feature = "complex")]
+            Self::Complex(c) => c.convert_inner_to(ty).map(Self::Complex),
+            #[cfg(feature = "complex")]
+            Self::Quat(q) => q.convert_inner_to(ty).map(Self::Quat),
             Self::Mat(m) => m.convert_inner_to(ty).map(Self::Mat),
             Self::Ptr(_) => None,
             Self::Ref(r) => r.read().ok().and_then(|r| r.convert_inner_to(ty)), // this is the "load rule". Also performed by `eval_value`.
@@ -328,6 +388,10 @@ pub fn conversion_rank(ty1: &Type, ty2: &Type) -> Option<u32> {
         }
         (Type::Array(ty1, n1), Type::Array(ty2, n2)) if n1 == n2 => conversion_rank(ty1, ty2),
         (Type::Vec(n1, ty1), Type::Vec(n2, ty2)) if n1 == n2 => conversion_rank(ty1, ty2),
+        #[cfg(feature = "complex")]
+        (Type::Complex(ty1), Type::Complex(ty2)) => conversion_rank(ty1, ty2),
+        #[cfg(feature = "complex")]
+        (Type::Quat(ty1), Type::Quat(ty2)) => conversion_rank(ty1, ty2),
         (Type::Mat(c1, r1, ty1), Type::Mat(c2, r2, ty2)) if c1 == c2 && r1 == r2 => {
             conversion_rank(ty1, ty2)
         }

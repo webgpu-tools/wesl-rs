@@ -66,6 +66,10 @@ pub const BUILTIN_TYPE_GENERATOR_NAMES: &[&str] = &[
     "vec2",
     "vec3",
     "vec4",
+    #[cfg(feature = "complex")]
+    "complex",
+    #[cfg(feature = "complex")]
+    "quat",
     #[cfg(feature = "naga-ext")]
     "binding_array",
     #[cfg(feature = "naga-ext")]
@@ -150,10 +154,52 @@ pub const BUILTIN_DECLARATION_NAMES: &[&str] = &[
 
 /// Predeclared type aliases names.
 pub const BUILTIN_ALIAS_NAMES: &[&str] = &[
-    "vec2i", "vec3i", "vec4i", "vec2u", "vec3u", "vec4u", "vec2f", "vec3f", "vec4f", "vec2h",
-    "vec3h", "vec4h", "mat2x2f", "mat2x3f", "mat2x4f", "mat3x2f", "mat3x3f", "mat3x4f", "mat4x2f",
-    "mat4x3f", "mat4x4f", "mat2x2h", "mat2x3h", "mat2x4h", "mat3x2h", "mat3x3h", "mat3x4h",
-    "mat4x2h", "mat4x3h", "mat4x4h",
+    "vec2i",
+    "vec3i",
+    "vec4i",
+    "vec2u",
+    "vec3u",
+    "vec4u",
+    "vec2f",
+    "vec3f",
+    "vec4f",
+    "vec2h",
+    "vec3h",
+    "vec4h",
+    #[cfg(feature = "complex")]
+    "complexi",
+    #[cfg(feature = "complex")]
+    "complexu",
+    #[cfg(feature = "complex")]
+    "complexf",
+    #[cfg(feature = "complex")]
+    "complexh",
+    #[cfg(feature = "complex")]
+    "quati",
+    #[cfg(feature = "complex")]
+    "quatu",
+    #[cfg(feature = "complex")]
+    "quatf",
+    #[cfg(feature = "complex")]
+    "quath",
+    "mat2x2f",
+    "mat2x3f",
+    "mat2x4f",
+    "mat3x2f",
+    "mat3x3f",
+    "mat3x4f",
+    "mat4x2f",
+    "mat4x3f",
+    "mat4x4f",
+    "mat2x2h",
+    "mat2x3h",
+    "mat2x4h",
+    "mat3x2h",
+    "mat3x3h",
+    "mat3x4h",
+    "mat4x2h",
+    "mat4x3h",
+    "mat4x4h",
 ];
 
 /// Built-in enumerants identifiers.
@@ -466,6 +512,22 @@ pub const BUILTIN_CONSTRUCTOR_NAMES: &[&str] = &[
     "vec2h",
     "vec3h",
     "vec4h",
+    #[cfg(feature = "complex")]
+    "complexi",
+    #[cfg(feature = "complex")]
+    "complexu",
+    #[cfg(feature = "complex")]
+    "complexf",
+    #[cfg(feature = "complex")]
+    "complexh",
+    #[cfg(feature = "complex")]
+    "quati",
+    #[cfg(feature = "complex")]
+    "quatu",
+    #[cfg(feature = "complex")]
+    "quatf",
+    #[cfg(feature = "complex")]
+    "quath",
     "mat2x2f",
     "mat2x3f",
     "mat2x4f",

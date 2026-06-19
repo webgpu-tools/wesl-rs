@@ -11,6 +11,9 @@ use crate::{
     ty::{Ty, Type},
 };
 
+#[cfg(feature = "complex")]
+use crate::inst::{ComplexInstance, QuatInstance};
+
 impl Instance {
     /// Memory representation of host-shareable instances.
     ///
@@ -21,6 +24,10 @@ impl Instance {
             Instance::Struct(s) => s.to_buffer(),
             Instance::Array(a) => a.to_buffer(),
             Instance::Vec(v) => v.to_buffer(),
+            #[cfg(feature = "complex")]
+            Instance::Complex(c) => c.to_buffer(),
+            #[cfg(feature = "complex")]
+            Instance::Quat(q) => q.to_buffer(),
             Instance::Mat(m) => m.to_buffer(),
             Instance::Ptr(_) => None,
             Instance::Ref(_) => None,
@@ -146,6 +153,32 @@ impl Instance {
                     .collect::<Option<Vec<_>>>()?;
                 Some(VecInstance::new(comps).into())
             }
+            #[cfg(feature = "complex")]
+            Type::Complex(ty) => {
+                let mut offset = 0;
+                let size = ty.size_of()?;
+                let comps = (0..2)
+                    .map(|_| {
+                        let buf = buf.get(offset as usize..(offset + size) as usize)?;
+                        offset += size;
+                        Instance::from_buffer(buf, ty)
+                    })
+                    .collect::<Option<Vec<_>>>()?;
+                Some(ComplexInstance::new(comps).into())
+            }
+            #[cfg(feature = "complex")]
+            Type::Quat(ty) => {
+                let mut offset = 0;
+                let size = ty.size_of()?;
+                let comps = (0..4)
+                    .map(|_| {
+                        let buf = buf.get(offset as usize..(offset + size) as usize)?;
+                        offset += size;
+                        Instance::from_buffer(buf, ty)
+                    })
+                    .collect::<Option<Vec<_>>>()?;
+                Some(ComplexInstance::new(comps).into())
+            }
             Type::Mat(c, r, ty) => {
                 let mut offset = 0;
                 let col_ty = Type::Vec(*r, ty.clone());
@@ -266,6 +299,34 @@ impl VecInstance {
     }
 }
 
+#[cfg(feature = "complex")]
+impl ComplexInstance {
+    /// Memory representation of host-shareable instances.
+    ///
+    /// Returns `None` if the type is not host-shareable.
+    fn to_buffer(&self) -> Option<Vec<u8>> {
+        Some(
+            self.iter()
+                .flat_map(|v| v.to_buffer().unwrap(/* SAFETY: vector elements must be host-shareable */).into_iter())
+                .collect_vec(),
+        )
+    }
+}
+
+#[cfg(feature = "complex")]
+impl QuatInstance {
+    /// Memory representation of host-shareable instances.
+    ///
+    /// Returns `None` if the type is not host-shareable.
+    fn to_buffer(&self) -> Option<Vec<u8>> {
+        Some(
+            self.iter()
+                .flat_map(|v| v.to_buffer().unwrap(/* SAFETY: vector elements must be host-shareable */).into_iter())
+                .collect_vec(),
+        )
+    }
+}
+
 impl MatInstance {
     /// Memory representation of host-shareable instances.
     ///
@@ -341,6 +402,16 @@ impl Type {
                 let size = ty.size_of()?;
                 Some(*n as u32 * size)
             }
+            #[cfg(feature = "complex")]
+            Type::Complex(ty) => {
+                let size = ty.size_of()?;
+                Some(2 * size)
+            }
+            #[cfg(feature = "complex")]
+            Type::Quat(ty) => {
+                let size = ty.size_of()?;
+                Some(4 * size)
+            }
             Type::Mat(c, r, ty) => {
                 let align = Type::Vec(*r, ty.clone()).align_of()?;
                 Some(*c as u32 * align)
@@ -402,6 +473,16 @@ impl Type {
                 } else {
                     self.size_of()
                 }
+            }
+            #[cfg(feature = "complex")]
+            Type::Complex(_) => {
+                // Complex is always 2 components
+                self.size_of()
+            }
+            #[cfg(feature = "complex")]
+            Type::Quat(_) => {
+                // Quat is always 4 components
+                self.size_of()
             }
             Type::Mat(_, r, ty) => Type::Vec(*r, ty.clone()).align_of(),
             Type::Atomic(_) => Some(4),

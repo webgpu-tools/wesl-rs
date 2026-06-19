@@ -23,6 +23,7 @@ tokrepr = { workspace = true, optional = true }
 naga-ext = []
 serde = ["dep:serde"]
 tokrepr = ["dep:tokrepr"]
+complex = []
 
 [lints]
 workspace = true

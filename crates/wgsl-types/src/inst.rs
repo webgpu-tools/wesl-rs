@@ -54,6 +54,10 @@ pub enum Instance {
     Struct(StructInstance),
     Array(ArrayInstance),
     Vec(VecInstance),
+    #[cfg(feature = "complex")]
+    Complex(ComplexInstance),
+    #[cfg(feature = "complex")]
+    Quat(QuatInstance),
     Mat(MatInstance),
     Ptr(PtrInstance),
     Ref(RefInstance),
@@ -94,6 +98,48 @@ impl Instance {
             val => panic!("called `Instance::unwrap_vec_mut()` on a `{val}` value"),
         }
     }
+    #[cfg(feature = "complex")]
+    pub fn unwrap_complex(self) -> ComplexInstance {
+        match self {
+            Instance::Complex(field_0) => field_0,
+            val => panic!("called `Instance::unwrap_complex()` on a `{val}` value"),
+        }
+    }
+    #[cfg(feature = "complex")]
+    pub fn unwrap_complex_ref(&self) -> &ComplexInstance {
+        match self {
+            Instance::Complex(field_0) => field_0,
+            val => panic!("called `Instance::unwrap_complex_ref()` on a `{val}` value"),
+        }
+    }
+    #[cfg(feature = "complex")]
+    pub fn unwrap_complex_mut(&mut self) -> &mut ComplexInstance {
+        match self {
+            Instance::Complex(field_0) => field_0,
+            val => panic!("called `Instance::unwrap_complex_mut()` on a `{val}` value"),
+        }
+    }
+    #[cfg(feature = "complex")]
+    pub fn unwrap_quat(self) -> QuatInstance {
+        match self {
+            Instance::Quat(field_0) => field_0,
+            val => panic!("called `Instance::unwrap_quat()` on a `{val}` value"),
+        }
+    }
+    #[cfg(feature = "complex")]
+    pub fn unwrap_quat_ref(&self) -> &QuatInstance {
+        match self {
+            Instance::Quat(field_0) => field_0,
+            val => panic!("called `Instance::unwrap_quat_ref()` on a `{val}` value"),
+        }
+    }
+    #[cfg(feature = "complex")]
+    pub fn unwrap_quat_mut(&mut self) -> &mut QuatInstance {
+        match self {
+            Instance::Quat(field_0) => field_0,
+            val => panic!("called `Instance::unwrap_quat_mut()` on a `{val}` value"),
+        }
+    }
 }
 
 macro_rules! from_enum {
@@ -110,6 +156,10 @@ from_enum!(Instance::Literal(LiteralInstance));
 from_enum!(Instance::Struct(StructInstance));
 from_enum!(Instance::Array(ArrayInstance));
 from_enum!(Instance::Vec(VecInstance));
+#[cfg(feature = "complex")]
+from_enum!(Instance::Complex(ComplexInstance));
+#[cfg(feature = "complex")]
+from_enum!(Instance::Quat(QuatInstance));
 from_enum!(Instance::Mat(MatInstance));
 from_enum!(Instance::Ptr(PtrInstance));
 from_enum!(Instance::Ref(RefInstance));
@@ -169,6 +219,16 @@ impl Instance {
                         .ok_or(E::OutOfBounds(*i, v.ty(), v.n()))?;
                     inst.view(view)
                 }
+                #[cfg(feature = "complex")]
+                Instance::Complex(c) => {
+                    let inst = c.components.get(*i).ok_or(E::OutOfBounds(*i, c.ty(), 2))?;
+                    inst.view(view)
+                }
+                #[cfg(feature = "complex")]
+                Instance::Quat(q) => {
+                    let inst = q.components.get(*i).ok_or(E::OutOfBounds(*i, q.ty(), 4))?;
+                    inst.view(view)
+                }
                 Instance::Mat(m) => {
                     let inst = m
                         .components
@@ -204,6 +264,16 @@ impl Instance {
                 Instance::Vec(v) => {
                     let n = v.n();
                     let inst = v.components.get_mut(*i).ok_or(E::OutOfBounds(*i, ty, n))?;
+                    inst.view_mut(view)
+                }
+                #[cfg(feature = "complex")]
+                Instance::Complex(c) => {
+                    let inst = c.components.get_mut(*i).ok_or(E::OutOfBounds(*i, ty, 2))?;
+                    inst.view_mut(view)
+                }
+                #[cfg(feature = "complex")]
+                Instance::Quat(q) => {
+                    let inst = q.components.get_mut(*i).ok_or(E::OutOfBounds(*i, ty, 4))?;
                     inst.view_mut(view)
                 }
                 Instance::Mat(m) => {
@@ -490,6 +560,138 @@ impl<T: Into<Instance>> From<[T; 3]> for VecInstance {
     }
 }
 impl<T: Into<Instance>> From<[T; 4]> for VecInstance {
+    fn from(components: [T; 4]) -> Self {
+        Self::new(components.map(Into::into).to_vec())
+    }
+}
+
+/// Instance of a `complex<T>` type.
+#[cfg(feature = "complex")]
+#[derive(Clone, Debug, PartialEq)]
+pub struct ComplexInstance {
+    components: ArrayInstance,
+}
+
+#[cfg(feature = "complex")]
+impl ComplexInstance {
+    /// Construct a `complex`.
+    ///
+    /// # Panics
+    /// * if the components length is not 2
+    /// * if the components are not all the same type
+    /// * if the type is not a scalar
+    pub fn new(components: Vec<Instance>) -> Self {
+        assert_eq!(components.len(), 2);
+        let components = ArrayInstance::new(components, false);
+        assert!(components.inner_ty().is_scalar());
+        Self { components }
+    }
+    /// Get a component by index.
+    pub fn get(&self, i: usize) -> Option<&Instance> {
+        self.components.get(i)
+    }
+    /// Get a component by index.
+    pub fn get_mut(&mut self, i: usize) -> Option<&mut Instance> {
+        self.components.get_mut(i)
+    }
+    pub fn iter(&self) -> impl Iterator<Item = &Instance> {
+        self.components.iter()
+    }
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Instance> {
+        self.components.iter_mut()
+    }
+    pub fn as_slice(&self) -> &[Instance] {
+        self.components.as_slice()
+    }
+}
+
+#[cfg(feature = "complex")]
+impl IntoIterator for ComplexInstance {
+    type Item = Instance;
+    type IntoIter = <ArrayInstance as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.components.into_iter()
+    }
+}
+
+#[cfg(feature = "complex")]
+impl Index<usize> for ComplexInstance {
+    type Output = Instance;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.get(index).unwrap()
+    }
+}
+
+#[cfg(feature = "complex")]
+impl<T: Into<Instance>> From<[T; 2]> for ComplexInstance {
+    fn from(components: [T; 2]) -> Self {
+        Self::new(components.map(Into::into).to_vec())
+    }
+}
+
+/// Instance of a `quat<T>` type.
+#[cfg(feature = "complex")]
+#[derive(Clone, Debug, PartialEq)]
+pub struct QuatInstance {
+    components: ArrayInstance,
+}
+
+#[cfg(feature = "complex")]
+impl QuatInstance {
+    /// Construct a `quat`.
+    ///
+    /// # Panics
+    /// * if the components length is not 4
+    /// * if the components are not all the same type
+    /// * if the type is not a scalar
+    pub fn new(components: Vec<Instance>) -> Self {
+        assert_eq!(components.len(), 4);
+        let components = ArrayInstance::new(components, false);
+        assert!(components.inner_ty().is_scalar());
+        Self { components }
+    }
+    /// Get a component by index.
+    pub fn get(&self, i: usize) -> Option<&Instance> {
+        self.components.get(i)
+    }
+    /// Get a component by index.
+    pub fn get_mut(&mut self, i: usize) -> Option<&mut Instance> {
+        self.components.get_mut(i)
+    }
+    pub fn iter(&self) -> impl Iterator<Item = &Instance> {
+        self.components.iter()
+    }
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Instance> {
+        self.components.iter_mut()
+    }
+    pub fn as_slice(&self) -> &[Instance] {
+        self.components.as_slice()
+    }
+}
+
+#[cfg(feature = "complex")]
+impl IntoIterator for QuatInstance {
+    type Item = Instance;
+    type IntoIter = <ArrayInstance as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.components.into_iter()
+    }
+}
+
+#[cfg(feature = "complex")]
+impl Index<usize> for QuatInstance {
+    type Output = Instance;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.get(index).unwrap()
+    }
+}
+
+#[cfg(feature = "complex")]
+impl<T: Into<Instance>> From<[T; 4]> for QuatInstance {
     fn from(components: [T; 4]) -> Self {
         Self::new(components.map(Into::into).to_vec())
     }

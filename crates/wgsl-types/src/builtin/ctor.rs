@@ -563,7 +563,12 @@ pub fn complex_t(tplt_ty: &Type, args: &[Instance], stage: ShaderStage) -> Resul
         let comps = vec![val, zero];
         Ok(ComplexInstance::new(comps).into())
     }
-    // overload 2: vec conversion constructor
+    // overload 2: identity constructor
+    else if let [Instance::Complex(c)] = args {
+        let comps = c.iter().cloned().collect_vec();
+        Ok(ComplexInstance::new(comps).into())
+    }
+    // overload 3: vec conversion constructor
     else if let [Instance::Vec(v)] = args {
         let ty = Type::Complex(Box::new(tplt_ty.clone()));
         if v.n() != 2 {
@@ -586,7 +591,7 @@ pub fn complex_t(tplt_ty: &Type, args: &[Instance], stage: ShaderStage) -> Resul
 
         Ok(ComplexInstance::new(comps).into())
     }
-    // overload 3: complex init from component values
+    // overload 4: complex init from component values
     else {
         // flatten vecN args
         let args = args
@@ -629,17 +634,27 @@ pub fn complex(args: &[Instance]) -> Result<Instance, E> {
         let comps = vec![val, zero];
         Ok(ComplexInstance::new(comps).into())
     }
-    // overload 2: vec conversion constructor
+    // overload 2: identity constructor
+    else if let [Instance::Complex(c)] = args {
+        let comps = c.iter().cloned().collect_vec();
+        Ok(ComplexInstance::new(comps).into())
+    }
+    // overload 3: vec conversion constructor
     else if let [Instance::Vec(v)] = args {
         if v.n() != 2 {
             let ty = v.ty();
             let ty2 = Type::Complex(ty.inner_ty().into());
             return Err(E::Conversion(ty, ty2));
         }
+        let args = v.iter().cloned().collect_vec();
+        let comps = convert_all(&args).ok_or(E::Builtin("complex components are incompatible"))?;
+        if !comps.first().unwrap(/* SAFETY: len() checked above */).ty().is_scalar() {
+            return Err(E::Builtin("complex constructor expects scalar arguments"));
+        }
         // note: `complex(e: complex<S>) -> complex<S>` is no-op
-        Ok(v.clone().into())
+        Ok(ComplexInstance::new(comps).into())
     }
-    // overload 3: vec init from component values
+    // overload 4: vec init from component values
     else if !args.is_empty() {
         // flatten vecN args
         let args = args
@@ -663,7 +678,7 @@ pub fn complex(args: &[Instance]) -> Result<Instance, E> {
         }
         Ok(ComplexInstance::new(comps).into())
     }
-    // overload 3: zeroed complex
+    // overload 5: zeroed complex
     else {
         ComplexInstance::zero_value(&Type::AbstractInt).map(Into::into)
     }
@@ -683,7 +698,12 @@ pub fn quat_t(tplt_ty: &Type, args: &[Instance], stage: ShaderStage) -> Result<I
         let comps = vec![zero.clone(), zero.clone(), zero, val];
         Ok(QuatInstance::new(comps).into())
     }
-    // overload 2: vec conversion constructor
+    // overload 2: identity constructor
+    else if let [Instance::Quat(q)] = args {
+        let comps = q.iter().cloned().collect_vec();
+        Ok(QuatInstance::new(comps).into())
+    }
+    // overload 3: vec conversion constructor
     else if let [Instance::Vec(v)] = args {
         let ty = Type::Quat(Box::new(tplt_ty.clone()));
         if v.n() != 4 {
@@ -706,7 +726,7 @@ pub fn quat_t(tplt_ty: &Type, args: &[Instance], stage: ShaderStage) -> Result<I
 
         Ok(QuatInstance::new(comps).into())
     }
-    // overload 3: quat init from component values
+    // overload 4: quat init from component values
     else {
         // flatten vecN args
         let args = args
@@ -745,7 +765,7 @@ pub fn quat(args: &[Instance]) -> Result<Instance, E> {
     if let [Instance::Literal(l)] = args {
         let ty = l.ty();
         if !ty.is_scalar() {
-            return Err(E::Builtin("complex constructor expects scalar arguments"));
+            return Err(E::Builtin("quat constructor expects scalar arguments"));
         }
         let val = Instance::Literal(*l);
         // note: quat(scalar) becomes quat(0, 0, 0, scalar), it does not splat like vec
@@ -753,17 +773,27 @@ pub fn quat(args: &[Instance]) -> Result<Instance, E> {
         let comps = vec![zero.clone(), zero.clone(), zero, val];
         Ok(QuatInstance::new(comps).into())
     }
-    // overload 2: vec conversion constructor
+    // overload 2: identity constructor
+    else if let [Instance::Quat(q)] = args {
+        let comps = q.iter().cloned().collect_vec();
+        Ok(QuatInstance::new(comps).into())
+    }
+    // overload 3: vec conversion constructor
     else if let [Instance::Vec(v)] = args {
         if v.n() != 4 {
             let ty = v.ty();
             let ty2 = Type::Quat(ty.inner_ty().into());
             return Err(E::Conversion(ty, ty2));
         }
+        let args = v.iter().cloned().collect_vec();
+        let comps = convert_all(&args).ok_or(E::Builtin("quat components are incompatible"))?;
+        if !comps.first().unwrap(/* SAFETY: len() checked above */).ty().is_scalar() {
+            return Err(E::Builtin("quat constructor expects scalar arguments"));
+        }
         // note: `quat(e: quat<S>) -> quat<S>` is no-op
-        Ok(v.clone().into())
+        Ok(QuatInstance::new(comps).into())
     }
-    // overload 3: vec init from component values
+    // overload 4: vec init from component values
     else if !args.is_empty() {
         // flatten vecN args
         let args = args
@@ -789,7 +819,7 @@ pub fn quat(args: &[Instance]) -> Result<Instance, E> {
         }
         Ok(QuatInstance::new(comps).into())
     }
-    // overload 3: zeroed quat
+    // overload 5: zeroed quat
     else {
         QuatInstance::zero_value(&Type::AbstractInt).map(Into::into)
     }

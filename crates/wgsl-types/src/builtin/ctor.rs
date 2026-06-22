@@ -23,6 +23,12 @@ use crate::{
     ty::{StructType, Ty, Type},
 };
 
+#[cfg(feature = "complex")]
+use crate::{
+    inst::{ComplexInstance, QuatInstance},
+    tplt::{ComplexTemplate, QuatTemplate},
+};
+
 type E = Error;
 
 /// Check if a function name could correspond to a built-in constructor function.
@@ -34,6 +40,8 @@ pub fn is_ctor(name: &str) -> bool {
         "array" | "bool" | "i32" | "u32" | "f32" | "f16" | "mat2x2" | "mat2x3" | "mat2x4"
         | "mat3x2" | "mat3x3" | "mat3x4" | "mat4x2" | "mat4x3" | "mat4x4" | "vec2" | "vec3"
         | "vec4" => true,
+        #[cfg(feature = "complex")]
+        "complex" | "quat" => true,
         #[cfg(feature = "naga-ext")]
         "i64" | "u64" | "f64" => true,
         _ => false,
@@ -541,6 +549,252 @@ pub fn vec(n: usize, args: &[Instance]) -> Result<Instance, E> {
     }
 }
 
+/// `complex<T>()` constructor.
+#[cfg(feature = "complex")]
+pub fn complex_t(tplt_ty: &Type, args: &[Instance], stage: ShaderStage) -> Result<Instance, E> {
+    // overload 1: complex init from single scalar value
+    if let [Instance::Literal(l)] = args {
+        let val = l
+            .convert_to(tplt_ty)
+            .map(Instance::Literal)
+            .ok_or_else(|| E::ParamType(tplt_ty.clone(), l.ty()))?;
+        // note: complex(scalar) becomes complex(scalar, 0), it does not splat like vec
+        let zero = Instance::Literal(LiteralInstance::zero_value(tplt_ty).unwrap());
+        let comps = vec![val, zero];
+        Ok(ComplexInstance::new(comps).into())
+    }
+    // overload 2: vec conversion constructor
+    else if let [Instance::Vec(v)] = args {
+        let ty = Type::Complex(Box::new(tplt_ty.clone()));
+        if v.n() != 2 {
+            return Err(E::Conversion(v.ty(), ty));
+        }
+
+        let conv_fn = match ty.inner_ty() {
+            Type::Bool => |n, _| bool(n),
+            Type::I32 => |n, _| i32(n),
+            Type::U32 => |n, _| u32(n),
+            Type::F32 => |n, stage| f32(n, stage),
+            Type::F16 => |n, stage| f16(n, stage),
+            _ => return Err(E::Builtin("complex type must be a scalar")),
+        };
+
+        let comps = v
+            .iter()
+            .map(|n| conv_fn(n, stage))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(ComplexInstance::new(comps).into())
+    }
+    // overload 3: complex init from component values
+    else {
+        // flatten vecN args
+        let args = args
+            .iter()
+            .flat_map(|a| -> Box<dyn Iterator<Item = &Instance>> {
+                match a {
+                    Instance::Vec(v) => Box::new(v.iter()),
+                    _ => Box::new(std::iter::once(a)),
+                }
+            })
+            .collect_vec();
+        if args.len() != 2 {
+            return Err(E::ParamCount(format!("complex"), 2, args.len()));
+        }
+
+        let comps = args
+            .iter()
+            .map(|a| {
+                a.convert_inner_to(tplt_ty)
+                    .ok_or_else(|| E::ParamType(tplt_ty.clone(), a.ty()))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(ComplexInstance::new(comps).into())
+    }
+}
+
+/// `complex()` constructor.
+#[cfg(feature = "complex")]
+pub fn complex(args: &[Instance]) -> Result<Instance, E> {
+    // overload 1: complex init from single scalar value
+    if let [Instance::Literal(l)] = args {
+        let ty = l.ty();
+        if !ty.is_scalar() {
+            return Err(E::Builtin("complex constructor expects scalar arguments"));
+        }
+        let val = Instance::Literal(*l);
+        // note: complex(scalar) becomes complex(scalar, 0), it does not splat like vec
+        let zero = Instance::Literal(LiteralInstance::zero_value(&val.ty()).unwrap());
+        let comps = vec![val, zero];
+        Ok(ComplexInstance::new(comps).into())
+    }
+    // overload 2: vec conversion constructor
+    else if let [Instance::Vec(v)] = args {
+        if v.n() != 2 {
+            let ty = v.ty();
+            let ty2 = Type::Complex(ty.inner_ty().into());
+            return Err(E::Conversion(ty, ty2));
+        }
+        // note: `complex(e: complex<S>) -> complex<S>` is no-op
+        Ok(v.clone().into())
+    }
+    // overload 3: vec init from component values
+    else if !args.is_empty() {
+        // flatten vecN args
+        let args = args
+            .iter()
+            .flat_map(|a| -> Box<dyn Iterator<Item = &Instance>> {
+                match a {
+                    Instance::Vec(v) => Box::new(v.iter()),
+                    _ => Box::new(std::iter::once(a)),
+                }
+            })
+            .cloned()
+            .collect_vec();
+        if args.len() != 2 {
+            return Err(E::ParamCount(format!("complex"), 2, args.len()));
+        }
+
+        let comps = convert_all(&args).ok_or(E::Builtin("complex components are incompatible"))?;
+
+        if !comps.first().unwrap(/* SAFETY: len() checked above */).ty().is_scalar() {
+            return Err(E::Builtin("complex constructor expects scalar arguments"));
+        }
+        Ok(ComplexInstance::new(comps).into())
+    }
+    // overload 3: zeroed complex
+    else {
+        ComplexInstance::zero_value(&Type::AbstractInt).map(Into::into)
+    }
+}
+
+/// `quat<T>()` constructor.
+#[cfg(feature = "complex")]
+pub fn quat_t(tplt_ty: &Type, args: &[Instance], stage: ShaderStage) -> Result<Instance, E> {
+    // overload 1: quat init from single scalar value
+    if let [Instance::Literal(l)] = args {
+        let val = l
+            .convert_to(tplt_ty)
+            .map(Instance::Literal)
+            .ok_or_else(|| E::ParamType(tplt_ty.clone(), l.ty()))?;
+        // note: quat(scalar) becomes quat(0, 0, 0, scalar), it does not splat like vec
+        let zero = Instance::Literal(LiteralInstance::zero_value(tplt_ty).unwrap());
+        let comps = vec![zero.clone(), zero.clone(), zero, val];
+        Ok(QuatInstance::new(comps).into())
+    }
+    // overload 2: vec conversion constructor
+    else if let [Instance::Vec(v)] = args {
+        let ty = Type::Quat(Box::new(tplt_ty.clone()));
+        if v.n() != 4 {
+            return Err(E::Conversion(v.ty(), ty));
+        }
+
+        let conv_fn = match ty.inner_ty() {
+            Type::Bool => |n, _| bool(n),
+            Type::I32 => |n, _| i32(n),
+            Type::U32 => |n, _| u32(n),
+            Type::F32 => |n, stage| f32(n, stage),
+            Type::F16 => |n, stage| f16(n, stage),
+            _ => return Err(E::Builtin("quat type must be a scalar")),
+        };
+
+        let comps = v
+            .iter()
+            .map(|n| conv_fn(n, stage))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(QuatInstance::new(comps).into())
+    }
+    // overload 3: quat init from component values
+    else {
+        // flatten vecN args
+        let args = args
+            .iter()
+            .try_fold(Vec::<Instance>::new(), |mut acc, arg| {
+                match arg {
+                    Instance::Complex(_) => {
+                        return Err(E::Builtin("complex incompatible with quat constructor"));
+                    }
+                    Instance::Quat(q) => acc.extend(q.clone()),
+                    Instance::Vec(v) => acc.extend(v.clone()),
+                    a => acc.push(a.clone()),
+                };
+                Ok(acc)
+            })?;
+        if args.len() != 4 {
+            return Err(E::ParamCount(format!("quat"), 4, args.len()));
+        }
+
+        let comps = args
+            .iter()
+            .map(|a| {
+                a.convert_inner_to(tplt_ty)
+                    .ok_or_else(|| E::ParamType(tplt_ty.clone(), a.ty()))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(QuatInstance::new(comps).into())
+    }
+}
+
+/// `quat()` constructor.
+#[cfg(feature = "complex")]
+pub fn quat(args: &[Instance]) -> Result<Instance, E> {
+    // overload 1: quat init from single scalar value
+    if let [Instance::Literal(l)] = args {
+        let ty = l.ty();
+        if !ty.is_scalar() {
+            return Err(E::Builtin("complex constructor expects scalar arguments"));
+        }
+        let val = Instance::Literal(*l);
+        // note: quat(scalar) becomes quat(0, 0, 0, scalar), it does not splat like vec
+        let zero = Instance::Literal(LiteralInstance::zero_value(&val.ty()).unwrap());
+        let comps = vec![zero.clone(), zero.clone(), zero, val];
+        Ok(QuatInstance::new(comps).into())
+    }
+    // overload 2: vec conversion constructor
+    else if let [Instance::Vec(v)] = args {
+        if v.n() != 4 {
+            let ty = v.ty();
+            let ty2 = Type::Quat(ty.inner_ty().into());
+            return Err(E::Conversion(ty, ty2));
+        }
+        // note: `quat(e: quat<S>) -> quat<S>` is no-op
+        Ok(v.clone().into())
+    }
+    // overload 3: vec init from component values
+    else if !args.is_empty() {
+        // flatten vecN args
+        let args = args
+            .iter()
+            .try_fold(Vec::<Instance>::new(), |mut acc, arg| {
+                match arg {
+                    Instance::Complex(_) => {
+                        return Err(E::Builtin("complex incompatible with quat constructor"));
+                    }
+                    Instance::Quat(q) => acc.extend(q.clone()),
+                    Instance::Vec(v) => acc.extend(v.clone()),
+                    a => acc.push(a.clone()),
+                };
+                Ok(acc)
+            })?;
+        if args.len() != 4 {
+            return Err(E::ParamCount(format!("quat"), 4, args.len()));
+        }
+
+        let comps = convert_all(&args).ok_or(E::Builtin("quat components are incompatible"))?;
+        if !comps.first().unwrap(/* SAFETY: len() checked above */).ty().is_scalar() {
+            return Err(E::Builtin("quat constructor expects scalar arguments"));
+        }
+        Ok(QuatInstance::new(comps).into())
+    }
+    // overload 3: zeroed quat
+    else {
+        QuatInstance::zero_value(&Type::AbstractInt).map(Into::into)
+    }
+}
+
 /// User-defined struct constructor.
 pub fn struct_ctor(struct_ty: &StructType, args: &[Instance]) -> Result<StructInstance, E> {
     if args.is_empty() {
@@ -794,6 +1048,172 @@ fn vec_ctor_ty(n: u8, args: &[Type]) -> Result<Type, E> {
     }
 }
 
+/// Return type of `complex<T>()` constructor.
+#[cfg(feature = "complex")]
+fn complex_ctor_ty_t(tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
+    if let [arg] = args {
+        // overload 1: complex init from single scalar value
+        if arg.is_scalar() {
+            if !arg.is_convertible_to(tplt_ty) {
+                return Err(E::Conversion(arg.clone(), tplt_ty.clone()));
+            }
+        }
+        // overload 2: vec conversion or complex identity constructor
+        else if arg.is_vec() || arg.is_complex() {
+            // note: this is an explicit conversion, not automatic conversion
+        } else {
+            return Err(E::Conversion(arg.clone(), tplt_ty.clone()));
+        }
+    }
+    // overload 3: complex init from component values
+    else {
+        // flatten vecN args
+        let n2 = args
+            .iter()
+            .try_fold(0, |acc, arg| match arg {
+                ty if ty.is_scalar() => ty.is_convertible_to(tplt_ty).then_some(acc + 1),
+                Type::Vec(n, ty) => ty.is_convertible_to(tplt_ty).then_some(acc + n),
+                _ => None,
+            })
+            .ok_or(E::Builtin(
+                "complex constructor expects scalar, vector, or complex arguments",
+            ))?;
+        if n2 != 2 {
+            return Err(E::ParamCount(format!("complex"), 2, args.len()));
+        }
+    }
+
+    Ok(Type::Complex(Box::new(tplt_ty.clone())))
+}
+
+/// Return type of `complex()` constructor.
+#[cfg(feature = "complex")]
+fn complex_ctor_ty(args: &[Type]) -> Result<Type, E> {
+    if let [arg] = args {
+        // overload 1: complex init from single scalar value
+        if arg.is_scalar() {
+        }
+        // overload 2: vec conversion constructor
+        else if arg.is_vec() || arg.is_complex() {
+            // note: `complex(e: complex<S>) -> complex<S>` is no-op
+        } else {
+            return Err(E::Builtin(
+                "complex constructor expects scalar, vector, or complex arguments",
+            ));
+        }
+        Ok(Type::Complex(arg.inner_ty().into()))
+    }
+    // overload 3: complex init from component values
+    else if !args.is_empty() {
+        // flatten vecN args
+        let n2 = args
+            .iter()
+            .try_fold(0, |acc, arg| match arg {
+                ty if ty.is_scalar() => Some(acc + 1),
+                Type::Vec(n, _) => Some(acc + n),
+                _ => None,
+            })
+            .ok_or(E::Builtin(
+                "complex constructor expects scalar, vector, or complex arguments",
+            ))?;
+        if n2 != 2 {
+            return Err(E::ParamCount(format!("complex"), 2, args.len()));
+        }
+
+        let tys = args.iter().map(|arg| arg.inner_ty()).collect_vec();
+        let ty = convert_all_ty(&tys).ok_or(E::Builtin("vector components are incompatible"))?;
+
+        Ok(Type::Complex(ty.clone().into()))
+    }
+    // overload 3: zeroed complex
+    else {
+        Ok(Type::Complex(Type::AbstractInt.into()))
+    }
+}
+
+/// Return type of `quat<T>()` constructor.
+#[cfg(feature = "complex")]
+fn quat_ctor_ty_t(tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
+    if let [arg] = args {
+        // overload 1: quat init from single scalar value
+        if arg.is_scalar() {
+            if !arg.is_convertible_to(tplt_ty) {
+                return Err(E::Conversion(arg.clone(), tplt_ty.clone()));
+            }
+        }
+        // overload 2: vec conversion or quat identity constructor
+        else if arg.is_vec() || arg.is_quat() {
+            // note: this is an explicit conversion, not automatic conversion
+        } else {
+            return Err(E::Conversion(arg.clone(), tplt_ty.clone()));
+        }
+    }
+    // overload 3: quat init from component values
+    else {
+        // flatten vecN args
+        let n2 = args
+            .iter()
+            .try_fold(0, |acc, arg| match arg {
+                ty if ty.is_scalar() => ty.is_convertible_to(tplt_ty).then_some(acc + 1),
+                Type::Vec(n, ty) => ty.is_convertible_to(tplt_ty).then_some(acc + n),
+                _ => None,
+            })
+            .ok_or(E::Builtin(
+                "complex constructor expects scalar, vector, or complex arguments",
+            ))?;
+        if n2 != 4 {
+            return Err(E::ParamCount(format!("quat"), 4, args.len()));
+        }
+    }
+
+    Ok(Type::Quat(Box::new(tplt_ty.clone())))
+}
+
+/// Return type of `quat()` constructor.
+#[cfg(feature = "complex")]
+fn quat_ctor_ty(args: &[Type]) -> Result<Type, E> {
+    if let [arg] = args {
+        // overload 1: complex init from single scalar value
+        if arg.is_scalar() {
+        }
+        // overload 2: vec conversion constructor
+        else if arg.is_vec() || arg.is_quat() {
+            // note: `quat(e: quat<S>) -> quat<S>` is no-op
+        } else {
+            return Err(E::Builtin(
+                "quat constructor expects scalar, vector, or quat arguments",
+            ));
+        }
+        Ok(Type::Quat(arg.inner_ty().into()))
+    }
+    // overload 3: quat init from component values
+    else if !args.is_empty() {
+        // flatten vecN args
+        let n2 = args
+            .iter()
+            .try_fold(0, |acc, arg| match arg {
+                ty if ty.is_scalar() => Some(acc + 1),
+                Type::Vec(n, _) => Some(acc + n),
+                _ => None,
+            })
+            .ok_or(E::Builtin(
+                "quat constructor expects scalar, vector, or quat arguments",
+            ))?;
+        if n2 != 2 {
+            return Err(E::ParamCount(format!("complex"), 2, args.len()));
+        }
+
+        let tys = args.iter().map(|arg| arg.inner_ty()).collect_vec();
+        let ty = convert_all_ty(&tys).ok_or(E::Builtin("vector components are incompatible"))?;
+
+        Ok(Type::Quat(ty.clone().into()))
+    }
+    // overload 3: zeroed quat
+    else {
+        Ok(Type::Quat(Type::AbstractInt.into()))
+    }
+}
+
 /// Compute the return type of calling a built-in constructor function.
 ///
 /// The arguments must be [loaded][Type::loaded].
@@ -859,6 +1279,18 @@ pub fn type_ctor(name: &str, tplt: Option<&[TpltParam]>, args: &[Type]) -> Resul
         ("vec4", Some(t), []) => Ok(VecTemplate::parse(t)?.ty(4)),
         ("vec4", Some(t), _) => vec_ctor_ty_t(4, VecTemplate::parse(t)?.inner_ty(), args),
         ("vec4", None, _) => vec_ctor_ty(4, args),
+        #[cfg(feature = "complex")]
+        ("complex", Some(t), []) => Ok(ComplexTemplate::parse(t)?.ty()),
+        #[cfg(feature = "complex")]
+        ("complex", Some(t), _) => complex_ctor_ty_t(ComplexTemplate::parse(t)?.inner_ty(), args),
+        #[cfg(feature = "complex")]
+        ("complex", None, _) => complex_ctor_ty(args),
+        #[cfg(feature = "complex")]
+        ("quat", Some(t), []) => Ok(QuatTemplate::parse(t)?.ty()),
+        #[cfg(feature = "complex")]
+        ("quat", Some(t), _) => quat_ctor_ty_t(QuatTemplate::parse(t)?.inner_ty(), args),
+        #[cfg(feature = "complex")]
+        ("quat", None, _) => quat_ctor_ty(args),
         #[cfg(feature = "naga-ext")]
         ("i64", None, []) => Ok(Type::I64),
         #[cfg(feature = "naga-ext")]
@@ -899,6 +1331,10 @@ impl Instance {
             Type::Array(a_ty, Some(n)) => ArrayInstance::zero_value(*n, a_ty).map(Into::into),
             Type::Array(_, None) => Err(E::NotConstructible(ty.clone())),
             Type::Vec(n, v_ty) => VecInstance::zero_value(*n, v_ty).map(Into::into),
+            #[cfg(feature = "complex")]
+            Type::Complex(c_ty) => ComplexInstance::zero_value(c_ty).map(Into::into),
+            #[cfg(feature = "complex")]
+            Type::Quat(q_ty) => QuatInstance::zero_value(q_ty).map(Into::into),
             Type::Mat(c, r, m_ty) => MatInstance::zero_value(*c, *r, m_ty).map(Into::into),
             Type::Atomic(_)
             | Type::Ptr(_, _, _)
@@ -974,6 +1410,26 @@ impl VecInstance {
         let zero = Instance::Literal(LiteralInstance::zero_value(ty)?);
         let comps = (0..n).map(|_| zero.clone()).collect_vec();
         Ok(VecInstance::new(comps))
+    }
+}
+
+#[cfg(feature = "complex")]
+impl ComplexInstance {
+    /// Zero-value initialize a `complex` instance.
+    pub fn zero_value(ty: &Type) -> Result<Self, E> {
+        let zero = Instance::Literal(LiteralInstance::zero_value(ty)?);
+        let comps = (0..2).map(|_| zero.clone()).collect_vec();
+        Ok(ComplexInstance::new(comps))
+    }
+}
+
+#[cfg(feature = "complex")]
+impl QuatInstance {
+    /// Zero-value initialize a `quat` instance.
+    pub fn zero_value(ty: &Type) -> Result<Self, E> {
+        let zero = Instance::Literal(LiteralInstance::zero_value(ty)?);
+        let comps = (0..4).map(|_| zero.clone()).collect_vec();
+        Ok(QuatInstance::new(comps))
     }
 }
 

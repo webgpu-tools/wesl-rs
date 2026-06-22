@@ -368,6 +368,9 @@ impl Diagnostic<Error> {
                 }
                 Instance::Deferred(ty) => unmangle_ty(ty, sourcemap, mangler),
                 Instance::Literal(_) | Instance::Vec(_) | Instance::Mat(_) => {}
+
+                #[cfg(feature = "complex")]
+                Instance::Complex(_) | Instance::Quat(_) => {}
             }
         }
 

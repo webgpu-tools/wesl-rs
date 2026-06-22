@@ -38,6 +38,7 @@ wgsl-types = { workspace = true }
 [features]
 eval = ["dep:wesl-quote"]
 generics = ["wgsl-parse/generics"]
+complex = ["wgsl-types/complex"]
 # Allow naga/wgpu extensions.
 # They are not well-documented, the best I could find is this:
 # * https://github.com/gfx-rs/wgpu/issues/4410

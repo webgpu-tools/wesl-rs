@@ -513,6 +513,8 @@ pub const BUILTIN_CONSTRUCTOR_NAMES: &[&str] = &[
     "vec3h",
     "vec4h",
     #[cfg(feature = "complex")]
+    "complex",
+    #[cfg(feature = "complex")]
     "complexi",
     #[cfg(feature = "complex")]
     "complexu",
@@ -520,6 +522,8 @@ pub const BUILTIN_CONSTRUCTOR_NAMES: &[&str] = &[
     "complexf",
     #[cfg(feature = "complex")]
     "complexh",
+    #[cfg(feature = "complex")]
+    "quat",
     #[cfg(feature = "complex")]
     "quati",
     #[cfg(feature = "complex")]

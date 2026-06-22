@@ -44,6 +44,9 @@ use crate::{
     ty::{SamplerType, TextureType, Ty, Type},
 };
 
+#[cfg(feature = "complex")]
+use crate::tplt::{ComplexTemplate, QuatTemplate};
+
 type E = Error;
 
 /// Call a built-in function.
@@ -119,6 +122,18 @@ pub fn call_builtin_fn(
         ("vec4", Some(t), []) => Instance::zero_value(&VecTemplate::parse(t)?.ty(4)),
         ("vec4", Some(t), a) => ctor::vec_t(4, VecTemplate::parse(t)?.inner_ty(), a, stage),
         ("vec4", None, a) => ctor::vec(4, a),
+        #[cfg(feature = "complex")]
+        ("complex", Some(t), []) => Instance::zero_value(&ComplexTemplate::parse(t)?.ty()),
+        #[cfg(feature = "complex")]
+        ("complex", Some(t), a) => ctor::complex_t(ComplexTemplate::parse(t)?.inner_ty(), a, stage),
+        #[cfg(feature = "complex")]
+        ("complex", None, a) => ctor::complex(a),
+        #[cfg(feature = "complex")]
+        ("quat", Some(t), []) => Instance::zero_value(&QuatTemplate::parse(t)?.ty()),
+        #[cfg(feature = "complex")]
+        ("quat", Some(t), a) => ctor::quat_t(QuatTemplate::parse(t)?.inner_ty(), a, stage),
+        #[cfg(feature = "complex")]
+        ("quat", None, a) => ctor::quat(a),
         #[cfg(feature = "naga-ext")]
         ("i64", None, []) => Instance::zero_value(&Type::I64),
         #[cfg(feature = "naga-ext")]
@@ -260,6 +275,10 @@ pub fn call_ctor(ty: &Type, args: &[Instance], stage: ShaderStage) -> Result<Ins
         (Type::Struct(ty), a) => struct_ctor(ty, a).map(Instance::from),
         (Type::Array(ty, n), a) => ctor::array_t(ty, n.unwrap_or(a.len()), a),
         (Type::Vec(n, ty), a) => ctor::vec_t(*n as usize, ty, a, stage),
+        #[cfg(feature = "complex")]
+        (Type::Complex(ty), a) => ctor::complex_t(ty, a, stage),
+        #[cfg(feature = "complex")]
+        (Type::Quat(ty), a) => ctor::quat_t(ty, a, stage),
         (Type::Mat(c, r, ty), a) => ctor::mat_t(*c as usize, *r as usize, ty, a, stage),
         (
             Type::AbstractInt

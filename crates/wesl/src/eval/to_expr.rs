@@ -3,6 +3,9 @@ use wgsl_types::{
     ty::{TextureType, Ty, Type},
 };
 
+#[cfg(feature = "complex")]
+use wgsl_types::inst::{ComplexInstance, QuatInstance};
+
 use super::SyntaxUtil;
 
 use crate::{
@@ -25,6 +28,10 @@ impl ToExpr for Instance {
             Instance::Struct(inst) => inst.to_expr(ctx),
             Instance::Array(inst) => inst.to_expr(ctx),
             Instance::Vec(inst) => inst.to_expr(ctx),
+            #[cfg(feature = "complex")]
+            Instance::Complex(inst) => inst.to_expr(ctx),
+            #[cfg(feature = "complex")]
+            Instance::Quat(inst) => inst.to_expr(ctx),
             Instance::Mat(inst) => inst.to_expr(ctx),
             Instance::Ptr(_) | Instance::Ref(_) | Instance::Atomic(_) | Instance::Deferred(_) => {
                 Err(E::NotConstructible(self.ty()))
@@ -89,6 +96,32 @@ impl ToExpr for ArrayInstance {
 }
 
 impl ToExpr for VecInstance {
+    fn to_expr(&self, ctx: &Context) -> Result<Expression, E> {
+        Ok(Expression::FunctionCall(FunctionCall {
+            ty: TypeExpression::new(self.ty().builtin_ident().unwrap().clone()),
+            arguments: self
+                .iter()
+                .map(|c| c.to_expr(ctx).map(Spanned::from))
+                .collect::<Result<Vec<_>, _>>()?,
+        }))
+    }
+}
+
+#[cfg(feature = "complex")]
+impl ToExpr for ComplexInstance {
+    fn to_expr(&self, ctx: &Context) -> Result<Expression, E> {
+        Ok(Expression::FunctionCall(FunctionCall {
+            ty: TypeExpression::new(self.ty().builtin_ident().unwrap().clone()),
+            arguments: self
+                .iter()
+                .map(|c| c.to_expr(ctx).map(Spanned::from))
+                .collect::<Result<Vec<_>, _>>()?,
+        }))
+    }
+}
+
+#[cfg(feature = "complex")]
+impl ToExpr for QuatInstance {
     fn to_expr(&self, ctx: &Context) -> Result<Expression, E> {
         Ok(Expression::FunctionCall(FunctionCall {
             ty: TypeExpression::new(self.ty().builtin_ident().unwrap().clone()),
@@ -179,6 +212,14 @@ impl ToExpr for Type {
                 Ok(ty)
             }
             Type::Vec(_, inner_ty) => {
+                let mut ty = TypeExpression::new(ident.unwrap());
+                ty.template_args = Some(vec![TemplateArg {
+                    expression: inner_ty.to_expr(ctx)?.into(),
+                }]);
+                Ok(ty)
+            }
+            #[cfg(feature = "complex")]
+            Type::Complex(inner_ty) | Type::Quat(inner_ty) => {
                 let mut ty = TypeExpression::new(ident.unwrap());
                 ty.template_args = Some(vec![TemplateArg {
                     expression: inner_ty.to_expr(ctx)?.into(),

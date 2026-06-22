@@ -46,6 +46,10 @@ impl BuiltinIdent for Type {
                 4 => builtin_ident("vec4"),
                 _ => unreachable!("vec must be 2 3 or 4 components"),
             },
+            #[cfg(feature = "complex")]
+            Type::Complex(_) => builtin_ident("complex"),
+            #[cfg(feature = "complex")]
+            Type::Quat(_) => builtin_ident("quat"),
             Type::Mat(c, r, _) => match (c, r) {
                 (2, 2) => builtin_ident("mat2x2"),
                 (2, 3) => builtin_ident("mat2x3"),

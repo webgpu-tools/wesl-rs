@@ -132,6 +132,58 @@ impl VecTemplate {
     }
 }
 
+#[cfg(feature = "complex")]
+pub struct ComplexTemplate {
+    ty: Type,
+}
+
+#[cfg(feature = "complex")]
+impl ComplexTemplate {
+    pub fn parse(tplt: &[TpltParam]) -> Result<ComplexTemplate, E> {
+        let ty = match tplt {
+            [TpltParam::Type(ty)] => Ok(ty.clone()),
+            _ => Err(E::TemplateArgs("complex")),
+        }?;
+        if ty.is_scalar() && ty.is_concrete() {
+            Ok(ComplexTemplate { ty })
+        } else {
+            Err(Error::Builtin("complex template type must be a scalar"))
+        }
+    }
+    pub fn ty(&self) -> Type {
+        Type::Complex(self.ty.clone().into())
+    }
+    pub fn inner_ty(&self) -> &Type {
+        &self.ty
+    }
+}
+
+#[cfg(feature = "complex")]
+pub struct QuatTemplate {
+    ty: Type,
+}
+
+#[cfg(feature = "complex")]
+impl QuatTemplate {
+    pub fn parse(tplt: &[TpltParam]) -> Result<QuatTemplate, E> {
+        let ty = match tplt {
+            [TpltParam::Type(ty)] => Ok(ty.clone()),
+            _ => Err(E::TemplateArgs("quat")),
+        }?;
+        if ty.is_scalar() && ty.is_concrete() {
+            Ok(QuatTemplate { ty })
+        } else {
+            Err(Error::Builtin("quat template type must be a scalar"))
+        }
+    }
+    pub fn ty(&self) -> Type {
+        Type::Quat(self.ty.clone().into())
+    }
+    pub fn inner_ty(&self) -> &Type {
+        &self.ty
+    }
+}
+
 pub struct MatTemplate {
     ty: Type,
 }

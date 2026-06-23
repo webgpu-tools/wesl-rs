@@ -573,7 +573,22 @@ pub fn complex_t(tplt_ty: &Type, args: &[Instance], stage: ShaderStage) -> Resul
     }
     // overload 2: identity constructor
     else if let [Instance::Complex(c)] = args {
-        let comps = c.iter().cloned().collect_vec();
+        let ty = Type::Complex(Box::new(tplt_ty.clone()));
+
+        let conv_fn = match ty.inner_ty() {
+            Type::Bool => |n, _| bool(n),
+            Type::I32 => |n, _| i32(n),
+            Type::U32 => |n, _| u32(n),
+            Type::F32 => |n, stage| f32(n, stage),
+            Type::F16 => |n, stage| f16(n, stage),
+            _ => return Err(E::Builtin("complex type must be a scalar")),
+        };
+
+        let comps = c
+            .iter()
+            .map(|n| conv_fn(n, stage))
+            .collect::<Result<Vec<_>, _>>()?;
+
         Ok(ComplexInstance::new(comps).into())
     }
     // overload 3: vec conversion constructor
@@ -708,7 +723,22 @@ pub fn quat_t(tplt_ty: &Type, args: &[Instance], stage: ShaderStage) -> Result<I
     }
     // overload 2: identity constructor
     else if let [Instance::Quat(q)] = args {
-        let comps = q.iter().cloned().collect_vec();
+        let ty = Type::Quat(Box::new(tplt_ty.clone()));
+
+        let conv_fn = match ty.inner_ty() {
+            Type::Bool => |n, _| bool(n),
+            Type::I32 => |n, _| i32(n),
+            Type::U32 => |n, _| u32(n),
+            Type::F32 => |n, stage| f32(n, stage),
+            Type::F16 => |n, stage| f16(n, stage),
+            _ => return Err(E::Builtin("quat type must be a scalar")),
+        };
+
+        let comps = q
+            .iter()
+            .map(|n| conv_fn(n, stage))
+            .collect::<Result<Vec<_>, _>>()?;
+
         Ok(QuatInstance::new(comps).into())
     }
     // overload 3: vec conversion constructor

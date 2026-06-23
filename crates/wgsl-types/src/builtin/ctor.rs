@@ -1238,10 +1238,11 @@ fn quat_ctor_ty_t(tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
             .try_fold(0, |acc, arg| match arg {
                 ty if ty.is_scalar() => ty.is_convertible_to(tplt_ty).then_some(acc + 1),
                 Type::Vec(n, ty) => ty.is_convertible_to(tplt_ty).then_some(acc + n),
+                Type::Complex(ty) => ty.is_convertible_to(tplt_ty).then_some(acc + 2),
                 _ => None,
             })
             .ok_or(E::Builtin(
-                "complex constructor expects scalar, vector, or complex arguments",
+                "quat constructor expects scalar, vector, or complex arguments",
             ))?;
         if n2 != 4 {
             return Err(E::ParamCount(format!("quat"), 4, args.len()));
@@ -1276,6 +1277,7 @@ fn quat_ctor_ty(args: &[Type]) -> Result<Type, E> {
             .try_fold(0, |acc, arg| match arg {
                 ty if ty.is_scalar() => Some(acc + 1),
                 Type::Vec(n, _) => Some(acc + n),
+                Type::Complex(_) => Some(acc + 2),
                 _ => None,
             })
             .ok_or(E::Builtin(

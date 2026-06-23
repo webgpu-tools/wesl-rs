@@ -776,9 +776,7 @@ pub fn quat_t(tplt_ty: &Type, args: &[Instance], stage: ShaderStage) -> Result<I
             .iter()
             .try_fold(Vec::<Instance>::new(), |mut acc, arg| {
                 match arg {
-                    Instance::Complex(_) => {
-                        return Err(E::Builtin("complex incompatible with quat constructor"));
-                    }
+                    Instance::Complex(c) => acc.extend(c.clone()),
                     Instance::Quat(q) => acc.extend(q.clone()),
                     Instance::Vec(v) => acc.extend(v.clone()),
                     a => acc.push(a.clone()),
@@ -848,9 +846,7 @@ pub fn quat(args: &[Instance]) -> Result<Instance, E> {
             .iter()
             .try_fold(Vec::<Instance>::new(), |mut acc, arg| {
                 match arg {
-                    Instance::Complex(_) => {
-                        return Err(E::Builtin("complex incompatible with quat constructor"));
-                    }
+                    Instance::Complex(c) => acc.extend(c.clone()),
                     Instance::Quat(q) => acc.extend(q.clone()),
                     Instance::Vec(v) => acc.extend(v.clone()),
                     a => acc.push(a.clone()),

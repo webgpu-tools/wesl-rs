@@ -168,6 +168,16 @@ impl Eval for IndexingExpression {
                     .get(index)
                     .cloned()
                     .ok_or_else(|| E::OutOfBounds(index, v.ty(), v.n())),
+                #[cfg(feature = "complex")]
+                Instance::Complex(c) => c
+                    .get(index)
+                    .cloned()
+                    .ok_or_else(|| E::OutOfBounds(index, c.ty(), 2)),
+                #[cfg(feature = "complex")]
+                Instance::Quat(q) => q
+                    .get(index)
+                    .cloned()
+                    .ok_or_else(|| E::OutOfBounds(index, q.ty(), 4)),
                 Instance::Mat(m) => m
                     .col(index)
                     .cloned()

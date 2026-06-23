@@ -475,6 +475,10 @@ pub fn vec_t(
             .flat_map(|a| -> Box<dyn Iterator<Item = &Instance>> {
                 match a {
                     Instance::Vec(v) => Box::new(v.iter()),
+                    #[cfg(feature = "complex")]
+                    Instance::Complex(c) => Box::new(c.iter()),
+                    #[cfg(feature = "complex")]
+                    Instance::Quat(q) => Box::new(q.iter()),
                     _ => Box::new(std::iter::once(a)),
                 }
             })
@@ -527,6 +531,10 @@ pub fn vec(n: usize, args: &[Instance]) -> Result<Instance, E> {
             .flat_map(|a| -> Box<dyn Iterator<Item = &Instance>> {
                 match a {
                     Instance::Vec(v) => Box::new(v.iter()),
+                    #[cfg(feature = "complex")]
+                    Instance::Complex(c) => Box::new(c.iter()),
+                    #[cfg(feature = "complex")]
+                    Instance::Quat(q) => Box::new(q.iter()),
                     _ => Box::new(std::iter::once(a)),
                 }
             })
@@ -1019,6 +1027,10 @@ fn vec_ctor_ty_t(n: u8, tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
             .try_fold(0, |acc, arg| match arg {
                 ty if ty.is_scalar() => ty.is_convertible_to(tplt_ty).then_some(acc + 1),
                 Type::Vec(n, ty) => ty.is_convertible_to(tplt_ty).then_some(acc + n),
+                #[cfg(feature = "complex")]
+                Type::Complex(ty) => ty.is_convertible_to(tplt_ty).then_some(acc + 2),
+                #[cfg(feature = "complex")]
+                Type::Quat(ty) => ty.is_convertible_to(tplt_ty).then_some(acc + 4),
                 _ => None,
             })
             .ok_or(E::Builtin(
@@ -1058,6 +1070,10 @@ fn vec_ctor_ty(n: u8, args: &[Type]) -> Result<Type, E> {
             .try_fold(0, |acc, arg| match arg {
                 ty if ty.is_scalar() => Some(acc + 1),
                 Type::Vec(n, _) => Some(acc + n),
+                #[cfg(feature = "complex")]
+                Type::Complex(_) => Some(acc + 2),
+                #[cfg(feature = "complex")]
+                Type::Quat(_) => Some(acc + 4),
                 _ => None,
             })
             .ok_or(E::Builtin(

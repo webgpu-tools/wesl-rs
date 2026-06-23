@@ -659,7 +659,12 @@ pub fn complex(args: &[Instance]) -> Result<Instance, E> {
     }
     // overload 2: identity constructor
     else if let [Instance::Complex(c)] = args {
-        let comps = c.iter().cloned().collect_vec();
+        let args = c.iter().cloned().collect_vec();
+        let comps = convert_all(&args).ok_or(E::Builtin("complex components are incompatible"))?;
+        if !comps.first().unwrap(/* SAFETY: len() checked above */).ty().is_scalar() {
+            return Err(E::Builtin("complex constructor expects scalar arguments"));
+        }
+        // note: `complex(e: complex<S>) -> complex<S>` is no-op
         Ok(ComplexInstance::new(comps).into())
     }
     // overload 3: vec conversion constructor
@@ -813,7 +818,12 @@ pub fn quat(args: &[Instance]) -> Result<Instance, E> {
     }
     // overload 2: identity constructor
     else if let [Instance::Quat(q)] = args {
-        let comps = q.iter().cloned().collect_vec();
+        let args = q.iter().cloned().collect_vec();
+        let comps = convert_all(&args).ok_or(E::Builtin("quat components are incompatible"))?;
+        if !comps.first().unwrap(/* SAFETY: len() checked above */).ty().is_scalar() {
+            return Err(E::Builtin("quat constructor expects scalar arguments"));
+        }
+        // note: `quat(e: quat<S>) -> quat<S>` is no-op
         Ok(QuatInstance::new(comps).into())
     }
     // overload 3: vec conversion constructor

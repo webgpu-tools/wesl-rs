@@ -85,7 +85,16 @@ impl Eval for ParenthesizedExpression {
 
 impl Eval for NamedComponentExpression {
     fn eval(&self, ctx: &mut Context) -> Result<Instance, E> {
-        fn vec_comp(v: &VecInstance, comp: &str, r: Option<&RefInstance>) -> Result<Instance, E> {
+        fn vec_comp(inst: &Instance, comp: &str, r: Option<&RefInstance>) -> Result<Instance, E> {
+            let inst_ty = inst.ty();
+            let v = match inst {
+                Instance::Vec(v) => v,
+                #[cfg(feature = "complex")]
+                Instance::Complex(c) => &VecInstance::new(c.iter().cloned().collect_vec()),
+                #[cfg(feature = "complex")]
+                Instance::Quat(q) => &VecInstance::new(q.iter().cloned().collect_vec()),
+                _ => panic!("Non-vectorial type passed to vec_comp"),
+            };
             if !check_swizzle(comp) {
                 return Err(E::Swizzle(comp.to_string()));
             }
@@ -105,7 +114,7 @@ impl Eval for NamedComponentExpression {
                 } else {
                     v.get(*i)
                         .cloned()
-                        .ok_or_else(|| E::OutOfBounds(*i, v.ty(), v.n()))
+                        .ok_or_else(|| E::OutOfBounds(*i, inst_ty, v.n()))
                 }
             } else {
                 let components = indices
@@ -113,7 +122,7 @@ impl Eval for NamedComponentExpression {
                     .map(|i| {
                         v.get(i)
                             .cloned()
-                            .ok_or_else(|| E::OutOfBounds(i, v.ty(), v.n()))
+                            .ok_or_else(|| E::OutOfBounds(i, inst_ty.clone(), v.n()))
                     })
                     .collect::<Result<_, _>>()?;
                 Ok(VecInstance::new(components).into())
@@ -128,30 +137,18 @@ impl Eval for NamedComponentExpression {
                         .ok_or_else(|| E::Component(s.ty(), comp.to_string()))?;
                     Ok(val.clone())
                 }
-                Instance::Vec(v) => vec_comp(v, comp, None),
+                v @ Instance::Vec(_) => vec_comp(v, comp, None),
                 #[cfg(feature = "complex")]
-                Instance::Complex(c) => {
-                    let args = c.iter().cloned().collect_vec();
-                    vec_comp(&VecInstance::new(args), comp, None)
-                }
+                c @ Instance::Complex(_) => vec_comp(c, comp, None),
                 #[cfg(feature = "complex")]
-                Instance::Quat(q) => {
-                    let args = q.iter().cloned().collect_vec();
-                    vec_comp(&VecInstance::new(args), comp, None)
-                }
+                q @ Instance::Quat(_) => vec_comp(q, comp, None),
                 Instance::Ref(r) => match &*r.read()? {
                     Instance::Struct(_) => Ok(r.view_member(comp.to_string())?.into()),
-                    Instance::Vec(v) => vec_comp(v, comp, Some(r)),
+                    v @ Instance::Vec(_) => vec_comp(v, comp, Some(r)),
                     #[cfg(feature = "complex")]
-                    Instance::Complex(c) => {
-                        let args = c.iter().cloned().collect_vec();
-                        vec_comp(&VecInstance::new(args), comp, Some(r))
-                    }
+                    c @ Instance::Complex(_) => vec_comp(c, comp, Some(r)),
                     #[cfg(feature = "complex")]
-                    Instance::Quat(q) => {
-                        let args = q.iter().cloned().collect_vec();
-                        vec_comp(&VecInstance::new(args), comp, Some(r))
-                    }
+                    q @ Instance::Quat(_) => vec_comp(q, comp, Some(r)),
                     _ => Err(E::Component(base.ty(), comp.to_string())),
                 },
                 _ => Err(E::Component(base.ty(), comp.to_string())),

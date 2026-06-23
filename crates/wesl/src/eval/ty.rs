@@ -184,6 +184,30 @@ impl EvalTy for NamedComponentExpression {
                         Ok(Type::Vec(m as u8, ty))
                     }
                 }
+                #[cfg(feature = "complex")]
+                Type::Complex(ty) => {
+                    // note: complex swizzles to vec or scalar
+                    let m = mem_name.len();
+                    if !check_swizzle(mem_name) {
+                        Err(E::Swizzle(mem_name.to_string()))
+                    } else if m == 1 {
+                        Ok(*ty)
+                    } else {
+                        Ok(Type::Vec(m as u8, ty))
+                    }
+                }
+                #[cfg(feature = "complex")]
+                Type::Quat(ty) => {
+                    // note: quat swizzles to vec or scalar
+                    let m = mem_name.len();
+                    if !check_swizzle(mem_name) {
+                        Err(E::Swizzle(mem_name.to_string()))
+                    } else if m == 1 {
+                        Ok(*ty)
+                    } else {
+                        Ok(Type::Vec(m as u8, ty))
+                    }
+                }
                 ty => Err(E::Component(ty, mem_name.to_string())),
             }
         }
@@ -193,7 +217,15 @@ impl EvalTy for NamedComponentExpression {
             Type::Ref(a_s, ty, a_m) | Type::Ptr(a_s, ty, a_m) => {
                 // struct and vec member access from references yield references,
                 // *except* for vec swizzles which load the value.
-                if ty.is_vec() && mem_name.len() > 1 {
+                #[cfg(not(feature = "complex"))]
+                fn vectorial_matches(ty: &Box<Type>) -> bool {
+                    ty.is_vec()
+                }
+                #[cfg(feature = "complex")]
+                fn vectorial_matches(ty: &Box<Type>) -> bool {
+                    ty.is_vec() | ty.is_complex() | ty.is_quat()
+                }
+                if vectorial_matches(&ty) && mem_name.len() > 1 {
                     eval_mem_ty(*ty, &mem_name)
                 } else {
                     let mem_ty = eval_mem_ty(*ty, &mem_name)?;

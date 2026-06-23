@@ -223,7 +223,6 @@ impl Convert for VecInstance {
 #[cfg(feature = "complex")]
 impl Convert for ComplexInstance {
     fn convert_to(&self, ty: &Type) -> Option<Self> {
-        // TODO: Add conversion to vec2 here?
         if let Type::Complex(c_ty) = ty {
             self.convert_inner_to(c_ty)
         } else {
@@ -242,7 +241,6 @@ impl Convert for ComplexInstance {
 #[cfg(feature = "complex")]
 impl Convert for QuatInstance {
     fn convert_to(&self, ty: &Type) -> Option<Self> {
-        // TODO: Add conversion to vec4 here?
         if let Type::Quat(c_ty) = ty {
             self.convert_inner_to(c_ty)
         } else {

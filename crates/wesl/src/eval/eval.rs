@@ -129,9 +129,29 @@ impl Eval for NamedComponentExpression {
                     Ok(val.clone())
                 }
                 Instance::Vec(v) => vec_comp(v, comp, None),
+                #[cfg(feature = "complex")]
+                Instance::Complex(c) => {
+                    let args = c.iter().cloned().collect_vec();
+                    vec_comp(&VecInstance::new(args), comp, None)
+                }
+                #[cfg(feature = "complex")]
+                Instance::Quat(q) => {
+                    let args = q.iter().cloned().collect_vec();
+                    vec_comp(&VecInstance::new(args), comp, None)
+                }
                 Instance::Ref(r) => match &*r.read()? {
                     Instance::Struct(_) => Ok(r.view_member(comp.to_string())?.into()),
                     Instance::Vec(v) => vec_comp(v, comp, Some(r)),
+                    #[cfg(feature = "complex")]
+                    Instance::Complex(c) => {
+                        let args = c.iter().cloned().collect_vec();
+                        vec_comp(&VecInstance::new(args), comp, Some(r))
+                    }
+                    #[cfg(feature = "complex")]
+                    Instance::Quat(q) => {
+                        let args = q.iter().cloned().collect_vec();
+                        vec_comp(&VecInstance::new(args), comp, Some(r))
+                    }
                     _ => Err(E::Component(base.ty(), comp.to_string())),
                 },
                 _ => Err(E::Component(base.ty(), comp.to_string())),

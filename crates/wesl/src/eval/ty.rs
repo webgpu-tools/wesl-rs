@@ -218,11 +218,11 @@ impl EvalTy for NamedComponentExpression {
                 // struct and vec member access from references yield references,
                 // *except* for vec swizzles which load the value.
                 #[cfg(not(feature = "complex"))]
-                fn vectorial_matches(ty: &Box<Type>) -> bool {
+                fn vectorial_matches(ty: &Type) -> bool {
                     ty.is_vec()
                 }
                 #[cfg(feature = "complex")]
-                fn vectorial_matches(ty: &Box<Type>) -> bool {
+                fn vectorial_matches(ty: &Type) -> bool {
                     ty.is_vec() | ty.is_complex() | ty.is_quat()
                 }
                 if vectorial_matches(&ty) && mem_name.len() > 1 {

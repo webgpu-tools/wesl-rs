@@ -179,10 +179,10 @@ fn resolve_decl<R: Resolver>(
 ) -> Result<(), Error> {
     if let Some((_, n)) = module.find_decl(ident) {
         let decl = module.source.global_declarations.get(*n).unwrap().node();
-        if let Some(ident) = decl.ident() {
-            if !module.used_idents.borrow_mut().insert(ident) {
-                return Ok(());
-            }
+        if let Some(ident) = decl.ident()
+            && !module.used_idents.borrow_mut().insert(ident)
+        {
+            return Ok(());
         }
 
         for ty in Visit::<TypeExpression>::visit(decl) {
@@ -538,10 +538,10 @@ impl Resolutions {
             for decl in &mut module.source.global_declarations {
                 // we only retarged used declarations. Other declarations are not checked.
                 // unused declarations can even contain invalid code.
-                if let Some(id) = decl.ident() {
-                    if !module.used_idents.borrow().contains(&id) {
-                        continue;
-                    }
+                if let Some(id) = decl.ident()
+                    && !module.used_idents.borrow().contains(&id)
+                {
+                    continue;
                 }
 
                 for ty in Visit::<TypeExpression>::visit_mut(decl.node_mut()) {

@@ -31,10 +31,11 @@ pub(crate) fn mark_functions_const(wesl: &mut TranslationUnit) {
         })
         .collect_vec();
     for (decl, is_const) in wesl.global_declarations.iter_mut().zip(is_const) {
-        if let GlobalDeclaration::Function(decl) = decl.node_mut() {
-            if is_const && !decl.contains_attribute(&Attribute::Const) {
-                decl.attributes.push(Attribute::Const.into())
-            }
+        if let GlobalDeclaration::Function(decl) = decl.node_mut()
+            && is_const
+            && !decl.contains_attribute(&Attribute::Const)
+        {
+            decl.attributes.push(Attribute::Const.into())
         }
     }
 }

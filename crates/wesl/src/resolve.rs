@@ -525,10 +525,10 @@ impl Resolver for StandardResolver {
         // a special case to handle the constants virtual module. For now, this module
         // is shared for all sub-dependencies.
         // TODO: in the future we'll change that.
-        if let PathOrigin::Package(pkg_name) = &path.origin {
-            if pkg_name == "constants" || pkg_name.ends_with("/constants") {
-                return Ok(self.generate_constant_module().into());
-            }
+        if let PathOrigin::Package(pkg_name) = &path.origin
+            && (pkg_name == "constants" || pkg_name.ends_with("/constants"))
+        {
+            return Ok(self.generate_constant_module().into());
         }
 
         if path.origin.is_package() {

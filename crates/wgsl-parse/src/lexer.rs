@@ -39,10 +39,10 @@ fn maybe_template_end(
 // operators && and || have lower precedence than < and >.
 // therefore, this is not a template: a < b || c > d
 fn maybe_fail_template(lex: &mut logos::Lexer<Token>) -> bool {
-    if let Some(depth) = lex.extras.template_depths.last() {
-        if lex.extras.depth == *depth {
-            return false;
-        }
+    if let Some(depth) = lex.extras.template_depths.last()
+        && lex.extras.depth == *depth
+    {
+        return false;
     }
     true
 }
@@ -777,17 +777,16 @@ impl<'s> Lexer<'s> {
             None => return None,
         };
 
-        if let Some((Ok(next_tok), next_span)) = &mut next {
-            if (matches!(cur_tok, Token::Ident(_)) || cur_tok.is_keyword())
-                && *next_tok == Token::SymLessThan
-            {
-                let source = &self.source[next_span.start..];
-                if recognize_template_list(source) {
-                    *next_tok = Token::TemplateArgsStart;
-                    let cur_depth = self.token_stream.extras.depth;
-                    self.token_stream.extras.template_depths.push(cur_depth);
-                    self.opened_templates += 1;
-                }
+        if let Some((Ok(next_tok), next_span)) = &mut next
+            && (matches!(cur_tok, Token::Ident(_)) || cur_tok.is_keyword())
+            && *next_tok == Token::SymLessThan
+        {
+            let source = &self.source[next_span.start..];
+            if recognize_template_list(source) {
+                *next_tok = Token::TemplateArgsStart;
+                let cur_depth = self.token_stream.extras.depth;
+                self.token_stream.extras.template_depths.push(cur_depth);
+                self.opened_templates += 1;
             }
         }
 

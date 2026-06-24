@@ -13,21 +13,31 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 annotate-snippets = "0.12.4"
-derive_more = { version = "2.0.1", features = [
-  "as_ref",
-  "deref",
-  "deref_mut",
-  "display",
-  "from",
-  "unwrap",
-] }
+derive_more = {
+  version = "2.0.1",
+  features = [
+    "as_ref",
+    "deref",
+    "deref_mut",
+    "display",
+    "from",
+    "unwrap",
+  ]
+}
 glob = { version = "0.3", optional = true }  # dep for feature 'package'
 half = { version = "2.4.1", features = ["num-traits"] }
 itertools = "0.14.0"
 num-traits = "0.2.19"
-proc-macro2 = { version = "1.0.93", optional = true }  # dep for feature 'package'
+proc-macro2 = {
+  version = "1.0.93",
+  optional = true
+}  # dep for feature 'package'
 quote = { version = "1.0.38", optional = true }  # dep for feature 'package'
-serde = { version = "1.0", features = ["derive"], optional = true }  # dep for feature 'package'
+serde = {
+  version = "1.0",
+  features = ["derive"],
+  optional = true
+}  # dep for feature 'package'
 thiserror = "2.0.11"
 toml = { version = "0.9", optional = true }  # dep for feature 'package'
 wesl-macros = { workspace = true, features = ["query"] }

@@ -19,10 +19,14 @@ ansi-to-html = { version = "0.2.3", optional = true }
 console_error_panic_hook = { version = "0.1.7", optional = true }
 console_log = { version = "1.0.0", features = ["color"], optional = true }
 log = "0.4.22"
-naga = { version = "28.0.0", features = [
-  "wgsl-in",
-  "wgsl-out",
-], optional = true }
+naga = {
+  version = "28.0.0",
+  features = [
+    "wgsl-in",
+    "wgsl-out",
+  ],
+  optional = true
+}
 serde = { version = "1.0.215", features = ["derive"] }
 serde_bytes = "0.11.15"
 serde-wasm-bindgen = "0.6.5"

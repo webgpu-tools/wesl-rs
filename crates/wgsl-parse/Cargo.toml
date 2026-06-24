@@ -13,16 +13,19 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 annotate-snippets = "0.12.4"
-derive_more = { version = "2.0.1", features = [
-  "as_ref",
-  "constructor",
-  "deref",
-  "deref_mut",
-  "from",
-  "is_variant",
-  "try_unwrap",
-  "unwrap",
-] }
+derive_more = {
+  version = "2.0.1",
+  features = [
+    "as_ref",
+    "constructor",
+    "deref",
+    "deref_mut",
+    "from",
+    "is_variant",
+    "try_unwrap",
+    "unwrap",
+  ]
+}
 itertools = "0.14.0"
 lalrpop-util = "0.22.1"
 lexical = { version = "7.0.4", features = ["format", "power-of-two"] }

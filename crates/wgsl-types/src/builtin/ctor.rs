@@ -627,7 +627,7 @@ pub fn complex_t(tplt_ty: &Type, args: &[Instance], stage: ShaderStage) -> Resul
             })
             .collect_vec();
         if args.len() != 2 {
-            return Err(E::ParamCount(format!("complex"), 2, args.len()));
+            return Err(E::ParamCount("complex".to_string(), 2, args.len()));
         }
 
         let comps = args
@@ -696,7 +696,7 @@ pub fn complex(args: &[Instance]) -> Result<Instance, E> {
             .cloned()
             .collect_vec();
         if args.len() != 2 {
-            return Err(E::ParamCount(format!("complex"), 2, args.len()));
+            return Err(E::ParamCount("complex".to_string(), 2, args.len()));
         }
 
         let comps = convert_all(&args).ok_or(E::Builtin("complex components are incompatible"))?;
@@ -784,7 +784,7 @@ pub fn quat_t(tplt_ty: &Type, args: &[Instance], stage: ShaderStage) -> Result<I
                 Ok(acc)
             })?;
         if args.len() != 4 {
-            return Err(E::ParamCount(format!("quat"), 4, args.len()));
+            return Err(E::ParamCount("quat".to_string(), 4, args.len()));
         }
 
         let comps = args
@@ -854,7 +854,7 @@ pub fn quat(args: &[Instance]) -> Result<Instance, E> {
                 Ok(acc)
             })?;
         if args.len() != 4 {
-            return Err(E::ParamCount(format!("quat"), 4, args.len()));
+            return Err(E::ParamCount("quat".to_string(), 4, args.len()));
         }
 
         let comps = convert_all(&args).ok_or(E::Builtin("quat components are incompatible"))?;
@@ -1161,7 +1161,7 @@ fn complex_ctor_ty_t(tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
                 "complex constructor expects scalar, vector, or complex arguments",
             ))?;
         if n2 != 2 {
-            return Err(E::ParamCount(format!("complex"), 2, args.len()));
+            return Err(E::ParamCount("complex".to_string(), 2, args.len()));
         }
     }
 
@@ -1199,7 +1199,7 @@ fn complex_ctor_ty(args: &[Type]) -> Result<Type, E> {
                 "complex constructor expects scalar, vector, or complex arguments",
             ))?;
         if n2 != 2 {
-            return Err(E::ParamCount(format!("complex"), 2, args.len()));
+            return Err(E::ParamCount("complex".to_string(), 2, args.len()));
         }
 
         let tys = args.iter().map(|arg| arg.inner_ty()).collect_vec();
@@ -1245,7 +1245,7 @@ fn quat_ctor_ty_t(tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
                 "quat constructor expects scalar, vector, or complex arguments",
             ))?;
         if n2 != 4 {
-            return Err(E::ParamCount(format!("quat"), 4, args.len()));
+            return Err(E::ParamCount("quat".to_string(), 4, args.len()));
         }
     }
 
@@ -1284,7 +1284,7 @@ fn quat_ctor_ty(args: &[Type]) -> Result<Type, E> {
                 "quat constructor expects scalar, vector, or quat arguments",
             ))?;
         if n2 != 2 {
-            return Err(E::ParamCount(format!("complex"), 2, args.len()));
+            return Err(E::ParamCount("complex".to_string(), 2, args.len()));
         }
 
         let tys = args.iter().map(|arg| arg.inner_ty()).collect_vec();

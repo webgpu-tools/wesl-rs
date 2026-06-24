@@ -323,11 +323,6 @@ pub fn resolve_eager(
         resolutions: &mut Resolutions,
         resolver: &impl Resolver,
     ) -> Result<(), Error> {
-        // resolve all module imports
-        for item in module.imports.values() {
-            load_module(&item.path, resolutions, resolver, &resolve_module)?;
-        }
-
         for decl in &module.source.global_declarations {
             if let Some(ident) = decl.ident() {
                 resolve_decl(module, &ident, resolutions, resolver, &resolve_module)?;

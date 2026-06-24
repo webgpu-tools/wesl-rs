@@ -855,6 +855,8 @@ fn compile_pre_assembly(
 
     let resolutions = if opts.imports {
         if opts.strip && opts.lazy {
+            // we can only use the lazy algorithm if stripping is enabled,
+            // because lazy will already strip unused modules.
             import::resolve_lazy(&keep, wesl, root, &resolver)?
         } else {
             import::resolve_eager(wesl, root, &resolver)?

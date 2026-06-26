@@ -10,7 +10,7 @@ mod wgsl {
     include!("wgsl.rs");
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 pub use wgsl::ImportStatementParser;
 
 pub use wgsl::{
@@ -77,7 +77,7 @@ impl FromStr for Expression {
         parser.parse(lexer).map_err(Into::into)
     }
 }
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 impl FromStr for crate::syntax::ImportStatement {
     type Err = Error;
 

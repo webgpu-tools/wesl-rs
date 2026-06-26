@@ -20,7 +20,7 @@ impl TranslationUnit {
     }
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 impl ModulePath {
     /// Create a new module path from components.
     ///
@@ -197,7 +197,7 @@ impl ModulePath {
     }
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 #[test]
 fn test_module_path_join() {
     use std::str::FromStr;
@@ -225,7 +225,7 @@ fn test_module_path_join() {
     }
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, thiserror::Error)]
 pub enum ModulePathParseError {
     #[error("module name cannot be empty")]
@@ -238,7 +238,7 @@ pub enum ModulePathParseError {
     MisplacedSuper,
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 impl std::str::FromStr for ModulePath {
     type Err = ModulePathParseError;
 
@@ -277,7 +277,7 @@ impl std::str::FromStr for ModulePath {
     }
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 #[test]
 fn test_module_path_fromstr() {
     use std::str::FromStr;
@@ -322,7 +322,7 @@ impl GlobalDeclaration {
 impl TypeAlias {
     pub fn new(ident: Ident, ty: TypeExpression) -> Self {
         Self {
-            #[cfg(feature = "attributes")]
+            #[cfg(feature = "wesl")]
             attributes: Default::default(),
             ident,
             ty,
@@ -333,7 +333,7 @@ impl TypeAlias {
 impl Struct {
     pub fn new(ident: Ident) -> Self {
         Self {
-            #[cfg(feature = "attributes")]
+            #[cfg(feature = "wesl")]
             attributes: Default::default(),
             ident,
             members: Default::default(),
@@ -377,7 +377,7 @@ impl FormalParameter {
 impl ConstAssert {
     pub fn new(expression: Expression) -> Self {
         Self {
-            #[cfg(feature = "attributes")]
+            #[cfg(feature = "wesl")]
             attributes: Default::default(),
             expression: expression.into(),
         }
@@ -388,7 +388,7 @@ impl TypeExpression {
     /// New [`TypeExpression`] with no template.
     pub fn new(ident: Ident) -> Self {
         Self {
-            #[cfg(feature = "imports")]
+            #[cfg(feature = "wesl")]
             path: None,
             ident,
             template_args: None,
@@ -446,7 +446,7 @@ impl From<Ident> for TypeExpression {
 impl From<ExpressionNode> for ReturnStatement {
     fn from(expression: ExpressionNode) -> Self {
         Self {
-            #[cfg(feature = "attributes")]
+            #[cfg(feature = "wesl")]
             attributes: Default::default(),
             expression: Some(expression),
         }
@@ -461,7 +461,7 @@ impl From<Expression> for ReturnStatement {
 impl From<FunctionCall> for FunctionCallStatement {
     fn from(call: FunctionCall) -> Self {
         Self {
-            #[cfg(feature = "attributes")]
+            #[cfg(feature = "wesl")]
             attributes: Default::default(),
             call,
         }
@@ -601,14 +601,14 @@ macro_rules! impl_attrs_enum {
     };
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 impl SyntaxNode for ImportStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for GlobalDirective {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_enum! {
         GlobalDirective::Diagnostic,
         GlobalDirective::Enable,
@@ -617,17 +617,17 @@ impl SyntaxNode for GlobalDirective {
 }
 
 impl SyntaxNode for DiagnosticDirective {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for EnableDirective {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for RequiresDirective {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
@@ -643,7 +643,7 @@ impl SyntaxNode for GlobalDeclaration {
         }
     }
 
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_enum! {
         GlobalDeclaration::Declaration,
         GlobalDeclaration::TypeAlias,
@@ -666,7 +666,7 @@ impl SyntaxNode for TypeAlias {
         Some(self.ident.clone())
     }
 
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
@@ -675,7 +675,7 @@ impl SyntaxNode for Struct {
         Some(self.ident.clone())
     }
 
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
@@ -704,7 +704,7 @@ impl SyntaxNode for FormalParameter {
 }
 
 impl SyntaxNode for ConstAssert {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
@@ -719,7 +719,7 @@ impl SyntaxNode for FunctionCall {}
 impl SyntaxNode for TypeExpression {}
 
 impl SyntaxNode for Statement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_enum! {
         Statement::Compound,
         Statement::Assignment,
@@ -745,17 +745,17 @@ impl SyntaxNode for CompoundStatement {
 }
 
 impl SyntaxNode for AssignmentStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for IncrementStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for DecrementStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
@@ -766,12 +766,12 @@ impl SyntaxNode for IfStatement {
 impl SyntaxNode for IfClause {}
 
 impl SyntaxNode for ElseIfClause {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for ElseClause {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
@@ -780,7 +780,7 @@ impl SyntaxNode for SwitchStatement {
 }
 
 impl SyntaxNode for SwitchClause {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
@@ -789,12 +789,12 @@ impl SyntaxNode for LoopStatement {
 }
 
 impl SyntaxNode for ContinuingStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for BreakIfStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
@@ -807,26 +807,26 @@ impl SyntaxNode for WhileStatement {
 }
 
 impl SyntaxNode for BreakStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for ContinueStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for ReturnStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for DiscardStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for FunctionCallStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     impl_attrs_struct! {}
 }

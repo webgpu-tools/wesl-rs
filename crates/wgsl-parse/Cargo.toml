@@ -34,25 +34,14 @@ wgsl-types = { workspace = true }
 
 [features]
 default = []
-# allow attributes on most declarations and statements.
-# reference: https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/ConditionalTranslation.md#appendix-updated-grammar
-attributes = []
-# conditional translation attribute (@if).
-# reference: https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/ConditionalTranslation.md
-condcomp = ["attributes"]
-# reference: none yet
-generics = ["attributes"]
-# import declarations.
-# reference: https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/Imports.md
-imports = []
-# See crates/wesl/Cargo.toml
+# experimental: function generics
+generics = ["wesl"]
+# support naga extensions. See crates/wesl/Cargo.toml
 naga-ext = ["wgsl-types/naga-ext"]
 serde = ["dep:serde", "wgsl-types/serde"]
-# allow templates on function declarations
-# reference: none yet
-templates = []
 tokrepr = ["dep:tokrepr", "wgsl-types/tokrepr"]
-wesl = ["condcomp", "imports"]
+# support WESL language extensions
+wesl = []
 
 [lints]
 workspace = true

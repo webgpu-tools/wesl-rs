@@ -35,7 +35,7 @@ impl<T: Display> Display for Indent<T> {
 
 impl Display for TranslationUnit {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "imports")]
+        #[cfg(feature = "wesl")]
         if !self.imports.is_empty() {
             for import in &self.imports {
                 writeln!(f, "import {import}\n")?;
@@ -60,10 +60,10 @@ impl Display for Ident {
     }
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 impl Display for ImportStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         if let Some(path) = &self.path {
             write!(f, "{path}::")?;
@@ -73,7 +73,7 @@ impl Display for ImportStatement {
     }
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 impl Display for ModulePath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.origin {
@@ -89,7 +89,7 @@ impl Display for ModulePath {
     }
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 impl Display for Import {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if !self.path.is_empty() {
@@ -101,7 +101,7 @@ impl Display for Import {
     }
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 impl Display for ImportContent {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -132,7 +132,7 @@ impl Display for GlobalDirective {
 
 impl Display for DiagnosticDirective {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let severity = &self.severity;
         let rule = &self.rule_name;
@@ -142,7 +142,7 @@ impl Display for DiagnosticDirective {
 
 impl Display for EnableDirective {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let exts = self.extensions.iter().format(", ");
         write!(f, "enable {exts};")
@@ -151,7 +151,7 @@ impl Display for EnableDirective {
 
 impl Display for RequiresDirective {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let exts = self.extensions.iter().format(", ");
         write!(f, "requires {exts};")
@@ -203,7 +203,7 @@ impl Display for DeclarationKind {
 
 impl Display for TypeAlias {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let name = &self.ident;
         let ty = &self.ty;
@@ -213,7 +213,7 @@ impl Display for TypeAlias {
 
 impl Display for Struct {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let name = &self.ident;
         let members = Indent(self.members.iter().format(",\n"));
@@ -259,7 +259,7 @@ impl Display for FormalParameter {
 
 impl Display for ConstAssert {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let expr = &self.expression;
         write!(f, "const_assert {expr};",)
@@ -297,13 +297,13 @@ impl Display for Attribute {
             Attribute::Vertex => write!(f, "@vertex"),
             Attribute::Fragment => write!(f, "@fragment"),
             Attribute::Compute => write!(f, "@compute"),
-            #[cfg(feature = "imports")]
+            #[cfg(feature = "wesl")]
             Attribute::Publish => write!(f, "@publish"),
-            #[cfg(feature = "condcomp")]
+            #[cfg(feature = "wesl")]
             Attribute::If(e1) => write!(f, "@if({e1})"),
-            #[cfg(feature = "condcomp")]
+            #[cfg(feature = "wesl")]
             Attribute::Elif(e1) => write!(f, "@elif({e1})"),
-            #[cfg(feature = "condcomp")]
+            #[cfg(feature = "wesl")]
             Attribute::Else => write!(f, "@else"),
             #[cfg(feature = "generics")]
             Attribute::Type(e1) => write!(f, "@type({e1})"),
@@ -433,7 +433,7 @@ impl Display for FunctionCall {
 
 impl Display for TypeExpression {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "imports")]
+        #[cfg(feature = "wesl")]
         if let Some(path) = &self.path {
             write!(f, "{path}::")?;
         }
@@ -496,7 +496,7 @@ impl Display for CompoundStatement {
 
 impl Display for AssignmentStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let operator = &self.operator;
         let lhs = &self.lhs;
@@ -507,7 +507,7 @@ impl Display for AssignmentStatement {
 
 impl Display for IncrementStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let expr = &self.expression;
         write!(f, "{expr}++;")
@@ -516,7 +516,7 @@ impl Display for IncrementStatement {
 
 impl Display for DecrementStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let expr = &self.expression;
         write!(f, "{expr}--;")
@@ -548,7 +548,7 @@ impl Display for IfClause {
 
 impl Display for ElseIfClause {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let expr = &self.expression;
         let stmt = &self.body;
@@ -558,7 +558,7 @@ impl Display for ElseIfClause {
 
 impl Display for ElseClause {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let stmt = &self.body;
         write!(f, "else {stmt}")
@@ -577,7 +577,7 @@ impl Display for SwitchStatement {
 
 impl Display for SwitchClause {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let cases = self.case_selectors.iter().format(", ");
         let body = &self.body;
@@ -617,7 +617,7 @@ impl Display for LoopStatement {
 
 impl Display for ContinuingStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let body_attrs = fmt_attrs(&self.body.attributes, false);
         let stmts = Indent(
@@ -637,7 +637,7 @@ impl Display for ContinuingStatement {
 
 impl Display for BreakIfStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let expr = &self.expression;
         write!(f, "break if {expr};")
@@ -683,7 +683,7 @@ impl Display for WhileStatement {
 
 impl Display for BreakStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         write!(f, "break;")
     }
@@ -691,7 +691,7 @@ impl Display for BreakStatement {
 
 impl Display for ContinueStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         write!(f, "continue;")
     }
@@ -699,7 +699,7 @@ impl Display for ContinueStatement {
 
 impl Display for ReturnStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let expr = self
             .expression
@@ -711,7 +711,7 @@ impl Display for ReturnStatement {
 
 impl Display for DiscardStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         write!(f, "discard;")
     }
@@ -719,7 +719,7 @@ impl Display for DiscardStatement {
 
 impl Display for FunctionCallStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[cfg(feature = "attributes")]
+        #[cfg(feature = "wesl")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let call = &self.call;
         write!(f, "{call};")
@@ -728,14 +728,14 @@ impl Display for FunctionCallStatement {
 
 #[cfg(test)]
 mod test {
-    #[cfg(feature = "imports")]
+    #[cfg(feature = "wesl")]
     use crate::syntax::ModulePath;
     use crate::syntax::{Ident, TypeExpression};
 
     #[test]
     fn type_expression_display() {
         let expr = TypeExpression {
-            #[cfg(feature = "imports")]
+            #[cfg(feature = "wesl")]
             path: None,
             ident: Ident::new("foo".into()),
             template_args: None,
@@ -744,7 +744,7 @@ mod test {
         assert_eq!(expr.to_string(), "foo");
 
         let expr = TypeExpression {
-            #[cfg(feature = "imports")]
+            #[cfg(feature = "wesl")]
             path: Some(ModulePath::new(
                 crate::syntax::PathOrigin::Absolute,
                 vec!["bar".into(), "qux".into()],
@@ -753,7 +753,7 @@ mod test {
             template_args: None,
         };
 
-        if cfg!(feature = "imports") {
+        if cfg!(feature = "wesl") {
             assert_eq!(expr.to_string(), "package::bar::qux::foo");
         } else {
             assert_eq!(expr.to_string(), "foo");

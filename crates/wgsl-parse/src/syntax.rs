@@ -36,7 +36,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct TranslationUnit {
-    #[cfg(feature = "imports")]
+    #[cfg(feature = "wesl")]
     pub imports: Vec<ImportStatement>,
     pub global_directives: Vec<GlobalDirective>,
     pub global_declarations: Vec<GlobalDeclarationNode>,
@@ -95,18 +95,18 @@ impl std::hash::Hash for Ident {
     }
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ImportStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub path: Option<ModulePath>,
     pub content: ImportContent,
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, IsVariant)]
@@ -119,7 +119,7 @@ pub enum PathOrigin {
     Package(String),
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -128,7 +128,7 @@ pub struct ModulePath {
     pub components: Vec<String>,
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -137,7 +137,7 @@ pub struct Import {
     pub content: ImportContent,
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq, IsVariant)]
@@ -146,7 +146,7 @@ pub enum ImportContent {
     Collection(Vec<Import>),
 }
 
-#[cfg(feature = "imports")]
+#[cfg(feature = "wesl")]
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -168,7 +168,7 @@ pub enum GlobalDirective {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct DiagnosticDirective {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub severity: DiagnosticSeverity,
     pub rule_name: String,
@@ -178,7 +178,7 @@ pub struct DiagnosticDirective {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct EnableDirective {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub extensions: Vec<String>,
 }
@@ -187,7 +187,7 @@ pub struct EnableDirective {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct RequiresDirective {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub extensions: Vec<String>,
 }
@@ -231,7 +231,7 @@ pub enum DeclarationKind {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct TypeAlias {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub ident: Ident,
     pub ty: TypeExpression,
@@ -241,7 +241,7 @@ pub struct TypeAlias {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Struct {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub ident: Ident,
     pub members: Vec<StructMemberNode>,
@@ -283,7 +283,7 @@ pub struct FormalParameter {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ConstAssert {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub expression: ExpressionNode,
 }
@@ -346,13 +346,13 @@ pub enum Attribute {
     Vertex,
     Fragment,
     Compute,
-    #[cfg(feature = "imports")]
+    #[cfg(feature = "wesl")]
     Publish,
-    #[cfg(feature = "condcomp")]
+    #[cfg(feature = "wesl")]
     If(ExpressionNode),
-    #[cfg(feature = "condcomp")]
+    #[cfg(feature = "wesl")]
     Elif(ExpressionNode),
-    #[cfg(feature = "condcomp")]
+    #[cfg(feature = "wesl")]
     Else,
     #[cfg(feature = "generics")]
     #[from]
@@ -469,7 +469,7 @@ pub type FunctionCallExpression = FunctionCall;
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct TypeExpression {
-    #[cfg(feature = "imports")]
+    #[cfg(feature = "wesl")]
     pub path: Option<ModulePath>,
     pub ident: Ident,
     pub template_args: TemplateArgs,
@@ -520,7 +520,7 @@ pub struct CompoundStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct AssignmentStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub operator: AssignmentOperator,
     pub lhs: ExpressionNode,
@@ -531,7 +531,7 @@ pub struct AssignmentStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct IncrementStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub expression: ExpressionNode,
 }
@@ -540,7 +540,7 @@ pub struct IncrementStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct DecrementStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub expression: ExpressionNode,
 }
@@ -567,7 +567,7 @@ pub struct IfClause {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ElseIfClause {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub expression: ExpressionNode,
     pub body: CompoundStatement,
@@ -577,7 +577,7 @@ pub struct ElseIfClause {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ElseClause {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub body: CompoundStatement,
 }
@@ -596,7 +596,7 @@ pub struct SwitchStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct SwitchClause {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub case_selectors: Vec<CaseSelector>,
     pub body: CompoundStatement,
@@ -626,7 +626,7 @@ pub struct LoopStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ContinuingStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub body: CompoundStatement,
     // a BreakIfStatement can only appear inside a ContinuingStatement body, therefore it
@@ -639,7 +639,7 @@ pub struct ContinuingStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct BreakIfStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub expression: ExpressionNode,
 }
@@ -668,7 +668,7 @@ pub struct WhileStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct BreakStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
 }
 
@@ -676,7 +676,7 @@ pub struct BreakStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ContinueStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
 }
 
@@ -684,7 +684,7 @@ pub struct ContinueStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReturnStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub expression: Option<ExpressionNode>,
 }
@@ -693,7 +693,7 @@ pub struct ReturnStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct DiscardStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
 }
 
@@ -701,7 +701,7 @@ pub struct DiscardStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct FunctionCallStatement {
-    #[cfg(feature = "attributes")]
+    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub call: FunctionCall,
 }

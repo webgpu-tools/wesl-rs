@@ -12,6 +12,19 @@ use crate::{
 
 type E = ParseError;
 
+// HACK: parsing entrypoints.
+// see: https://github.com/lalrpop/lalrpop/issues/65#issuecomment-516769995
+pub enum ParseEntryPoint {
+    TryTemplateList(Span),
+    TranslationUnit(TranslationUnit),
+    GlobalDecl(GlobalDeclaration),
+    Literal(LiteralExpression),
+    GlobalDirective(GlobalDirective),
+    Expression(Expression),
+    Statement(Statement),
+    ImportStatement(ImportStatement),
+}
+
 pub(crate) enum Component {
     Named(Ident),
     Index(ExpressionNode),

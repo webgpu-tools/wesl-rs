@@ -260,6 +260,17 @@ pub struct LexerState {
     extras = LexerState,
     error = ParseError)]
 pub enum Token {
+    // HACK: parsing entrypoints.
+    // see: https://github.com/lalrpop/lalrpop/issues/65#issuecomment-516769995
+    EntryPointTryTemplateList,
+    EntryPointTranslationUnit,
+    EntryPointGlobalDecl,
+    EntryPointLiteral,
+    EntryPointGlobalDirective,
+    EntryPointExpression,
+    EntryPointStatement,
+    EntryPointImportStatement,
+
     #[token("//", parse_line_comment)]
     LineComment,
     #[token("/*", parse_block_comment, priority = 2)]
@@ -608,6 +619,14 @@ impl Display for Token {
     /// This display implementation is used for error messages.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Token::EntryPointTryTemplateList => f.write_str("EntryPointTryTemplateList"),
+            Token::EntryPointTranslationUnit => f.write_str("EntryPointTranslationUnit"),
+            Token::EntryPointGlobalDecl => f.write_str("EntryPointGlobalDecl"),
+            Token::EntryPointLiteral => f.write_str("EntryPointLiteral"),
+            Token::EntryPointGlobalDirective => f.write_str("EntryPointGlobalDirective"),
+            Token::EntryPointExpression => f.write_str("EntryPointExpression"),
+            Token::EntryPointStatement => f.write_str("EntryPointStatement"),
+            Token::EntryPointImportStatement => f.write_str("EntryPointImportStatement"),
             Token::LineComment => f.write_str("// line comment"),
             Token::BlockComment => f.write_str("/* block comment */"),
             Token::Ignored => unreachable!(),

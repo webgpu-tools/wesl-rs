@@ -13,6 +13,18 @@ extern {
     type Location = usize;
     type Error = (usize, ParseError, usize);
     enum Token {
+        // HACK: parsing entrypoints.
+        // see: https://github.com/lalrpop/lalrpop/issues/65#issuecomment-516769995
+        EntryPointTryTemplateList => Token::EntryPointTryTemplateList,
+        EntryPointTranslationUnit => Token::EntryPointTranslationUnit,
+        EntryPointGlobalDecl => Token::EntryPointGlobalDecl,
+        EntryPointLiteral => Token::EntryPointLiteral,
+        EntryPointGlobalDirective => Token::EntryPointGlobalDirective,
+        EntryPointExpression => Token::EntryPointExpression,
+        EntryPointStatement => Token::EntryPointStatement,
+        #[cfg(feature = "imports")]
+        EntryPointImportStatement => Token::EntryPointImportStatement,
+
         // syntactic tokens
         // https://www.w3.org/TR/WGSL/#syntactic-tokens
         "&" => Token::SymAnd,
@@ -166,12 +178,26 @@ Keyword: String = {
     "import" => <>.to_string(),
 };
 
+// HACK: parsing entrypoints.
+// see: https://github.com/lalrpop/lalrpop/issues/65#issuecomment-516769995
+pub EntryPoint: ParseEntryPoint = {
+    EntryPointTryTemplateList <TryTemplateList> => ParseEntryPoint::TryTemplateList(<>),
+    EntryPointTranslationUnit <TranslationUnit> => ParseEntryPoint::TranslationUnit(<>),
+    EntryPointGlobalDecl <GlobalDecl> => ParseEntryPoint::GlobalDecl(<>),
+    EntryPointLiteral <Literal> => ParseEntryPoint::Literal(<>),
+    EntryPointGlobalDirective <GlobalDirective> => ParseEntryPoint::GlobalDirective(<>),
+    EntryPointExpression <Expression> => ParseEntryPoint::Expression(<>),
+    EntryPointStatement <Statement> => ParseEntryPoint::Statement(<>),
+    #[cfg(feature = "imports")]
+    EntryPointImportStatement <ImportStatement> => ParseEntryPoint::ImportStatement(<>)
+};
+
 // the grammar rules are laid out in the same order as in the spec.
 // following the spec at this date: https://www.w3.org/TR/2024/WD-WGSL-20240731/
 
 // custom entrypoint called by the lexer when it sees [Token::Ident, Token::SymLessThan].
 // if this parse succeeds, the next token emitted by the lexer will be TokTemplateList.
- pub TryTemplateList: Span = {
+TryTemplateList: Span = {
     <l:@L> TokTemplateArgsStart TemplateArgCommaList TokTemplateArgsEnd <r:@R> => Span::new(l..r),
 };
 
@@ -182,7 +208,7 @@ Keyword: String = {
 // 2. WGSL MODULE
 // https://www.w3.org/TR/WGSL/#wgsl-module
 
-pub TranslationUnit: TranslationUnit = {
+TranslationUnit: TranslationUnit = {
     #[cfg(not(feature = "imports"))]
     <global_directives: GlobalDirective*> <global_declarations: GlobalDeclarationNode*> => TranslationUnit {
         global_directives, global_declarations
@@ -193,7 +219,7 @@ pub TranslationUnit: TranslationUnit = {
     },
 };
 
-pub GlobalDecl: GlobalDeclaration = {
+GlobalDecl: GlobalDeclaration = {
     ";"                        => GlobalDeclaration::Void,
     <GlobalVariableDecl> ";"   => GlobalDeclaration::Declaration(<>),
     <GlobalValueDecl> ";"      => GlobalDeclaration::Declaration(<>),
@@ -215,7 +241,7 @@ DiagnosticRuleName: String = {
 
 // XXX: non-conformant
 // https://www.w3.org/TR/WGSL/#syntax-literal
-pub Literal: LiteralExpression = {
+Literal: LiteralExpression = {
     TokAbstractInt   => LiteralExpression::AbstractInt(<>),
     TokAbstractFloat => LiteralExpression::AbstractFloat(<>),
     TokI32           => LiteralExpression::I32(<>),
@@ -314,7 +340,7 @@ TemplateArgExpression: TemplateArg = {
 // 4. DIRECTIVES
 // https://www.w3.org/TR/WGSL/#directives
 
-pub GlobalDirective: GlobalDirective = {
+GlobalDirective: GlobalDirective = {
     DiagnosticDirective => GlobalDirective::Diagnostic(<>),
     EnableDirective     => GlobalDirective::Enable(<>),
     RequiresDirective   => GlobalDirective::Requires(<>),
@@ -790,7 +816,7 @@ BitwiseExpression: Expression = {
     }),
 };
 
-pub Expression: Expression = {
+Expression: Expression = {
     RelationalExpression,
     <left: Spanned<ShortCircuitOrExpression>> "||" <right: Spanned<RelationalExpression>> => Expression::Binary(BinaryExpression {
         operator: BinaryOperator::ShortCircuitOr, left, right
@@ -1124,7 +1150,7 @@ ConstAssertStatement: ConstAssertStatement = {
     },
 };
 
-pub Statement: Statement = {
+Statement: Statement = {
     ";" => Statement::Void,
     <ReturnStatement> ";" => Statement::Return(<>),
     <IfStatement> => Statement::If(<>),
@@ -1243,7 +1269,7 @@ PathIdent: String = {
 };
 
 #[cfg(feature = "imports")]
-pub ImportStatement: ImportStatement = {
+ImportStatement: ImportStatement = {
     #[cfg(not(feature = "attributes"))]
     "import" <path: ModulePath?> <content: ImportContent> ";" => {
         ImportStatement { path, content }

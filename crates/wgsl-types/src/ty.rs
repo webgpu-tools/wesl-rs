@@ -269,6 +269,7 @@ pub enum Type {
     Ref(AddressSpace, Box<Type>, AccessMode),
     Texture(TextureType),
     Sampler(SamplerType),
+    Unknown,
     #[cfg(feature = "naga-ext")]
     I64,
     #[cfg(feature = "naga-ext")]
@@ -346,7 +347,10 @@ impl Type {
     }
 
     pub fn is_concrete(&self) -> bool {
-        !self.is_abstract()
+        match self {
+            Type::Unknown => false,
+            _ => !self.is_abstract(),
+        }
     }
 
     /// Reference: <https://www.w3.org/TR/WGSL/#storable-types>
@@ -463,6 +467,7 @@ impl Ty for Type {
             Type::Ref(_, ty, _) => ty.ty(),
             Type::Texture(_) => self.clone(),
             Type::Sampler(_) => self.clone(),
+            Type::Unknown => self.clone(),
             #[cfg(feature = "naga-ext")]
             Type::I64 => self.clone(),
             #[cfg(feature = "naga-ext")]

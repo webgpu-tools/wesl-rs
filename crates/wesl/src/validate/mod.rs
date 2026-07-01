@@ -241,14 +241,13 @@ fn check_cycles(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
             if res.is_ok() {
                 if ty.ident == *id {
                     res = Err(E::Cycle(id.to_string(), decl.ident().unwrap().to_string()));
-                } else if unique.insert(ty.ident.clone()) {
-                    if let Some(decl) = wesl
+                } else if unique.insert(ty.ident.clone())
+                    && let Some(decl) = wesl
                         .global_declarations
                         .iter()
                         .find(|decl| decl.ident().as_ref() == Some(&ty.ident))
-                    {
-                        res = check_decl(id, decl, unique, wesl);
-                    }
+                {
+                    res = check_decl(id, decl, unique, wesl);
                 }
             }
         });

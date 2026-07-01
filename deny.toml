@@ -3,6 +3,9 @@ all-features = true
 
 [advisories]
 version = 2
+ignore = [
+  { id = "RUSTSEC-2026-0173", reason = "low-priority, open issue in wesl-rs#209" },
+]
 
 [licenses]
 version = 2

@@ -20,7 +20,9 @@ token_stream_flatten = { version = "0.1.0" }
 wgsl-parse = { workspace = true, features = ["tokrepr", "wesl"] }
 
 [dev-dependencies]
-wesl = { path = "../wesl" }  # for unit tests. We can't use { workspace = true } because of a dependency cycle. see Cargo#4242.
+wesl = {
+  path = "../wesl"
+}  # for unit tests. We can't use { workspace = true } because of a dependency cycle. see Cargo#4242.
 
 [lints]
 workspace = true

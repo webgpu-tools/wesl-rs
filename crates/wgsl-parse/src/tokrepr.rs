@@ -48,14 +48,12 @@ impl NamedNode for Expression {
 impl NamedNode for Statement {
     fn name(&self) -> Option<String> {
         // COMBAK: this nesting is hell. Hopefully if-let chains will stabilize soon.
-        if let Statement::Compound(stmt) = self {
-            if stmt.statements.is_empty() {
-                if let [attr] = stmt.attributes.as_slice() {
-                    if let Attribute::Custom(attr) = attr.node() {
-                        return Some(attr.name.to_string());
-                    }
-                }
-            }
+        if let Statement::Compound(stmt) = self
+            && stmt.statements.is_empty()
+            && let [attr] = stmt.attributes.as_slice()
+            && let Attribute::Custom(attr) = attr.node()
+        {
+            return Some(attr.name.to_string());
         }
         None
     }
@@ -66,14 +64,14 @@ impl<T: NamedNode + TokRepr> TokRepr for Spanned<T> {
         let node = self.node().tok_repr();
         let span = self.span().tok_repr();
 
-        if let Some(name) = self.name() {
-            if let Some(suffix) = name.strip_prefix("#") {
-                let ident = format_ident!("{}", suffix);
+        if let Some(name) = self.name()
+            && let Some(suffix) = name.strip_prefix("#")
+        {
+            let ident = format_ident!("{}", suffix);
 
-                return quote! {
-                    Spanned::new(#ident.to_owned().into(), #span)
-                };
-            }
+            return quote! {
+                Spanned::new(#ident.to_owned().into(), #span)
+            };
         }
 
         quote! {

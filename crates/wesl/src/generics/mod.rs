@@ -102,25 +102,25 @@ pub fn replace_calls(wesl: &mut TranslationUnit) -> Result<(), E> {
         .filter_map(|decl| decl.ident())
         .collect_vec();
     for expr in Visit::<ExpressionNode>::visit_mut(wesl) {
-        if let Expression::FunctionCall(f) = expr.node_mut() {
-            if let Some(args) = &f.ty.template_args {
-                let signature = args
-                    .iter()
-                    .map(|arg| match arg.expression.node() {
-                        Expression::Literal(_) => todo!("literal generics"),
-                        Expression::TypeOrIdentifier(ty) => ty.clone(),
-                        _ => panic!("invalid template arg"),
-                    })
-                    .collect_vec();
+        if let Expression::FunctionCall(f) = expr.node_mut()
+            && let Some(args) = &f.ty.template_args
+        {
+            let signature = args
+                .iter()
+                .map(|arg| match arg.expression.node() {
+                    Expression::Literal(_) => todo!("literal generics"),
+                    Expression::TypeOrIdentifier(ty) => ty.clone(),
+                    _ => panic!("invalid template arg"),
+                })
+                .collect_vec();
 
-                let new_name = mangle::mangle(&f.ty.ident.name(), &signature);
-                f.ty.ident = idents
-                    .iter()
-                    .find(|ident| *ident.name() == new_name)
-                    .unwrap()
-                    .clone();
-                f.ty.template_args = None;
-            }
+            let new_name = mangle::mangle(&f.ty.ident.name(), &signature);
+            f.ty.ident = idents
+                .iter()
+                .find(|ident| *ident.name() == new_name)
+                .unwrap()
+                .clone();
+            f.ty.template_args = None;
         }
         // TODO recursive
         // expr.visit_mut()

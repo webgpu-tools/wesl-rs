@@ -229,10 +229,10 @@ fn eval_if_attr_impl(
                 **expr = eval_attr(expr, features)?;
                 has_if = true;
             }
-        } else if let Attribute::Else = attr.node() {
-            if !prev.has_if {
-                return Err(CondCompError::NoPrecedingIf.into());
-            }
+        } else if let Attribute::Else = attr.node()
+            && !prev.has_if
+        {
+            return Err(CondCompError::NoPrecedingIf.into());
         }
         prev.has_if = has_if;
     } else {

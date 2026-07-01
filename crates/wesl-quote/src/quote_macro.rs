@@ -406,69 +406,69 @@ pub(crate) enum QuoteNodeKind {
 }
 
 fn quote_impl_inline(kind: QuoteNodeKind, input: TokenStream) -> TokenStream {
-    use wgsl_parse::parser::*;
+    use wgsl_parse::parser::{ParseEntryPoint, parse_tokens};
     let token_stream = FlattenRec::from(input.clone().into_iter()).peekable();
     let lexer = Lexer::new(token_stream, None);
 
     macro_rules! parser_impl {
-        ($parser:ident) => {{
-            let parser = $parser::new();
-
-            let syntax = parser.parse(lexer).unwrap_or_else(|e| {
-                let err = wgsl_parse::Error::from(e);
-                let span = err.span;
-                let mut token_stream = FlattenRec::from(input.into_iter());
-                let start = token_stream
-                    .nth(span.start)
-                    .map(|tok| tok.span())
-                    .unwrap_or(proc_macro2::Span::call_site());
-                // let end = token_stream
-                //     .nth(span.end - span.start - 1)
-                //     .map(|tok| tok.span())
-                //     .unwrap_or(proc_macro2::Span::call_site());
-                abort!(start, "{}", err)
-            });
-
-            syntax.tok_repr()
+        ($token:ident, $entrypoint:ident) => {{
+            match parse_tokens(lexer, Token::$token) {
+                Ok(ParseEntryPoint::$entrypoint(res)) => res.tok_repr(),
+                Ok(_) => unreachable!("parser parsed the wrong entrypoint"),
+                Err(e) => {
+                    let err = wgsl_parse::Error::from(e);
+                    let span = err.span;
+                    let mut token_stream = FlattenRec::from(input.into_iter());
+                    let start = token_stream
+                        .nth(span.start)
+                        .map(|tok| tok.span())
+                        .unwrap_or(proc_macro2::Span::call_site());
+                    // let end = token_stream
+                    //     .nth(span.end - span.start - 1)
+                    //     .map(|tok| tok.span())
+                    //     .unwrap_or(proc_macro2::Span::call_site());
+                    abort!(start, "{}", err)
+                }
+            }
         }};
     }
 
     match kind {
-        QuoteNodeKind::TranslationUnit => parser_impl!(TranslationUnitParser),
-        QuoteNodeKind::ImportStatement => parser_impl!(ImportStatementParser),
-        QuoteNodeKind::GlobalDeclaration => parser_impl!(GlobalDeclParser),
-        QuoteNodeKind::Literal => parser_impl!(LiteralParser),
-        QuoteNodeKind::GlobalDirective => parser_impl!(GlobalDirectiveParser),
-        QuoteNodeKind::Expression => parser_impl!(ExpressionParser),
-        QuoteNodeKind::Statement => parser_impl!(StatementParser),
+        QuoteNodeKind::TranslationUnit => parser_impl!(EntryPointTranslationUnit, TranslationUnit),
+        QuoteNodeKind::ImportStatement => parser_impl!(EntryPointImportStatement, ImportStatement),
+        QuoteNodeKind::GlobalDeclaration => parser_impl!(EntryPointGlobalDecl, GlobalDecl),
+        QuoteNodeKind::Literal => parser_impl!(EntryPointLiteral, Literal),
+        QuoteNodeKind::GlobalDirective => parser_impl!(EntryPointGlobalDirective, GlobalDirective),
+        QuoteNodeKind::Expression => parser_impl!(EntryPointExpression, Expression),
+        QuoteNodeKind::Statement => parser_impl!(EntryPointStatement, Statement),
     }
 }
 
 fn quote_impl_str(kind: QuoteNodeKind, str: &str) -> TokenStream {
-    use wgsl_parse::parser::*;
+    use wgsl_parse::parser::{ParseEntryPoint, parse_tokens};
     let lexer = wgsl_parse::lexer::Lexer::new(str);
 
     macro_rules! parser_impl {
-        ($parser:ident) => {{
-            let parser = $parser::new();
-
-            let syntax = parser.parse(lexer).unwrap_or_else(|e| {
-                let err = wgsl_parse::Error::from(e);
-                abort_call_site!("{}", err)
-            });
-
-            syntax.tok_repr()
+        ($token:ident, $entrypoint:ident) => {{
+            match parse_tokens(lexer, Token::$token) {
+                Ok(ParseEntryPoint::$entrypoint(res)) => res.tok_repr(),
+                Ok(_) => unreachable!("parser parsed the wrong entrypoint"),
+                Err(e) => {
+                    let err = wgsl_parse::Error::from(e);
+                    abort_call_site!("{}", err)
+                }
+            }
         }};
     }
 
     match kind {
-        QuoteNodeKind::TranslationUnit => parser_impl!(TranslationUnitParser),
-        QuoteNodeKind::ImportStatement => parser_impl!(ImportStatementParser),
-        QuoteNodeKind::GlobalDeclaration => parser_impl!(GlobalDeclParser),
-        QuoteNodeKind::Literal => parser_impl!(LiteralParser),
-        QuoteNodeKind::GlobalDirective => parser_impl!(GlobalDirectiveParser),
-        QuoteNodeKind::Expression => parser_impl!(ExpressionParser),
-        QuoteNodeKind::Statement => parser_impl!(StatementParser),
+        QuoteNodeKind::TranslationUnit => parser_impl!(EntryPointTranslationUnit, TranslationUnit),
+        QuoteNodeKind::ImportStatement => parser_impl!(EntryPointImportStatement, ImportStatement),
+        QuoteNodeKind::GlobalDeclaration => parser_impl!(EntryPointGlobalDecl, GlobalDecl),
+        QuoteNodeKind::Literal => parser_impl!(EntryPointLiteral, Literal),
+        QuoteNodeKind::GlobalDirective => parser_impl!(EntryPointGlobalDirective, GlobalDirective),
+        QuoteNodeKind::Expression => parser_impl!(EntryPointExpression, Expression),
+        QuoteNodeKind::Statement => parser_impl!(EntryPointStatement, Statement),
     }
 }
 

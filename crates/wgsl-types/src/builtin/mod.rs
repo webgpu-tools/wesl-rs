@@ -207,6 +207,7 @@ pub fn call_builtin_fn(
             call::atomicStore(a1, a2)?;
             return Ok(None);
         }
+        ("atomicAdd", None, [a1, a2]) => call::atomicAdd(a1, a2),
         ("atomicSub", None, [a1, a2]) => call::atomicSub(a1, a2),
         ("atomicMax", None, [a1, a2]) => call::atomicMax(a1, a2),
         ("atomicMin", None, [a1, a2]) => call::atomicMin(a1, a2),
@@ -214,7 +215,9 @@ pub fn call_builtin_fn(
         ("atomicOr", None, [a1, a2]) => call::atomicOr(a1, a2),
         ("atomicXor", None, [a1, a2]) => call::atomicXor(a1, a2),
         ("atomicExchange", None, [a1, a2]) => call::atomicExchange(a1, a2),
-        ("atomicCompareExchangeWeak", None, [a1, a2]) => call::atomicCompareExchangeWeak(a1, a2),
+        ("atomicCompareExchangeWeak", None, [a1, a2, a3]) => {
+            call::atomicCompareExchangeWeak(a1, a2, a3)
+        }
         // packing
         ("pack4x8snorm", None, [a]) => call::pack4x8snorm(a),
         ("pack4x8unorm", None, [a]) => call::pack4x8unorm(a),

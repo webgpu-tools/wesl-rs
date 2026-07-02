@@ -1,8 +1,17 @@
-//! Type computations for built-in functions.
+//! Type-checking and computation of the return type of built-in functions.
+//!
+//! Functions bear the same name as the WGSL counterpart.
+//! Functions that take template parameters are suffixed with `_t` and take `tplt_*` arguments.
+//!
+//! ### Warning
+//!
+//! Type-checking of some functions is incomplete.
+
+#![allow(non_snake_case)]
 
 use crate::{
     CallSignature, Error,
-    conv::{Convert, convert_all_ty, convert_ty},
+    conv::{convert_all_ty, convert_ty},
     syntax::*,
     tplt::{BitcastTemplate, TpltParam},
     ty::{StructMemberType, StructType, TextureDimensions, TextureType, Ty, Type},
@@ -22,9 +31,6 @@ pub fn type_builtin_fn(
     tplt: Option<&[TpltParam]>,
     args: &[Type],
 ) -> Result<Option<Type>, E> {
-    fn is_float(ty: &Type) -> bool {
-        ty.is_float() || ty.is_vec() && ty.inner_ty().is_float()
-    }
     fn is_numeric(ty: &Type) -> bool {
         ty.is_numeric() || ty.is_vec() && ty.inner_ty().is_numeric()
     }
@@ -39,392 +45,258 @@ pub fn type_builtin_fn(
         })
     };
 
-    match (name, tplt, args) {
+    match (name, args) {
         // bitcast
-        ("bitcast", Some(t), [_]) => Ok(Some(BitcastTemplate::parse(t)?.ty().clone())),
+        ("bitcast", [a]) if let Some(tplt) = tplt => {
+            let tplt = BitcastTemplate::parse(tplt)?;
+            bitcast_t(tplt.ty(), a).map(Some)
+        }
         // logical
-        ("all", None, [_]) | ("any", None, [_]) => Ok(Some(Type::Bool)),
-        ("select", None, [a1, a2, a3]) if (a1.is_scalar() || a1.is_vec()) && a3.is_bool() => {
-            convert_ty(a1, a2).cloned().map(Some).ok_or_else(err)
-        }
-        ("select", None, [a1, a2, a3])
-            if (a1.is_vec()) && a3.is_vec() && a3.inner_ty().is_bool() =>
-        {
-            convert_ty(a1, a2).cloned().map(Some).ok_or_else(err)
-        }
+        ("all", [a]) => all(a).map(Some),
+        ("any", [a]) => any(a).map(Some),
+        ("select", [a1, a2, a3]) => select(a1, a2, a3).map(Some),
         // array
-        ("arrayLength", None, [_]) => Ok(Some(Type::U32)),
+        ("arrayLength", [a]) => arrayLength(a).map(Some),
         // numeric
-        ("abs", None, [a]) if is_numeric(a) => Ok(Some(a.clone())),
-        ("acos", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("acosh", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("asin", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("asinh", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("atan", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("atanh", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("atan2", None, [a1, a2]) if is_float(a1) => {
-            convert_ty(a1, a2).cloned().map(Some).ok_or_else(err)
-        }
-        ("ceil", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("clamp", None, [a1, _, _]) if is_numeric(a1) => {
-            convert_all_ty(args).cloned().map(Some).ok_or_else(err)
-        }
-        ("cos", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("cosh", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("countLeadingZeros", None, [a]) if is_integer(a) => Ok(Some(a.concretize())),
-        ("countOneBits", None, [a]) if is_integer(a) => Ok(Some(a.concretize())),
-        ("countTrailingZeros", None, [a]) if is_integer(a) => Ok(Some(a.concretize())),
-        ("cross", None, [a1, a2]) if a1.is_vec() && a1.inner_ty().is_float() => {
-            convert_ty(a1, a2).cloned().map(Some).ok_or_else(err)
-        }
-        ("degrees", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("determinant", None, [a @ Type::Mat(c, r, _)]) if c == r => Ok(Some(a.clone())),
-        ("distance", None, [a1, a2]) if is_float(a1) => convert_ty(a1, a2)
-            .map(|ty| Some(ty.inner_ty()))
-            .ok_or_else(err),
-        ("dot", None, [a1, a2]) if a1.is_vec() && a1.inner_ty().is_numeric() => convert_ty(a1, a2)
-            .map(|ty| Some(ty.inner_ty()))
-            .ok_or_else(err),
-        ("dot4U8Packed", None, [a1, a2])
-            if a1.is_convertible_to(&Type::U32) && a2.is_convertible_to(&Type::U32) =>
-        {
-            Ok(Some(Type::U32))
-        }
-        ("dot4I8Packed", None, [a1, a2])
-            if a1.is_convertible_to(&Type::U32) && a2.is_convertible_to(&Type::U32) =>
-        {
-            Ok(Some(Type::I32))
-        }
-        ("exp", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("exp2", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("extractBits", None, [a1, a2, a3])
-            if is_integer(a1)
-                && a2.is_convertible_to(&Type::U32)
-                && a3.is_convertible_to(&Type::U32) =>
-        {
-            Ok(Some(a1.concretize()))
-        }
-        ("faceForward", None, [a1, _, _]) if a1.is_vec() && a1.inner_ty().is_float() => {
-            convert_all_ty(args).cloned().map(Some).ok_or_else(err)
-        }
-        ("firstLeadingBit", None, [a]) if is_integer(a) => Ok(Some(a.concretize())),
-        ("firstTrailingBit", None, [a]) if is_integer(a) => Ok(Some(a.concretize())),
-        ("floor", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("fma", None, [a1, _, _]) if is_float(a1) => {
-            convert_all_ty(args).cloned().map(Some).ok_or_else(err)
-        }
-        ("fract", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("frexp", None, [a]) if is_float(a) => Ok(Some(frexp_struct_type(a).unwrap().into())),
-        ("insertBits", None, [a1, a2, a3, a4])
-            if is_integer(a1)
-                && a3.is_convertible_to(&Type::U32)
-                && a4.is_convertible_to(&Type::U32) =>
-        {
-            convert_ty(a1, a2)
-                .map(|ty| Some(ty.concretize()))
-                .ok_or_else(err)
-        }
-        ("inverseSqrt", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("ldexp", None, [a1, a2])
-            if (a1.is_vec()
-                && a1.inner_ty().is_float()
-                && a2.is_vec()
-                && a2.inner_ty().concretize().is_i32()
-                || a1.is_float() && a2.concretize().is_i32())
-                && (a1.is_concrete() && a2.is_concrete()
-                    || a1.is_abstract() && a2.is_abstract()) =>
-        {
-            Ok(Some(a1.clone()))
-        }
-        ("length", None, [a]) if is_float(a) => Ok(Some(a.inner_ty())),
-        ("log", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("log2", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("max", None, [a1, a2]) if is_numeric(a1) => {
-            convert_ty(a1, a2).cloned().map(Some).ok_or_else(err)
-        }
-        ("min", None, [a1, a2]) if is_numeric(a1) => {
-            convert_ty(a1, a2).cloned().map(Some).ok_or_else(err)
-        }
-        ("mix", None, [Type::Vec(n1, ty1), Type::Vec(n2, ty2), a3])
-            if n1 == n2 && a3.is_float() =>
-        {
-            convert_all_ty([ty1, ty2, a3])
-                .map(|inner| Some(Type::Vec(*n1, inner.clone().into())))
-                .ok_or_else(err)
-        }
-        ("mix", None, [a1, _, _]) if is_float(a1) => {
-            convert_all_ty(args).cloned().map(Some).ok_or_else(err)
-        }
-        ("modf", None, [a]) if is_float(a) => Ok(Some(modf_struct_type(a).unwrap().into())),
-        ("normalize", None, [a @ Type::Vec(_, ty)]) if ty.is_float() => Ok(Some(a.clone())),
-        ("pow", None, [a1, a2]) => convert_ty(a1, a2).cloned().map(Some).ok_or_else(err),
-        ("quantizeToF16", None, [a])
-            if a.concretize().is_f32() || a.is_vec() && a.inner_ty().concretize().is_f32() =>
-        {
-            Ok(Some(a.clone()))
-        }
-        ("radians", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("reflect", None, [a1, a2]) if a1.is_vec() && a1.inner_ty().is_float() => {
-            convert_ty(a1, a2).cloned().map(Some).ok_or_else(err)
-        }
-        ("refract", None, [Type::Vec(n1, ty1), Type::Vec(n2, ty2), a3])
-            if n1 == n2 && a3.is_float() =>
-        {
-            convert_all_ty([ty1, ty2, a3])
-                .map(|inner| Some(Type::Vec(*n1, inner.clone().into())))
-                .ok_or_else(err)
-        }
-        ("reverseBits", None, [a]) if is_integer(a) => Ok(Some(a.clone())),
-        ("round", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("saturate", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("sign", None, [a]) if is_numeric(a) && !a.inner_ty().is_u32() => Ok(Some(a.clone())),
-        ("sin", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("sinh", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("smoothstep", None, [a1, _, _]) if is_float(a1) => {
-            convert_all_ty(args).cloned().map(Some).ok_or_else(err)
-        }
-        ("sqrt", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("step", None, [a1, a2]) if is_float(a1) => {
-            convert_ty(a1, a2).cloned().map(Some).ok_or_else(err)
-        }
-        ("tan", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("tanh", None, [a]) if is_float(a) => Ok(Some(a.clone())),
-        ("transpose", None, [Type::Mat(c, r, ty)]) => Ok(Some(Type::Mat(*r, *c, ty.clone()))),
-        ("trunc", None, [a]) if is_float(a) => Ok(Some(a.clone())),
+        ("abs", [a]) => abs(a).map(Some),
+        ("acos", [a]) => acos(a).map(Some),
+        ("acosh", [a]) => acosh(a).map(Some),
+        ("asin", [a]) => asin(a).map(Some),
+        ("asinh", [a]) => asinh(a).map(Some),
+        ("atan", [a]) => atan(a).map(Some),
+        ("atanh", [a]) => atanh(a).map(Some),
+        ("atan2", [a1, a2]) => atan2(a1, a2).map(Some),
+        ("ceil", [a]) => ceil(a).map(Some),
+        ("clamp", [a1, a2, a3]) => clamp(a1, a2, a3).map(Some),
+        ("cos", [a]) => cos(a).map(Some),
+        ("cosh", [a]) => cosh(a).map(Some),
+        ("countLeadingZeros", [a]) => countLeadingZeros(a).map(Some),
+        ("countOneBits", [a]) => countOneBits(a).map(Some),
+        ("countTrailingZeros", [a]) => countTrailingZeros(a).map(Some),
+        ("cross", [a1, a2]) => cross(a1, a2).map(Some),
+        ("degrees", [a]) => degrees(a).map(Some),
+        ("determinant", [a]) => determinant(a).map(Some),
+        ("distance", [a1, a2]) => distance(a1, a2).map(Some),
+        ("dot", [a1, a2]) => dot(a1, a2).map(Some),
+        ("dot4U8Packed", [a1, a2]) => dot4U8Packed(a1, a2).map(Some),
+        ("dot4I8Packed", [a1, a2]) => dot4I8Packed(a1, a2).map(Some),
+        ("exp", [a]) => exp(a).map(Some),
+        ("exp2", [a]) => exp2(a).map(Some),
+        ("extractBits", [a1, a2, a3]) => extractBits(a1, a2, a3).map(Some),
+        ("faceForward", [a1, a2, a3]) => faceForward(a1, a2, a3).map(Some),
+        ("firstLeadingBit", [a]) => firstLeadingBit(a).map(Some),
+        ("firstTrailingBit", [a]) => firstTrailingBit(a).map(Some),
+        ("floor", [a]) => floor(a).map(Some),
+        ("fma", [a1, a2, a3]) => fma(a1, a2, a3).map(Some),
+        ("fract", [a]) => fract(a).map(Some),
+        ("frexp", [a]) => frexp(a).map(Some),
+        ("insertBits", [a1, a2, a3, a4]) => insertBits(a1, a2, a3, a4).map(Some),
+        ("inverseSqrt", [a]) => inverseSqrt(a).map(Some),
+        ("ldexp", [a1, a2]) => ldexp(a1, a2).map(Some),
+        ("length", [a]) => length(a).map(Some),
+        ("log", [a]) => log(a).map(Some),
+        ("log2", [a]) => log2(a).map(Some),
+        ("max", [a1, a2]) => max(a1, a2).map(Some),
+        ("min", [a1, a2]) => min(a1, a2).map(Some),
+        ("mix", [a1, a2, a3]) => mix(a1, a2, a3).map(Some),
+        ("modf", [a]) => modf(a).map(Some),
+        ("normalize", [a]) => normalize(a).map(Some),
+        ("pow", [a1, a2]) => pow(a1, a2).map(Some),
+        ("quantizeToF16", [a]) => quantizeToF16(a).map(Some),
+        ("radians", [a]) => radians(a).map(Some),
+        ("reflect", [a1, a2]) => reflect(a1, a2).map(Some),
+        ("refract", [a1, a2, a3]) => refract(a1, a2, a3).map(Some),
+        ("reverseBits", [a]) => reverseBits(a).map(Some),
+        ("round", [a]) => round(a).map(Some),
+        ("saturate", [a]) => saturate(a).map(Some),
+        ("sign", [a]) => sign(a).map(Some),
+        ("sin", [a]) => sin(a).map(Some),
+        ("sinh", [a]) => sinh(a).map(Some),
+        ("smoothstep", [a1, a2, a3]) => smoothstep(a1, a2, a3).map(Some),
+        ("sqrt", [a]) => sqrt(a).map(Some),
+        ("step", [a1, a2]) => step(a1, a2).map(Some),
+        ("tan", [a]) => tan(a).map(Some),
+        ("tanh", [a]) => tanh(a).map(Some),
+        ("transpose", [a]) => transpose(a).map(Some),
+        ("trunc", [a]) => trunc(a).map(Some),
         // derivative
-        ("dpdx", None, [a]) if is_float(a) => Ok(Some(a.convert_inner_to(&Type::F32).unwrap())),
-        ("dpdxCoarse", None, [a]) if is_float(a) => {
-            Ok(Some(a.convert_inner_to(&Type::F32).unwrap()))
-        }
-        ("dpdxFine", None, [a]) if is_float(a) => Ok(Some(a.convert_inner_to(&Type::F32).unwrap())),
-        ("dpdy", None, [a]) if is_float(a) => Ok(Some(a.convert_inner_to(&Type::F32).unwrap())),
-        ("dpdyCoarse", None, [a]) if is_float(a) => {
-            Ok(Some(a.convert_inner_to(&Type::F32).unwrap()))
-        }
-        ("dpdyFine", None, [a]) if is_float(a) => Ok(Some(a.convert_inner_to(&Type::F32).unwrap())),
-        ("fwidth", None, [a]) if is_float(a) => Ok(Some(a.convert_inner_to(&Type::F32).unwrap())),
-        ("fwidthCoarse", None, [a]) if is_float(a) => {
-            Ok(Some(a.convert_inner_to(&Type::F32).unwrap()))
-        }
-        ("fwidthFine", None, [a]) if is_float(a) => {
-            Ok(Some(a.convert_inner_to(&Type::F32).unwrap()))
-        }
+        ("dpdx", [a]) => dpdx(a).map(Some),
+        ("dpdxCoarse", [a]) => dpdxCoarse(a).map(Some),
+        ("dpdxFine", [a]) => dpdxFine(a).map(Some),
+        ("dpdy", [a]) => dpdy(a).map(Some),
+        ("dpdyCoarse", [a]) => dpdyCoarse(a).map(Some),
+        ("dpdyFine", [a]) => dpdyFine(a).map(Some),
+        ("fwidth", [a]) => fwidth(a).map(Some),
+        ("fwidthCoarse", [a]) => fwidthCoarse(a).map(Some),
+        ("fwidthFine", [a]) => fwidthFine(a).map(Some),
         // texture
-        // TODO check arguments for texture functions
-        // some of these are a bit more lenient. The goal here is just to get the
-        // valid return type which is needed for type inference.
-        ("textureDimensions", None, [Type::Texture(t)] | [Type::Texture(t), _])
-            if t.dimensions() == TextureDimensions::D1 =>
-        {
-            Ok(Some(Type::U32))
+        // TODO: check arguments for texture functions
+        ("textureDimensions", [a1]) => textureDimensions(a1, None).map(Some),
+        ("textureGather", [a1, a2, a3]) => textureGather(a1, a2, a3, None, None, None).map(Some),
+        ("textureGather", [a1, a2, a3, a4]) => {
+            textureGather(a1, a2, a3, Some(a4), None, None).map(Some)
         }
-        ("textureDimensions", None, [Type::Texture(t)] | [Type::Texture(t), _])
-            if t.dimensions() == TextureDimensions::D2 =>
-        {
-            Ok(Some(Type::Vec(2, Type::U32.into())))
+        ("textureGather", [a1, a2, a3, a4, a5]) => {
+            textureGather(a1, a2, a3, Some(a4), Some(a5), None).map(Some)
         }
-        ("textureDimensions", None, [Type::Texture(t)] | [Type::Texture(t), _])
-            if t.dimensions() == TextureDimensions::D3 =>
-        {
-            Ok(Some(Type::Vec(3, Type::U32.into())))
+        ("textureGather", [a1, a2, a3, a4, a5, a6]) => {
+            textureGather(a1, a2, a3, Some(a4), Some(a5), Some(a6)).map(Some)
         }
-        ("textureGather", None, [_, Type::Texture(t), ..]) if t.is_sampled() => Ok(Some(
-            Type::Vec(4, Box::new(t.sampled_type().unwrap().into())),
-        )),
-        ("textureGather", None, [Type::Texture(t), ..]) if t.is_depth() => {
-            Ok(Some(Type::Vec(4, Type::F32.into())))
+        ("textureGatherCompare", [a1, a2, a3, a4]) => {
+            textureGatherCompare(a1, a2, a3, a4, None, None).map(Some)
         }
-        ("textureGatherCompare", None, [Type::Texture(t), ..]) if t.is_depth() => {
-            Ok(Some(Type::Vec(4, Type::F32.into())))
+        ("textureGatherCompare", [a1, a2, a3, a4, a5]) => {
+            textureGatherCompare(a1, a2, a3, a4, Some(a5), None).map(Some)
         }
-        ("textureLoad", None, [Type::Texture(TextureType::DepthMultisampled2D), ..]) => {
-            Ok(Some(Type::F32))
+        ("textureGatherCompare", [a1, a2, a3, a4, a5, a6]) => {
+            textureGatherCompare(a1, a2, a3, a4, Some(a5), Some(a6)).map(Some)
         }
-        ("textureLoad", None, [Type::Texture(t), ..]) if t.is_depth() => Ok(Some(Type::F32)),
-        ("textureLoad", None, [Type::Texture(t), ..]) => {
-            Ok(Some(Type::Vec(4, Box::new(t.channel_type().into()))))
+        ("textureLoad", [a1, a2]) => textureLoad(a1, a2, None, None).map(Some),
+        ("textureLoad", [a1, a2, a3]) => textureLoad(a1, a2, Some(a3), None).map(Some),
+        ("textureLoad", [a1, a2, a3, a4]) => textureLoad(a1, a2, Some(a3), Some(a4)).map(Some),
+        ("textureNumLayers", [a]) => textureNumLayers(a).map(Some),
+        ("textureNumLevels", [a]) => textureNumLevels(a).map(Some),
+        ("textureNumSamples", [a]) => textureNumSamples(a).map(Some),
+        ("textureSample", [a1, a2, a3]) => textureSample(a1, a2, a3, None, None).map(Some),
+        ("textureSample", [a1, a2, a3, a4]) => textureSample(a1, a2, a3, Some(a4), None).map(Some),
+        ("textureSample", [a1, a2, a3, a4, a5]) => {
+            textureSample(a1, a2, a3, Some(a4), Some(a5)).map(Some)
         }
-        ("textureNumLayers", None, [Type::Texture(t)]) if t.is_arrayed() => Ok(Some(Type::U32)),
-        ("textureNumLevels", None, [Type::Texture(t)]) if t.is_sampled() || t.is_depth() => {
-            Ok(Some(Type::U32))
+        ("textureSampleBias", [a1, a2, a3, a4]) => {
+            textureSampleBias(a1, a2, a3, a4, None, None).map(Some)
         }
-        ("textureNumSamples", None, [Type::Texture(t)]) if t.is_multisampled() => {
-            Ok(Some(Type::U32))
+        ("textureSampleBias", [a1, a2, a3, a4, a5]) => {
+            textureSampleBias(a1, a2, a3, a4, Some(a5), None).map(Some)
         }
-        ("textureSample", None, [Type::Texture(t), ..]) if t.is_sampled() => {
-            Ok(Some(Type::Vec(4, Box::new(Type::F32))))
+        ("textureSampleBias", [a1, a2, a3, a4, a5, a6]) => {
+            textureSampleBias(a1, a2, a3, a4, Some(a5), Some(a6)).map(Some)
         }
-        ("textureSample", None, [Type::Texture(t), ..]) if t.is_depth() => Ok(Some(Type::F32)),
-        ("textureSampleBias", None, [Type::Texture(t), ..]) if t.is_sampled() => {
-            Ok(Some(Type::Vec(4, Box::new(Type::F32))))
+        ("textureSampleCompare", [a1, a2, a3, a4]) => {
+            textureSampleCompare(a1, a2, a3, a4, None, None).map(Some)
         }
-        ("textureSampleCompare", None, [Type::Texture(t), ..]) if t.is_depth() => {
-            Ok(Some(Type::F32))
+        ("textureSampleCompare", [a1, a2, a3, a4, a5]) => {
+            textureSampleCompare(a1, a2, a3, a4, Some(a5), None).map(Some)
         }
-        ("textureSampleCompareLevel", None, [Type::Texture(t), ..]) if t.is_depth() => {
-            Ok(Some(Type::F32))
+        ("textureSampleCompare", [a1, a2, a3, a4, a5, a6]) => {
+            textureSampleCompare(a1, a2, a3, a4, Some(a5), Some(a6)).map(Some)
         }
-        ("textureSampleGrad", None, [Type::Texture(t), ..]) if t.is_sampled() => {
-            Ok(Some(Type::Vec(4, Box::new(Type::F32))))
+        ("textureSampleCompareLevel", [a1, a2, a3, a4]) => {
+            textureSampleCompareLevel(a1, a2, a3, a4, None, None).map(Some)
         }
-        ("textureSampleLevel", None, [Type::Texture(t), ..]) if t.is_sampled() => {
-            Ok(Some(Type::Vec(4, Box::new(Type::F32))))
+        ("textureSampleCompareLevel", [a1, a2, a3, a4, a5]) => {
+            textureSampleCompareLevel(a1, a2, a3, a4, Some(a5), None).map(Some)
         }
-        ("textureSampleLevel", None, [Type::Texture(t), ..]) if t.is_depth() => Ok(Some(Type::F32)),
-        (
-            "textureSampleBaseClampToEdge",
-            None,
-            [
-                Type::Texture(TextureType::Sampled2D(_) | TextureType::External),
-                ..,
-            ],
-        ) => Ok(Some(Type::Vec(4, Box::new(Type::F32)))),
-        ("textureStore", None, [Type::Texture(t), ..]) if t.is_storage() => Ok(None),
+        ("textureSampleCompareLevel", [a1, a2, a3, a4, a5, a6]) => {
+            textureSampleCompareLevel(a1, a2, a3, a4, Some(a5), Some(a6)).map(Some)
+        }
+        ("textureSampleGrad", [a1, a2, a3, a4, a5]) => {
+            textureSampleGrad(a1, a2, a3, a4, a5, None, None).map(Some)
+        }
+        ("textureSampleGrad", [a1, a2, a3, a4, a5, a6]) => {
+            textureSampleGrad(a1, a2, a3, a4, a5, Some(a6), None).map(Some)
+        }
+        ("textureSampleGrad", [a1, a2, a3, a4, a5, a6, a7]) => {
+            textureSampleGrad(a1, a2, a3, a4, a5, Some(a6), Some(a7)).map(Some)
+        }
+        ("textureSampleLevel", [a1, a2, a3, a4]) => {
+            textureSampleLevel(a1, a2, a3, a4, None, None).map(Some)
+        }
+        ("textureSampleLevel", [a1, a2, a3, a4, a5]) => {
+            textureSampleLevel(a1, a2, a3, a4, Some(a5), None).map(Some)
+        }
+        ("textureSampleLevel", [a1, a2, a3, a4, a5, a6]) => {
+            textureSampleLevel(a1, a2, a3, a4, Some(a5), Some(a6)).map(Some)
+        }
+        ("textureSampleBaseClampToEdge", [a1, a2, a3]) => {
+            textureSampleBaseClampToEdge(a1, a2, a3).map(Some)
+        }
+        ("textureStore", [a1, a2, a3]) => textureStore(a1, a2, a3, None).map(|()| None),
+        ("textureStore", [a1, a2, a3, a4]) => textureStore(a1, a2, a3, Some(a4)).map(|()| None),
         // atomic
-        // TODO check arguments for atomic functions
-        ("atomicLoad", None, [Type::Ptr(_, t, _)]) if matches!(**t, Type::Atomic(_)) => {
-            Ok(Some(*t.clone().unwrap_atomic()))
-        }
-        ("atomicStore", None, [Type::Ptr(_, t, _), ..]) if matches!(**t, Type::Atomic(_)) => {
-            Ok(None)
-        }
-        ("atomicAdd", None, [Type::Ptr(_, t, _), _]) if matches!(**t, Type::Atomic(_)) => {
-            Ok(Some(*t.clone().unwrap_atomic()))
-        }
-        ("atomicSub", None, [Type::Ptr(_, t, _), _]) if matches!(**t, Type::Atomic(_)) => {
-            Ok(Some(*t.clone().unwrap_atomic()))
-        }
-        ("atomicMax", None, [Type::Ptr(_, t, _), _]) if matches!(**t, Type::Atomic(_)) => {
-            Ok(Some(*t.clone().unwrap_atomic()))
-        }
-        ("atomicMin", None, [Type::Ptr(_, t, _), _]) if matches!(**t, Type::Atomic(_)) => {
-            Ok(Some(*t.clone().unwrap_atomic()))
-        }
-        ("atomicAnd", None, [Type::Ptr(_, t, _), _]) if matches!(**t, Type::Atomic(_)) => {
-            Ok(Some(*t.clone().unwrap_atomic()))
-        }
-        ("atomicOr", None, [Type::Ptr(_, t, _), _]) if matches!(**t, Type::Atomic(_)) => {
-            Ok(Some(*t.clone().unwrap_atomic()))
-        }
-        ("atomicXor", None, [Type::Ptr(_, t, _), _]) if matches!(**t, Type::Atomic(_)) => {
-            Ok(Some(*t.clone().unwrap_atomic()))
-        }
-        ("atomicExchange", None, [Type::Ptr(_, t, _), _]) if matches!(**t, Type::Atomic(_)) => {
-            Ok(Some(*t.clone().unwrap_atomic()))
-        }
-        ("atomicCompareExchangeWeak", None, [Type::Ptr(_, t, _), _, _])
-            if matches!(**t, Type::Atomic(_)) =>
-        {
-            let ty = match &**t {
-                Type::Atomic(ty) => &**ty,
-                _ => unreachable!("type atomic matched above"),
-            };
-            Ok(Some(atomic_compare_exchange_struct_type(ty).into()))
+        ("atomicLoad", [a]) => atomicLoad(a).map(Some),
+        ("atomicStore", [a1, a2]) => atomicStore(a1, a2).map(|()| None),
+        ("atomicAdd", [a1, a2]) => atomicAdd(a1, a2).map(Some),
+        ("atomicSub", [a1, a2]) => atomicSub(a1, a2).map(Some),
+        ("atomicMax", [a1, a2]) => atomicMax(a1, a2).map(Some),
+        ("atomicMin", [a1, a2]) => atomicMin(a1, a2).map(Some),
+        ("atomicAnd", [a1, a2]) => atomicAnd(a1, a2).map(Some),
+        ("atomicOr", [a1, a2]) => atomicOr(a1, a2).map(Some),
+        ("atomicXor", [a1, a2]) => atomicXor(a1, a2).map(Some),
+        ("atomicExchange", [a1, a2]) => atomicExchange(a1, a2).map(Some),
+        ("atomicCompareExchangeWeak", [a1, a2, a3]) => {
+            atomicCompareExchangeWeak(a1, a2, a3).map(Some)
         }
         // packing
-        ("pack4x8snorm", None, [a]) if a.is_convertible_to(&Type::Vec(4, Type::F32.into())) => {
-            Ok(Some(Type::U32))
-        }
-        ("pack4x8unorm", None, [a]) if a.is_convertible_to(&Type::Vec(4, Type::F32.into())) => {
-            Ok(Some(Type::U32))
-        }
-        ("pack4xI8", None, [a]) if a.is_convertible_to(&Type::Vec(4, Type::I32.into())) => {
-            Ok(Some(Type::U32))
-        }
-        ("pack4xU8", None, [a]) if a.is_convertible_to(&Type::Vec(4, Type::U32.into())) => {
-            Ok(Some(Type::U32))
-        }
-        ("pack4xI8Clamp", None, [a]) if a.is_convertible_to(&Type::Vec(4, Type::F32.into())) => {
-            Ok(Some(Type::U32))
-        }
-        ("pack4xU8Clamp", None, [a]) if a.is_convertible_to(&Type::Vec(4, Type::F32.into())) => {
-            Ok(Some(Type::U32))
-        }
-        ("pack2x16snorm", None, [a]) if a.is_convertible_to(&Type::Vec(2, Type::F32.into())) => {
-            Ok(Some(Type::U32))
-        }
-        ("pack2x16unorm", None, [a]) if a.is_convertible_to(&Type::Vec(2, Type::F32.into())) => {
-            Ok(Some(Type::U32))
-        }
-        ("pack2x16float", None, [a]) if a.is_convertible_to(&Type::Vec(2, Type::F32.into())) => {
-            Ok(Some(Type::U32))
-        }
-        ("unpack4x8snorm", None, [a]) if a.is_convertible_to(&Type::U32) => {
-            Ok(Some(Type::Vec(4, Type::F32.into())))
-        }
-        ("unpack4x8unorm", None, [a]) if a.is_convertible_to(&Type::U32) => {
-            Ok(Some(Type::Vec(4, Type::F32.into())))
-        }
-        ("unpack4xI8", None, [a]) if a.is_convertible_to(&Type::U32) => {
-            Ok(Some(Type::Vec(4, Type::I32.into())))
-        }
-        ("unpack4xU8", None, [a]) if a.is_convertible_to(&Type::U32) => {
-            Ok(Some(Type::Vec(4, Type::U32.into())))
-        }
-        ("unpack2x16snorm", None, [a]) if a.is_convertible_to(&Type::U32) => {
-            Ok(Some(Type::Vec(2, Type::F32.into())))
-        }
-        ("unpack2x16unorm", None, [a]) if a.is_convertible_to(&Type::U32) => {
-            Ok(Some(Type::Vec(2, Type::F32.into())))
-        }
-        ("unpack2x16float", None, [a]) if a.is_convertible_to(&Type::U32) => {
-            Ok(Some(Type::Vec(2, Type::F32.into())))
-        }
+        ("pack4x8snorm", [a]) => pack4x8snorm(a).map(Some),
+        ("pack4x8unorm", [a]) => pack4x8unorm(a).map(Some),
+        ("pack4xI8", [a]) => pack4xI8(a).map(Some),
+        ("pack4xU8", [a]) => pack4xU8(a).map(Some),
+        ("pack4xI8Clamp", [a]) => pack4xI8Clamp(a).map(Some),
+        ("pack4xU8Clamp", [a]) => pack4xU8Clamp(a).map(Some),
+        ("pack2x16snorm", [a]) => pack2x16snorm(a).map(Some),
+        ("pack2x16unorm", [a]) => pack2x16unorm(a).map(Some),
+        ("pack2x16float", [a]) => pack2x16float(a).map(Some),
+        ("unpack4x8snorm", [a]) => unpack4x8snorm(a).map(Some),
+        ("unpack4x8unorm", [a]) => unpack4x8unorm(a).map(Some),
+        ("unpack4xI8", [a]) => unpack4xI8(a).map(Some),
+        ("unpack4xU8", [a]) => unpack4xU8(a).map(Some),
+        ("unpack2x16snorm", [a]) => unpack2x16snorm(a).map(Some),
+        ("unpack2x16unorm", [a]) => unpack2x16unorm(a).map(Some),
+        ("unpack2x16float", [a]) => unpack2x16float(a).map(Some),
         // synchronization
-        ("storageBarrier", None, []) => Ok(None),
-        ("textureBarrier", None, []) => Ok(None),
-        ("workgroupBarrier", None, []) => Ok(None),
-        ("workgroupUniformLoad", None, [Type::Ptr(AddressSpace::Workgroup, t, _)]) => {
+        ("storageBarrier", []) => Ok(None),
+        ("textureBarrier", []) => Ok(None),
+        ("workgroupBarrier", []) => Ok(None),
+        ("workgroupUniformLoad", [Type::Ptr(AddressSpace::Workgroup, t, _)]) => {
             Ok(Some(*t.clone()))
         }
         // subgroup
-        ("subgroupAdd", None, [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupExclusiveAdd", None, [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupInclusiveAdd", None, [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupAll", None, [Type::Bool]) => Ok(Some(Type::Bool)),
-        ("subgroupAnd", None, [a]) if is_integer(a) => Ok(Some(a.concretize())),
-        ("subgroupAny", None, [Type::Bool]) => Ok(Some(Type::Bool)),
-        ("subgroupBallot", None, [Type::Bool]) => Ok(Some(Type::Vec(4, Type::U32.into()))),
+        ("subgroupAdd", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
+        ("subgroupExclusiveAdd", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
+        ("subgroupInclusiveAdd", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
+        ("subgroupAll", [Type::Bool]) => Ok(Some(Type::Bool)),
+        ("subgroupAnd", [a]) if is_integer(a) => Ok(Some(a.concretize())),
+        ("subgroupAny", [Type::Bool]) => Ok(Some(Type::Bool)),
+        ("subgroupBallot", [Type::Bool]) => Ok(Some(Type::Vec(4, Type::U32.into()))),
         #[cfg(feature = "naga-ext")]
-        ("subgroupBallot", None, []) => Ok(Some(Type::Vec(4, Type::U32.into()))),
-        ("subgroupBroadcast", None, [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
+        ("subgroupBallot", []) => Ok(Some(Type::Vec(4, Type::U32.into()))),
+        ("subgroupBroadcast", [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
             Ok(Some(a1.concretize()))
         }
-        ("subgroupBroadcastFirst", None, [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupElect", None, []) => Ok(Some(Type::Bool)),
-        ("subgroupMax", None, [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupMin", None, [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupMul", None, [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupExclusiveMul", None, [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupInclusiveMul", None, [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupOr", None, [a]) if is_integer(a) => Ok(Some(a.concretize())),
-        ("subgroupShuffle", None, [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
+        ("subgroupBroadcastFirst", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
+        ("subgroupElect", []) => Ok(Some(Type::Bool)),
+        ("subgroupMax", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
+        ("subgroupMin", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
+        ("subgroupMul", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
+        ("subgroupExclusiveMul", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
+        ("subgroupInclusiveMul", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
+        ("subgroupOr", [a]) if is_integer(a) => Ok(Some(a.concretize())),
+        ("subgroupShuffle", [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
             Ok(Some(a1.concretize()))
         }
-        ("subgroupShuffleDown", None, [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
+        ("subgroupShuffleDown", [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
             Ok(Some(a1.concretize()))
         }
-        ("subgroupShuffleUp", None, [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
+        ("subgroupShuffleUp", [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
             Ok(Some(a1.concretize()))
         }
-        ("subgroupShuffleXor", None, [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
+        ("subgroupShuffleXor", [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
             Ok(Some(a1.concretize()))
         }
-        ("subgroupXor", None, [a]) if is_integer(a) => Ok(Some(a.concretize())),
+        ("subgroupXor", [a]) if is_integer(a) => Ok(Some(a.concretize())),
         // quad
-        ("quadBroadcast", None, [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
+        ("quadBroadcast", [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
             Ok(Some(a1.concretize()))
         }
-        ("quadSwapDiagonal", None, [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("quadSwapX", None, [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("quadSwapY", None, [a]) if is_numeric(a) => Ok(Some(a.concretize())),
+        ("quadSwapDiagonal", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
+        ("quadSwapX", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
+        ("quadSwapY", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
 
         // naga ray queries extension
         // TODO: validate naga extensions arguments
         #[cfg(feature = "naga-ext")]
         (
             "rayQueryInitialize",
-            None,
             [
                 Type::Ptr(AddressSpace::Function, _ty, AccessMode::ReadWrite),
                 Type::AccelerationStructure(_),
@@ -432,29 +304,23 @@ pub fn type_builtin_fn(
             ],
         ) => Ok(None),
         #[cfg(feature = "naga-ext")]
-        (
-            "rayQueryProceed",
-            None,
-            [Type::Ptr(AddressSpace::Function, _ty, AccessMode::ReadWrite)],
-        ) => Ok(Some(Type::Bool)),
-        #[cfg(feature = "naga-ext")]
-        ("rayQueryGenerateIntersection", None, [a1]) if a1.is_convertible_to(&Type::F32) => {
-            Ok(None)
+        ("rayQueryProceed", [Type::Ptr(AddressSpace::Function, _ty, AccessMode::ReadWrite)]) => {
+            Ok(Some(Type::Bool))
         }
         #[cfg(feature = "naga-ext")]
-        ("rayQueryConfirmIntersection", None, []) => Ok(None),
+        ("rayQueryGenerateIntersection", [a1]) if a1.is_convertible_to(&Type::F32) => Ok(None),
         #[cfg(feature = "naga-ext")]
-        ("rayQueryTerminate", None, []) => Ok(None),
+        ("rayQueryConfirmIntersection", []) => Ok(None),
+        #[cfg(feature = "naga-ext")]
+        ("rayQueryTerminate", []) => Ok(None),
         #[cfg(feature = "naga-ext")]
         (
             "rayQueryGetCommittedIntersection" | "rayQueryGetCandidateIntersection",
-            None,
             [Type::Ptr(AddressSpace::Function, _ty, AccessMode::ReadWrite)],
         ) => Ok(Some(ray_intersection_struct_type().into())),
         #[cfg(feature = "naga-ext")]
         (
             "getCommittedHitVertexPositions" | "getCandidateHitVertexPositions",
-            None,
             [Type::Ptr(AddressSpace::Function, _ty, AccessMode::ReadWrite)],
         ) => Ok(Some(Type::Array(
             Box::new(Type::Vec(3, Box::new(Type::F32))),
@@ -593,5 +459,1756 @@ pub(crate) fn ray_intersection_struct_type() -> StructType {
                 Type::Mat(4, 3, Box::new(Type::F32)),
             ),
         ],
+    }
+}
+
+// utility predicates for `T or vecN<T>` constraints.
+fn inner_is_float(ty: &Type) -> bool {
+    ty.is_float() || matches!(ty, Type::Vec(_, t) if t.is_float())
+}
+fn inner_is_numeric(ty: &Type) -> bool {
+    ty.is_numeric() || matches!(ty, Type::Vec(_, t) if t.is_numeric())
+}
+fn inner_is_integer(ty: &Type) -> bool {
+    ty.is_integer() || matches!(ty, Type::Vec(_, t) if t.is_integer())
+}
+fn inner_is_bool(ty: &Type) -> bool {
+    ty.is_bool() || matches!(ty, Type::Vec(_, t) if t.is_bool())
+}
+
+// -------
+// BITCAST
+// -------
+// reference: <https://www.w3.org/TR/WGSL/#bit-reinterp-builtin-functions>
+
+/// `bitcast<T>()` builtin function.
+///
+/// we assume `tplt_ty` is a concrete numeric scalar or concrete numeric vector.
+/// Reference: <https://www.w3.org/TR/WGSL/#bitcast-builtin>
+pub fn bitcast_t(tplt_ty: &Type, e: &Type) -> Result<Type, E> {
+    if tplt_ty.size_of() != e.concretize().size_of() {
+        Err(E::Builtin(
+            "`bitcast` argument must have the same byte length as the template type",
+        ))
+    } else if inner_is_numeric(e) {
+        Ok(tplt_ty.clone())
+    } else {
+        Err(E::Builtin(
+            "`bitcast` expects a numeric scalar or numeric vector argument",
+        ))
+    }
+}
+
+// -------
+// LOGICAL
+// -------
+// reference: <https://www.w3.org/TR/WGSL/#logical-builtin-functions>
+
+/// `all()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#all-builtin>
+pub fn all(e: &Type) -> Result<Type, E> {
+    if inner_is_bool(e) {
+        Ok(Type::Bool)
+    } else {
+        Err(E::Builtin(
+            "`all` expects a boolean or vector of boolean argument",
+        ))
+    }
+}
+
+/// `any()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#any-builtin>
+pub fn any(e: &Type) -> Result<Type, E> {
+    if inner_is_bool(e) {
+        Ok(Type::Bool)
+    } else {
+        Err(E::Builtin(
+            "`any` expects a boolean or vector of boolean argument",
+        ))
+    }
+}
+
+/// `select()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#select-builtin>
+pub fn select(f: &Type, t: &Type, cond: &Type) -> Result<Type, E> {
+    let ty = convert_ty(f, t).ok_or(E::Builtin(
+        "`select` 1st and 2nd arguments are incompatible",
+    ))?;
+
+    if !cond.is_bool() {
+        Err(E::Builtin("`select` 3rd argument must be a boolean"))
+    } else if !ty.is_scalar() && !ty.is_vec() {
+        Err(E::Builtin(
+            "`select` 1st and 2nd arguments must be a scalar or vector",
+        ))
+    } else {
+        Ok(ty.clone())
+    }
+}
+
+// -----
+// ARRAY
+// -----
+// reference: <https://www.w3.org/TR/WGSL/#array-builtin-functions>
+
+/// `arrayLength()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#arrayLength-builtin>
+pub fn arrayLength(p: &Type) -> Result<Type, E> {
+    match p {
+        Type::Ptr(AddressSpace::Storage, t, a_m)
+            if a_m.is_read() && matches!(**t, Type::Array(_, None)) =>
+        {
+            Ok(Type::U32)
+        }
+        _ => Err(E::Builtin(
+            "`arrayLength` argument must be a pointer to runtime-sized array, with `storage` address space and `read` or `read_write` access mode",
+        )),
+    }
+}
+
+// -------
+// NUMERIC
+// -------
+// reference: <https://www.w3.org/TR/WGSL/#numeric-builtin-function>
+
+/// `abs()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#abs-float-builtin>
+pub fn abs(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`abs` argument must be a numeric scalar or vector",
+    ))
+}
+
+/// `acos()` builtin function.
+///
+/// NOTE: the function returns NaN as an "indeterminate value" if computed out of domain
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#acos-builtin>
+pub fn acos(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`acos` argument must be a float scalar or vector",
+    ))
+}
+
+/// `acosh()` builtin function.
+///
+/// NOTE: the function returns NaN as an "indeterminate value" if computed out of domain
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#acosh-builtin>
+pub fn acosh(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`acosh` argument must be a float scalar or vector",
+    ))
+}
+
+/// `asin()` builtin function.
+///
+/// NOTE: the function returns NaN as an "indeterminate value" if computed out of domain
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#asin-builtin>
+pub fn asin(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`asin` argument must be a float scalar or vector",
+    ))
+}
+
+/// `asinh()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#asinh-builtin>
+pub fn asinh(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`asinh` argument must be a float scalar or vector",
+    ))
+}
+
+/// `atan()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#atan-builtin>
+pub fn atan(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`atan` argument must be a float scalar or vector",
+    ))
+}
+
+/// `atanh()` builtin function.
+///
+/// NOTE: the function returns NaN as an "indeterminate value" if computed out of domain
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#atanh-builtin>
+pub fn atanh(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`atanh` argument must be a float scalar or vector",
+    ))
+}
+
+/// `atan2()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#atan2-builtin>
+pub fn atan2(y: &Type, x: &Type) -> Result<Type, E> {
+    let ty = convert_ty(y, x).ok_or(E::Builtin("`atan2 arguments are incompatible`"))?;
+    inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
+        "`atan2` expects float scalar or vector arguments",
+    ))
+}
+
+/// `ceil()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#ceil-builtin>
+pub fn ceil(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`ceil` argument must be a float scalar or vector",
+    ))
+}
+
+/// `clamp()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#clamp>
+pub fn clamp(e: &Type, low: &Type, high: &Type) -> Result<Type, E> {
+    let ty =
+        convert_all_ty([e, low, high]).ok_or(E::Builtin("`clamp` arguments are incompatible"))?;
+    if inner_is_numeric(ty) {
+        Ok(ty.clone())
+    } else {
+        Err(E::Builtin(
+            "`clamp` expects float scalar or vector arguments",
+        ))
+    }
+}
+
+/// `cos()` builtin function.
+///
+/// NOTE: the function returns NaN as an "indeterminate value" if computed out of domain
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#cos-builtin>
+pub fn cos(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`cos` argument must be a float scalar or vector",
+    ))
+}
+
+/// `cosh()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#cosh-builtin>
+pub fn cosh(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`cosh` argument must be a float scalar or vector",
+    ))
+}
+
+/// `countLeadingZeros()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#countLeadingZeros-builtin>
+pub fn countLeadingZeros(e: &Type) -> Result<Type, E> {
+    inner_is_integer(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`countLeadingZeros` argument must be a integer scalar or vector",
+    ))
+}
+
+/// `countOneBits()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#countOneBits-builtin>
+pub fn countOneBits(e: &Type) -> Result<Type, E> {
+    inner_is_integer(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`countOneBits` argument must be a integer scalar or vector",
+    ))
+}
+
+/// `countTrailingZeros()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#countTrailingZeros-builtin>
+pub fn countTrailingZeros(e: &Type) -> Result<Type, E> {
+    inner_is_integer(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`countTrailingZeros` argument must be a integer scalar or vector",
+    ))
+}
+
+/// `cross()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#cross-builtin>
+pub fn cross(a: &Type, b: &Type) -> Result<Type, E> {
+    let ty = convert_ty(a, b).ok_or(E::Builtin("`cross` arguments are incompatible"))?;
+    match ty {
+        Type::Vec(3, t) if t.is_float() => Ok(ty.clone()),
+        _ => Err(E::Builtin(
+            "`cross` expects two 3-component float vector arguments",
+        )),
+    }
+}
+
+/// `degrees()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#degrees-builtin>
+pub fn degrees(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`degrees` expects a float scalar or vector argument",
+    ))
+}
+
+/// `determinant()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#determinant-builtin>
+pub fn determinant(e: &Type) -> Result<Type, E> {
+    match e {
+        Type::Mat(c, r, t) if c == r => Ok(*t.clone()),
+        _ => Err(E::Builtin("`determinant` expects a square matrix argument")),
+    }
+}
+
+/// `distance()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#distance-builtin>
+pub fn distance(e1: &Type, e2: &Type) -> Result<Type, E> {
+    let ty = convert_ty(e1, e2).ok_or(E::Builtin("`distance` arguments are incompatible"))?;
+    inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
+        "`distance` expects two float scalar or vector arguments",
+    ))
+}
+
+/// `dot()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#dot-builtin>
+pub fn dot(e1: &Type, e2: &Type) -> Result<Type, E> {
+    let ty = convert_ty(e1, e2).ok_or(E::Builtin("`dot` arguments are incompatible"))?;
+    match ty {
+        Type::Vec(_, t) => Ok(*t.clone()),
+        _ => Err(E::Builtin(
+            "`dot` expects two float scalar or vector arguments",
+        )),
+    }
+}
+
+/// `dot4U8Packed()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#dot4U8Packed-builtin>
+pub fn dot4U8Packed(e1: &Type, e2: &Type) -> Result<Type, E> {
+    if e1.is_convertible_to(&Type::U32) && e2.is_convertible_to(&Type::U32) {
+        Ok(Type::U32)
+    } else {
+        Err(E::Builtin("`dot4U8Packed` expects two u32 arguments"))
+    }
+}
+
+/// `dot4I8Packed()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#dot4I8Packed-builtin>
+pub fn dot4I8Packed(e1: &Type, e2: &Type) -> Result<Type, E> {
+    if e1.is_convertible_to(&Type::U32) && e2.is_convertible_to(&Type::U32) {
+        Ok(Type::I32)
+    } else {
+        Err(E::Builtin("`dot4I8Packed` expects two u32 arguments"))
+    }
+}
+
+/// `exp()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#exp-builtin>
+pub fn exp(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`exp` argument must be a float scalar or vector",
+    ))
+}
+
+/// `exp2()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#exp2-builtin>
+pub fn exp2(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`exp2` argument must be a float scalar or vector",
+    ))
+}
+
+/// `extractBits()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#extractBits-builtin>
+pub fn extractBits(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
+    if !inner_is_integer(e1) {
+        Err(E::Builtin(
+            "`extractBits` 1st argument must be an integer scalar or vector",
+        ))
+    } else if e2.is_convertible_to(&Type::U32) && e3.is_convertible_to(&Type::U32) {
+        Err(E::Builtin(
+            "`extractBits` 2nd and 3rd arguments must be u32",
+        ))
+    } else {
+        Ok(e1.concretize())
+    }
+}
+
+/// `faceForward()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#faceForward-builtin>
+pub fn faceForward(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
+    let ty = convert_all_ty([e1, e2, e3])
+        .ok_or(E::Builtin("`faceForward` arguments are incompatible"))?;
+    if matches!(ty, Type::Vec(_, t) if t.is_float()) {
+        Ok(ty.clone())
+    } else {
+        Err(E::Builtin(
+            "`faceForward` expects three float vector arguments",
+        ))
+    }
+}
+
+/// `firstLeadingBit()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#firstLeadingBit-builtin>
+pub fn firstLeadingBit(e: &Type) -> Result<Type, E> {
+    if inner_is_integer(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`firstLeadingBit` expects an integer scalar or vector argument",
+        ))
+    }
+}
+
+/// `firstTrailingBit()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#firstTrailingBit-builtin>
+pub fn firstTrailingBit(e: &Type) -> Result<Type, E> {
+    if inner_is_integer(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`firstTrailingBit` expects an integer scalar or vector argument",
+        ))
+    }
+}
+
+/// `floor()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#floor-builtin>
+pub fn floor(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`floor` argument must be a float scalar or vector",
+    ))
+}
+
+/// TODO: This built-in is not implemented!
+pub fn fma(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
+    let ty = convert_all_ty([e1, e2, e3]).ok_or(E::Builtin("`fma` arguments are incompatible"))?;
+    inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
+        "`fma` expects three float scalar or vector arguments",
+    ))
+}
+
+/// `fract()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#fract-builtin>
+pub fn fract(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`fract` argument must be a float scalar or vector",
+    ))
+}
+
+/// `frexp()` builtin function.
+///
+/// TODO: This built-in is only partially implemented.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#frexp-builtin>
+pub fn frexp(e: &Type) -> Result<Type, E> {
+    if inner_is_float(e) {
+        Ok(frexp_struct_type(e).unwrap().into())
+    } else {
+        Err(E::Builtin("`frexp` expects a f32 argument"))
+    }
+}
+
+/// `insertBits()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#insertBits-builtin>
+pub fn insertBits(e: &Type, newbits: &Type, offset: &Type, count: &Type) -> Result<Type, E> {
+    let ty = convert_ty(e, newbits).ok_or(E::Builtin("`insertBits` arguments are incompatible"))?;
+
+    if offset.is_convertible_to(&Type::U32) && count.is_convertible_to(&Type::U32) {
+        Ok(ty.concretize())
+    } else {
+        Err(E::Builtin("`insertBits` 3rd and 4th arguments must be u32"))
+    }
+}
+
+/// `inverseSqrt()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#inverseSqrt-builtin>
+pub fn inverseSqrt(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`inverseSqrt` argument must be a float scalar or vector",
+    ))
+}
+
+/// `ldexp()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#ldexp-builtin>
+pub fn ldexp(e1: &Type, e2: &Type) -> Result<Type, E> {
+    if !inner_is_float(e1) {
+        Err(E::Builtin(
+            "`ldexp` 1st argument must be a float scalar or vector",
+        ))
+    } else if !e2.inner_ty().concretize().is_i32() {
+        Err(E::Builtin(
+            "`ldexp` 2nd argument must be a signed integer scalar or vector",
+        ))
+    } else if e1.is_vec() && !e2.is_vec() || !e1.is_vec() && e2.is_vec() {
+        Err(E::Builtin(
+            "`ldexp` arguments must be both scalar or both vectors",
+        ))
+    } else if e1.is_abstract() && !e2.is_abstract() || !e1.is_abstract() && e2.is_abstract() {
+        Err(E::Builtin(
+            "`ldexp` arguments must be both abstract or both concrete",
+        ))
+    } else {
+        Ok(e1.clone())
+    }
+}
+
+/// `length()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#length-builtin>
+pub fn length(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`length` argument must be a float scalar or vector",
+    ))
+}
+
+/// `log()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#log-builtin>
+pub fn log(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`log` argument must be a float scalar or vector",
+    ))
+}
+
+/// `log2()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#log2-builtin>
+pub fn log2(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`log2` expects a float scalar or vector argument",
+    ))
+}
+
+/// `max()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#max-builtin>
+pub fn max(e1: &Type, e2: &Type) -> Result<Type, E> {
+    let ty = convert_ty(e1, e2).ok_or(E::Builtin("`max` arguments are incompatible"))?;
+    inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
+        "`max` expects two float scalar or vector arguments",
+    ))
+}
+
+/// `min()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#min-builtin>
+pub fn min(e1: &Type, e2: &Type) -> Result<Type, E> {
+    let ty = convert_ty(e1, e2).ok_or(E::Builtin("`min` arguments are incompatible"))?;
+    inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
+        "`min` expects two float scalar or vector arguments",
+    ))
+}
+
+/// `mix()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#mix-builtin>
+pub fn mix(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
+    let ty = convert_all_ty([e1, e2, e3]).ok_or(E::Builtin("`min` arguments are incompatible"))?;
+    inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
+        "`min` expects three float scalar or vector arguments",
+    ))
+}
+
+/// `modf()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#modf-builtin>
+pub fn modf(e: &Type) -> Result<Type, E> {
+    if inner_is_float(e) {
+        Ok(modf_struct_type(e).unwrap().into())
+    } else {
+        Err(E::Builtin(
+            "`modf` expects a float scalar or vector argument",
+        ))
+    }
+}
+
+/// `normalize()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#normalize-builtin>
+pub fn normalize(e: &Type) -> Result<Type, E> {
+    if matches!(e, Type::Vec(_, t) if t.is_scalar()) {
+        Ok(e.clone())
+    } else {
+        Err(E::Builtin("`normalize` expects a float vector argument"))
+    }
+}
+
+/// `pow()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#pow-builtin>
+pub fn pow(e1: &Type, e2: &Type) -> Result<Type, E> {
+    let ty = convert_ty(e1, e2).ok_or(E::Builtin("`pow` arguments are incompatible"))?;
+    inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
+        "`pow` argument must be a float scalar or vector",
+    ))
+}
+
+/// `quantizeToF16()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#quantizeToF16-builtin>
+pub fn quantizeToF16(e: &Type) -> Result<Type, E> {
+    let ty = e.concretize();
+    if ty.is_f32() || matches!(e, Type::Vec(_, t) if t.is_f32()) {
+        Ok(ty)
+    } else {
+        Err(E::Builtin(
+            "`quantizeToF16` expects a f32 scalar or vector argument",
+        ))
+    }
+}
+
+/// `radians()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#radians-builtin>
+pub fn radians(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`radians` argument must be a float scalar or vector",
+    ))
+}
+
+/// `reflect()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#reflect-builtin>
+pub fn reflect(e1: &Type, e2: &Type) -> Result<Type, E> {
+    let ty = convert_ty(e1, e2).ok_or(E::Builtin("`reflect` arguments are incompatible"))?;
+    if ty.is_vec() && ty.inner_ty().is_float() {
+        Ok(ty.clone())
+    } else {
+        Err(E::Builtin("`reflect` expects two float vector arguments"))
+    }
+}
+
+/// `refract()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#refract-builtin>
+pub fn refract(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
+    let ty = convert_ty(e1, e2).ok_or(E::Builtin(
+        "`refract` 1st and 2nd arguments are incompatible",
+    ))?;
+
+    match ty {
+        Type::Vec(_, t) => {
+            let _inner_ty = convert_ty(t, e3).ok_or(E::Builtin(
+                "`refract` 3rd argument is incompatible with 1st and 2nd argument inner type",
+            ))?;
+
+            Ok(ty.clone())
+        }
+        _ => Err(E::Builtin(
+            "`refract` 1st and 2nd arguments must be scalar vectors",
+        )),
+    }
+}
+
+/// `reverseBits()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#reverseBits-builtin>
+pub fn reverseBits(e: &Type) -> Result<Type, E> {
+    if inner_is_integer(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`reverseBits` expects an integer scalar or vector argument",
+        ))
+    }
+}
+
+/// `round()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#round-builtin>
+pub fn round(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`round` argument must be a float scalar or vector",
+    ))
+}
+
+/// `saturate()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#saturate-builtin>
+pub fn saturate(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`saturate` argument must be a float scalar or vector",
+    ))
+}
+
+/// `sign()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#sign-builtin>
+pub fn sign(e: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) && e.inner_ty() != Type::U32 {
+        Ok(e.clone())
+    } else {
+        Err(E::Builtin(
+            "`sin` argument must be a float scalar or vector",
+        ))
+    }
+}
+
+/// `sin()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#sin-builtin>
+pub fn sin(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`sin` argument must be a float scalar or vector",
+    ))
+}
+
+/// `sinh()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#sinh-builtin>
+pub fn sinh(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`sinh` argument must be a float scalar or vector",
+    ))
+}
+
+/// `smoothstep()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#smoothstep-builtin>
+pub fn smoothstep(edge0: &Type, edge1: &Type, x: &Type) -> Result<Type, E> {
+    let ty = convert_all_ty([edge0, edge1, x])
+        .ok_or(E::Builtin("`smoothstep` arguments are incompatible"))?;
+    inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
+        "`smoothstep` expects three float scalar or vector arguments",
+    ))
+}
+
+/// `sqrt()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#sqrt-builtin>
+pub fn sqrt(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`sqrt` argument must be a float scalar or vector",
+    ))
+}
+
+/// `step()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#step-builtin>
+pub fn step(edge: &Type, x: &Type) -> Result<Type, E> {
+    let ty = convert_all_ty([edge, x]).ok_or(E::Builtin("`step` arguments are incompatible"))?;
+    inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
+        "`step` expects two float scalar or vector arguments",
+    ))
+}
+
+/// `tan()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#tan-builtin>
+pub fn tan(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`tan` argument must be a float scalar or vector",
+    ))
+}
+
+/// `tanh()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#tanh-builtin>
+pub fn tanh(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`tanh` argument must be a float scalar or vector",
+    ))
+}
+
+/// `transpose()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#transpose-builtin>
+pub fn transpose(e: &Type) -> Result<Type, E> {
+    match e {
+        Type::Mat(r, c, ty) => Ok(Type::Mat(*c, *r, ty.clone())),
+        _ => Err(E::Builtin("`transpose` expects a matrix argument")),
+    }
+}
+
+/// `trunc()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#trunc-builtin>
+pub fn trunc(e: &Type) -> Result<Type, E> {
+    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+        "`trunc` argument must be a float scalar or vector",
+    ))
+}
+
+// ----------
+// DERIVATIVE
+// ----------
+// reference: <https://www.w3.org/TR/WGSL/#derivative-builtin-functions>
+
+/// `dpdx()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#dpdx-builtin>
+pub fn dpdx(e: &Type) -> Result<Type, E> {
+    let ty = e.concretize();
+    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+        Ok(ty)
+    } else {
+        Err(E::Builtin(
+            "`dpdx` expects a `f32` scalar or vector argument",
+        ))
+    }
+}
+
+/// `dpdxCoarse()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#dpdxCoarse-builtin>
+pub fn dpdxCoarse(e: &Type) -> Result<Type, E> {
+    let ty = e.concretize();
+    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+        Ok(ty)
+    } else {
+        Err(E::Builtin(
+            "`dpdxCoarse` expects a `f32` scalar or vector argument",
+        ))
+    }
+}
+
+/// `dpdxFine()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#dpdxFine-builtin>
+pub fn dpdxFine(e: &Type) -> Result<Type, E> {
+    let ty = e.concretize();
+    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+        Ok(ty)
+    } else {
+        Err(E::Builtin(
+            "`dpdxFine` expects a `f32` scalar or vector argument",
+        ))
+    }
+}
+
+/// `dpdy()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#dpdy-builtin>
+pub fn dpdy(e: &Type) -> Result<Type, E> {
+    let ty = e.concretize();
+    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+        Ok(ty)
+    } else {
+        Err(E::Builtin(
+            "`dpdy` expects a `f32` scalar or vector argument",
+        ))
+    }
+}
+
+/// `dpdyCoarse()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#dpdyCoarse-builtin>
+pub fn dpdyCoarse(e: &Type) -> Result<Type, E> {
+    let ty = e.concretize();
+    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+        Ok(ty)
+    } else {
+        Err(E::Builtin(
+            "`dpdyCoarse` expects a `f32` scalar or vector argument",
+        ))
+    }
+}
+
+/// `dpdyFine()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#dpdyFine-builtin>
+pub fn dpdyFine(e: &Type) -> Result<Type, E> {
+    let ty = e.concretize();
+    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+        Ok(ty)
+    } else {
+        Err(E::Builtin(
+            "`dpdyFine` expects a `f32` scalar or vector argument",
+        ))
+    }
+}
+
+/// `fwidth()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#fwidth-builtin>
+pub fn fwidth(e: &Type) -> Result<Type, E> {
+    let ty = e.concretize();
+    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+        Ok(ty)
+    } else {
+        Err(E::Builtin(
+            "`fwidth` expects a `f32` scalar or vector argument",
+        ))
+    }
+}
+
+/// `fwidthCoarse()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#fwidthCoarse-builtin>
+pub fn fwidthCoarse(e: &Type) -> Result<Type, E> {
+    let ty = e.concretize();
+    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+        Ok(ty)
+    } else {
+        Err(E::Builtin(
+            "`fwidthCoarse` expects a `f32` scalar or vector argument",
+        ))
+    }
+}
+
+/// `fwidthFine()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#fwidthFine-builtin>
+pub fn fwidthFine(e: &Type) -> Result<Type, E> {
+    let ty = e.concretize();
+    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+        Ok(ty)
+    } else {
+        Err(E::Builtin(
+            "`fwidthFine` expects a `f32` scalar or vector argument",
+        ))
+    }
+}
+
+// -------
+// TEXTURE
+// -------
+// reference: <https://www.w3.org/TR/WGSL/#texture-builtin-functions>
+
+/// `textureDimensions()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#textureDimensions>
+pub fn textureDimensions(t: &Type, level: Option<&Type>) -> Result<Type, E> {
+    match t {
+        Type::Texture(t) => {
+            let ret = match t.dimensions() {
+                TextureDimensions::D1 => Type::U32,
+                TextureDimensions::D2 => Type::Vec(2, Type::U32.into()),
+                TextureDimensions::D3 => Type::Vec(3, Type::U32.into()),
+            };
+
+            if let Some(l) = level
+                && !l.is_integer()
+            {
+                Err(E::Builtin(
+                    "`textureDimensions` 2nd argument must be an integer",
+                ))
+            } else {
+                Ok(ret)
+            }
+        }
+        _ => Err(E::Builtin(
+            "`textureDimensions` 1st argument must be a texture",
+        )),
+    }
+}
+
+/// `textureGather()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#textureGather>
+// TODO: typecheck the other arguments
+pub fn textureGather(
+    e1: &Type,
+    e2: &Type,
+    _e3: &Type,
+    _e4: Option<&Type>,
+    _e5: Option<&Type>,
+    _e6: Option<&Type>,
+) -> Result<Type, E> {
+    if let Type::Texture(t) = e1 {
+        if t.is_depth() {
+            Ok(Type::Vec(4, Type::F32.into()))
+        } else {
+            Err(E::Builtin(
+                "the first argument to `textureGather` must be either a depth texture or an integer",
+            ))
+        }
+    } else if let Type::Texture(t) = e2 {
+        if let Some(sample_type) = t.sampled_type() {
+            Ok(Type::Vec(4, Box::new(sample_type.into())))
+        } else {
+            Err(E::Builtin(
+                "the 2nd argument to `textureGather` must be a sampled texture when the 1st one is an integer",
+            ))
+        }
+    } else {
+        Err(E::Builtin(
+            "`textureGather` expects a texture in the 1st or 2nd argument",
+        ))
+    }
+}
+
+/// `textureGatherCompare()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#textureGatherCompare>
+// TODO: typecheck the other arguments
+pub fn textureGatherCompare(
+    e1: &Type,
+    _e2: &Type,
+    _e3: &Type,
+    _e4: &Type,
+    _e5: Option<&Type>,
+    _e6: Option<&Type>,
+) -> Result<Type, E> {
+    if let Type::Texture(t) = e1
+        && t.is_depth()
+    {
+        Ok(Type::Vec(4, Type::F32.into()))
+    } else {
+        Err(E::Builtin(
+            "`textureGatherCompare` 1st argument must be a depth texture",
+        ))
+    }
+}
+
+/// `textureLoad()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#textureLoad>
+// TODO: typecheck the other arguments
+pub fn textureLoad(
+    e1: &Type,
+    _e2: &Type,
+    _e3: Option<&Type>,
+    _e4: Option<&Type>,
+) -> Result<Type, E> {
+    if let Type::Texture(t) = e1 {
+        if t.is_cube() {
+            Err(E::Builtin("`textureLoad` does not support cube textures"))
+        } else if t.is_depth() {
+            Ok(Type::F32)
+        } else {
+            Ok(Type::Vec(4, Box::new(t.channel_type().into())))
+        }
+    } else {
+        Err(E::Builtin("`textureLoad` 1st argument must be a texture"))
+    }
+}
+
+/// `textureNumLayers()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#textureNumLayers>
+pub fn textureNumLayers(t: &Type) -> Result<Type, E> {
+    if let Type::Texture(t) = t
+        && t.is_arrayed()
+    {
+        Ok(Type::U32)
+    } else {
+        Err(E::Builtin(
+            "`textureNumLayers` expects an array texture argument",
+        ))
+    }
+}
+
+/// `textureNumLevels()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#textureNumLevels>
+pub fn textureNumLevels(t: &Type) -> Result<Type, E> {
+    if let Type::Texture(t) = t
+        && (t.is_sampled() || t.is_depth())
+    {
+        Ok(Type::U32)
+    } else {
+        Err(E::Builtin(
+            "`textureNumLevels` expects an sampled or depth texture argument",
+        ))
+    }
+}
+
+/// `textureNumSamples()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#textureNumSamples>
+pub fn textureNumSamples(t: &Type) -> Result<Type, E> {
+    if let Type::Texture(t) = t
+        && t.is_multisampled()
+    {
+        Ok(Type::U32)
+    } else {
+        Err(E::Builtin(
+            "`textureNumSamples` expects a multisampled texture argument",
+        ))
+    }
+}
+
+/// `textureSample()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#textureSample>
+// TODO: typecheck the other arguments
+pub fn textureSample(
+    e1: &Type,
+    _e2: &Type,
+    _e3: &Type,
+    _e4: Option<&Type>,
+    _e5: Option<&Type>,
+) -> Result<Type, E> {
+    if let Type::Texture(t) = e1 {
+        if t.is_sampled() {
+            Ok(Type::Vec(4, Type::F32.into()))
+        } else if t.is_depth() {
+            Ok(Type::F32)
+        } else {
+            Err(E::Builtin(
+                "`textureSample` first argument must be a sampled or depth texture",
+            ))
+        }
+    } else {
+        Err(E::Builtin(
+            "`textureSample` first argument must be a sampled or depth texture",
+        ))
+    }
+}
+
+/// `textureSampleBias()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#textureSampleBias>
+// TODO: typecheck the other arguments
+pub fn textureSampleBias(
+    e1: &Type,
+    _e2: &Type,
+    _e3: &Type,
+    _e4: &Type,
+    _e5: Option<&Type>,
+    _e6: Option<&Type>,
+) -> Result<Type, E> {
+    if let Type::Texture(t) = e1 {
+        if t.dimensions() == TextureDimensions::D1 {
+            Err(E::Builtin(
+                "`textureSampleBias` texture cannot be 1-dimensional",
+            ))
+        } else if t.is_sampled() {
+            Ok(Type::Vec(4, Type::F32.into()))
+        } else {
+            Err(E::Builtin(
+                "`textureSampleBias` first argument must be a sampled texture",
+            ))
+        }
+    } else {
+        Err(E::Builtin(
+            "`textureSampleBias` first argument must be a sampled texture",
+        ))
+    }
+}
+
+/// `textureSampleCompare()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#textureSampleCompare>
+// TODO: typecheck the other arguments
+pub fn textureSampleCompare(
+    e1: &Type,
+    _e2: &Type,
+    _e3: &Type,
+    _e4: &Type,
+    _e5: Option<&Type>,
+    _e6: Option<&Type>,
+) -> Result<Type, E> {
+    if let Type::Texture(t) = e1
+        && t.is_depth()
+    {
+        Ok(Type::F32)
+    } else {
+        Err(E::Builtin(
+            "`textureSampleCompare` first argument must be a depth texture",
+        ))
+    }
+}
+
+/// `textureSampleCompareLevel()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#textureSampleCompareLevel>
+// TODO: typecheck the other arguments
+pub fn textureSampleCompareLevel(
+    e1: &Type,
+    _e2: &Type,
+    _e3: &Type,
+    _e4: &Type,
+    _e5: Option<&Type>,
+    _e6: Option<&Type>,
+) -> Result<Type, E> {
+    if let Type::Texture(t) = e1
+        && t.is_depth()
+    {
+        Ok(Type::F32)
+    } else {
+        Err(E::Builtin(
+            "`textureSampleCompareLevel` first argument must be a depth texture",
+        ))
+    }
+}
+
+/// `textureSampleGrad()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#textureSampleGrad>
+// TODO: typecheck the other arguments
+pub fn textureSampleGrad(
+    e1: &Type,
+    _e2: &Type,
+    _e3: &Type,
+    _e4: &Type,
+    _e5: &Type,
+    _e6: Option<&Type>,
+    _e7: Option<&Type>,
+) -> Result<Type, E> {
+    if let Type::Texture(t) = e1 {
+        if t.dimensions() == TextureDimensions::D1 {
+            Err(E::Builtin(
+                "`textureSampleGrad` texture cannot be 1-dimensional",
+            ))
+        } else if t.is_sampled() {
+            Ok(Type::Vec(4, Type::F32.into()))
+        } else {
+            Err(E::Builtin(
+                "`textureSampleGrad` first argument must be a sampled texture",
+            ))
+        }
+    } else {
+        Err(E::Builtin(
+            "`textureSampleGrad` first argument must be a sampled texture",
+        ))
+    }
+}
+
+/// `textureSampleLevel()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#textureSampleLevel>
+// TODO: typecheck the other arguments
+pub fn textureSampleLevel(
+    e1: &Type,
+    _e2: &Type,
+    _e3: &Type,
+    _e4: &Type,
+    _e5: Option<&Type>,
+    _e6: Option<&Type>,
+) -> Result<Type, E> {
+    if let Type::Texture(t) = e1 {
+        if t.is_sampled() {
+            Ok(Type::Vec(4, Type::F32.into()))
+        } else if t.is_depth() {
+            Ok(Type::F32)
+        } else {
+            Err(E::Builtin(
+                "`textureSampleLevel` first argument must be a sampled or depth texture",
+            ))
+        }
+    } else {
+        Err(E::Builtin(
+            "`textureSampleLevel` first argument must be a sampled or depth texture",
+        ))
+    }
+}
+
+/// `textureSampleBaseClampToEdge()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#textureSampleBaseClampToEdge>
+pub fn textureSampleBaseClampToEdge(e1: &Type, _e2: &Type, _e3: &Type) -> Result<Type, E> {
+    if matches!(
+        e1,
+        Type::Texture(TextureType::Sampled2D(_) | TextureType::External)
+    ) {
+        Ok(Type::Vec(4, Type::F32.into()))
+    } else {
+        Err(E::Builtin(
+            "`textureSampleCompareLevel` first argument must be a depth texture",
+        ))
+    }
+}
+
+/// `textureStore()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#textureStore>
+// TODO: typecheck the other arguments
+pub fn textureStore(e1: &Type, _e2: &Type, _e3: &Type, _e4: Option<&Type>) -> Result<(), E> {
+    if let Type::Texture(t) = e1
+        && t.is_storage()
+    {
+        Ok(())
+    } else {
+        Err(E::Builtin(
+            "`textureStore` first argument must be a storage texture",
+        ))
+    }
+}
+
+// ------
+// ATOMIC
+// ------
+// reference: <https://www.w3.org/TR/WGSL/#atomic-builtin-functions>
+
+/// `atomicLoad()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#atomicLoad-builtin>
+pub fn atomicLoad(e: &Type) -> Result<Type, E> {
+    match e {
+        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
+            Type::Atomic(ty) => Ok(*ty.clone()),
+            _ => Err(E::Builtin("`atomicLoad` Ptrmust be a pointer to atomic")),
+        },
+        Type::Ptr(_, _, _) => Err(E::Builtin("`atomicLoad` argument must be `read_write`")),
+        _ => Err(E::Builtin(
+            "`atomicLoad` argument must         a pointer to atomic",
+        )),
+    }
+}
+
+/// `atomicStore()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#atomicStore-builtin>
+pub fn atomicStore(e1: &Type, e2: &Type) -> Result<(), E> {
+    match e1 {
+        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
+            Type::Atomic(ty) => {
+                if e2 == &**ty {
+                    Ok(())
+                } else {
+                    Err(E::Builtin(
+                        "`atomicStore` 2nd argument is incompatible with the atomic pointer type",
+                    ))
+                }
+            }
+            _ => Err(E::Builtin(
+                "`atomicStore` first argument must             a pointer to atomic",
+            )),
+        },
+        Type::Ptr(_, _, _) => Err(E::Builtin(
+            "`atomicStore` pointer argument must be `read_write`",
+        )),
+        _ => Err(E::Builtin(
+            "`atomicStore` first atomicStoremust be a pointer to atomic",
+        )),
+    }
+}
+
+/// `atomicAdd()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#atomicAdd-builtin>
+pub fn atomicAdd(e1: &Type, e2: &Type) -> Result<Type, E> {
+    match e1 {
+        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
+            Type::Atomic(ty) => {
+                if e2 == &**ty {
+                    Ok(*ty.clone())
+                } else {
+                    Err(E::Builtin(
+                        "`atomicAdd` 2nd argument is incompatible with the atomic pointer type",
+                    ))
+                }
+            }
+            _ => Err(E::Builtin(
+                "`atomicAdd` first argument must             a pointer to atomic",
+            )),
+        },
+        Type::Ptr(_, _, _) => Err(E::Builtin(
+            "`atomicAdd` pointer argument must be `read_write`",
+        )),
+        _ => Err(E::Builtin(
+            "`atomicAdd` first atomicAddmust be a pointer to atomic",
+        )),
+    }
+}
+
+/// `atomicSub()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#atomicSub-builtin>
+pub fn atomicSub(e1: &Type, e2: &Type) -> Result<Type, E> {
+    match e1 {
+        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
+            Type::Atomic(ty) => {
+                if e2 == &**ty {
+                    Ok(*ty.clone())
+                } else {
+                    Err(E::Builtin(
+                        "`atomicSub` 2nd argument is incompatible with the atomic pointer type",
+                    ))
+                }
+            }
+            _ => Err(E::Builtin(
+                "`atomicSub` first argument must             a pointer to atomic",
+            )),
+        },
+        Type::Ptr(_, _, _) => Err(E::Builtin(
+            "`atomicSub` pointer argument must be `read_write`",
+        )),
+        _ => Err(E::Builtin(
+            "`atomicSub` first atomicSubmust be a pointer to atomic",
+        )),
+    }
+}
+
+/// `atomicMax()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#atomicMax-builtin>
+pub fn atomicMax(e1: &Type, e2: &Type) -> Result<Type, E> {
+    match e1 {
+        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
+            Type::Atomic(ty) => {
+                if e2 == &**ty {
+                    Ok(*ty.clone())
+                } else {
+                    Err(E::Builtin(
+                        "`atomicMax` 2nd argument is incompatible with the atomic pointer type",
+                    ))
+                }
+            }
+            _ => Err(E::Builtin(
+                "`atomicMax` first argument must             a pointer to atomic",
+            )),
+        },
+        Type::Ptr(_, _, _) => Err(E::Builtin(
+            "`atomicMax` pointer argument must be `read_write`",
+        )),
+        _ => Err(E::Builtin(
+            "`atomicMax` first atomicMaxmust be a pointer to atomic",
+        )),
+    }
+}
+
+/// `atomicMin()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#atomicMin-builtin>
+pub fn atomicMin(e1: &Type, e2: &Type) -> Result<Type, E> {
+    match e1 {
+        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
+            Type::Atomic(ty) => {
+                if e2 == &**ty {
+                    Ok(*ty.clone())
+                } else {
+                    Err(E::Builtin(
+                        "`atomicMin` 2nd argument is incompatible with the atomic pointer type",
+                    ))
+                }
+            }
+            _ => Err(E::Builtin(
+                "`atomicMin` first argument must             a pointer to atomic",
+            )),
+        },
+        Type::Ptr(_, _, _) => Err(E::Builtin(
+            "`atomicMin` pointer argument must be `read_write`",
+        )),
+        _ => Err(E::Builtin(
+            "`atomicMin` first atomicMinmust be a pointer to atomic",
+        )),
+    }
+}
+
+/// `atomicAnd()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#atomicAnd-builtin>
+pub fn atomicAnd(e1: &Type, e2: &Type) -> Result<Type, E> {
+    match e1 {
+        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
+            Type::Atomic(ty) => {
+                if e2 == &**ty {
+                    Ok(*ty.clone())
+                } else {
+                    Err(E::Builtin(
+                        "`atomicAnd` 2nd argument is incompatible with the atomic pointer type",
+                    ))
+                }
+            }
+            _ => Err(E::Builtin(
+                "`atomicAnd` first argument must             a pointer to atomic",
+            )),
+        },
+        Type::Ptr(_, _, _) => Err(E::Builtin(
+            "`atomicAnd` pointer argument must be `read_write`",
+        )),
+        _ => Err(E::Builtin(
+            "`atomicAnd` first atomicAndmust be a pointer to atomic",
+        )),
+    }
+}
+
+/// `atomicOr()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#atomicOr-builtin>
+pub fn atomicOr(e1: &Type, e2: &Type) -> Result<Type, E> {
+    match e1 {
+        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
+            Type::Atomic(ty) => {
+                if e2 == &**ty {
+                    Ok(*ty.clone())
+                } else {
+                    Err(E::Builtin(
+                        "`atomicOr` 2nd argument is incompatible with the atomic pointer type",
+                    ))
+                }
+            }
+            _ => Err(E::Builtin(
+                "`atomicOr` first argument must             a pointer to atomic",
+            )),
+        },
+        Type::Ptr(_, _, _) => Err(E::Builtin(
+            "`atomicOr` pointer argument must be `read_write`",
+        )),
+        _ => Err(E::Builtin(
+            "`atomicOr` first atomicOrmust be a pointer to atomic",
+        )),
+    }
+}
+
+/// `atomicXor()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#atomicXor-builtin>
+pub fn atomicXor(e1: &Type, e2: &Type) -> Result<Type, E> {
+    match e1 {
+        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
+            Type::Atomic(ty) => {
+                if e2 == &**ty {
+                    Ok(*ty.clone())
+                } else {
+                    Err(E::Builtin(
+                        "`atomicXor` 2nd argument is incompatible with the atomic pointer type",
+                    ))
+                }
+            }
+            _ => Err(E::Builtin(
+                "`atomicXor` first argument must             a pointer to atomic",
+            )),
+        },
+        Type::Ptr(_, _, _) => Err(E::Builtin(
+            "`atomicXor` pointer argument must be `read_write`",
+        )),
+        _ => Err(E::Builtin(
+            "`atomicXor` first atomicXormust be a pointer to atomic",
+        )),
+    }
+}
+
+/// `atomicExchange()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#atomicExchange-builtin>
+pub fn atomicExchange(e1: &Type, e2: &Type) -> Result<Type, E> {
+    match e1 {
+        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
+            Type::Atomic(ty) => {
+                if e2 == &**ty {
+                    Ok(*ty.clone())
+                } else {
+                    Err(E::Builtin(
+                        "`atomicExchange` 2nd argument is incompatible with the atomic pointer type",
+                    ))
+                }
+            }
+            _ => Err(E::Builtin(
+                "`atomicExchange` first argument must             a pointer to atomic",
+            )),
+        },
+        Type::Ptr(_, _, _) => Err(E::Builtin(
+            "`atomicExchange` pointer argument must be `read_write`",
+        )),
+        _ => Err(E::Builtin(
+            "`atomicExchange` first atomicExchangemust be a pointer to atomic",
+        )),
+    }
+}
+
+/// `atomicCompareExchangeWeak()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#atomicCompareExchangeWeak-builtin>
+pub fn atomicCompareExchangeWeak(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
+    match e1 {
+        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
+            Type::Atomic(ty) => {
+                if e2 == &**ty && e3 == &**ty {
+                    Ok(atomic_compare_exchange_struct_type(ty).into())
+                } else {
+                    Err(E::Builtin(
+                        "`atomicCompareExchangeWeak` 2nd and 3rd arguments are incompatible with the atomic pointer type",
+                    ))
+                }
+            }
+            _ => Err(E::Builtin(
+                "`atomicCompareExchangeWeak` first argument must             a pointer to atomic",
+            )),
+        },
+        Type::Ptr(_, _, _) => Err(E::Builtin(
+            "`atomicCompareExchangeWeak` pointer argument must be `read_write`",
+        )),
+        _ => Err(E::Builtin(
+            "`atomicCompareExchangeWeak` first atomicCompareExchangeWeakmust be a pointer to atomic",
+        )),
+    }
+}
+
+// ------------
+// DATA PACKING
+// ------------
+// reference: <https://www.w3.org/TR/WGSL/#pack-builtin-functions>
+
+/// `pack4x8snorm()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#pack4x8snorm-builtin>
+pub fn pack4x8snorm(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(4, Type::F32.into())) {
+        Ok(Type::U32)
+    } else {
+        Err(E::Builtin("`pack2x16snorm` expects a `vec4<f32>` argument"))
+    }
+}
+
+/// `pack4x8unorm()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#pack4x8unorm-builtin>
+pub fn pack4x8unorm(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(4, Type::F32.into())) {
+        Ok(Type::U32)
+    } else {
+        Err(E::Builtin("`pack4x8unorm` expects a `vec4<f32>` argument"))
+    }
+}
+
+/// `pack4xI8()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#pack4xI8-builtin>
+pub fn pack4xI8(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(4, Type::I32.into())) {
+        Ok(Type::U32)
+    } else {
+        Err(E::Builtin("`pack4xI8` expects a `vec4<i32>` argument"))
+    }
+}
+
+/// `pack4xU8()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#pack4xU8-builtin>
+pub fn pack4xU8(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(4, Type::U32.into())) {
+        Ok(Type::U32)
+    } else {
+        Err(E::Builtin("`pack4xU8` expects a `vec4<u32>` argument"))
+    }
+}
+
+/// `pack4xI8Clamp()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#pack4xI8Clamp-builtin>
+pub fn pack4xI8Clamp(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(4, Type::I32.into())) {
+        Ok(Type::U32)
+    } else {
+        Err(E::Builtin("`pack4xI8Clamp` expects a `vec4<i32>` argument"))
+    }
+}
+
+/// `pack4xU8Clamp()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#pack4xU8Clamp-builtin>
+pub fn pack4xU8Clamp(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(4, Type::U32.into())) {
+        Ok(Type::U32)
+    } else {
+        Err(E::Builtin("`pack4xU8Clamp` expects a `vec4<u32>` argument"))
+    }
+}
+
+/// `pack2x16snorm()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#pack2x16snorm-builtin>
+pub fn pack2x16snorm(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(2, Type::F32.into())) {
+        Ok(Type::U32)
+    } else {
+        Err(E::Builtin("`pack2x16snorm` expects a `vec2<f32>` argument"))
+    }
+}
+
+/// `pack2x16unorm()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#pack2x16unorm-builtin>
+pub fn pack2x16unorm(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(2, Type::F32.into())) {
+        Ok(Type::U32)
+    } else {
+        Err(E::Builtin("`pack2x16unorm` expects a `vec2<f32>` argument"))
+    }
+}
+
+/// `pack2x16float()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#pack2x16float-builtin>
+pub fn pack2x16float(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(2, Type::F32.into())) {
+        Ok(Type::U32)
+    } else {
+        Err(E::Builtin("`pack2x16float` expects a `vec2<f32>` argument"))
+    }
+}
+
+/// `unpack4x8snorm()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#unpack4x8snorm-builtin>
+pub fn unpack4x8snorm(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::U32) {
+        Ok(Type::Vec(4, Type::F32.into()))
+    } else {
+        Err(E::Builtin("`unpack4x8snorm` expects a `u32` argument"))
+    }
+}
+
+/// `unpack4x8unorm()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#unpack4x8unorm-builtin>
+pub fn unpack4x8unorm(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::U32) {
+        Ok(Type::Vec(4, Type::F32.into()))
+    } else {
+        Err(E::Builtin("`unpack4x8unorm` expects a `u32` argument"))
+    }
+}
+
+/// `unpack4xI8()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#unpack4xI8-builtin>
+pub fn unpack4xI8(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::U32) {
+        Ok(Type::Vec(4, Type::I32.into()))
+    } else {
+        Err(E::Builtin("`unpack4xI8` expects a `u32` argument"))
+    }
+}
+
+/// `unpack4xU8()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#unpack4xU8-builtin>
+pub fn unpack4xU8(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::U32) {
+        Ok(Type::Vec(4, Type::U32.into()))
+    } else {
+        Err(E::Builtin("`unpack4xU8` expects a `u32` argument"))
+    }
+}
+
+/// `unpack2x16snorm()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#unpack2x16snorm-builtin>
+pub fn unpack2x16snorm(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::U32) {
+        Ok(Type::Vec(2, Type::F32.into()))
+    } else {
+        Err(E::Builtin("`unpack2x16snorm` expects a `u32` argument"))
+    }
+}
+
+/// `unpack2x16unorm()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#unpack2x16unorm-builtin>
+pub fn unpack2x16unorm(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::U32) {
+        Ok(Type::Vec(2, Type::F32.into()))
+    } else {
+        Err(E::Builtin("`unpack2x16unorm` expects a `u32` argument"))
+    }
+}
+
+/// `unpack2x16float()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#unpack2x16float-builtin>
+pub fn unpack2x16float(e: &Type) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::U32) {
+        Ok(Type::Vec(2, Type::F32.into()))
+    } else {
+        Err(E::Builtin("`unpack2x16float` expects a `u32` argument"))
     }
 }

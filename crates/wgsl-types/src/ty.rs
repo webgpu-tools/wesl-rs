@@ -106,7 +106,7 @@ impl TextureType {
             TextureType::Sampled3D(st) => Some(*st),
             TextureType::SampledCube(st) => Some(*st),
             TextureType::SampledCubeArray(st) => Some(*st),
-            TextureType::Multisampled2D(_) => None,
+            TextureType::Multisampled2D(st) => Some(*st),
             TextureType::DepthMultisampled2D => None,
             TextureType::External => None,
             TextureType::Storage1D(_, _) => None,
@@ -206,6 +206,15 @@ impl TextureType {
             TextureType::Multisampled2DArray(_) => true,
             _ => false,
         }
+    }
+    pub fn is_cube(&self) -> bool {
+        matches!(
+            self,
+            TextureType::SampledCube(_)
+                | TextureType::SampledCubeArray(_)
+                | TextureType::DepthCube
+                | TextureType::DepthCubeArray
+        )
     }
 }
 

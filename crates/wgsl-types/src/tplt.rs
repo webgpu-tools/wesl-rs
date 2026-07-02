@@ -113,6 +113,9 @@ pub struct VecTemplate {
 }
 
 impl VecTemplate {
+    pub fn new_unchecked(ty: Type) -> Self {
+        Self { ty }
+    }
     pub fn parse(tplt: &[TpltParam]) -> Result<VecTemplate, E> {
         let ty = match tplt {
             [TpltParam::Type(ty)] => Ok(ty.clone()),
@@ -341,8 +344,5 @@ impl BitcastTemplate {
     }
     pub fn ty(&self) -> &Type {
         &self.ty
-    }
-    pub fn inner_ty(&self) -> Type {
-        self.ty.inner_ty()
     }
 }

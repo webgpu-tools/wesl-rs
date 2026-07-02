@@ -40,6 +40,8 @@ type E = Error;
 
 /// `bitcast<T>()` builtin function.
 ///
+/// Expects `tplt_ty` to be valid (a numeric scalar or vector).
+///
 /// Reference: <https://www.w3.org/TR/WGSL/#bitcast-builtin>
 pub fn bitcast_t(tplt_ty: &Type, e: &Instance) -> Result<Instance, E> {
     fn lit_bytes(l: &LiteralInstance, ty: &Type) -> Result<Vec<u8>, E> {

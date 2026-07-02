@@ -132,7 +132,7 @@ pub fn call_builtin_fn(
         #[cfg(feature = "naga-ext")]
         ("f64", None, [a1]) => ctor::f64(a1, stage),
         // bitcast
-        ("bitcast", Some(t), [a1]) => call::bitcast_t(BitcastTemplate::parse(t)?.ty(), a1),
+        ("bitcast", Some(t), [a1]) => call::bitcast_t(&BitcastTemplate::parse(t)?, a1),
         // logical
         ("all", None, [a]) => call::all(a),
         ("any", None, [a]) => call::any(a),

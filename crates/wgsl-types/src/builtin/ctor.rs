@@ -52,9 +52,8 @@ pub fn array_t(tplt_ty: &Type, tplt_n: usize, args: &[Instance]) -> Result<Insta
     let args = args
         .iter()
         .map(|a| {
-            a.convert_to(tplt_ty).ok_or_else(|| {
-                E::ParamType(Type::Array(Box::new(tplt_ty.clone()), Some(tplt_n)), a.ty())
-            })
+            a.convert_to(tplt_ty)
+                .ok_or_else(|| E::ParamType(tplt_ty.clone(), a.ty()))
         })
         .collect::<Result<Vec<_>, _>>()?;
 
@@ -69,11 +68,11 @@ pub fn array_t(tplt_ty: &Type, tplt_n: usize, args: &[Instance]) -> Result<Insta
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#array-builtin>
 pub fn array(args: &[Instance]) -> Result<Instance, E> {
-    let args = convert_all(args).ok_or(E::Builtin("array elements are incompatible"))?;
-
     if args.is_empty() {
         return Err(E::Builtin("array constructor expects at least 1 argument"));
     }
+
+    let args = convert_all(args).ok_or(E::Builtin("array elements are incompatible"))?;
 
     Ok(ArrayInstance::new(args, false).into())
 }
@@ -151,6 +150,7 @@ pub fn u32(a1: &Instance) -> Result<Instance, E> {
 /// `f32()` constructor.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#f32-builtin>
+// TODO: in const shaderstage, overflows are shader-creation errors.
 pub fn f32(a1: &Instance, _stage: ShaderStage) -> Result<Instance, E> {
     match a1 {
         Instance::Literal(l) => {
@@ -288,6 +288,8 @@ pub fn f64(_a1: &Instance, _stage: ShaderStage) -> Result<Instance, E> {
 
 /// `matCxR<T>()` constructor.
 ///
+/// Expects `tplt_ty` to be valid (a float).
+///
 /// Reference: <https://www.w3.org/TR/WGSL/#mat2x2-builtin>
 pub fn mat_t(
     c: usize,
@@ -335,7 +337,12 @@ pub fn mat_t(
             convert_all_to(args, &ty).ok_or(E::Builtin("matrix components are incompatible"))?;
 
         // overload 2: mat from column vectors
-        if ty.is_vec() {
+        if let Type::Vec(n, _) = ty {
+            if n as usize != r {
+                return Err(E::Builtin(
+                    "column vector dimension does not match matrix row dimension",
+                ));
+            }
             if args.len() != c {
                 return Err(E::ParamCount(format!("mat{c}x{r}"), c, args.len()));
             }
@@ -420,6 +427,8 @@ pub fn mat(c: usize, r: usize, args: &[Instance]) -> Result<Instance, E> {
 
 /// `vecN<T>()` constructor.
 ///
+/// Expects `tplt_ty` to be valid (a scalar).
+///
 /// Reference: <https://www.w3.org/TR/WGSL/#vec2-builtin>
 pub fn vec_t(
     n: usize,
@@ -449,6 +458,12 @@ pub fn vec_t(
             Type::U32 => |n, _| u32(n),
             Type::F32 => |n, stage| f32(n, stage),
             Type::F16 => |n, stage| f16(n, stage),
+            #[cfg(feature = "naga-ext")]
+            Type::I64 => |n, _| i64(n),
+            #[cfg(feature = "naga-ext")]
+            Type::U64 => |n, _| u64(n),
+            #[cfg(feature = "naga-ext")]
+            Type::F64 => |n, stage| f64(n, stage),
             _ => return Err(E::Builtin("vector type must be a scalar")),
         };
 
@@ -478,7 +493,7 @@ pub fn vec_t(
         let comps = args
             .iter()
             .map(|a| {
-                a.convert_inner_to(tplt_ty)
+                a.convert_to(tplt_ty)
                     .ok_or_else(|| E::ParamType(tplt_ty.clone(), a.ty()))
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -602,6 +617,8 @@ pub fn typecheck_struct_ctor(struct_ty: &StructType, args: &[Type]) -> Result<()
 
 /// Return type of `array<T,N>()` constructor.
 ///
+/// Expects `tplt_ty` to be valid.
+///
 /// Reference: <https://www.w3.org/TR/WGSL/#array-builtin>
 fn array_ctor_ty_t(tplt_ty: &Type, tplt_n: usize, args: &[Type]) -> Result<Type, E> {
     if let Some(arg) = args.iter().find(|arg| !arg.is_convertible_to(tplt_ty)) {
@@ -620,6 +637,8 @@ fn array_ctor_ty(args: &[Type]) -> Result<Type, E> {
 }
 
 /// Return type of `matCxR<T>()` constructor.
+///
+/// Expects `tplt_ty` to be valid (a float).
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#mat2x2-builtin>
 fn mat_ctor_ty_t(c: u8, r: u8, tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
@@ -642,7 +661,12 @@ fn mat_ctor_ty_t(c: u8, r: u8, tplt_ty: &Type, args: &[Type]) -> Result<Type, E>
             .ok_or(E::Conversion(ty.inner_ty(), tplt_ty.clone()))?;
 
         // overload 2: mat from column vectors
-        if ty.is_vec() {
+        if let Type::Vec(n, _) = ty {
+            if n != r {
+                return Err(E::Builtin(
+                    "column vector dimension does not match matrix row dimension",
+                ));
+            }
             if args.len() != c as usize {
                 return Err(E::ParamCount(format!("mat{c}x{r}"), c as usize, args.len()));
             }
@@ -711,6 +735,8 @@ fn mat_ctor_ty(c: u8, r: u8, args: &[Type]) -> Result<Type, E> {
 
 /// Return type of `vecN<T>()` constructor.
 ///
+/// Expects `tplt_ty` to be valid (a scalar).
+///
 /// Reference: <https://www.w3.org/TR/WGSL/#vec2-builtin>
 fn vec_ctor_ty_t(n: u8, tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
     if let [arg] = args {
@@ -721,7 +747,9 @@ fn vec_ctor_ty_t(n: u8, tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
             }
         }
         // overload 2: vec conversion constructor
-        else if arg.is_vec() {
+        else if let Type::Vec(arg_n, _) = arg
+            && n == *arg_n
+        {
             // note: this is an explicit conversion, not automatic conversion
         } else {
             return Err(E::Conversion(arg.clone(), tplt_ty.clone()));
@@ -757,7 +785,9 @@ fn vec_ctor_ty(n: u8, args: &[Type]) -> Result<Type, E> {
         if arg.is_scalar() {
         }
         // overload 2: vec conversion constructor
-        else if arg.is_vec() {
+        else if let Type::Vec(arg_n, _) = arg
+            && n == *arg_n
+        {
             // note: `vecN(e: vecN<S>) -> vecN<S>` is no-op
         } else {
             return Err(E::Builtin(
@@ -803,7 +833,13 @@ fn vec_ctor_ty(n: u8, args: &[Type]) -> Result<Type, E> {
 /// You can type-check a struct constructor call with [`typecheck_struct_ctor`].
 pub fn type_ctor(name: &str, tplt: Option<&[TpltParam]>, args: &[Type]) -> Result<Type, E> {
     match (name, tplt, args) {
-        ("array", Some(t), []) => Ok(ArrayTemplate::parse(t)?.ty()),
+        ("array", Some(t), []) => {
+            let tplt = ArrayTemplate::parse(t)?;
+            tplt.n()
+                .is_some()
+                .then(|| tplt.ty())
+                .ok_or(E::TemplateArgs("array"))
+        }
         ("array", Some(t), a) => {
             let tplt = ArrayTemplate::parse(t)?;
             array_ctor_ty_t(

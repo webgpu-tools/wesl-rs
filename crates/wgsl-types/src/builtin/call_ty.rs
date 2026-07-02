@@ -279,11 +279,13 @@ pub fn type_builtin_fn(
         #[cfg(feature = "naga-ext")]
         ("rayQueryProceed", [a]) => rayQueryProceed(a).map(Some),
         #[cfg(feature = "naga-ext")]
-        ("rayQueryGenerateIntersection", [a]) => rayQueryGenerateIntersection(a).map(|()| None),
+        ("rayQueryGenerateIntersection", [a1, a2]) => {
+            rayQueryGenerateIntersection(a1, a2).map(|()| None)
+        }
         #[cfg(feature = "naga-ext")]
-        ("rayQueryConfirmIntersection", []) => rayQueryConfirmIntersection().map(|()| None),
+        ("rayQueryConfirmIntersection", [a]) => rayQueryConfirmIntersection(a).map(|()| None),
         #[cfg(feature = "naga-ext")]
-        ("rayQueryTerminate", []) => rayQueryTerminate().map(|()| None),
+        ("rayQueryTerminate", [a]) => rayQueryTerminate(a).map(|()| None),
         #[cfg(feature = "naga-ext")]
         ("rayQueryGetCommittedIntersection", [a]) => rayQueryGetCommittedIntersection(a).map(Some),
         #[cfg(feature = "naga-ext")]
@@ -2610,12 +2612,12 @@ pub fn quadSwapY(e: &Type) -> Result<Type, E> {
 
 /// `rayQueryInitialize()` `naga` built-in function.
 #[cfg(feature = "naga-ext")]
-pub fn rayQueryInitialize(e1: &Type, e2: &Type, e3: &Type) -> Result<(), E> {
+pub fn rayQueryInitialize(rq: &Type, accel_struct: &Type, ray_desc: &Type) -> Result<(), E> {
     if matches!(
-        e1,
-        Type::Ptr(AddressSpace::Function, _, AccessMode::ReadWrite)
-    ) && matches!(e2, Type::AccelerationStructure(_))
-        && matches!(e3, Type::Struct(_))
+        rq,
+        Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
+    ) && matches!(accel_struct, Type::AccelerationStructure(_))
+        && matches!(ray_desc, Type::Struct(s) if s.name == "RayDesc")
     {
         Ok(())
     } else {
@@ -2627,10 +2629,10 @@ pub fn rayQueryInitialize(e1: &Type, e2: &Type, e3: &Type) -> Result<(), E> {
 
 /// `rayQueryProceed()` `naga` built-in function.
 #[cfg(feature = "naga-ext")]
-pub fn rayQueryProceed(e: &Type) -> Result<Type, E> {
+pub fn rayQueryProceed(rq: &Type) -> Result<Type, E> {
     if matches!(
-        e,
-        Type::Ptr(AddressSpace::Function, _, AccessMode::ReadWrite)
+        rq,
+        Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
     ) {
         Ok(Type::Bool)
     } else {
@@ -2642,26 +2644,51 @@ pub fn rayQueryProceed(e: &Type) -> Result<Type, E> {
 
 /// `rayQueryGenerateIntersection()` `naga` built-in function.
 #[cfg(feature = "naga-ext")]
-pub fn rayQueryGenerateIntersection(e: &Type) -> Result<(), E> {
-    if e.is_convertible_to(&Type::F32) {
+pub fn rayQueryGenerateIntersection(rq: &Type, hit_t: &Type) -> Result<(), E> {
+    if !matches!(
+        rq,
+        Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
+    ) {
+        Err(E::Builtin(
+            "`rayQueryGenerateIntersection` 1st argument must be a pointer to `ray_query`",
+        ))
+    } else if hit_t.is_convertible_to(&Type::F32) {
         Ok(())
     } else {
         Err(E::Builtin(
-            "`rayQueryGenerateIntersection` expects a `f32` argument",
+            "`rayQueryGenerateIntersection` 2nd argument must be a `f32`",
         ))
     }
 }
 
 /// `rayQueryConfirmIntersection()` `naga` built-in function.
 #[cfg(feature = "naga-ext")]
-pub fn rayQueryConfirmIntersection() -> Result<(), E> {
-    Ok(())
+pub fn rayQueryConfirmIntersection(rq: &Type) -> Result<(), E> {
+    if !matches!(
+        rq,
+        Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
+    ) {
+        Err(E::Builtin(
+            "`rayQueryConfirmIntersection` expects a pointer to `ray_query` argument",
+        ))
+    } else {
+        Ok(())
+    }
 }
 
 /// `rayQueryTerminate()` `naga` built-in function.
 #[cfg(feature = "naga-ext")]
-pub fn rayQueryTerminate() -> Result<(), E> {
-    Ok(())
+pub fn rayQueryTerminate(rq: &Type) -> Result<(), E> {
+    if !matches!(
+        rq,
+        Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
+    ) {
+        Err(E::Builtin(
+            "`rayQueryTerminate` expects a pointer to `ray_query` argument",
+        ))
+    } else {
+        Ok(())
+    }
 }
 
 /// `rayQueryGetCommittedIntersection()` `naga` built-in function.
@@ -2669,7 +2696,7 @@ pub fn rayQueryTerminate() -> Result<(), E> {
 pub fn rayQueryGetCommittedIntersection(e: &Type) -> Result<Type, E> {
     if matches!(
         e,
-        Type::Ptr(AddressSpace::Function, _, AccessMode::ReadWrite)
+        Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
     ) {
         Ok(ray_intersection_struct_type().into())
     } else {
@@ -2684,7 +2711,7 @@ pub fn rayQueryGetCommittedIntersection(e: &Type) -> Result<Type, E> {
 pub fn rayQueryGetCandidateIntersection(e: &Type) -> Result<Type, E> {
     if matches!(
         e,
-        Type::Ptr(AddressSpace::Function, _, AccessMode::ReadWrite)
+        Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
     ) {
         Ok(ray_intersection_struct_type().into())
     } else {
@@ -2699,7 +2726,7 @@ pub fn rayQueryGetCandidateIntersection(e: &Type) -> Result<Type, E> {
 pub fn getCommittedHitVertexPositions(e: &Type) -> Result<Type, E> {
     if matches!(
         e,
-        Type::Ptr(AddressSpace::Function, _, AccessMode::ReadWrite)
+        Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
     ) {
         Ok(Type::Array(
             Box::new(Type::Vec(3, Box::new(Type::F32))),
@@ -2717,7 +2744,7 @@ pub fn getCommittedHitVertexPositions(e: &Type) -> Result<Type, E> {
 pub fn getCandidateHitVertexPositions(e: &Type) -> Result<Type, E> {
     if matches!(
         e,
-        Type::Ptr(AddressSpace::Function, _, AccessMode::ReadWrite)
+        Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
     ) {
         Ok(Type::Array(
             Box::new(Type::Vec(3, Box::new(Type::F32))),

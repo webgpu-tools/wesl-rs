@@ -31,12 +31,6 @@ pub fn type_builtin_fn(
     tplt: Option<&[TpltParam]>,
     args: &[Type],
 ) -> Result<Option<Type>, E> {
-    fn is_numeric(ty: &Type) -> bool {
-        ty.is_numeric() || ty.is_vec() && ty.inner_ty().is_numeric()
-    }
-    fn is_integer(ty: &Type) -> bool {
-        ty.is_integer() || ty.is_vec() && ty.inner_ty().is_integer()
-    }
     let err = || {
         E::Signature(CallSignature {
             name: name.to_string(),
@@ -251,81 +245,53 @@ pub fn type_builtin_fn(
             Ok(Some(*t.clone()))
         }
         // subgroup
-        ("subgroupAdd", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupExclusiveAdd", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupInclusiveAdd", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupAll", [Type::Bool]) => Ok(Some(Type::Bool)),
-        ("subgroupAnd", [a]) if is_integer(a) => Ok(Some(a.concretize())),
-        ("subgroupAny", [Type::Bool]) => Ok(Some(Type::Bool)),
-        ("subgroupBallot", [Type::Bool]) => Ok(Some(Type::Vec(4, Type::U32.into()))),
+        ("subgroupAdd", [a]) => subgroupAdd(a).map(Some),
+        ("subgroupExclusiveAdd", [a]) => subgroupExclusiveAdd(a).map(Some),
+        ("subgroupInclusiveAdd", [a]) => subgroupInclusiveAdd(a).map(Some),
+        ("subgroupAll", [a]) => subgroupAll(a).map(Some),
+        ("subgroupAnd", [a]) => subgroupAnd(a).map(Some),
+        ("subgroupAny", [a]) => subgroupAny(a).map(Some),
+        ("subgroupBallot", [a]) => subgroupBallot(Some(a)).map(Some),
         #[cfg(feature = "naga-ext")]
-        ("subgroupBallot", []) => Ok(Some(Type::Vec(4, Type::U32.into()))),
-        ("subgroupBroadcast", [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
-            Ok(Some(a1.concretize()))
-        }
-        ("subgroupBroadcastFirst", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupElect", []) => Ok(Some(Type::Bool)),
-        ("subgroupMax", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupMin", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupMul", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupExclusiveMul", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupInclusiveMul", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("subgroupOr", [a]) if is_integer(a) => Ok(Some(a.concretize())),
-        ("subgroupShuffle", [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
-            Ok(Some(a1.concretize()))
-        }
-        ("subgroupShuffleDown", [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
-            Ok(Some(a1.concretize()))
-        }
-        ("subgroupShuffleUp", [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
-            Ok(Some(a1.concretize()))
-        }
-        ("subgroupShuffleXor", [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
-            Ok(Some(a1.concretize()))
-        }
-        ("subgroupXor", [a]) if is_integer(a) => Ok(Some(a.concretize())),
+        ("subgroupBallot", []) => subgroupBallot(None).map(Some),
+        ("subgroupBroadcast", [a1, a2]) => subgroupBroadcast(a1, a2).map(Some),
+        ("subgroupBroadcastFirst", [a]) => subgroupBroadcastFirst(a).map(Some),
+        ("subgroupElect", []) => subgroupElect().map(Some),
+        ("subgroupMax", [a]) => subgroupMax(a).map(Some),
+        ("subgroupMin", [a]) => subgroupMin(a).map(Some),
+        ("subgroupMul", [a]) => subgroupMul(a).map(Some),
+        ("subgroupExclusiveMul", [a]) => subgroupExclusiveMul(a).map(Some),
+        ("subgroupInclusiveMul", [a]) => subgroupInclusiveMul(a).map(Some),
+        ("subgroupOr", [a]) => subgroupOr(a).map(Some),
+        ("subgroupShuffle", [a1, a2]) => subgroupShuffle(a1, a2).map(Some),
+        ("subgroupShuffleDown", [a1, a2]) => subgroupShuffleDown(a1, a2).map(Some),
+        ("subgroupShuffleUp", [a1, a2]) => subgroupShuffleUp(a1, a2).map(Some),
+        ("subgroupShuffleXor", [a1, a2]) => subgroupShuffleXor(a1, a2).map(Some),
+        ("subgroupXor", [a]) => subgroupXor(a).map(Some),
         // quad
-        ("quadBroadcast", [a1, a2]) if is_numeric(a1) && a2.is_integer() => {
-            Ok(Some(a1.concretize()))
-        }
-        ("quadSwapDiagonal", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("quadSwapX", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-        ("quadSwapY", [a]) if is_numeric(a) => Ok(Some(a.concretize())),
-
+        ("quadBroadcast", [a1, a2]) => quadBroadcast(a1, a2).map(Some),
+        ("quadSwapDiagonal", [a]) => quadSwapDiagonal(a).map(Some),
+        ("quadSwapX", [a]) => quadSwapX(a).map(Some),
+        ("quadSwapY", [a]) => quadSwapY(a).map(Some),
         // naga ray queries extension
-        // TODO: validate naga extensions arguments
         #[cfg(feature = "naga-ext")]
-        (
-            "rayQueryInitialize",
-            [
-                Type::Ptr(AddressSpace::Function, _ty, AccessMode::ReadWrite),
-                Type::AccelerationStructure(_),
-                Type::Struct(_),
-            ],
-        ) => Ok(None),
+        ("rayQueryInitialize", [a1, a2, a3]) => rayQueryInitialize(a1, a2, a3).map(|()| None),
         #[cfg(feature = "naga-ext")]
-        ("rayQueryProceed", [Type::Ptr(AddressSpace::Function, _ty, AccessMode::ReadWrite)]) => {
-            Ok(Some(Type::Bool))
-        }
+        ("rayQueryProceed", [a]) => rayQueryProceed(a).map(Some),
         #[cfg(feature = "naga-ext")]
-        ("rayQueryGenerateIntersection", [a1]) if a1.is_convertible_to(&Type::F32) => Ok(None),
+        ("rayQueryGenerateIntersection", [a]) => rayQueryGenerateIntersection(a).map(|()| None),
         #[cfg(feature = "naga-ext")]
-        ("rayQueryConfirmIntersection", []) => Ok(None),
+        ("rayQueryConfirmIntersection", []) => rayQueryConfirmIntersection().map(|()| None),
         #[cfg(feature = "naga-ext")]
-        ("rayQueryTerminate", []) => Ok(None),
+        ("rayQueryTerminate", []) => rayQueryTerminate().map(|()| None),
         #[cfg(feature = "naga-ext")]
-        (
-            "rayQueryGetCommittedIntersection" | "rayQueryGetCandidateIntersection",
-            [Type::Ptr(AddressSpace::Function, _ty, AccessMode::ReadWrite)],
-        ) => Ok(Some(ray_intersection_struct_type().into())),
+        ("rayQueryGetCommittedIntersection", [a]) => rayQueryGetCommittedIntersection(a).map(Some),
         #[cfg(feature = "naga-ext")]
-        (
-            "getCommittedHitVertexPositions" | "getCandidateHitVertexPositions",
-            [Type::Ptr(AddressSpace::Function, _ty, AccessMode::ReadWrite)],
-        ) => Ok(Some(Type::Array(
-            Box::new(Type::Vec(3, Box::new(Type::F32))),
-            Some(3),
-        ))),
+        ("rayQueryGetCandidateIntersection", [a]) => rayQueryGetCandidateIntersection(a).map(Some),
+        #[cfg(feature = "naga-ext")]
+        ("getCommittedHitVertexPositions", [a]) => getCommittedHitVertexPositions(a).map(Some),
+        #[cfg(feature = "naga-ext")]
+        ("getCandidateHitVertexPositions", [a]) => getCandidateHitVertexPositions(a).map(Some),
         _ => Err(err()),
     }
 }
@@ -2210,5 +2176,463 @@ pub fn unpack2x16float(e: &Type) -> Result<Type, E> {
         Ok(Type::Vec(2, Type::F32.into()))
     } else {
         Err(E::Builtin("`unpack2x16float` expects a `u32` argument"))
+    }
+}
+
+// --------
+// SUBGROUP
+// --------
+// reference: <https://www.w3.org/TR/WGSL/#subgroup-builtin-functions>
+
+/// `subgroupAdd()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupAdd-builtin>
+pub fn subgroupAdd(e: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupAdd` expects a numeric scalar or vector argument",
+        ))
+    }
+}
+
+/// `subgroupExclusiveAdd()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupExclusiveAdd-builtin>
+pub fn subgroupExclusiveAdd(e: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupExclusiveAdd` expects a numeric scalar or vector argument",
+        ))
+    }
+}
+
+/// `subgroupInclusiveAdd()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupInclusiveAdd-builtin>
+pub fn subgroupInclusiveAdd(e: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupInclusiveAdd` expects a numeric scalar or vector argument",
+        ))
+    }
+}
+
+/// `subgroupAll()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupAll-builtin>
+pub fn subgroupAll(e: &Type) -> Result<Type, E> {
+    if e.is_bool() {
+        Ok(Type::Bool)
+    } else {
+        Err(E::Builtin("`subgroupAll` expects a boolean argument"))
+    }
+}
+
+/// `subgroupAnd()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupAnd-builtin>
+pub fn subgroupAnd(e: &Type) -> Result<Type, E> {
+    if inner_is_integer(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupAnd` expects an integer scalar or vector argument",
+        ))
+    }
+}
+
+/// `subgroupAny()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupAny-builtin>
+pub fn subgroupAny(e: &Type) -> Result<Type, E> {
+    if e.is_bool() {
+        Ok(Type::Bool)
+    } else {
+        Err(E::Builtin("`subgroupAny` expects a boolean argument"))
+    }
+}
+
+/// `subgroupBallot()` builtin function.
+///
+/// NOTE: The `naga-ext` extension allows omitting the predicate argument.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupBallot-builtin>
+pub fn subgroupBallot(pred: Option<&Type>) -> Result<Type, E> {
+    if let Some(pred) = pred
+        && pred.is_bool()
+    {
+        Ok(Type::Vec(4, Type::U32.into()))
+    } else if cfg!(feature = "naga-ext") {
+        Ok(Type::Vec(4, Type::U32.into()))
+    } else {
+        Err(E::Builtin("`subgroupBallot` expects a boolean argument"))
+    }
+}
+
+/// `subgroupBroadcast()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupBroadcast-builtin>
+pub fn subgroupBroadcast(e: &Type, id: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) && id.is_integer() {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupBroadcast` expects a numeric scalar or vector 1st argument and an integer 2nd argument",
+        ))
+    }
+}
+
+/// `subgroupBroadcastFirst()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupBroadcastFirst-builtin>
+pub fn subgroupBroadcastFirst(e: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupBroadcastFirst` expects a numeric scalar or vector argument",
+        ))
+    }
+}
+
+/// `subgroupElect()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupElect-builtin>
+pub fn subgroupElect() -> Result<Type, E> {
+    Ok(Type::Bool)
+}
+
+/// `subgroupMax()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupMax-builtin>
+pub fn subgroupMax(e: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupMax` expects a numeric scalar or vector argument",
+        ))
+    }
+}
+
+/// `subgroupMin()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupMin-builtin>
+pub fn subgroupMin(e: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupMin` expects a numeric scalar or vector argument",
+        ))
+    }
+}
+
+/// `subgroupMul()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupMul-builtin>
+pub fn subgroupMul(e: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupMul` expects a numeric scalar or vector argument",
+        ))
+    }
+}
+
+/// `subgroupExclusiveMul()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupExclusiveMul-builtin>
+pub fn subgroupExclusiveMul(e: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupExclusiveMul` expects a numeric scalar or vector argument",
+        ))
+    }
+}
+
+/// `subgroupInclusiveMul()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupInclusiveMul-builtin>
+pub fn subgroupInclusiveMul(e: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupInclusiveMul` expects a numeric scalar or vector argument",
+        ))
+    }
+}
+
+/// `subgroupOr()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupOr-builtin>
+pub fn subgroupOr(e: &Type) -> Result<Type, E> {
+    if inner_is_integer(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupOr` expects an integer scalar or vector argument",
+        ))
+    }
+}
+
+/// `subgroupShuffle()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupShuffle-builtin>
+pub fn subgroupShuffle(e: &Type, id: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) && id.is_integer() {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupShuffle` expects a numeric scalar or vector 1st argument and an integer 2nd argument",
+        ))
+    }
+}
+
+/// `subgroupShuffleDown()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupShuffleDown-builtin>
+pub fn subgroupShuffleDown(e: &Type, delta: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) && delta.concretize().is_u32() {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupShuffleDown` expects a numeric scalar or vector 1st argument and an integer 2nd argument",
+        ))
+    }
+}
+
+/// `subgroupShuffleUp()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupShuffleUp-builtin>
+pub fn subgroupShuffleUp(e: &Type, delta: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) && delta.concretize().is_u32() {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupShuffleUp` expects a numeric scalar or vector 1st argument and an integer 2nd argument",
+        ))
+    }
+}
+
+/// `subgroupShuffleXor()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupShuffleXor-builtin>
+pub fn subgroupShuffleXor(e: &Type, mask: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) && mask.concretize().is_u32() {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupShuffleXor` expects a numeric scalar or vector 1st argument and an integer 2nd argument",
+        ))
+    }
+}
+
+/// `subgroupXor()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#subgroupXor-builtin>
+pub fn subgroupXor(e: &Type) -> Result<Type, E> {
+    if inner_is_integer(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`subgroupXor` expects an integer scalar or vector argument",
+        ))
+    }
+}
+
+// ----
+// QUAD
+// ----
+// reference: <https://www.w3.org/TR/WGSL/#quad-builtin-functions>
+
+/// `quadBroadcast()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#quadBroadcast-builtin>
+pub fn quadBroadcast(e: &Type, id: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) && id.is_integer() {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`quadBroadcast` expects a numeric scalar or vector 1st argument and an integer 2nd argument",
+        ))
+    }
+}
+
+/// `quadSwapDiagonal()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#quadSwapDiagonal-builtin>
+pub fn quadSwapDiagonal(e: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`quadSwapDiagonal` expects a numeric scalar or vector argument",
+        ))
+    }
+}
+
+/// `quadSwapX()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#quadSwapX-builtin>
+pub fn quadSwapX(e: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`quadSwapX` expects a numeric scalar or vector argument",
+        ))
+    }
+}
+
+/// `quadSwapY()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#quadSwapY-builtin>
+pub fn quadSwapY(e: &Type) -> Result<Type, E> {
+    if inner_is_numeric(e) {
+        Ok(e.concretize())
+    } else {
+        Err(E::Builtin(
+            "`quadSwapY` expects a numeric scalar or vector argument",
+        ))
+    }
+}
+
+// -----------------------
+// NAGA RAY QUERY EXTENSION
+// -----------------------
+// These built-ins are `naga` extensions and are not part of the WGSL specification.
+//
+// TODO: validate naga extensions arguments
+
+/// `rayQueryInitialize()` `naga` built-in function.
+#[cfg(feature = "naga-ext")]
+pub fn rayQueryInitialize(e1: &Type, e2: &Type, e3: &Type) -> Result<(), E> {
+    if matches!(
+        e1,
+        Type::Ptr(AddressSpace::Function, _, AccessMode::ReadWrite)
+    ) && matches!(e2, Type::AccelerationStructure(_))
+        && matches!(e3, Type::Struct(_))
+    {
+        Ok(())
+    } else {
+        Err(E::Builtin(
+            "`rayQueryInitialize` expects a pointer to `ray_query`, an acceleration structure and a `RayDesc` argument",
+        ))
+    }
+}
+
+/// `rayQueryProceed()` `naga` built-in function.
+#[cfg(feature = "naga-ext")]
+pub fn rayQueryProceed(e: &Type) -> Result<Type, E> {
+    if matches!(
+        e,
+        Type::Ptr(AddressSpace::Function, _, AccessMode::ReadWrite)
+    ) {
+        Ok(Type::Bool)
+    } else {
+        Err(E::Builtin(
+            "`rayQueryProceed` expects a pointer to `ray_query` argument",
+        ))
+    }
+}
+
+/// `rayQueryGenerateIntersection()` `naga` built-in function.
+#[cfg(feature = "naga-ext")]
+pub fn rayQueryGenerateIntersection(e: &Type) -> Result<(), E> {
+    if e.is_convertible_to(&Type::F32) {
+        Ok(())
+    } else {
+        Err(E::Builtin(
+            "`rayQueryGenerateIntersection` expects a `f32` argument",
+        ))
+    }
+}
+
+/// `rayQueryConfirmIntersection()` `naga` built-in function.
+#[cfg(feature = "naga-ext")]
+pub fn rayQueryConfirmIntersection() -> Result<(), E> {
+    Ok(())
+}
+
+/// `rayQueryTerminate()` `naga` built-in function.
+#[cfg(feature = "naga-ext")]
+pub fn rayQueryTerminate() -> Result<(), E> {
+    Ok(())
+}
+
+/// `rayQueryGetCommittedIntersection()` `naga` built-in function.
+#[cfg(feature = "naga-ext")]
+pub fn rayQueryGetCommittedIntersection(e: &Type) -> Result<Type, E> {
+    if matches!(
+        e,
+        Type::Ptr(AddressSpace::Function, _, AccessMode::ReadWrite)
+    ) {
+        Ok(ray_intersection_struct_type().into())
+    } else {
+        Err(E::Builtin(
+            "`rayQueryGetCommittedIntersection` expects a pointer to `ray_query` argument",
+        ))
+    }
+}
+
+/// `rayQueryGetCandidateIntersection()` `naga` built-in function.
+#[cfg(feature = "naga-ext")]
+pub fn rayQueryGetCandidateIntersection(e: &Type) -> Result<Type, E> {
+    if matches!(
+        e,
+        Type::Ptr(AddressSpace::Function, _, AccessMode::ReadWrite)
+    ) {
+        Ok(ray_intersection_struct_type().into())
+    } else {
+        Err(E::Builtin(
+            "`rayQueryGetCandidateIntersection` expects a pointer to `ray_query` argument",
+        ))
+    }
+}
+
+/// `getCommittedHitVertexPositions()` `naga` built-in function.
+#[cfg(feature = "naga-ext")]
+pub fn getCommittedHitVertexPositions(e: &Type) -> Result<Type, E> {
+    if matches!(
+        e,
+        Type::Ptr(AddressSpace::Function, _, AccessMode::ReadWrite)
+    ) {
+        Ok(Type::Array(
+            Box::new(Type::Vec(3, Box::new(Type::F32))),
+            Some(3),
+        ))
+    } else {
+        Err(E::Builtin(
+            "`getCommittedHitVertexPositions` expects a pointer to `ray_query` argument",
+        ))
+    }
+}
+
+/// `getCandidateHitVertexPositions()` `naga` built-in function.
+#[cfg(feature = "naga-ext")]
+pub fn getCandidateHitVertexPositions(e: &Type) -> Result<Type, E> {
+    if matches!(
+        e,
+        Type::Ptr(AddressSpace::Function, _, AccessMode::ReadWrite)
+    ) {
+        Ok(Type::Array(
+            Box::new(Type::Vec(3, Box::new(Type::F32))),
+            Some(3),
+        ))
+    } else {
+        Err(E::Builtin(
+            "`getCandidateHitVertexPositions` expects a pointer to `ray_query` argument",
+        ))
     }
 }

@@ -2383,7 +2383,7 @@ pub fn subgroupBallot(pred: Option<&Type>) -> Result<Type, E> {
         && pred.is_bool()
     {
         Ok(Type::Vec(4, Type::U32.into()))
-    } else if pred == None && cfg!(feature = "naga-ext") {
+    } else if pred.is_none() && cfg!(feature = "naga-ext") {
         Ok(Type::Vec(4, Type::U32.into()))
     } else {
         Err(E::Builtin("`subgroupBallot` expects a boolean argument"))

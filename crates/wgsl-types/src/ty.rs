@@ -152,6 +152,7 @@ impl TextureType {
             TextureType::Multisampled2DArray(st) => *st,
         }
     }
+    /// NOTE: a `texture_depth_multisampled_2d` is *not* considered a depth texture.
     pub fn is_depth(&self) -> bool {
         matches!(
             self,
@@ -330,6 +331,16 @@ impl Type {
             Type::AbstractInt | Type::I32 | Type::U32 => true,
             #[cfg(feature = "naga-ext")]
             Type::I64 | Type::U64 => true,
+            _ => false,
+        }
+    }
+
+    /// Is a signed numeric type.
+    pub fn is_signed(&self) -> bool {
+        match self {
+            Type::AbstractInt | Type::AbstractFloat | Type::I32 | Type::F32 | Type::F16 => true,
+            #[cfg(feature = "naga-ext")]
+            Type::I64 | Type::F64 => true,
             _ => false,
         }
     }

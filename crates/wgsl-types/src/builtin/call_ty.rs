@@ -11,7 +11,7 @@
 
 use crate::{
     CallSignature, Error,
-    conv::{convert_all_ty, convert_ty},
+    conv::{Convert, convert_all_ty, convert_ty},
     syntax::*,
     tplt::{BitcastTemplate, TpltParam},
     ty::{StructMemberType, StructType, TextureDimensions, TextureType, Ty, Type},
@@ -305,6 +305,8 @@ pub(crate) fn frexp_struct_name(ty: &Type) -> Option<&'static str> {
         Type::AbstractFloat => Some("__frexp_result_abstract"),
         Type::F32 => Some("__frexp_result_f32"),
         Type::F16 => Some("__frexp_result_f16"),
+        #[cfg(feature = "naga-ext")]
+        Type::F64 => Some("__frexp_result_f64"),
         Type::Vec(n, ty) => match (n, &**ty) {
             (2, Type::AbstractFloat) => Some("__frexp_result_vec2_abstract"),
             (2, Type::F32) => Some("__frexp_result_vec2_f32"),
@@ -315,6 +317,12 @@ pub(crate) fn frexp_struct_name(ty: &Type) -> Option<&'static str> {
             (4, Type::AbstractFloat) => Some("__frexp_result_vec4_abstract"),
             (4, Type::F32) => Some("__frexp_result_vec4_f32"),
             (4, Type::F16) => Some("__frexp_result_vec4_f16"),
+            #[cfg(feature = "naga-ext")]
+            (2, Type::F64) => Some("__frexp_result_vec2_f64"),
+            #[cfg(feature = "naga-ext")]
+            (3, Type::F64) => Some("__frexp_result_vec3_f64"),
+            #[cfg(feature = "naga-ext")]
+            (4, Type::F64) => Some("__frexp_result_vec4_f64"),
             _ => None,
         },
         _ => None,
@@ -347,6 +355,8 @@ pub(crate) fn modf_struct_name(ty: &Type) -> Option<&'static str> {
         Type::AbstractFloat => Some("__modf_result_abstract"),
         Type::F32 => Some("__modf_result_f32"),
         Type::F16 => Some("__modf_result_f16"),
+        #[cfg(feature = "naga-ext")]
+        Type::F64 => Some("__modf_result_f64"),
         Type::Vec(n, ty) => match (n, &**ty) {
             (2, Type::AbstractFloat) => Some("__modf_result_vec2_abstract"),
             (2, Type::F32) => Some("__modf_result_vec2_f32"),
@@ -357,6 +367,12 @@ pub(crate) fn modf_struct_name(ty: &Type) -> Option<&'static str> {
             (4, Type::AbstractFloat) => Some("__modf_result_vec4_abstract"),
             (4, Type::F32) => Some("__modf_result_vec4_f32"),
             (4, Type::F16) => Some("__modf_result_vec4_f16"),
+            #[cfg(feature = "naga-ext")]
+            (2, Type::F64) => Some("__modf_result_vec2_f64"),
+            #[cfg(feature = "naga-ext")]
+            (3, Type::F64) => Some("__modf_result_vec3_f64"),
+            #[cfg(feature = "naga-ext")]
+            (4, Type::F64) => Some("__modf_result_vec4_f64"),
             _ => None,
         },
         _ => None,
@@ -450,6 +466,11 @@ fn inner_is_bool(ty: &Type) -> bool {
 /// `bitcast<T>()` builtin function.
 ///
 /// we assume `tplt_ty` is a concrete numeric scalar or concrete numeric vector.
+///
+/// XXX: the spec explicitly provides an overload `bitcast<u32>(AbstractInt)`,
+/// but not with `i32`. In principle, automatic conversion can take care of that.
+/// So why is there an explicit overload?
+///
 /// Reference: <https://www.w3.org/TR/WGSL/#bitcast-builtin>
 pub fn bitcast_t(tplt_ty: &Type, e: &Type) -> Result<Type, E> {
     if tplt_ty.size_of() != e.concretize().size_of() {
@@ -504,14 +525,27 @@ pub fn select(f: &Type, t: &Type, cond: &Type) -> Result<Type, E> {
         "`select` 1st and 2nd arguments are incompatible",
     ))?;
 
-    if !cond.is_bool() {
-        Err(E::Builtin("`select` 3rd argument must be a boolean"))
-    } else if !ty.is_scalar() && !ty.is_vec() {
-        Err(E::Builtin(
+    match (ty, cond) {
+        (Type::Vec(n_ty, _), Type::Vec(n_cond, t)) => {
+            if !t.is_bool() {
+                Err(E::Builtin(
+                    "`select` 3rd argument must be a boolean or vector of boolean",
+                ))
+            } else if n_ty != n_cond {
+                Err(E::Builtin(
+                    "`select` 3rd vector argument has incorrect dimensions",
+                ))
+            } else {
+                Ok(ty.clone())
+            }
+        }
+        (ty, Type::Bool) if ty.is_scalar() || ty.is_vec() => Ok(ty.clone()),
+        (_, Type::Bool) => Err(E::Builtin(
             "`select` 1st and 2nd arguments must be a scalar or vector",
-        ))
-    } else {
-        Ok(ty.clone())
+        )),
+        (_, _) => Err(E::Builtin(
+            "`select` 3rd argument must be a boolean or vector of boolean",
+        )),
     }
 }
 
@@ -545,7 +579,7 @@ pub fn arrayLength(p: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#abs-float-builtin>
 pub fn abs(e: &Type) -> Result<Type, E> {
-    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+    inner_is_numeric(e).then_some(e.clone()).ok_or(E::Builtin(
         "`abs` argument must be a numeric scalar or vector",
     ))
 }
@@ -641,7 +675,7 @@ pub fn clamp(e: &Type, low: &Type, high: &Type) -> Result<Type, E> {
         Ok(ty.clone())
     } else {
         Err(E::Builtin(
-            "`clamp` expects float scalar or vector arguments",
+            "`clamp` expects three float scalar or vector arguments",
         ))
     }
 }
@@ -670,27 +704,33 @@ pub fn cosh(e: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#countLeadingZeros-builtin>
 pub fn countLeadingZeros(e: &Type) -> Result<Type, E> {
-    inner_is_integer(e).then_some(e.clone()).ok_or(E::Builtin(
-        "`countLeadingZeros` argument must be a integer scalar or vector",
-    ))
+    inner_is_integer(e)
+        .then_some(e.concretize())
+        .ok_or(E::Builtin(
+            "`countLeadingZeros` argument must be a integer scalar or vector",
+        ))
 }
 
 /// `countOneBits()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#countOneBits-builtin>
 pub fn countOneBits(e: &Type) -> Result<Type, E> {
-    inner_is_integer(e).then_some(e.clone()).ok_or(E::Builtin(
-        "`countOneBits` argument must be a integer scalar or vector",
-    ))
+    inner_is_integer(e)
+        .then_some(e.concretize())
+        .ok_or(E::Builtin(
+            "`countOneBits` argument must be a integer scalar or vector",
+        ))
 }
 
 /// `countTrailingZeros()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#countTrailingZeros-builtin>
 pub fn countTrailingZeros(e: &Type) -> Result<Type, E> {
-    inner_is_integer(e).then_some(e.clone()).ok_or(E::Builtin(
-        "`countTrailingZeros` argument must be a integer scalar or vector",
-    ))
+    inner_is_integer(e)
+        .then_some(e.concretize())
+        .ok_or(E::Builtin(
+            "`countTrailingZeros` argument must be a integer scalar or vector",
+        ))
 }
 
 /// `cross()` builtin function.
@@ -730,9 +770,11 @@ pub fn determinant(e: &Type) -> Result<Type, E> {
 /// Reference: <https://www.w3.org/TR/WGSL/#distance-builtin>
 pub fn distance(e1: &Type, e2: &Type) -> Result<Type, E> {
     let ty = convert_ty(e1, e2).ok_or(E::Builtin("`distance` arguments are incompatible"))?;
-    inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
-        "`distance` expects two float scalar or vector arguments",
-    ))
+    inner_is_float(ty)
+        .then_some(ty.inner_ty())
+        .ok_or(E::Builtin(
+            "`distance` expects two float scalar or vector arguments",
+        ))
 }
 
 /// `dot()` builtin function.
@@ -741,9 +783,9 @@ pub fn distance(e1: &Type, e2: &Type) -> Result<Type, E> {
 pub fn dot(e1: &Type, e2: &Type) -> Result<Type, E> {
     let ty = convert_ty(e1, e2).ok_or(E::Builtin("`dot` arguments are incompatible"))?;
     match ty {
-        Type::Vec(_, t) => Ok(*t.clone()),
+        Type::Vec(_, t) if t.is_numeric() => Ok(*t.clone()),
         _ => Err(E::Builtin(
-            "`dot` expects two float scalar or vector arguments",
+            "`dot` expects two numeric scalar or vector arguments",
         )),
     }
 }
@@ -791,17 +833,17 @@ pub fn exp2(e: &Type) -> Result<Type, E> {
 /// `extractBits()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#extractBits-builtin>
-pub fn extractBits(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
-    if !inner_is_integer(e1) {
+pub fn extractBits(e: &Type, offset: &Type, count: &Type) -> Result<Type, E> {
+    if !inner_is_integer(e) {
         Err(E::Builtin(
             "`extractBits` 1st argument must be an integer scalar or vector",
         ))
-    } else if e2.is_convertible_to(&Type::U32) && e3.is_convertible_to(&Type::U32) {
+    } else if offset.is_convertible_to(&Type::U32) && count.is_convertible_to(&Type::U32) {
+        Ok(e.concretize())
+    } else {
         Err(E::Builtin(
             "`extractBits` 2nd and 3rd arguments must be u32",
         ))
-    } else {
-        Ok(e1.concretize())
     }
 }
 
@@ -881,7 +923,9 @@ pub fn frexp(e: &Type) -> Result<Type, E> {
     if inner_is_float(e) {
         Ok(frexp_struct_type(e).unwrap().into())
     } else {
-        Err(E::Builtin("`frexp` expects a f32 argument"))
+        Err(E::Builtin(
+            "`frexp` expects a float scalar or vector argument",
+        ))
     }
 }
 
@@ -891,10 +935,14 @@ pub fn frexp(e: &Type) -> Result<Type, E> {
 pub fn insertBits(e: &Type, newbits: &Type, offset: &Type, count: &Type) -> Result<Type, E> {
     let ty = convert_ty(e, newbits).ok_or(E::Builtin("`insertBits` arguments are incompatible"))?;
 
-    if offset.is_convertible_to(&Type::U32) && count.is_convertible_to(&Type::U32) {
-        Ok(ty.concretize())
-    } else {
+    if !inner_is_integer(ty) {
+        Err(E::Builtin(
+            "`extractBits` 1st argument must be an integer scalar or vector",
+        ))
+    } else if !offset.is_convertible_to(&Type::U32) || !count.is_convertible_to(&Type::U32) {
         Err(E::Builtin("`insertBits` 3rd and 4th arguments must be u32"))
+    } else {
+        Ok(ty.concretize())
     }
 }
 
@@ -915,18 +963,21 @@ pub fn ldexp(e1: &Type, e2: &Type) -> Result<Type, E> {
         Err(E::Builtin(
             "`ldexp` 1st argument must be a float scalar or vector",
         ))
-    } else if !e2.inner_ty().concretize().is_i32() {
+    } else if !e2.inner_ty().is_signed() || !e2.inner_ty().is_integer() {
         Err(E::Builtin(
             "`ldexp` 2nd argument must be a signed integer scalar or vector",
+        ))
+    } else if matches!((e1, e2), (Type::Vec(n1, _), Type::Vec(n2, _)) if n1 != n2) {
+        Err(E::Builtin(
+            "`ldexp` vector arguments must have the same number of components",
         ))
     } else if e1.is_vec() && !e2.is_vec() || !e1.is_vec() && e2.is_vec() {
         Err(E::Builtin(
             "`ldexp` arguments must be both scalar or both vectors",
         ))
-    } else if e1.is_abstract() && !e2.is_abstract() || !e1.is_abstract() && e2.is_abstract() {
-        Err(E::Builtin(
-            "`ldexp` arguments must be both abstract or both concrete",
-        ))
+    } else if e1.is_abstract() && e2.is_concrete() {
+        // "If either parameter is concrete then the other parameter will undergo automatic conversion to a concrete type (if applicable) and the result will be a concrete type."
+        Ok(e1.concretize())
     } else {
         Ok(e1.clone())
     }
@@ -936,7 +987,7 @@ pub fn ldexp(e1: &Type, e2: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#length-builtin>
 pub fn length(e: &Type) -> Result<Type, E> {
-    inner_is_float(e).then_some(e.clone()).ok_or(E::Builtin(
+    inner_is_float(e).then_some(e.inner_ty()).ok_or(E::Builtin(
         "`length` argument must be a float scalar or vector",
     ))
 }
@@ -964,8 +1015,8 @@ pub fn log2(e: &Type) -> Result<Type, E> {
 /// Reference: <https://www.w3.org/TR/WGSL/#max-builtin>
 pub fn max(e1: &Type, e2: &Type) -> Result<Type, E> {
     let ty = convert_ty(e1, e2).ok_or(E::Builtin("`max` arguments are incompatible"))?;
-    inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
-        "`max` expects two float scalar or vector arguments",
+    inner_is_numeric(ty).then_some(ty.clone()).ok_or(E::Builtin(
+        "`max` expects two numeric scalar or vector arguments",
     ))
 }
 
@@ -974,8 +1025,8 @@ pub fn max(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// Reference: <https://www.w3.org/TR/WGSL/#min-builtin>
 pub fn min(e1: &Type, e2: &Type) -> Result<Type, E> {
     let ty = convert_ty(e1, e2).ok_or(E::Builtin("`min` arguments are incompatible"))?;
-    inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
-        "`min` expects two float scalar or vector arguments",
+    inner_is_numeric(ty).then_some(ty.clone()).ok_or(E::Builtin(
+        "`min` expects two numeric scalar or vector arguments",
     ))
 }
 
@@ -983,10 +1034,31 @@ pub fn min(e1: &Type, e2: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#mix-builtin>
 pub fn mix(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
-    let ty = convert_all_ty([e1, e2, e3]).ok_or(E::Builtin("`min` arguments are incompatible"))?;
-    inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
-        "`min` expects three float scalar or vector arguments",
-    ))
+    // e1 and e2 have to be the same type, but e3 can be the same type or the same inner type.
+    let ty =
+        convert_ty(e1, e2).ok_or(E::Builtin("`mix` 1st and 2nd arguments are incompatible"))?;
+
+    if !inner_is_float(ty) {
+        Err(E::Builtin(
+            "`mix` expects three float scalar or vector arguments",
+        ))
+    }
+    // 2nd overload: scalar blend factor with vector mixing components
+    else if ty.is_vec() && e3.is_scalar() {
+        let ty = convert_ty(&ty.inner_ty(), e3)
+            .and_then(|inner_ty| ty.convert_inner_to(inner_ty))
+            .ok_or(E::Builtin(
+                "`mix` 3rd argument is incompatible with 1st and 2nd argument inner type",
+            ))?;
+        Ok(ty)
+    }
+    // 1st overload: 3 args of the same type
+    else {
+        let ty = convert_ty(ty, e3).ok_or(E::Builtin(
+            "`mix` 3rd argument is incompatible with 1st and 2nd arguments",
+        ))?;
+        Ok(ty.clone())
+    }
 }
 
 /// `modf()` builtin function.
@@ -1006,10 +1078,11 @@ pub fn modf(e: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#normalize-builtin>
 pub fn normalize(e: &Type) -> Result<Type, E> {
-    if matches!(e, Type::Vec(_, t) if t.is_scalar()) {
-        Ok(e.clone())
-    } else {
-        Err(E::Builtin("`normalize` expects a float vector argument"))
+    match e {
+        // abstractInt is convertible to float
+        Type::Vec(n, t) if t.is_abstract_int() => Ok(Type::Vec(*n, Type::AbstractFloat.into())),
+        Type::Vec(_, t) if t.is_float() => Ok(e.clone()),
+        _ => Err(E::Builtin("`normalize` expects a float vector argument")),
     }
 }
 
@@ -1027,13 +1100,12 @@ pub fn pow(e1: &Type, e2: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#quantizeToF16-builtin>
 pub fn quantizeToF16(e: &Type) -> Result<Type, E> {
-    let ty = e.concretize();
-    if ty.is_f32() || matches!(e, Type::Vec(_, t) if t.is_f32()) {
+    const ERR: E = E::Builtin("`quantizeToF16` expects a f32 scalar or vector argument");
+    let ty = e.convert_inner_to(&Type::F32).ok_or(ERR)?;
+    if ty.is_f32() || ty.is_vec() {
         Ok(ty)
     } else {
-        Err(E::Builtin(
-            "`quantizeToF16` expects a f32 scalar or vector argument",
-        ))
+        Err(ERR)
     }
 }
 
@@ -1066,17 +1138,18 @@ pub fn refract(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
         "`refract` 1st and 2nd arguments are incompatible",
     ))?;
 
-    match ty {
-        Type::Vec(_, t) => {
-            let _inner_ty = convert_ty(t, e3).ok_or(E::Builtin(
-                "`refract` 3rd argument is incompatible with 1st and 2nd argument inner type",
-            ))?;
+    let ty = convert_ty(&ty.inner_ty(), e3)
+        .and_then(|inner_ty| ty.convert_inner_to(inner_ty))
+        .ok_or(E::Builtin(
+            "`refract` 3rd argument is incompatible with 1st and 2nd argument inner type",
+        ))?;
 
-            Ok(ty.clone())
-        }
-        _ => Err(E::Builtin(
-            "`refract` 1st and 2nd arguments must be scalar vectors",
-        )),
+    if inner_is_float(&ty) {
+        Ok(ty)
+    } else {
+        Err(E::Builtin(
+            "`refract` expects two scalar vector arguments and one scalar argument",
+        ))
     }
 }
 
@@ -1115,11 +1188,11 @@ pub fn saturate(e: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#sign-builtin>
 pub fn sign(e: &Type) -> Result<Type, E> {
-    if inner_is_numeric(e) && e.inner_ty() != Type::U32 {
+    if inner_is_numeric(e) && e.inner_ty().is_signed() {
         Ok(e.clone())
     } else {
         Err(E::Builtin(
-            "`sin` argument must be a float scalar or vector",
+            "`sign` argument must be a signed numeric scalar or vector",
         ))
     }
 }
@@ -1444,7 +1517,8 @@ pub fn textureLoad(
     if let Type::Texture(t) = e1 {
         if t.is_cube() {
             Err(E::Builtin("`textureLoad` does not support cube textures"))
-        } else if t.is_depth() {
+        } else if t.is_depth() || *t == TextureType::DepthMultisampled2D {
+            // NOTE: a `texture_depth_multisampled_2d` is *not* considered a depth texture.
             Ok(Type::F32)
         } else {
             Ok(Type::Vec(4, Box::new(t.channel_type().into())))
@@ -1671,12 +1745,12 @@ pub fn textureSampleLevel(
 pub fn textureSampleBaseClampToEdge(e1: &Type, _e2: &Type, _e3: &Type) -> Result<Type, E> {
     if matches!(
         e1,
-        Type::Texture(TextureType::Sampled2D(_) | TextureType::External)
+        Type::Texture(TextureType::Sampled2D(SampledType::F32) | TextureType::External)
     ) {
         Ok(Type::Vec(4, Type::F32.into()))
     } else {
         Err(E::Builtin(
-            "`textureSampleCompareLevel` first argument must be a depth texture",
+            "`textureSampleBaseClampToEdge` first argument must be a `texture_2d<f32> ` or `texture_external`",
         ))
     }
 }
@@ -1706,15 +1780,24 @@ pub fn textureStore(e1: &Type, _e2: &Type, _e3: &Type, _e4: Option<&Type>) -> Re
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicLoad-builtin>
 pub fn atomicLoad(e: &Type) -> Result<Type, E> {
-    match e {
-        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
-            Type::Atomic(ty) => Ok(*ty.clone()),
-            _ => Err(E::Builtin("`atomicLoad` Ptrmust be a pointer to atomic")),
-        },
-        Type::Ptr(_, _, _) => Err(E::Builtin("`atomicLoad` argument must be `read_write`")),
-        _ => Err(E::Builtin(
-            "`atomicLoad` argument must         a pointer to atomic",
-        )),
+    if let Type::Ptr(a_s, ptr_ty, a_m) = e
+        && let Type::Atomic(ty) = &**ptr_ty
+    {
+        if *a_s != AddressSpace::Storage && *a_s != AddressSpace::Workgroup {
+            Err(E::Builtin(
+                "the address space of the atomic pointer argument must be `storage` or `workgroup`",
+            ))
+        } else if *a_m != AccessMode::ReadWrite {
+            Err(E::Builtin(
+                "the access mode of the atomic pointer argument must be `read_write`",
+            ))
+        } else {
+            Ok(*ty.clone())
+        }
+    } else {
+        Err(E::Builtin(
+            "`atomicLoad` expects a pointer to atomic argument",
+        ))
     }
 }
 
@@ -1722,27 +1805,28 @@ pub fn atomicLoad(e: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicStore-builtin>
 pub fn atomicStore(e1: &Type, e2: &Type) -> Result<(), E> {
-    match e1 {
-        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
-            Type::Atomic(ty) => {
-                if e2 == &**ty {
-                    Ok(())
-                } else {
-                    Err(E::Builtin(
-                        "`atomicStore` 2nd argument is incompatible with the atomic pointer type",
-                    ))
-                }
-            }
-            _ => Err(E::Builtin(
-                "`atomicStore` first argument must             a pointer to atomic",
-            )),
-        },
-        Type::Ptr(_, _, _) => Err(E::Builtin(
-            "`atomicStore` pointer argument must be `read_write`",
-        )),
-        _ => Err(E::Builtin(
-            "`atomicStore` first atomicStoremust be a pointer to atomic",
-        )),
+    if let Type::Ptr(a_s, ptr_ty, a_m) = e1
+        && let Type::Atomic(ty) = &**ptr_ty
+    {
+        if *a_s != AddressSpace::Storage && *a_s != AddressSpace::Workgroup {
+            Err(E::Builtin(
+                "the address space of the atomic pointer argument must be `storage` or `workgroup`",
+            ))
+        } else if *a_m != AccessMode::ReadWrite {
+            Err(E::Builtin(
+                "the access mode of the atomic pointer argument must be `read_write`",
+            ))
+        } else if e2.is_convertible_to(ty) {
+            Ok(())
+        } else {
+            Err(E::Builtin(
+                "`atomicStore` 2nd argument is incompatible with the atomic pointer type",
+            ))
+        }
+    } else {
+        Err(E::Builtin(
+            "`atomicStore` expects a pointer to atomic argument",
+        ))
     }
 }
 
@@ -1750,27 +1834,28 @@ pub fn atomicStore(e1: &Type, e2: &Type) -> Result<(), E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicAdd-builtin>
 pub fn atomicAdd(e1: &Type, e2: &Type) -> Result<Type, E> {
-    match e1 {
-        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
-            Type::Atomic(ty) => {
-                if e2 == &**ty {
-                    Ok(*ty.clone())
-                } else {
-                    Err(E::Builtin(
-                        "`atomicAdd` 2nd argument is incompatible with the atomic pointer type",
-                    ))
-                }
-            }
-            _ => Err(E::Builtin(
-                "`atomicAdd` first argument must             a pointer to atomic",
-            )),
-        },
-        Type::Ptr(_, _, _) => Err(E::Builtin(
-            "`atomicAdd` pointer argument must be `read_write`",
-        )),
-        _ => Err(E::Builtin(
-            "`atomicAdd` first atomicAddmust be a pointer to atomic",
-        )),
+    if let Type::Ptr(a_s, ptr_ty, a_m) = e1
+        && let Type::Atomic(ty) = &**ptr_ty
+    {
+        if *a_s != AddressSpace::Storage && *a_s != AddressSpace::Workgroup {
+            Err(E::Builtin(
+                "the address space of the atomic pointer argument must be `storage` or `workgroup`",
+            ))
+        } else if *a_m != AccessMode::ReadWrite {
+            Err(E::Builtin(
+                "the access mode of the atomic pointer argument must be `read_write`",
+            ))
+        } else if e2.is_convertible_to(ty) {
+            Ok(*ty.clone())
+        } else {
+            Err(E::Builtin(
+                "`atomicAdd` 2nd argument is incompatible with the atomic pointer type",
+            ))
+        }
+    } else {
+        Err(E::Builtin(
+            "`atomicAdd` expects a pointer to atomic argument",
+        ))
     }
 }
 
@@ -1778,27 +1863,28 @@ pub fn atomicAdd(e1: &Type, e2: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicSub-builtin>
 pub fn atomicSub(e1: &Type, e2: &Type) -> Result<Type, E> {
-    match e1 {
-        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
-            Type::Atomic(ty) => {
-                if e2 == &**ty {
-                    Ok(*ty.clone())
-                } else {
-                    Err(E::Builtin(
-                        "`atomicSub` 2nd argument is incompatible with the atomic pointer type",
-                    ))
-                }
-            }
-            _ => Err(E::Builtin(
-                "`atomicSub` first argument must             a pointer to atomic",
-            )),
-        },
-        Type::Ptr(_, _, _) => Err(E::Builtin(
-            "`atomicSub` pointer argument must be `read_write`",
-        )),
-        _ => Err(E::Builtin(
-            "`atomicSub` first atomicSubmust be a pointer to atomic",
-        )),
+    if let Type::Ptr(a_s, ptr_ty, a_m) = e1
+        && let Type::Atomic(ty) = &**ptr_ty
+    {
+        if *a_s != AddressSpace::Storage && *a_s != AddressSpace::Workgroup {
+            Err(E::Builtin(
+                "the address space of the atomic pointer argument must be `storage` or `workgroup`",
+            ))
+        } else if *a_m != AccessMode::ReadWrite {
+            Err(E::Builtin(
+                "the access mode of the atomic pointer argument must be `read_write`",
+            ))
+        } else if e2.is_convertible_to(ty) {
+            Ok(*ty.clone())
+        } else {
+            Err(E::Builtin(
+                "`atomicSub` 2nd argument is incompatible with the atomic pointer type",
+            ))
+        }
+    } else {
+        Err(E::Builtin(
+            "`atomicSub` expects a pointer to atomic argument",
+        ))
     }
 }
 
@@ -1806,27 +1892,28 @@ pub fn atomicSub(e1: &Type, e2: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicMax-builtin>
 pub fn atomicMax(e1: &Type, e2: &Type) -> Result<Type, E> {
-    match e1 {
-        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
-            Type::Atomic(ty) => {
-                if e2 == &**ty {
-                    Ok(*ty.clone())
-                } else {
-                    Err(E::Builtin(
-                        "`atomicMax` 2nd argument is incompatible with the atomic pointer type",
-                    ))
-                }
-            }
-            _ => Err(E::Builtin(
-                "`atomicMax` first argument must             a pointer to atomic",
-            )),
-        },
-        Type::Ptr(_, _, _) => Err(E::Builtin(
-            "`atomicMax` pointer argument must be `read_write`",
-        )),
-        _ => Err(E::Builtin(
-            "`atomicMax` first atomicMaxmust be a pointer to atomic",
-        )),
+    if let Type::Ptr(a_s, ptr_ty, a_m) = e1
+        && let Type::Atomic(ty) = &**ptr_ty
+    {
+        if *a_s != AddressSpace::Storage && *a_s != AddressSpace::Workgroup {
+            Err(E::Builtin(
+                "the address space of the atomic pointer argument must be `storage` or `workgroup`",
+            ))
+        } else if *a_m != AccessMode::ReadWrite {
+            Err(E::Builtin(
+                "the access mode of the atomic pointer argument must be `read_write`",
+            ))
+        } else if e2.is_convertible_to(ty) {
+            Ok(*ty.clone())
+        } else {
+            Err(E::Builtin(
+                "`atomicMax` 2nd argument is incompatible with the atomic pointer type",
+            ))
+        }
+    } else {
+        Err(E::Builtin(
+            "`atomicMax` expects a pointer to atomic argument",
+        ))
     }
 }
 
@@ -1834,27 +1921,28 @@ pub fn atomicMax(e1: &Type, e2: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicMin-builtin>
 pub fn atomicMin(e1: &Type, e2: &Type) -> Result<Type, E> {
-    match e1 {
-        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
-            Type::Atomic(ty) => {
-                if e2 == &**ty {
-                    Ok(*ty.clone())
-                } else {
-                    Err(E::Builtin(
-                        "`atomicMin` 2nd argument is incompatible with the atomic pointer type",
-                    ))
-                }
-            }
-            _ => Err(E::Builtin(
-                "`atomicMin` first argument must             a pointer to atomic",
-            )),
-        },
-        Type::Ptr(_, _, _) => Err(E::Builtin(
-            "`atomicMin` pointer argument must be `read_write`",
-        )),
-        _ => Err(E::Builtin(
-            "`atomicMin` first atomicMinmust be a pointer to atomic",
-        )),
+    if let Type::Ptr(a_s, ptr_ty, a_m) = e1
+        && let Type::Atomic(ty) = &**ptr_ty
+    {
+        if *a_s != AddressSpace::Storage && *a_s != AddressSpace::Workgroup {
+            Err(E::Builtin(
+                "the address space of the atomic pointer argument must be `storage` or `workgroup`",
+            ))
+        } else if *a_m != AccessMode::ReadWrite {
+            Err(E::Builtin(
+                "the access mode of the atomic pointer argument must be `read_write`",
+            ))
+        } else if e2.is_convertible_to(ty) {
+            Ok(*ty.clone())
+        } else {
+            Err(E::Builtin(
+                "`atomicMin` 2nd argument is incompatible with the atomic pointer type",
+            ))
+        }
+    } else {
+        Err(E::Builtin(
+            "`atomicMin` expects a pointer to atomic argument",
+        ))
     }
 }
 
@@ -1862,27 +1950,28 @@ pub fn atomicMin(e1: &Type, e2: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicAnd-builtin>
 pub fn atomicAnd(e1: &Type, e2: &Type) -> Result<Type, E> {
-    match e1 {
-        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
-            Type::Atomic(ty) => {
-                if e2 == &**ty {
-                    Ok(*ty.clone())
-                } else {
-                    Err(E::Builtin(
-                        "`atomicAnd` 2nd argument is incompatible with the atomic pointer type",
-                    ))
-                }
-            }
-            _ => Err(E::Builtin(
-                "`atomicAnd` first argument must             a pointer to atomic",
-            )),
-        },
-        Type::Ptr(_, _, _) => Err(E::Builtin(
-            "`atomicAnd` pointer argument must be `read_write`",
-        )),
-        _ => Err(E::Builtin(
-            "`atomicAnd` first atomicAndmust be a pointer to atomic",
-        )),
+    if let Type::Ptr(a_s, ptr_ty, a_m) = e1
+        && let Type::Atomic(ty) = &**ptr_ty
+    {
+        if *a_s != AddressSpace::Storage && *a_s != AddressSpace::Workgroup {
+            Err(E::Builtin(
+                "the address space of the atomic pointer argument must be `storage` or `workgroup`",
+            ))
+        } else if *a_m != AccessMode::ReadWrite {
+            Err(E::Builtin(
+                "the access mode of the atomic pointer argument must be `read_write`",
+            ))
+        } else if e2.is_convertible_to(ty) {
+            Ok(*ty.clone())
+        } else {
+            Err(E::Builtin(
+                "`atomicAnd` 2nd argument is incompatible with the atomic pointer type",
+            ))
+        }
+    } else {
+        Err(E::Builtin(
+            "`atomicAnd` expects a pointer to atomic argument",
+        ))
     }
 }
 
@@ -1890,27 +1979,28 @@ pub fn atomicAnd(e1: &Type, e2: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicOr-builtin>
 pub fn atomicOr(e1: &Type, e2: &Type) -> Result<Type, E> {
-    match e1 {
-        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
-            Type::Atomic(ty) => {
-                if e2 == &**ty {
-                    Ok(*ty.clone())
-                } else {
-                    Err(E::Builtin(
-                        "`atomicOr` 2nd argument is incompatible with the atomic pointer type",
-                    ))
-                }
-            }
-            _ => Err(E::Builtin(
-                "`atomicOr` first argument must             a pointer to atomic",
-            )),
-        },
-        Type::Ptr(_, _, _) => Err(E::Builtin(
-            "`atomicOr` pointer argument must be `read_write`",
-        )),
-        _ => Err(E::Builtin(
-            "`atomicOr` first atomicOrmust be a pointer to atomic",
-        )),
+    if let Type::Ptr(a_s, ptr_ty, a_m) = e1
+        && let Type::Atomic(ty) = &**ptr_ty
+    {
+        if *a_s != AddressSpace::Storage && *a_s != AddressSpace::Workgroup {
+            Err(E::Builtin(
+                "the address space of the atomic pointer argument must be `storage` or `workgroup`",
+            ))
+        } else if *a_m != AccessMode::ReadWrite {
+            Err(E::Builtin(
+                "the access mode of the atomic pointer argument must be `read_write`",
+            ))
+        } else if e2.is_convertible_to(ty) {
+            Ok(*ty.clone())
+        } else {
+            Err(E::Builtin(
+                "`atomicOr` 2nd argument is incompatible with the atomic pointer type",
+            ))
+        }
+    } else {
+        Err(E::Builtin(
+            "`atomicOr` expects a pointer to atomic argument",
+        ))
     }
 }
 
@@ -1918,27 +2008,28 @@ pub fn atomicOr(e1: &Type, e2: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicXor-builtin>
 pub fn atomicXor(e1: &Type, e2: &Type) -> Result<Type, E> {
-    match e1 {
-        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
-            Type::Atomic(ty) => {
-                if e2 == &**ty {
-                    Ok(*ty.clone())
-                } else {
-                    Err(E::Builtin(
-                        "`atomicXor` 2nd argument is incompatible with the atomic pointer type",
-                    ))
-                }
-            }
-            _ => Err(E::Builtin(
-                "`atomicXor` first argument must             a pointer to atomic",
-            )),
-        },
-        Type::Ptr(_, _, _) => Err(E::Builtin(
-            "`atomicXor` pointer argument must be `read_write`",
-        )),
-        _ => Err(E::Builtin(
-            "`atomicXor` first atomicXormust be a pointer to atomic",
-        )),
+    if let Type::Ptr(a_s, ptr_ty, a_m) = e1
+        && let Type::Atomic(ty) = &**ptr_ty
+    {
+        if *a_s != AddressSpace::Storage && *a_s != AddressSpace::Workgroup {
+            Err(E::Builtin(
+                "the address space of the atomic pointer argument must be `storage` or `workgroup`",
+            ))
+        } else if *a_m != AccessMode::ReadWrite {
+            Err(E::Builtin(
+                "the access mode of the atomic pointer argument must be `read_write`",
+            ))
+        } else if e2.is_convertible_to(ty) {
+            Ok(*ty.clone())
+        } else {
+            Err(E::Builtin(
+                "`atomicXor` 2nd argument is incompatible with the atomic pointer type",
+            ))
+        }
+    } else {
+        Err(E::Builtin(
+            "`atomicXor` expects a pointer to atomic argument",
+        ))
     }
 }
 
@@ -1946,27 +2037,28 @@ pub fn atomicXor(e1: &Type, e2: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicExchange-builtin>
 pub fn atomicExchange(e1: &Type, e2: &Type) -> Result<Type, E> {
-    match e1 {
-        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
-            Type::Atomic(ty) => {
-                if e2 == &**ty {
-                    Ok(*ty.clone())
-                } else {
-                    Err(E::Builtin(
-                        "`atomicExchange` 2nd argument is incompatible with the atomic pointer type",
-                    ))
-                }
-            }
-            _ => Err(E::Builtin(
-                "`atomicExchange` first argument must             a pointer to atomic",
-            )),
-        },
-        Type::Ptr(_, _, _) => Err(E::Builtin(
-            "`atomicExchange` pointer argument must be `read_write`",
-        )),
-        _ => Err(E::Builtin(
-            "`atomicExchange` first atomicExchangemust be a pointer to atomic",
-        )),
+    if let Type::Ptr(a_s, ptr_ty, a_m) = e1
+        && let Type::Atomic(ty) = &**ptr_ty
+    {
+        if *a_s != AddressSpace::Storage && *a_s != AddressSpace::Workgroup {
+            Err(E::Builtin(
+                "the address space of the atomic pointer argument must be `storage` or `workgroup`",
+            ))
+        } else if *a_m != AccessMode::ReadWrite {
+            Err(E::Builtin(
+                "the access mode of the atomic pointer argument must be `read_write`",
+            ))
+        } else if e2.is_convertible_to(ty) {
+            Ok(*ty.clone())
+        } else {
+            Err(E::Builtin(
+                "`atomicExchange` 2nd argument is incompatible with the atomic pointer type",
+            ))
+        }
+    } else {
+        Err(E::Builtin(
+            "`atomicExchange` expects a pointer to atomic argument",
+        ))
     }
 }
 
@@ -1974,27 +2066,28 @@ pub fn atomicExchange(e1: &Type, e2: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicCompareExchangeWeak-builtin>
 pub fn atomicCompareExchangeWeak(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
-    match e1 {
-        Type::Ptr(_, t, AccessMode::ReadWrite) => match &**t {
-            Type::Atomic(ty) => {
-                if e2 == &**ty && e3 == &**ty {
-                    Ok(atomic_compare_exchange_struct_type(ty).into())
-                } else {
-                    Err(E::Builtin(
-                        "`atomicCompareExchangeWeak` 2nd and 3rd arguments are incompatible with the atomic pointer type",
-                    ))
-                }
-            }
-            _ => Err(E::Builtin(
-                "`atomicCompareExchangeWeak` first argument must             a pointer to atomic",
-            )),
-        },
-        Type::Ptr(_, _, _) => Err(E::Builtin(
-            "`atomicCompareExchangeWeak` pointer argument must be `read_write`",
-        )),
-        _ => Err(E::Builtin(
-            "`atomicCompareExchangeWeak` first atomicCompareExchangeWeakmust be a pointer to atomic",
-        )),
+    if let Type::Ptr(a_s, ptr_ty, a_m) = e1
+        && let Type::Atomic(ty) = &**ptr_ty
+    {
+        if *a_s != AddressSpace::Storage && *a_s != AddressSpace::Workgroup {
+            Err(E::Builtin(
+                "the address space of the atomic pointer argument must be `storage` or `workgroup`",
+            ))
+        } else if *a_m != AccessMode::ReadWrite {
+            Err(E::Builtin(
+                "the access mode of the atomic pointer argument must be `read_write`",
+            ))
+        } else if e2.is_convertible_to(ty) && e3.is_convertible_to(ty) {
+            Ok(atomic_compare_exchange_struct_type(ty).into())
+        } else {
+            Err(E::Builtin(
+                "`atomicCompareExchangeWeak` 2nd and 3rd arguments are incompatible with the atomic pointer type",
+            ))
+        }
+    } else {
+        Err(E::Builtin(
+            "`atomicCompareExchangeWeak` expects a pointer to atomic argument",
+        ))
     }
 }
 
@@ -2010,7 +2103,7 @@ pub fn pack4x8snorm(e: &Type) -> Result<Type, E> {
     if e.is_convertible_to(&Type::Vec(4, Type::F32.into())) {
         Ok(Type::U32)
     } else {
-        Err(E::Builtin("`pack2x16snorm` expects a `vec4<f32>` argument"))
+        Err(E::Builtin("`pack4x8snorm` expects a `vec4<f32>` argument"))
     }
 }
 
@@ -2268,7 +2361,7 @@ pub fn subgroupBallot(pred: Option<&Type>) -> Result<Type, E> {
         && pred.is_bool()
     {
         Ok(Type::Vec(4, Type::U32.into()))
-    } else if cfg!(feature = "naga-ext") {
+    } else if pred == None && cfg!(feature = "naga-ext") {
         Ok(Type::Vec(4, Type::U32.into()))
     } else {
         Err(E::Builtin("`subgroupBallot` expects a boolean argument"))
@@ -2403,7 +2496,7 @@ pub fn subgroupShuffle(e: &Type, id: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupShuffleDown-builtin>
 pub fn subgroupShuffleDown(e: &Type, delta: &Type) -> Result<Type, E> {
-    if inner_is_numeric(e) && delta.concretize().is_u32() {
+    if inner_is_numeric(e) && delta.is_convertible_to(&Type::U32) {
         Ok(e.concretize())
     } else {
         Err(E::Builtin(
@@ -2416,7 +2509,7 @@ pub fn subgroupShuffleDown(e: &Type, delta: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupShuffleUp-builtin>
 pub fn subgroupShuffleUp(e: &Type, delta: &Type) -> Result<Type, E> {
-    if inner_is_numeric(e) && delta.concretize().is_u32() {
+    if inner_is_numeric(e) && delta.is_convertible_to(&Type::U32) {
         Ok(e.concretize())
     } else {
         Err(E::Builtin(
@@ -2429,7 +2522,7 @@ pub fn subgroupShuffleUp(e: &Type, delta: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupShuffleXor-builtin>
 pub fn subgroupShuffleXor(e: &Type, mask: &Type) -> Result<Type, E> {
-    if inner_is_numeric(e) && mask.concretize().is_u32() {
+    if inner_is_numeric(e) && mask.is_convertible_to(&Type::U32) {
         Ok(e.concretize())
     } else {
         Err(E::Builtin(

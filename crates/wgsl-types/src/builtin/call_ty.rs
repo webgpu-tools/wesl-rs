@@ -677,7 +677,7 @@ pub fn clamp(e: &Type, low: &Type, high: &Type) -> Result<Type, E> {
         Ok(ty.clone())
     } else {
         Err(E::Builtin(
-            "`clamp` expects three float scalar or vector arguments",
+            "`clamp` expects three numeric scalar or vector arguments",
         ))
     }
 }
@@ -899,7 +899,9 @@ pub fn floor(e: &Type) -> Result<Type, E> {
     ))
 }
 
-/// TODO: This built-in is not implemented!
+/// `fma()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#fma-builtin>
 pub fn fma(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
     let ty = convert_all_ty([e1, e2, e3]).ok_or(E::Builtin("`fma` arguments are incompatible"))?;
     inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
@@ -939,7 +941,7 @@ pub fn insertBits(e: &Type, newbits: &Type, offset: &Type, count: &Type) -> Resu
 
     if !inner_is_integer(ty) {
         Err(E::Builtin(
-            "`extractBits` 1st argument must be an integer scalar or vector",
+            "`insertBits` 1st argument must be an integer scalar or vector",
         ))
     } else if !offset.is_convertible_to(&Type::U32) || !count.is_convertible_to(&Type::U32) {
         Err(E::Builtin("`insertBits` 3rd and 4th arguments must be u32"))
@@ -1146,7 +1148,7 @@ pub fn refract(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
             "`refract` 3rd argument is incompatible with 1st and 2nd argument inner type",
         ))?;
 
-    if inner_is_float(&ty) {
+    if ty.is_vec() && ty.inner_ty().is_float() {
         Ok(ty)
     } else {
         Err(E::Builtin(
@@ -1293,8 +1295,10 @@ pub fn trunc(e: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dpdx-builtin>
 pub fn dpdx(e: &Type) -> Result<Type, E> {
-    let ty = e.concretize();
-    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+    let ty = e.convert_inner_to(&Type::F32);
+    if let Some(ty) = ty
+        && (ty.is_scalar() || ty.is_vec())
+    {
         Ok(ty)
     } else {
         Err(E::Builtin(
@@ -1307,8 +1311,10 @@ pub fn dpdx(e: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dpdxCoarse-builtin>
 pub fn dpdxCoarse(e: &Type) -> Result<Type, E> {
-    let ty = e.concretize();
-    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+    let ty = e.convert_inner_to(&Type::F32);
+    if let Some(ty) = ty
+        && (ty.is_scalar() || ty.is_vec())
+    {
         Ok(ty)
     } else {
         Err(E::Builtin(
@@ -1321,8 +1327,10 @@ pub fn dpdxCoarse(e: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dpdxFine-builtin>
 pub fn dpdxFine(e: &Type) -> Result<Type, E> {
-    let ty = e.concretize();
-    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+    let ty = e.convert_inner_to(&Type::F32);
+    if let Some(ty) = ty
+        && (ty.is_scalar() || ty.is_vec())
+    {
         Ok(ty)
     } else {
         Err(E::Builtin(
@@ -1335,8 +1343,10 @@ pub fn dpdxFine(e: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dpdy-builtin>
 pub fn dpdy(e: &Type) -> Result<Type, E> {
-    let ty = e.concretize();
-    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+    let ty = e.convert_inner_to(&Type::F32);
+    if let Some(ty) = ty
+        && (ty.is_scalar() || ty.is_vec())
+    {
         Ok(ty)
     } else {
         Err(E::Builtin(
@@ -1349,8 +1359,10 @@ pub fn dpdy(e: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dpdyCoarse-builtin>
 pub fn dpdyCoarse(e: &Type) -> Result<Type, E> {
-    let ty = e.concretize();
-    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+    let ty = e.convert_inner_to(&Type::F32);
+    if let Some(ty) = ty
+        && (ty.is_scalar() || ty.is_vec())
+    {
         Ok(ty)
     } else {
         Err(E::Builtin(
@@ -1363,8 +1375,10 @@ pub fn dpdyCoarse(e: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dpdyFine-builtin>
 pub fn dpdyFine(e: &Type) -> Result<Type, E> {
-    let ty = e.concretize();
-    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+    let ty = e.convert_inner_to(&Type::F32);
+    if let Some(ty) = ty
+        && (ty.is_scalar() || ty.is_vec())
+    {
         Ok(ty)
     } else {
         Err(E::Builtin(
@@ -1377,8 +1391,10 @@ pub fn dpdyFine(e: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#fwidth-builtin>
 pub fn fwidth(e: &Type) -> Result<Type, E> {
-    let ty = e.concretize();
-    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+    let ty = e.convert_inner_to(&Type::F32);
+    if let Some(ty) = ty
+        && (ty.is_scalar() || ty.is_vec())
+    {
         Ok(ty)
     } else {
         Err(E::Builtin(
@@ -1391,8 +1407,10 @@ pub fn fwidth(e: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#fwidthCoarse-builtin>
 pub fn fwidthCoarse(e: &Type) -> Result<Type, E> {
-    let ty = e.concretize();
-    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+    let ty = e.convert_inner_to(&Type::F32);
+    if let Some(ty) = ty
+        && (ty.is_scalar() || ty.is_vec())
+    {
         Ok(ty)
     } else {
         Err(E::Builtin(
@@ -1405,8 +1423,10 @@ pub fn fwidthCoarse(e: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#fwidthFine-builtin>
 pub fn fwidthFine(e: &Type) -> Result<Type, E> {
-    let ty = e.concretize();
-    if ty.is_f32() || matches!(&ty, Type::Vec(_, t) if t.is_f32()) {
+    let ty = e.convert_inner_to(&Type::F32);
+    if let Some(ty) = ty
+        && (ty.is_scalar() || ty.is_vec())
+    {
         Ok(ty)
     } else {
         Err(E::Builtin(

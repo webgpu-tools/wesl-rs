@@ -65,6 +65,7 @@ generics = ["wgsl-parse/generics"]
 # * `atomic<f32>`
 # * `texture_1d_array`, `texture_storage_1d_array`, `texture_multisampled_2d_array`
 # * `subgroupBallot()` with no argument (defaults to `true`)
+# * `textureSampleGrad()` with 1D texture
 naga-ext = ["wgsl-parse/naga-ext", "wgsl-types/naga-ext"]
 package = ["dep:glob", "dep:proc-macro2", "dep:quote", "dep:serde", "dep:toml"]
 serde = ["wgsl-parse/serde"]

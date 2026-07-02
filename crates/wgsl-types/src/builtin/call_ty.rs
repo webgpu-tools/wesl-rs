@@ -124,8 +124,8 @@ pub fn type_builtin_fn(
         ("fwidthCoarse", [a]) => fwidthCoarse(a).map(Some),
         ("fwidthFine", [a]) => fwidthFine(a).map(Some),
         // texture
-        // TODO: check arguments for texture functions
         ("textureDimensions", [a1]) => textureDimensions(a1, None).map(Some),
+        ("textureDimensions", [a1, a2]) => textureDimensions(a1, Some(a2)).map(Some),
         ("textureGather", [a1, a2, a3]) => textureGather(a1, a2, a3, None, None, None).map(Some),
         ("textureGather", [a1, a2, a3, a4]) => {
             textureGather(a1, a2, a3, Some(a4), None, None).map(Some)
@@ -1714,7 +1714,10 @@ pub fn textureSampleGrad(
     _e7: Option<&Type>,
 ) -> Result<Type, E> {
     if let Type::Texture(t) = e1 {
-        if t.dimensions() == TextureDimensions::D1 {
+        if cfg!(feature = "naga-ext") && t.dimensions() == TextureDimensions::D1 {
+            // naga allows 1-D sampleGrad, in which case ddx and ddy are floats.
+            Ok(Type::Vec(4, Type::F32.into()))
+        } else if t.dimensions() == TextureDimensions::D1 {
             Err(E::Builtin(
                 "`textureSampleGrad` texture cannot be 1-dimensional",
             ))

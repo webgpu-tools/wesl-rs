@@ -239,7 +239,7 @@ impl Lower for Declaration {
 
         if ctx
             .scope
-            .add(self.ident.to_string(), Instance::Deferred(inst_ty))
+            .add(self.ident.to_string(), Instance::Opaque(inst_ty))
         {
             Ok(())
         } else {
@@ -274,7 +274,7 @@ impl Lower for Function {
 
         with_scope!(ctx, {
             for p in &self.parameters {
-                let inst = Instance::Deferred(ty_eval_ty(&p.ty, ctx)?);
+                let inst = Instance::Opaque(ty_eval_ty(&p.ty, ctx)?);
                 if !ctx.scope.add(p.ident.to_string(), inst) {
                     return Err(E::DuplicateDecl(p.ident.to_string()));
                 }

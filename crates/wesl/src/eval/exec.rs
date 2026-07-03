@@ -941,7 +941,7 @@ impl Exec for Declaration {
             }
             (DeclarationKind::Override, ScopeKind::Module) => {
                 if ctx.stage == ShaderStage::Const {
-                    Instance::Deferred(ty)
+                    Instance::Opaque(ty)
                 } else if let Some(inst) = ctx.overridable(&self.ident.name()) {
                     inst.convert_to(&ty)
                         .ok_or_else(|| E::Conversion(inst.ty(), ty))?
@@ -959,7 +959,7 @@ impl Exec for Declaration {
                     None => (AddressSpace::Handle, AccessMode::Read),
                 };
                 if ctx.stage == ShaderStage::Const && ctx.kind == ScopeKind::Module {
-                    Instance::Deferred(Type::Ref(a_s, Box::new(ty), a_m))
+                    Instance::Opaque(Type::Ref(a_s, Box::new(ty), a_m))
                 } else {
                     match a_s {
                         AddressSpace::Function => {

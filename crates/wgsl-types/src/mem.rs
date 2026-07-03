@@ -25,7 +25,7 @@ impl Instance {
             Instance::Ptr(_) => None,
             Instance::Ref(_) => None,
             Instance::Atomic(a) => a.inner().to_buffer(),
-            Instance::Deferred(_) => None,
+            Instance::Opaque(_) => None,
         }
     }
 

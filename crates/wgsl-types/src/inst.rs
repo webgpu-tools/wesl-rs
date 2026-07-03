@@ -60,7 +60,7 @@ pub enum Instance {
     Atomic(AtomicInstance),
     /// For instances that cannot be computed currently, we store the type.
     /// TODO: remove this
-    Deferred(Type),
+    Opaque(Type),
 }
 
 impl Instance {
@@ -114,7 +114,7 @@ from_enum!(Instance::Mat(MatInstance));
 from_enum!(Instance::Ptr(PtrInstance));
 from_enum!(Instance::Ref(RefInstance));
 from_enum!(Instance::Atomic(AtomicInstance));
-from_enum!(Instance::Deferred(Type));
+from_enum!(Instance::Opaque(Type));
 
 // Transitive `From` implementations.
 // They have to be implemented manually unfortunately.

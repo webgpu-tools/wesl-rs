@@ -366,7 +366,7 @@ impl Diagnostic<Error> {
                 Instance::Atomic(inst) => {
                     unmangle_inst(inst.inner_mut(), sourcemap, mangler);
                 }
-                Instance::Deferred(ty) => unmangle_ty(ty, sourcemap, mangler),
+                Instance::Opaque(ty) => unmangle_ty(ty, sourcemap, mangler),
                 Instance::Literal(_) | Instance::Vec(_) | Instance::Mat(_) => {}
             }
         }

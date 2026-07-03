@@ -469,10 +469,6 @@ fn inner_is_bool(ty: &Type) -> bool {
 ///
 /// we assume `tplt_ty` is a concrete numeric scalar or concrete numeric vector.
 ///
-/// XXX: the spec explicitly provides an overload `bitcast<u32>(AbstractInt)`,
-/// but not with `i32`. In principle, automatic conversion can take care of that.
-/// So why is there an explicit overload?
-///
 /// Reference: <https://www.w3.org/TR/WGSL/#bitcast-builtin>
 pub fn bitcast_t(tplt_ty: &Type, e: &Type) -> Result<Type, E> {
     if tplt_ty.size_of() != e.concretize().size_of() {

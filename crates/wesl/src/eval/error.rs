@@ -13,6 +13,8 @@ use super::{Flow, ScopeKind};
 pub enum EvalError {
     #[error("not implemented: `{0}`")]
     Todo(String),
+    #[error("unreachable code detected")]
+    Unreachable,
 
     // types & templates
     #[error("expected a scalar type, got `{0}`")]
@@ -209,6 +211,7 @@ impl From<wgsl_types::Error> for EvalError {
     fn from(value: wgsl_types::Error) -> Self {
         match value {
             wgsl_types::Error::Todo(a) => Self::Todo(a),
+            wgsl_types::Error::Unreachable => Self::Unreachable,
             wgsl_types::Error::NotScalar(a) => Self::NotScalar(a),
             wgsl_types::Error::NotConstructible(a) => Self::NotConstructible(a),
             wgsl_types::Error::SampledType(a) => Self::SampledType(a),

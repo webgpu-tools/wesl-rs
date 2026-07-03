@@ -44,24 +44,11 @@ type E = Error;
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#bitcast-builtin>
 pub fn bitcast_t(tplt_ty: &Type, e: &Instance) -> Result<Instance, E> {
-    fn lit_bytes(l: &LiteralInstance, ty: &Type) -> Result<Vec<u8>, E> {
+    fn lit_bytes(l: &LiteralInstance) -> Result<Vec<u8>, E> {
         match l {
             LiteralInstance::Bool(_) => Err(E::Builtin("bitcast argument cannot be bool")),
-            LiteralInstance::AbstractInt(n) => {
-                if ty == &Type::U32 {
-                    n.to_u32()
-                        .map(|n| n.to_le_bytes().to_vec())
-                        .ok_or(E::ConvOverflow(*l, Type::U32))
-                } else {
-                    n.to_i32()
-                        .map(|n| n.to_le_bytes().to_vec())
-                        .ok_or(E::ConvOverflow(*l, Type::I32))
-                }
-            }
-            LiteralInstance::AbstractFloat(n) => n
-                .to_f32()
-                .map(|n| n.to_le_bytes().to_vec())
-                .ok_or(E::ConvOverflow(*l, Type::F32)),
+            LiteralInstance::AbstractInt(_) => Err(E::Unreachable), // because of `concretize` below
+            LiteralInstance::AbstractFloat(_) => Err(E::Unreachable),
             LiteralInstance::I32(n) => Ok(n.to_le_bytes().to_vec()),
             LiteralInstance::U32(n) => Ok(n.to_le_bytes().to_vec()),
             LiteralInstance::F32(n) => Ok(n.to_le_bytes().to_vec()),
@@ -75,18 +62,25 @@ pub fn bitcast_t(tplt_ty: &Type, e: &Instance) -> Result<Instance, E> {
         }
     }
 
-    fn vec_bytes(v: &VecInstance, ty: &Type) -> Result<Vec<u8>, E> {
+    fn vec_bytes(v: &VecInstance) -> Result<Vec<u8>, E> {
         v.iter()
-            .map(|n| lit_bytes(n.unwrap_literal_ref(), ty))
+            .map(|n| lit_bytes(n.unwrap_literal_ref()))
             .reduce(|n1, n2| Ok(chain(n1?, n2?).collect_vec()))
             .unwrap()
     }
 
     let inner_ty = tplt_ty.inner_ty();
 
+    let e = match inner_ty {
+        // there is a special overload `bitcast<u32>(AbstractInt)` which prevents
+        // `AbstractInt` from being automatically converted to `i32`, then `u32`.
+        Type::U32 if e.ty().is_abstract_int() => e.convert_inner_to(&Type::U32),
+        _ => e.concretize(),
+    };
+
     let bytes = match e {
-        Instance::Literal(l) => lit_bytes(l, &inner_ty),
-        Instance::Vec(v) => vec_bytes(v, &inner_ty),
+        Some(Instance::Literal(l)) => lit_bytes(&l),
+        Some(Instance::Vec(v)) => vec_bytes(&v),
         _ => Err(E::Builtin(
             "`bitcast` expects a numeric scalar or vector argument",
         )),
@@ -141,10 +135,16 @@ pub fn bitcast_t(tplt_ty: &Type, e: &Instance) -> Result<Instance, E> {
                     .collect_vec();
                 Ok(VecInstance::new(v).into())
             } else {
+                #[cfg(feature = "naga-ext")]
+                if matches!(**ty, Type::I64 | Type::U64 | Type::F64) {
+                    return Err(E::Todo(format!("`bitcast` with 64-bit type")));
+                }
                 Err(size_err)
             }
         }
-        _ => unreachable!("invalid `bitcast` template"),
+        #[cfg(feature = "naga-ext")]
+        Type::I64 | Type::U64 | Type::F64 => Err(E::Todo(format!("`bitcast` with 64-bit type"))),
+        _ => Err(E::Builtin("invalid `bitcast` template")),
     }
 }
 
@@ -454,14 +454,12 @@ pub fn cosh(e: &Instance) -> Result<Instance, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#countLeadingZeros-builtin>
 pub fn countLeadingZeros(e: &Instance) -> Result<Instance, E> {
-    const ERR: E = E::Builtin("`countLeadingZeros` expects a float or vector of float argument");
+    const ERR: E = E::Builtin("`countLeadingZeros` expects an integer scalar or vector argument");
     fn lit_leading_zeros(l: &LiteralInstance) -> Result<LiteralInstance, E> {
         match l {
             LiteralInstance::Bool(_) => Err(ERR),
-            LiteralInstance::AbstractInt(n) => {
-                Ok(LiteralInstance::AbstractInt(n.leading_zeros() as i64))
-            }
-            LiteralInstance::AbstractFloat(_) => Err(ERR),
+            LiteralInstance::AbstractInt(_) => Err(E::Unreachable), // because of `concretize` below
+            LiteralInstance::AbstractFloat(_) => Err(E::Unreachable),
             LiteralInstance::I32(n) => Ok(LiteralInstance::I32(n.leading_zeros() as i32)),
             LiteralInstance::U32(n) => Ok(LiteralInstance::U32(n.leading_zeros())),
             LiteralInstance::F32(_) => Err(ERR),
@@ -474,9 +472,9 @@ pub fn countLeadingZeros(e: &Instance) -> Result<Instance, E> {
             LiteralInstance::F64(_) => Err(ERR),
         }
     }
-    match e {
-        Instance::Literal(l) => lit_leading_zeros(l).map(Into::into),
-        Instance::Vec(v) => v.compwise_unary(lit_leading_zeros).map(Into::into),
+    match e.concretize() {
+        Some(Instance::Literal(l)) => lit_leading_zeros(&l).map(Into::into),
+        Some(Instance::Vec(v)) => v.compwise_unary(lit_leading_zeros).map(Into::into),
         _ => Err(ERR),
     }
 }
@@ -485,14 +483,12 @@ pub fn countLeadingZeros(e: &Instance) -> Result<Instance, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#countOneBits-builtin>
 pub fn countOneBits(e: &Instance) -> Result<Instance, E> {
-    const ERR: E = E::Builtin("`countOneBits` expects a float or vector of float argument");
+    const ERR: E = E::Builtin("`countOneBits` expects an integer scalar or vector argument");
     fn lit_count_ones(l: &LiteralInstance) -> Result<LiteralInstance, E> {
         match l {
             LiteralInstance::Bool(_) => Err(ERR),
-            LiteralInstance::AbstractInt(n) => {
-                Ok(LiteralInstance::AbstractInt(n.count_ones() as i64))
-            }
-            LiteralInstance::AbstractFloat(_) => Err(ERR),
+            LiteralInstance::AbstractInt(_) => Err(E::Unreachable), // because of `concretize` below
+            LiteralInstance::AbstractFloat(_) => Err(E::Unreachable),
             LiteralInstance::I32(n) => Ok(LiteralInstance::I32(n.count_ones() as i32)),
             LiteralInstance::U32(n) => Ok(LiteralInstance::U32(n.count_ones())),
             LiteralInstance::F32(_) => Err(ERR),
@@ -505,9 +501,9 @@ pub fn countOneBits(e: &Instance) -> Result<Instance, E> {
             LiteralInstance::F64(_) => Err(ERR),
         }
     }
-    match e {
-        Instance::Literal(l) => lit_count_ones(l).map(Into::into),
-        Instance::Vec(v) => v.compwise_unary(lit_count_ones).map(Into::into),
+    match e.concretize() {
+        Some(Instance::Literal(l)) => lit_count_ones(&l).map(Into::into),
+        Some(Instance::Vec(v)) => v.compwise_unary(lit_count_ones).map(Into::into),
         _ => Err(ERR),
     }
 }
@@ -516,14 +512,12 @@ pub fn countOneBits(e: &Instance) -> Result<Instance, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#countTrailingZeros-builtin>
 pub fn countTrailingZeros(e: &Instance) -> Result<Instance, E> {
-    const ERR: E = E::Builtin("`countTrailingZeros` expects a float or vector of float argument");
+    const ERR: E = E::Builtin("`countTrailingZeros` expects an integer scalar or vector argument");
     fn lit_trailing_zeros(l: &LiteralInstance) -> Result<LiteralInstance, E> {
         match l {
             LiteralInstance::Bool(_) => Err(ERR),
-            LiteralInstance::AbstractInt(n) => {
-                Ok(LiteralInstance::AbstractInt(n.trailing_zeros() as i64))
-            }
-            LiteralInstance::AbstractFloat(_) => Err(ERR),
+            LiteralInstance::AbstractInt(_) => Err(E::Unreachable), // because of `concretize` below
+            LiteralInstance::AbstractFloat(_) => Err(E::Unreachable),
             LiteralInstance::I32(n) => Ok(LiteralInstance::I32(n.trailing_zeros() as i32)),
             LiteralInstance::U32(n) => Ok(LiteralInstance::U32(n.trailing_zeros())),
             LiteralInstance::F32(_) => Err(ERR),
@@ -536,9 +530,9 @@ pub fn countTrailingZeros(e: &Instance) -> Result<Instance, E> {
             LiteralInstance::F64(_) => Err(ERR),
         }
     }
-    match e {
-        Instance::Literal(l) => lit_trailing_zeros(l).map(Into::into),
-        Instance::Vec(v) => v.compwise_unary(lit_trailing_zeros).map(Into::into),
+    match e.concretize() {
+        Some(Instance::Literal(l)) => lit_trailing_zeros(&l).map(Into::into),
+        Some(Instance::Vec(v)) => v.compwise_unary(lit_trailing_zeros).map(Into::into),
         _ => Err(ERR),
     }
 }
@@ -699,8 +693,10 @@ pub fn frexp(e: &Instance) -> Result<Instance, E> {
     }
     match e {
         Instance::Literal(l) => match l {
-            LiteralInstance::Bool(_) => todo!(),
-            LiteralInstance::AbstractInt(_) => todo!(),
+            LiteralInstance::Bool(_) => Err(E::Todo(format!("frexp with bool input"))),
+            LiteralInstance::AbstractInt(_) => {
+                Err(E::Todo(format!("frexp with AbstractInt input")))
+            }
             LiteralInstance::AbstractFloat(n) => {
                 let (fract, exp) = frexp(*n);
                 Ok(make_frexp_inst(
@@ -708,8 +704,8 @@ pub fn frexp(e: &Instance) -> Result<Instance, E> {
                     LiteralInstance::AbstractInt(exp as i64).into(),
                 ))
             }
-            LiteralInstance::I32(_) => todo!(),
-            LiteralInstance::U32(_) => todo!(),
+            LiteralInstance::I32(_) => Err(E::Todo(format!("frexp with i32 input"))),
+            LiteralInstance::U32(_) => Err(E::Todo(format!("frexp with u32 input"))),
             LiteralInstance::F32(n) => {
                 let (fract, exp) = frexp(*n as f64);
                 Ok(make_frexp_inst(
@@ -725,9 +721,9 @@ pub fn frexp(e: &Instance) -> Result<Instance, E> {
                 ))
             }
             #[cfg(feature = "naga-ext")]
-            LiteralInstance::I64(_) => todo!(),
+            LiteralInstance::I64(_) => Err(E::Todo(format!("frexp with i64 input"))),
             #[cfg(feature = "naga-ext")]
-            LiteralInstance::U64(_) => todo!(),
+            LiteralInstance::U64(_) => Err(E::Todo(format!("frexp with u64 input"))),
             #[cfg(feature = "naga-ext")]
             LiteralInstance::F64(n) => {
                 let (fract, exp) = frexp(*n);
@@ -826,6 +822,7 @@ pub fn inverseSqrt(e: &Instance) -> Result<Instance, E> {
 /// `ldexp()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#ldexp-builtin>
+// TODO: shader error if e2 > bias + 1
 pub fn ldexp(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
     // from: https://docs.rs/libm/latest/src/libm/math/scalbn.rs.html#3-34
     fn scalbn(x: f64, mut n: i32) -> f64 {
@@ -911,7 +908,10 @@ pub fn ldexp(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
 pub fn length(e: &Instance) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`length` expects a float or vector of float argument");
     match e {
-        Instance::Literal(_) => abs(e),
+        Instance::Literal(LiteralInstance::AbstractInt(_)) => {
+            abs(&e.convert_to(&Type::AbstractFloat).unwrap())
+        }
+        Instance::Literal(l) if l.ty().is_float() => abs(e),
         Instance::Vec(v) => sqrt(
             &v.op_mul(v, ShaderStage::Exec)?
                 .into_iter()
@@ -990,11 +990,11 @@ pub fn min(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
             LiteralInstance::F32(e1) => Ok(LiteralInstance::from(e1.min(e2.unwrap_f32()))),
             LiteralInstance::F16(e1) => Ok(LiteralInstance::from(e1.min(e2.unwrap_f16()))),
             #[cfg(feature = "naga-ext")]
-            LiteralInstance::I64(e1) => Ok(LiteralInstance::I64(*e1.max(&e2.unwrap_i64()))),
+            LiteralInstance::I64(e1) => Ok(LiteralInstance::I64(*e1.min(&e2.unwrap_i64()))),
             #[cfg(feature = "naga-ext")]
-            LiteralInstance::U64(e1) => Ok(LiteralInstance::U64(*e1.max(&e2.unwrap_u64()))),
+            LiteralInstance::U64(e1) => Ok(LiteralInstance::U64(*e1.min(&e2.unwrap_u64()))),
             #[cfg(feature = "naga-ext")]
-            LiteralInstance::F64(e1) => Ok(LiteralInstance::F64(e1.max(e2.unwrap_f64()))),
+            LiteralInstance::F64(e1) => Ok(LiteralInstance::F64(e1.min(e2.unwrap_f64()))),
         }
     }
     let (e1, e2) = convert(e1, e2).ok_or(E::Builtin("`min` arguments are incompatible"))?;
@@ -1169,11 +1169,7 @@ pub fn saturate(e: &Instance) -> Result<Instance, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#sign-builtin>
 pub fn sign(e: &Instance) -> Result<Instance, E> {
-    const ERR: E = E::Builtin(concat!(
-        "`",
-        "sign",
-        "` expects a float or vector of float argument"
-    ));
+    const ERR: E = E::Builtin("`sign` expects a signed scalar or vector argument");
     fn lit_fn(l: &LiteralInstance) -> Result<LiteralInstance, E> {
         match l {
             LiteralInstance::Bool(_) => Err(ERR),
@@ -1184,11 +1180,7 @@ pub fn sign(e: &Instance) -> Result<Instance, E> {
                 n.signum()
             })),
             LiteralInstance::I32(n) => Ok(LiteralInstance::from(n.signum())),
-            LiteralInstance::U32(n) => Ok(LiteralInstance::from(if n.is_zero() {
-                *n
-            } else {
-                1
-            })),
+            LiteralInstance::U32(_) => Err(ERR),
             LiteralInstance::F32(n) => Ok(LiteralInstance::from(if n.is_zero() {
                 *n
             } else {
@@ -1202,11 +1194,7 @@ pub fn sign(e: &Instance) -> Result<Instance, E> {
             #[cfg(feature = "naga-ext")]
             LiteralInstance::I64(n) => Ok(LiteralInstance::I64(n.signum())),
             #[cfg(feature = "naga-ext")]
-            LiteralInstance::U64(n) => Ok(LiteralInstance::U64(if n.is_zero() {
-                *n
-            } else {
-                1
-            })),
+            LiteralInstance::U64(_) => Err(ERR),
             #[cfg(feature = "naga-ext")]
             LiteralInstance::F64(n) => Ok(LiteralInstance::F64(if n.is_zero() {
                 *n
@@ -1420,7 +1408,7 @@ pub fn atomicMax(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicMin-builtin>
 pub fn atomicMin(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
     let initial = atomicLoad(e1)?;
-    atomicStore(e1, &max(&initial, e2)?)?;
+    atomicStore(e1, &min(&initial, e2)?)?;
     Ok(initial)
 }
 
@@ -1471,16 +1459,18 @@ pub fn atomicCompareExchangeWeak(
     let old_value = atomicLoad(atomic_ptr)?;
 
     let ty = old_value.ty();
-    if cmp.ty() != ty {
-        return Err(E::ParamType(ty, cmp.ty()));
-    }
-    if v.ty() != ty {
-        return Err(E::ParamType(ty, v.ty()));
-    }
 
-    let exchanged = old_value == *cmp;
+    let Some(cmp) = cmp.convert_to(&ty) else {
+        return Err(E::ParamType(ty, cmp.ty()));
+    };
+
+    let Some(v) = v.convert_to(&ty) else {
+        return Err(E::ParamType(ty, v.ty()));
+    };
+
+    let exchanged = old_value == cmp;
     if exchanged {
-        atomicStore(atomic_ptr, v)?;
+        atomicStore(atomic_ptr, &v)?;
     }
     Ok(Instance::Struct(StructInstance::new(
         atomic_compare_exchange_struct_type(&old_value.ty()),
@@ -1585,7 +1575,7 @@ pub fn pack4xI8Clamp(e: &Instance) -> Result<Instance, E> {
     let mut result = 0u32;
     for i in 0..4 {
         let val = v.get(i).unwrap().unwrap_literal_ref().unwrap_i32();
-        result |= (val as i8 as u32) << (8 * i);
+        result |= (val.clamp(-128, 127) as i8 as u32) << (8 * i);
     }
     Ok(LiteralInstance::U32(result).into())
 }
@@ -1604,7 +1594,7 @@ pub fn pack4xU8Clamp(e: &Instance) -> Result<Instance, E> {
     let mut result = 0u32;
     for i in 0..4 {
         let val = v.get(i).unwrap().unwrap_literal_ref().unwrap_u32();
-        result |= (val as u8 as u32) << (8 * i);
+        result |= (val.min(255) as u8 as u32) << (8 * i);
     }
     Ok(LiteralInstance::U32(result).into())
 }

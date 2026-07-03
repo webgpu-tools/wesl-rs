@@ -13,7 +13,7 @@
 
 use half::prelude::*;
 use itertools::Itertools;
-use num_traits::{FromPrimitive, One, ToPrimitive, Zero};
+use num_traits::{One, ToPrimitive, Zero};
 
 use crate::{
     CallSignature, Error, ShaderStage,
@@ -93,7 +93,6 @@ pub fn bool(a1: &Instance) -> Result<Instance, E> {
 /// `i32()` constructor.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#i32-builtin>
-// TODO: check that "If T is a floating point type, e is converted to i32, rounding towards zero."
 pub fn i32(a1: &Instance) -> Result<Instance, E> {
     match a1 {
         Instance::Literal(l) => {
@@ -104,7 +103,7 @@ pub fn i32(a1: &Instance) -> Result<Instance, E> {
                 LiteralInstance::I32(n) => Some(*n),           // identity operation
                 LiteralInstance::U32(n) => Some(*n as i32),    // reinterpretation of bits
                 LiteralInstance::F32(n) => Some((*n as i32).min(2147483520)), // rounding towards 0 AND representable in f32
-                LiteralInstance::F16(n) => Some((f16::to_f32(*n) as i32).min(65504)), // rounding towards 0 AND representable in f16
+                LiteralInstance::F16(n) => Some((f16::to_f32(*n) as i32).clamp(-65504, 65504)), // rounding towards 0 AND representable in f16
                 #[cfg(feature = "naga-ext")]
                 LiteralInstance::I64(n) => n.to_i32(), // identity if representable
                 #[cfg(feature = "naga-ext")]
@@ -150,26 +149,42 @@ pub fn u32(a1: &Instance) -> Result<Instance, E> {
 /// `f32()` constructor.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#f32-builtin>
-// TODO: in const shaderstage, overflows are shader-creation errors.
-pub fn f32(a1: &Instance, _stage: ShaderStage) -> Result<Instance, E> {
+pub fn f32(a1: &Instance, stage: ShaderStage) -> Result<Instance, E> {
     match a1 {
         Instance::Literal(l) => {
             let val = match l {
-                LiteralInstance::Bool(n) => Some(n.then_some(f32::one()).unwrap_or(f32::zero())),
-                LiteralInstance::AbstractInt(n) => n.to_f32(), // implicit conversion
-                LiteralInstance::AbstractFloat(n) => n.to_f32(), // implicit conversion
-                LiteralInstance::I32(n) => Some(*n as f32),    // scalar to float (never overflows)
-                LiteralInstance::U32(n) => Some(*n as f32),    // scalar to float (never overflows)
-                LiteralInstance::F32(n) => Some(*n),           // identity operation
+                LiteralInstance::Bool(n) => Some(n.then_some(1f32).unwrap_or(0f32)),
+                LiteralInstance::AbstractInt(n) => Some(*n as f32), // i64 never leaves f32's finite range
+                LiteralInstance::AbstractFloat(n) => {
+                    // shader-creation error if overflows f32's finite range during const-eval.
+                    let range = f32::MIN as f64..=f32::MAX as f64;
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
+                    } else {
+                        Some(*n as f32)
+                    }
+                }
+                LiteralInstance::I32(n) => Some(*n as f32), // i32 never leaves f32's finite range
+                LiteralInstance::U32(n) => Some(*n as f32), // u32 never leaves f32's finite range
+                LiteralInstance::F32(n) => Some(*n),        // identity operation
                 LiteralInstance::F16(n) => Some(f16::to_f32(*n)), // exactly representable
                 #[cfg(feature = "naga-ext")]
-                LiteralInstance::I64(n) => n.to_f32(), // implicit conversion
+                LiteralInstance::I64(n) => Some(*n as f32), // i64 never leaves f32's finite range
                 #[cfg(feature = "naga-ext")]
-                LiteralInstance::U64(n) => n.to_f32(), // implicit conversion
+                LiteralInstance::U64(n) => Some(*n as f32), // u64 never leaves f32's finite range
                 #[cfg(feature = "naga-ext")]
-                LiteralInstance::F64(n) => n.to_f32(), // implicit conversion
+                LiteralInstance::F64(n) => {
+                    // shader-creation error if overflows f32's finite range during const-eval.
+                    let range = f32::MIN as f64..=f32::MAX as f64;
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
+                    } else {
+                        Some(*n as f32)
+                    }
+                }
             }
             .ok_or(E::ConvOverflow(*l, Type::F32))?;
+
             Ok(LiteralInstance::F32(val).into())
         }
         _ => Err(E::Builtin("f32 constructor expects a scalar argument")),
@@ -185,44 +200,46 @@ pub fn f16(a1: &Instance, stage: ShaderStage) -> Result<Instance, E> {
             let val = match l {
                 LiteralInstance::Bool(n) => Some(n.then_some(f16::one()).unwrap_or(f16::zero())),
                 LiteralInstance::AbstractInt(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        let range = -65504..=65504;
-                        range.contains(n).then_some(f16::from_f32(*n as f32))
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = f16::MIN.to_i64().unwrap()..f16::MAX.to_i64().unwrap();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n as f32))
                     }
                 }
                 LiteralInstance::AbstractFloat(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        let range = -65504.0..=65504.0;
-                        range.contains(n).then_some(f16::from_f32(*n as f32))
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = f16::MIN.to_f64()..=f16::MAX.to_f64();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n as f32))
                     }
                 }
                 LiteralInstance::I32(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        f16::from_i32(*n)
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = f16::MIN.to_i32().unwrap()..f16::MAX.to_i32().unwrap();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n as f32))
                     }
                 }
                 LiteralInstance::U32(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        f16::from_u32(*n)
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = 0..f16::MAX.to_u32().unwrap();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n as f32))
                     }
                 }
                 LiteralInstance::F32(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        let range = -65504.0..=65504.0;
-                        range.contains(n).then_some(f16::from_f32(*n))
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = f16::MIN.to_f32()..=f16::MAX.to_f32();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n))
                     }
@@ -230,29 +247,30 @@ pub fn f16(a1: &Instance, stage: ShaderStage) -> Result<Instance, E> {
                 LiteralInstance::F16(n) => Some(*n), // identity operation
                 #[cfg(feature = "naga-ext")]
                 LiteralInstance::I64(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        let range = -65504..=65504;
-                        range.contains(n).then_some(f16::from_f32(*n as f32))
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = f16::MIN.to_i64().unwrap()..f16::MAX.to_i64().unwrap();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n as f32))
                     }
                 }
                 #[cfg(feature = "naga-ext")]
                 LiteralInstance::U64(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        f16::from_u64(*n)
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = 0..f16::MAX.to_u64().unwrap();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n as f32))
                     }
                 }
                 #[cfg(feature = "naga-ext")]
                 LiteralInstance::F64(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        let range = -65504.0..=65504.0;
-                        range.contains(n).then_some(f16::from_f32(*n as f32))
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = f16::MIN.to_f64()..=f16::MAX.to_f64();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n as f32))
                     }
@@ -268,6 +286,7 @@ pub fn f16(a1: &Instance, stage: ShaderStage) -> Result<Instance, E> {
 /// `i64()` constructor (naga extension).
 ///
 /// TODO: This built-in is not implemented!
+#[cfg(feature = "naga-ext")]
 pub fn i64(_a1: &Instance) -> Result<Instance, E> {
     Err(E::Todo("i64".to_string()))
 }
@@ -275,6 +294,7 @@ pub fn i64(_a1: &Instance) -> Result<Instance, E> {
 /// `u64()` constructor (naga extension).
 ///
 /// TODO: This built-in is not implemented!
+#[cfg(feature = "naga-ext")]
 pub fn u64(_a1: &Instance) -> Result<Instance, E> {
     Err(E::Todo("u64".to_string()))
 }
@@ -282,6 +302,7 @@ pub fn u64(_a1: &Instance) -> Result<Instance, E> {
 /// `f64()` constructor (naga extension).
 ///
 /// TODO: This built-in is not implemented!
+#[cfg(feature = "naga-ext")]
 pub fn f64(_a1: &Instance, _stage: ShaderStage) -> Result<Instance, E> {
     Err(E::Todo("f64".to_string()))
 }

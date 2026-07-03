@@ -3,7 +3,7 @@ use wgsl_types::{
     ShaderStage,
     builtin::{call_builtin_fn, is_ctor, struct_ctor},
     conv::Convert,
-    inst::{Instance, LiteralInstance, RefInstance, VecInstance},
+    inst::{Instance, LiteralInstance, RefInstance},
     syntax::{AccessMode, AddressSpace},
     tplt::TpltParam,
     ty::{Ty, Type},
@@ -733,131 +733,78 @@ impl Exec for FunctionCall {
 /// see <https://www.w3.org/TR/WGSL/#input-output-locations>
 #[derive(Debug, Clone, Default)]
 pub struct Inputs {
-    pub vertex_index: Option<u32>,
-    pub instance_index: Option<u32>,
-    pub position: Option<[f32; 4]>,
-    pub front_facing: Option<bool>,
-    pub sample_index: Option<u32>,
-    pub sample_mask: Option<u32>,
-    pub local_invocation_id: Option<[u32; 3]>,
-    pub local_invocation_index: Option<u32>,
-    pub global_invocation_id: Option<[u32; 3]>,
-    pub workgroup_id: Option<[u32; 3]>,
-    pub num_workgroups: Option<[u32; 3]>,
-    /// Within the range [0, subgroup_size - 1]
-    pub subgroup_invocation_id: Option<u32>,
-    /// A power of two within the range [4, 128]
-    pub subgroup_size: Option<u32>,
-    #[cfg(feature = "naga-ext")]
-    pub subgroup_id: Option<u32>,
-    #[cfg(feature = "naga-ext")]
-    pub num_subgroups: Option<u32>,
-    #[cfg(feature = "naga-ext")]
-    pub primitive_index: Option<u32>,
-    #[cfg(feature = "naga-ext")]
-    pub barycentric: Option<[f32; 3]>,
-    #[cfg(feature = "naga-ext")]
-    pub barycentric_no_perspective: Option<[f32; 3]>,
-    #[cfg(feature = "naga-ext")]
-    pub view_index: Option<u32>,
-
-    // ray tracing pipelines
-    #[cfg(feature = "naga-ext")]
-    pub ray_invocation_id: Option<[u32; 3]>,
-    #[cfg(feature = "naga-ext")]
-    pub num_ray_invocations: Option<[u32; 3]>,
-    #[cfg(feature = "naga-ext")]
-    pub instance_custom_data: Option<u32>,
-    #[cfg(feature = "naga-ext")]
-    pub geometry_index: Option<u32>,
-    #[cfg(feature = "naga-ext")]
-    pub world_ray_origin: Option<[f32; 3]>,
-    #[cfg(feature = "naga-ext")]
-    pub world_ray_direction: Option<[f32; 3]>,
-    #[cfg(feature = "naga-ext")]
-    pub object_ray_origin: Option<[f32; 3]>,
-    #[cfg(feature = "naga-ext")]
-    pub object_ray_direction: Option<[f32; 3]>,
-    #[cfg(feature = "naga-ext")]
-    pub ray_t_min: Option<f32>,
-    #[cfg(feature = "naga-ext")]
-    pub ray_t_current_max: Option<f32>,
-    /// Column-major, 4 columns of 3 rows.
-    #[cfg(feature = "naga-ext")]
-    pub object_to_world: Option<[[f32; 3]; 4]>,
-    /// Column-major, 4 columns of 3 rows.
-    #[cfg(feature = "naga-ext")]
-    pub world_to_object: Option<[[f32; 3]; 4]>,
-    #[cfg(feature = "naga-ext")]
-    pub hit_kind: Option<u32>,
-
+    pub builtins: HashMap<String, Instance>,
     pub user_defined: HashMap<u32, Instance>,
 }
 
 impl Inputs {
+    /// Fill in all input builtin values with zero-initialized instances of the right type,
+    /// for any shader stage.
+    // TODO: this is not very useful as-is. A better implementation would populate the list
+    // with only inputs relevant for a given entry shader stage (entry point type).
     pub fn new_zero_initialized() -> Self {
         Self {
-            vertex_index: Some(0),
-            instance_index: Some(0),
-            position: Some([0.0, 0.0, 0.0, 0.0]),
-            front_facing: Some(true),
-            sample_index: Some(0),
-            sample_mask: Some(0),
-            local_invocation_id: Some([0, 0, 0]),
-            local_invocation_index: Some(0),
-            global_invocation_id: Some([0, 0, 0]),
-            workgroup_id: Some([0, 0, 0]),
-            num_workgroups: Some([1, 1, 1]),
-            subgroup_invocation_id: Some(0),
-            subgroup_size: Some(4),
-            #[cfg(feature = "naga-ext")]
-            subgroup_id: Some(0),
-            #[cfg(feature = "naga-ext")]
-            num_subgroups: Some(1),
-            #[cfg(feature = "naga-ext")]
-            primitive_index: Some(0),
-            #[cfg(feature = "naga-ext")]
-            barycentric: Some([0.0, 0.0, 0.0]),
-            #[cfg(feature = "naga-ext")]
-            barycentric_no_perspective: Some([0.0, 0.0, 0.0]),
-            #[cfg(feature = "naga-ext")]
-            view_index: Some(0),
-            #[cfg(feature = "naga-ext")]
-            ray_invocation_id: Some([0, 0, 0]),
-            #[cfg(feature = "naga-ext")]
-            num_ray_invocations: Some([1, 1, 1]),
-            #[cfg(feature = "naga-ext")]
-            instance_custom_data: Some(0),
-            #[cfg(feature = "naga-ext")]
-            geometry_index: Some(0),
-            #[cfg(feature = "naga-ext")]
-            world_ray_origin: Some([0.0, 0.0, 0.0]),
-            #[cfg(feature = "naga-ext")]
-            world_ray_direction: Some([0.0, 0.0, 0.0]),
-            #[cfg(feature = "naga-ext")]
-            object_ray_origin: Some([0.0, 0.0, 0.0]),
-            #[cfg(feature = "naga-ext")]
-            object_ray_direction: Some([0.0, 0.0, 0.0]),
-            #[cfg(feature = "naga-ext")]
-            ray_t_min: Some(0.0),
-            #[cfg(feature = "naga-ext")]
-            ray_t_current_max: Some(0.0),
-            #[cfg(feature = "naga-ext")]
-            object_to_world: Some([[0.0; 3]; 4]),
-            #[cfg(feature = "naga-ext")]
-            world_to_object: Some([[0.0; 3]; 4]),
-            #[cfg(feature = "naga-ext")]
-            hit_kind: Some(0),
+            builtins: HashMap::from( [
+    ("vertex_index", Type::U32),
+    ("instance_index", Type::U32),
+    ("position", Type::Vec(4, Box::new(Type::F32))),
+    ("front_facing", Type::Bool),
+    ("primitive_index", Type::U32), // primitive_index extension
+    ("sample_index", Type::U32),
+    ("sample_mask", Type::U32),
+    ("local_invocation_id", Type::Vec(3, Box::new(Type::U32))),
+    ("local_invocation_index", Type::U32),
+    ("global_invocation_id", Type::Vec(3, Box::new(Type::U32))),
+    ("global_invocation_index", Type::U32), // linear_indexing extension
+    ("workgroup_id", Type::Vec(3, Box::new(Type::U32))),
+    ("workgroup_index", Type::U32), // linear_indexing extension
+    ("num_workgroups", Type::Vec(3, Box::new(Type::U32))),
+    ("subgroup_invocation_id", Type::U32), // subgroups extension
+    ("subgroup_size", Type::U32), // subgroups extension
+    ("subgroup_id", Type::U32), // subgroups extension
+    ("num_subgroups", Type::U32), // subgroups extension
+
+    // naga extensions
+    #[cfg(feature = "naga-ext")]
+    ("barycentric", Type::U32),
+    #[cfg(feature = "naga-ext")]
+    ("barycentric_no_perspective", Type::U32),
+    #[cfg(feature = "naga-ext")]
+    ("view_index", Type::U32),
+
+    // naga ray tracing
+    #[cfg(feature = "naga-ext")]
+    ("ray_invocation_id", Type::Vec(3, Box::new(Type::U32))),
+    #[cfg(feature = "naga-ext")]
+    ("num_ray_invocations", Type::Vec(3, Box::new(Type::U32))),
+    #[cfg(feature = "naga-ext")]
+    ("instance_custom_data", Type::U32),
+    #[cfg(feature = "naga-ext")]
+    ("geometry_index", Type::U32),
+    #[cfg(feature = "naga-ext")]
+    ("world_ray_origin", Type::Vec(3, Box::new(Type::F32))),
+    #[cfg(feature = "naga-ext")]
+    ("world_ray_direction", Type::Vec(3, Box::new(Type::F32))),
+    #[cfg(feature = "naga-ext")]
+    ("object_ray_origin", Type::Vec(3, Box::new(Type::F32))),
+    #[cfg(feature = "naga-ext")]
+    ("object_ray_direction", Type::Vec(3, Box::new(Type::F32))),
+    #[cfg(feature = "naga-ext")]
+    ("ray_t_min", Type::F32),
+    #[cfg(feature = "naga-ext")]
+    ("ray_t_current_max", Type::F32),
+    #[cfg(feature = "naga-ext")]
+    ("object_to_world", Type::Mat(4, 3, Box::new(Type::F32))),
+    #[cfg(feature = "naga-ext")]
+    ("world_to_object", Type::Mat(4, 3, Box::new(Type::F32))),
+    #[cfg(feature = "naga-ext")]
+    ("hit_kind", Type::U32),
+]
+    .map(|(key, ty)| (key.to_string(), Instance::zero_value(&ty).unwrap(/* SAFETY: these types can be zero-initialized */)))
+            ),
             user_defined: Default::default(),
         }
     }
-}
-
-/// Build a `mat4x3<f32>` instance from 4 columns of 3 rows.
-#[cfg(feature = "naga-ext")]
-fn mat4x3(cols: [[f32; 3]; 4]) -> Instance {
-    wgsl_types::inst::MatInstance::from_cols(cols.map(|col| VecInstance::from(col).into()).to_vec())
-        .into()
 }
 
 pub fn exec_entrypoint(
@@ -882,103 +829,12 @@ pub fn exec_entrypoint(
             let param_ty = ty_eval_ty(&p.ty, ctx)?;
             let inst = if let Some(builtin) = p.attr_builtin() {
                 // TODO: check that the builtin value is available in the entrypoint type
-                match builtin {
-                    BuiltinValue::VertexIndex => inputs.vertex_index.map(Instance::from),
-                    BuiltinValue::InstanceIndex => inputs.instance_index.map(Instance::from),
-                    BuiltinValue::Position => inputs.position.map(|v| VecInstance::from(v).into()),
-                    BuiltinValue::FrontFacing => inputs.front_facing.map(Instance::from),
-                    BuiltinValue::SampleIndex => inputs.sample_index.map(Instance::from),
-                    BuiltinValue::SampleMask => inputs.sample_mask.map(Instance::from),
-                    BuiltinValue::LocalInvocationId => inputs
-                        .local_invocation_id
-                        .map(|v| VecInstance::from(v).into()),
-                    BuiltinValue::LocalInvocationIndex => {
-                        inputs.local_invocation_index.map(Instance::from)
-                    }
-                    BuiltinValue::GlobalInvocationId => inputs
-                        .global_invocation_id
-                        .map(|v| VecInstance::from(v).into()),
-                    BuiltinValue::WorkgroupId => {
-                        inputs.workgroup_id.map(|v| VecInstance::from(v).into())
-                    }
-                    BuiltinValue::NumWorkgroups => {
-                        inputs.num_workgroups.map(|v| VecInstance::from(v).into())
-                    }
-                    BuiltinValue::SubgroupInvocationId => {
-                        inputs.subgroup_invocation_id.map(Instance::from)
-                    }
-                    BuiltinValue::SubgroupSize => inputs.subgroup_size.map(Instance::from),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::SubgroupId => inputs.subgroup_id.map(Instance::from),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::NumSubgroups => inputs.num_subgroups.map(Instance::from),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::PrimitiveIndex => inputs.primitive_index.map(Instance::from),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::Barycentric => {
-                        inputs.barycentric.map(|v| VecInstance::from(v).into())
-                    }
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::BarycentricNoPerspective => inputs
-                        .barycentric_no_perspective
-                        .map(|v| VecInstance::from(v).into()),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::ViewIndex => inputs.view_index.map(Instance::from),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::RayInvocationId => inputs
-                        .ray_invocation_id
-                        .map(|v| VecInstance::from(v).into()),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::NumRayInvocations => inputs
-                        .num_ray_invocations
-                        .map(|v| VecInstance::from(v).into()),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::InstanceCustomData => {
-                        inputs.instance_custom_data.map(Instance::from)
-                    }
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::GeometryIndex => inputs.geometry_index.map(Instance::from),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::WorldRayOrigin => {
-                        inputs.world_ray_origin.map(|v| VecInstance::from(v).into())
-                    }
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::WorldRayDirection => inputs
-                        .world_ray_direction
-                        .map(|v| VecInstance::from(v).into()),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::ObjectRayOrigin => inputs
-                        .object_ray_origin
-                        .map(|v| VecInstance::from(v).into()),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::ObjectRayDirection => inputs
-                        .object_ray_direction
-                        .map(|v| VecInstance::from(v).into()),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::RayTMin => inputs.ray_t_min.map(Instance::from),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::RayTCurrentMax => inputs.ray_t_current_max.map(Instance::from),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::ObjectToWorld => inputs.object_to_world.map(mat4x3),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::WorldToObject => inputs.world_to_object.map(mat4x3),
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::HitKind => inputs.hit_kind.map(Instance::from),
-                    BuiltinValue::ClipDistances | BuiltinValue::FragDepth => {
-                        return Err(E::OutputBuiltin(builtin));
-                    }
-                    #[cfg(feature = "naga-ext")]
-                    BuiltinValue::MeshTaskSize
-                    | BuiltinValue::Vertices
-                    | BuiltinValue::Primitives
-                    | BuiltinValue::VertexCount
-                    | BuiltinValue::PrimitiveCount
-                    | BuiltinValue::TriangleIndices
-                    | BuiltinValue::CullPrimitive => {
-                        return Err(E::OutputBuiltin(builtin));
-                    }
-                }
-                .ok_or_else(|| E::MissingBuiltinInput(builtin, p.ident.to_string()))
+                // TODO: check that the builtin value has the right type
+                inputs
+                    .builtins
+                    .get(&builtin.to_string())
+                    .ok_or_else(|| E::MissingBuiltinInput(builtin, p.ident.to_string()))
+                    .cloned()
             } else if let Some(location) = p.attr_location(ctx)? {
                 let inst = inputs
                     .user_defined
@@ -991,11 +847,8 @@ pub fn exec_entrypoint(
                 Err(E::InvalidEntrypointParam(p.ident.to_string()))
             }?;
 
-            if inst.ty() != param_ty {
-                Err(E::ParamType(param_ty, inst.ty()))
-            } else {
-                Ok(inst)
-            }
+            inst.convert_to(&param_ty)
+                .ok_or_else(|| E::ParamType(param_ty, inst.ty()))
         })
         .collect::<Result<Vec<_>, _>>()
         .inspect_err(|_| ctx.set_err_decl_ctx(fn_name.clone()))?;

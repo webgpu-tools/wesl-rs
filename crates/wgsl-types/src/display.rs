@@ -48,7 +48,7 @@ impl Display for Instance {
             Instance::Ptr(inst) => write!(f, "{inst}"),
             Instance::Ref(inst) => write!(f, "{inst}"),
             Instance::Atomic(inst) => write!(f, "{inst}"),
-            Instance::Deferred(ty) => write!(f, "__deferred<{ty}>"),
+            Instance::Opaque(ty) => write!(f, "__opaque<{ty}>"),
         }
     }
 }

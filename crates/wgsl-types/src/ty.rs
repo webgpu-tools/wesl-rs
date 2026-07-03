@@ -526,7 +526,7 @@ impl Ty for Instance {
             Instance::Ptr(p) => p.ty(),
             Instance::Ref(r) => r.ty(),
             Instance::Atomic(a) => a.ty(),
-            Instance::Deferred(t) => t.ty(),
+            Instance::Opaque(t) => t.ty(),
         }
     }
     fn inner_ty(&self) -> Type {
@@ -539,7 +539,7 @@ impl Ty for Instance {
             Instance::Ptr(p) => p.inner_ty(),
             Instance::Ref(r) => r.inner_ty(),
             Instance::Atomic(a) => a.inner_ty(),
-            Instance::Deferred(t) => t.inner_ty(),
+            Instance::Opaque(t) => t.inner_ty(),
         }
     }
 }

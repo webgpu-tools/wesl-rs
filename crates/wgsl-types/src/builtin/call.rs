@@ -74,7 +74,7 @@ pub fn bitcast_t(tplt_ty: &Type, e: &Instance) -> Result<Instance, E> {
     let e = match inner_ty {
         // there is a special overload `bitcast<u32>(AbstractInt)` which prevents
         // `AbstractInt` from being automatically converted to `i32`, then `u32`.
-        Type::U32 if e.ty().is_abstract_int() => e.convert_inner_to(&Type::U32),
+        Type::U32 if e.inner_ty().is_abstract_int() => e.convert_inner_to(&Type::U32),
         _ => e.concretize(),
     };
 
@@ -1575,7 +1575,7 @@ pub fn pack4xI8Clamp(e: &Instance) -> Result<Instance, E> {
     let mut result = 0u32;
     for i in 0..4 {
         let val = v.get(i).unwrap().unwrap_literal_ref().unwrap_i32();
-        result |= (val.clamp(-128, 127) as i8 as u32) << (8 * i);
+        result |= (val.clamp(-128, 127) as u8 as u32) << (8 * i);
     }
     Ok(LiteralInstance::U32(result).into())
 }

@@ -735,12 +735,15 @@ impl CompileResult {
         bindings: HashMap<(u32, u32), eval::RefInstance>,
         overrides: HashMap<String, eval::Instance>,
     ) -> Result<ExecResult<'a>, Error> {
+        use eval::SyntaxUtil;
         let mut ctx = eval::Context::new(&self.syntax);
         ctx.add_bindings(bindings);
         ctx.add_overrides(overrides);
         ctx.set_stage(eval::ShaderStage::Exec);
 
-        let entry_fn = eval::SyntaxUtil::decl_function(ctx.source, entrypoint)
+        let entry_fn = ctx
+            .source
+            .decl_function(entrypoint)
             .ok_or_else(|| EvalError::UnknownFunction(entrypoint.to_string()))?;
 
         let inst = self
@@ -748,6 +751,9 @@ impl CompileResult {
             .exec(&mut ctx)
             .and_then(|_flow| exec_entrypoint(entry_fn, inputs, &mut ctx))
             .map_err(|e| {
+                if let Some(span) = ctx.source.user_decl_span(entrypoint) {
+                    ctx.set_err_span_ctx(span);
+                }
                 if let Some(sourcemap) = &self.sourcemap {
                     Diagnostic::from(e).with_ctx(&ctx).with_sourcemap(sourcemap)
                 } else {

@@ -58,8 +58,9 @@ pub enum Instance {
     Ptr(PtrInstance),
     Ref(RefInstance),
     Atomic(AtomicInstance),
-    /// For instances that cannot be computed currently, we store the type.
-    /// TODO: remove this
+    /// This variant is used to refer to currently unreachable instances, including
+    /// instances of *opaque* types, such as textures and samplers, and instances that
+    /// cannot be computed yet.
     Opaque(Type),
 }
 

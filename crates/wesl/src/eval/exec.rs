@@ -1022,10 +1022,10 @@ impl Exec for Declaration {
                                 return Err(E::ForbiddenInitializer(a_s));
                             }
 
-                            // the initial value for a workgroup variable is the zero-value
-                            // TODO: there is a special case with atomics to handle.
-                            let inst = Instance::zero_value(&ty)?;
-
+                            // the initial value for a workgroup variable is the zero-value.
+                            // except for atomics and composite types containing atomics,
+                            // which are not constructible, but are storable.
+                            let inst = Instance::storable_zero_value(&ty)?;
                             RefInstance::new(inst, a_s, a_m).into()
                         }
                         AddressSpace::Handle => todo!("handle address space"),

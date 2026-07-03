@@ -213,12 +213,12 @@ impl<'s> Context<'s> {
         self.source
     }
 
-    fn set_err_decl_ctx(&mut self, decl: String) {
+    pub(crate) fn set_err_decl_ctx(&mut self, decl: String) {
         if self.err_decl.is_none() {
             self.err_decl = Some(decl)
         }
     }
-    fn set_err_span_ctx(&mut self, expr: Span) {
+    pub(crate) fn set_err_span_ctx(&mut self, expr: Span) {
         if self.err_span.is_none() {
             self.err_span = Some(expr)
         }
@@ -258,6 +258,9 @@ pub trait SyntaxUtil {
     /// find a global declaration by name.
     fn user_decl(&self, name: &str) -> Option<&GlobalDeclaration>;
 
+    /// find the span of a global declaration by name.
+    fn user_decl_span(&self, name: &str) -> Option<Span>;
+
     /// find a global declaration by name, including built-in ones.
     fn decl(&self, name: &str) -> Option<&GlobalDeclaration>;
 
@@ -295,6 +298,18 @@ impl SyntaxUtil for TranslationUnit {
                 GlobalDeclaration::Function(d) => *d.ident.name() == name,
                 _ => false,
             })
+    }
+    fn user_decl_span(&self, name: &str) -> Option<Span> {
+        self.global_declarations
+            .iter()
+            .find(|d| match d.node() {
+                GlobalDeclaration::Declaration(d) => *d.ident.name() == name,
+                GlobalDeclaration::TypeAlias(d) => *d.ident.name() == name,
+                GlobalDeclaration::Struct(d) => *d.ident.name() == name,
+                GlobalDeclaration::Function(d) => *d.ident.name() == name,
+                _ => false,
+            })
+            .map(|d| d.span())
     }
     fn decl(&self, name: &str) -> Option<&GlobalDeclaration> {
         // note: declarations in PRELUDE can be shadowed by user-defined declarations.

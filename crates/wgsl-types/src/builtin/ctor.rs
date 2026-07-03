@@ -18,7 +18,10 @@ use num_traits::{One, ToPrimitive, Zero};
 use crate::{
     CallSignature, Error, ShaderStage,
     conv::{Convert, convert_all, convert_all_inner_to, convert_all_to, convert_all_ty},
-    inst::{ArrayInstance, Instance, LiteralInstance, MatInstance, StructInstance, VecInstance},
+    inst::{
+        ArrayInstance, AtomicInstance, Instance, LiteralInstance, MatInstance, StructInstance,
+        VecInstance,
+    },
     tplt::{ArrayTemplate, MatTemplate, TpltParam, VecTemplate},
     ty::{StructType, Ty, Type},
 };
@@ -945,15 +948,15 @@ impl Instance {
     /// Zero-value initialize an instance of a given type.
     pub fn zero_value(ty: &Type) -> Result<Self, E> {
         match ty {
-            Type::Bool => Ok(LiteralInstance::Bool(false).into()),
-            Type::AbstractInt => Ok(LiteralInstance::AbstractInt(0).into()),
-            Type::AbstractFloat => Ok(LiteralInstance::AbstractFloat(0.0).into()),
-            Type::I32 => Ok(LiteralInstance::I32(0).into()),
-            Type::U32 => Ok(LiteralInstance::U32(0).into()),
-            Type::F32 => Ok(LiteralInstance::F32(0.0).into()),
-            Type::F16 => Ok(LiteralInstance::F16(f16::zero()).into()),
+            Type::Bool
+            | Type::AbstractInt
+            | Type::AbstractFloat
+            | Type::I32
+            | Type::U32
+            | Type::F32
+            | Type::F16 => LiteralInstance::zero_value(ty).map(Into::into),
             Type::Struct(s) => StructInstance::zero_value(s).map(Into::into),
-            Type::Array(a_ty, Some(n)) => ArrayInstance::zero_value(*n, a_ty).map(Into::into),
+            Type::Array(a_ty, Some(n)) => ArrayInstance::zero_value(a_ty, *n).map(Into::into),
             Type::Array(_, None) => Err(E::NotConstructible(ty.clone())),
             Type::Vec(n, v_ty) => VecInstance::zero_value(*n, v_ty).map(Into::into),
             Type::Mat(c, r, m_ty) => MatInstance::zero_value(*c, *r, m_ty).map(Into::into),
@@ -963,17 +966,33 @@ impl Instance {
             | Type::Texture(_)
             | Type::Sampler(_) => Err(E::NotConstructible(ty.clone())),
             #[cfg(feature = "naga-ext")]
-            Type::I64 => Ok(LiteralInstance::I64(0).into()),
+            Type::I64 | Type::U64 | Type::F64 => LiteralInstance::zero_value(ty).map(Into::into),
             #[cfg(feature = "naga-ext")]
-            Type::U64 => Ok(LiteralInstance::U64(0).into()),
-            #[cfg(feature = "naga-ext")]
-            Type::F64 => Ok(LiteralInstance::F64(0.0).into()),
-            #[cfg(feature = "naga-ext")]
-            Type::BindingArray(_, _) => Err(E::NotConstructible(ty.clone())),
-            #[cfg(feature = "naga-ext")]
-            Type::RayQuery(_) => Err(E::NotConstructible(ty.clone())),
-            #[cfg(feature = "naga-ext")]
-            Type::AccelerationStructure(_) => Err(E::NotConstructible(ty.clone())),
+            Type::BindingArray(_, _) | Type::RayQuery(_) | Type::AccelerationStructure(_) => {
+                Err(E::NotConstructible(ty.clone()))
+            }
+        }
+    }
+
+    /// For types that are not *constructible*, but are *storable*, there is no zero-value,
+    /// but it is possible to initialize a variable storing an instance of the type.
+    ///
+    /// In practice, these types are only atomics and composite of atomics (array and struct)
+    /// in the `workgroup` address space.
+    ///
+    /// There are other non-constructible, storable types, but they live in host-managed
+    /// address spaces:
+    ///
+    /// * textures and samplers in the `handle` address space.
+    /// * runtime-sized arrays in the `storage` address space.
+    pub fn storable_zero_value(ty: &Type) -> Result<Self, E> {
+        match ty {
+            Type::Struct(s) => StructInstance::storable_zero_value(s).map(Into::into),
+            Type::Array(a_ty, Some(n)) => {
+                ArrayInstance::storable_zero_value(a_ty, *n).map(Into::into)
+            }
+            Type::Atomic(a_ty) => AtomicInstance::storable_zero_value(a_ty).map(Into::into),
+            _ => Self::zero_value(ty),
         }
     }
 }
@@ -1014,12 +1033,33 @@ impl StructInstance {
 
         Ok(StructInstance::new(s.clone(), members))
     }
+
+    /// See [`Instance::storable_zero_value`].
+    pub fn storable_zero_value(s: &StructType) -> Result<Self, E> {
+        let members = s
+            .members
+            .iter()
+            .map(|mem| {
+                let val = Instance::storable_zero_value(&mem.ty)?;
+                Ok(val)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(StructInstance::new(s.clone(), members))
+    }
 }
 
 impl ArrayInstance {
     /// Zero-value initialize an `array` instance.
-    pub fn zero_value(n: usize, ty: &Type) -> Result<Self, E> {
+    pub fn zero_value(ty: &Type, n: usize) -> Result<Self, E> {
         let zero = Instance::zero_value(ty)?;
+        let comps = (0..n).map(|_| zero.clone()).collect_vec();
+        Ok(ArrayInstance::new(comps, false))
+    }
+
+    /// See [`Instance::storable_zero_value`].
+    pub fn storable_zero_value(ty: &Type, n: usize) -> Result<Self, E> {
+        let zero = Instance::storable_zero_value(ty)?;
         let comps = (0..n).map(|_| zero.clone()).collect_vec();
         Ok(ArrayInstance::new(comps, false))
     }
@@ -1041,5 +1081,13 @@ impl MatInstance {
         let zero_col = Instance::Vec(VecInstance::new((0..r).map(|_| zero.clone()).collect_vec()));
         let comps = (0..c).map(|_| zero_col.clone()).collect_vec();
         Ok(MatInstance::from_cols(comps))
+    }
+}
+
+impl AtomicInstance {
+    /// See [`Instance::storable_zero_value`].
+    pub fn storable_zero_value(ty: &Type) -> Result<Self, E> {
+        let zero = Instance::zero_value(ty)?;
+        Ok(AtomicInstance::new(zero))
     }
 }

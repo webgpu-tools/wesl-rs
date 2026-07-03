@@ -201,7 +201,7 @@ pub fn f16(a1: &Instance, stage: ShaderStage) -> Result<Instance, E> {
                 LiteralInstance::Bool(n) => Some(n.then_some(f16::one()).unwrap_or(f16::zero())),
                 LiteralInstance::AbstractInt(n) => {
                     // shader-creation error if overflows f16's finite range during const-eval.
-                    let range = f16::MIN.to_i64().unwrap()..f16::MAX.to_i64().unwrap();
+                    let range = f16::MIN.to_i64().unwrap()..=f16::MAX.to_i64().unwrap();
                     if stage == ShaderStage::Const && !range.contains(n) {
                         None
                     } else {
@@ -219,7 +219,7 @@ pub fn f16(a1: &Instance, stage: ShaderStage) -> Result<Instance, E> {
                 }
                 LiteralInstance::I32(n) => {
                     // shader-creation error if overflows f16's finite range during const-eval.
-                    let range = f16::MIN.to_i32().unwrap()..f16::MAX.to_i32().unwrap();
+                    let range = f16::MIN.to_i32().unwrap()..=f16::MAX.to_i32().unwrap();
                     if stage == ShaderStage::Const && !range.contains(n) {
                         None
                     } else {
@@ -228,7 +228,7 @@ pub fn f16(a1: &Instance, stage: ShaderStage) -> Result<Instance, E> {
                 }
                 LiteralInstance::U32(n) => {
                     // shader-creation error if overflows f16's finite range during const-eval.
-                    let range = 0..f16::MAX.to_u32().unwrap();
+                    let range = 0..=f16::MAX.to_u32().unwrap();
                     if stage == ShaderStage::Const && !range.contains(n) {
                         None
                     } else {
@@ -248,7 +248,7 @@ pub fn f16(a1: &Instance, stage: ShaderStage) -> Result<Instance, E> {
                 #[cfg(feature = "naga-ext")]
                 LiteralInstance::I64(n) => {
                     // shader-creation error if overflows f16's finite range during const-eval.
-                    let range = f16::MIN.to_i64().unwrap()..f16::MAX.to_i64().unwrap();
+                    let range = f16::MIN.to_i64().unwrap()..=f16::MAX.to_i64().unwrap();
                     if stage == ShaderStage::Const && !range.contains(n) {
                         None
                     } else {
@@ -258,7 +258,7 @@ pub fn f16(a1: &Instance, stage: ShaderStage) -> Result<Instance, E> {
                 #[cfg(feature = "naga-ext")]
                 LiteralInstance::U64(n) => {
                     // shader-creation error if overflows f16's finite range during const-eval.
-                    let range = 0..f16::MAX.to_u64().unwrap();
+                    let range = 0..=f16::MAX.to_u64().unwrap();
                     if stage == ShaderStage::Const && !range.contains(n) {
                         None
                     } else {

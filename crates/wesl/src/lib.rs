@@ -743,15 +743,17 @@ impl CompileResult {
         let entry_fn = eval::SyntaxUtil::decl_function(ctx.source, entrypoint)
             .ok_or_else(|| EvalError::UnknownFunction(entrypoint.to_string()))?;
 
-        let _ = self.syntax.exec(&mut ctx)?;
-
-        let inst = exec_entrypoint(entry_fn, inputs, &mut ctx).map_err(|e| {
-            if let Some(sourcemap) = &self.sourcemap {
-                Diagnostic::from(e).with_ctx(&ctx).with_sourcemap(sourcemap)
-            } else {
-                Diagnostic::from(e).with_ctx(&ctx)
-            }
-        })?;
+        let inst = self
+            .syntax
+            .exec(&mut ctx)
+            .and_then(|_flow| exec_entrypoint(entry_fn, inputs, &mut ctx))
+            .map_err(|e| {
+                if let Some(sourcemap) = &self.sourcemap {
+                    Diagnostic::from(e).with_ctx(&ctx).with_sourcemap(sourcemap)
+                } else {
+                    Diagnostic::from(e).with_ctx(&ctx)
+                }
+            })?;
 
         Ok(ExecResult { inst, ctx })
     }

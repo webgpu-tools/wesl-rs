@@ -284,6 +284,7 @@ impl ToExpr for Type {
                 Ok(ty)
             }
             Type::Sampler(_) => Ok(TypeExpression::new(ident.unwrap())),
+            Type::Unknown => Err(E::NotConstructible(Type::Unknown)),
             #[cfg(feature = "naga-ext")]
             Type::RayQuery(flags) | Type::AccelerationStructure(flags) => Ok(TypeExpression {
                 path: None,

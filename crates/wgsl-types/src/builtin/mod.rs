@@ -268,7 +268,8 @@ pub fn call_ctor(ty: &Type, args: &[Instance], stage: ShaderStage) -> Result<Ins
             | Type::Ptr(_, _, _)
             | Type::Ref(_, _, _)
             | Type::Texture(_)
-            | Type::Sampler(_),
+            | Type::Sampler(_)
+            | Type::Unknown,
             _,
         ) => Err(E::NotConstructible(ty.clone())),
         #[cfg(feature = "naga-ext")]

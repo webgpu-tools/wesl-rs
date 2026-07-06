@@ -269,6 +269,8 @@ pub enum Type {
     Ref(AddressSpace, Box<Type>, AccessMode),
     Texture(TextureType),
     Sampler(SamplerType),
+    /// This variant is used by wgsl-analyzer and other type-checking tools when
+    /// a type is unknown. It is not an regular WGSL type.
     Unknown,
     #[cfg(feature = "naga-ext")]
     I64,

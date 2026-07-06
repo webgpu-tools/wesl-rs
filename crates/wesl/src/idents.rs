@@ -63,7 +63,7 @@ impl BuiltinIdent for Type {
             Type::Ref(_, _, _) => builtin_ident("__ref"),
             Type::Texture(texture_type) => texture_type.builtin_ident(),
             Type::Sampler(sampler_type) => sampler_type.builtin_ident(),
-            Type::Unknown => None,
+            Type::Unknown => builtin_ident("__unknown"),
             #[cfg(feature = "naga-ext")]
             Type::I64 => builtin_ident("i64"),
             #[cfg(feature = "naga-ext")]

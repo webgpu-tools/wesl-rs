@@ -1,6 +1,6 @@
 use wesl_macros::{query, query_mut};
 
-use crate::syntax::*;
+use wgsl_parse::syntax::*;
 
 pub trait Visit<T> {
     /// Visit each child node of type `T` in the subtree of `Self`.

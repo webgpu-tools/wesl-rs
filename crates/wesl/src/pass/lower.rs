@@ -1,4 +1,4 @@
-use crate::{Error, visit::Visit};
+use crate::{Diagnostic, error::Error, visit::Visit};
 
 use wgsl_parse::syntax::*;
 

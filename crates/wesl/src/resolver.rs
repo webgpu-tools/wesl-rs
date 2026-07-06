@@ -11,17 +11,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// Error produced by module resolution.
-#[derive(Clone, Debug, thiserror::Error)]
-pub enum ResolveError {
-    #[error("file not found: `{0}` ({1})")]
-    FileNotFound(PathBuf, String),
-    #[error("module not found: `{0}` ({1})")]
-    ModuleNotFound(ModulePath, String),
-    #[error("{0}")]
-    Error(#[from] Diagnostic<Error>),
-}
-
 type E = ResolveError;
 
 /// A Resolver implements the module resolution algorithm: it returns a module contents

@@ -1,9 +1,7 @@
 use std::str::FromStr;
 
-use crate::Eval;
-
 use super::{
-    ATTR_INTRINSIC, Context, Convert, EvalAttrs, EvalError, Exec, ScopeKind, StructType,
+    ATTR_INTRINSIC, Context, Convert, Eval, EvalAttrs, EvalError, Exec, ScopeKind, StructType,
     SyntaxUtil, Ty, Type, check_swizzle, convert_ty, is_ctor, type_builtin_fn, type_ctor,
     with_stage,
 };

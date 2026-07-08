@@ -37,17 +37,47 @@ pub enum ResolveError {
     Error(#[from] Diagnostic<Error>),
 }
 
+/// WESL or WGSL Validation error.
+#[derive(Clone, Debug, thiserror::Error)]
+pub enum ValidateError {
+    #[error("cannot find declaration of `{0}`")]
+    UndefinedSymbol(String),
+    #[error("incorrect number of arguments to `{0}`, expected `{1}`, got `{2}`")]
+    ParamCount(String, usize, usize),
+    #[error("`{0}` is not callable")]
+    NotCallable(String),
+    #[error("duplicate declaration of `{0}`")]
+    Duplicate(String),
+    #[error("declaration of `{0}` is cyclic via `{1}`")]
+    Cycle(String, String),
+}
+
+/// Error produced during import resolution.
+#[derive(Clone, Debug, thiserror::Error)]
+pub enum ImportError {
+    #[error("duplicate declaration of `{0}`")]
+    DuplicateSymbol(String),
+    #[error("{0}")]
+    ResolveError(#[from] ResolveError),
+    #[error("module `{0}` has no declaration `{1}`")]
+    MissingDecl(ModulePath, String),
+    #[error(
+        "import of `{0}` in module `{1}` is not `@publish`, but another module tried to import it"
+    )]
+    Private(String, ModulePath),
+}
+
 /// Any WESL error.
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum Error {
     #[error("{0}")]
     ParseError(#[from] wgsl_parse::Error),
-    // #[error("{0}")]
-    // ValidateError(#[from] ValidateError),
+    #[error("{0}")]
+    ValidateError(#[from] ValidateError),
     #[error("{0}")]
     ResolveError(#[from] ResolveError),
-    // #[error("{0}")]
-    // ImportError(#[from] ImportError),
+    #[error("{0}")]
+    ImportError(#[from] ImportError),
     #[error("{0}")]
     CondCompError(#[from] CondCompError),
     // #[cfg(feature = "generics")]
@@ -91,11 +121,11 @@ impl From<wgsl_parse::Error> for Diagnostic<Error> {
     }
 }
 
-// impl From<ValidateError> for Diagnostic<Error> {
-//     fn from(error: ValidateError) -> Self {
-//         Self::new(error.into())
-//     }
-// }
+impl From<ValidateError> for Diagnostic<Error> {
+    fn from(error: ValidateError) -> Self {
+        Self::new(error.into())
+    }
+}
 
 impl From<ResolveError> for Diagnostic<Error> {
     fn from(error: ResolveError) -> Self {
@@ -108,14 +138,14 @@ impl From<ResolveError> for Diagnostic<Error> {
     }
 }
 
-// impl From<ImportError> for Diagnostic<Error> {
-//     fn from(error: ImportError) -> Self {
-//         match error {
-//             ImportError::ResolveError(e) => Self::from(e),
-//             _ => Self::new(error.into()),
-//         }
-//     }
-// }
+impl From<ImportError> for Diagnostic<Error> {
+    fn from(error: ImportError) -> Self {
+        match error {
+            ImportError::ResolveError(e) => Self::from(e),
+            _ => Self::new(error.into()),
+        }
+    }
+}
 
 impl From<CondCompError> for Diagnostic<Error> {
     fn from(error: CondCompError) -> Self {

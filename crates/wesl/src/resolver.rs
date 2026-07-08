@@ -1,4 +1,4 @@
-use crate::{Diagnostic, Error};
+use crate::{Diagnostic, Error, error::ResolveError};
 
 use itertools::Itertools;
 use wgsl_parse::syntax::{ModulePath, PathOrigin, TranslationUnit};
@@ -656,10 +656,11 @@ mod test {
         r.mount_fallback_resolver(std);
 
         // compile to test imports and casting
-        crate::Wesl::new(".")
-            .set_custom_resolver(r)
-            .compile(&"package::color_math".parse().unwrap())
-            .unwrap();
+        panic!()
+        // crate::Wesl::new(".")
+        //     .set_custom_resolver(r)
+        //     .compile(&"package::color_math".parse().unwrap())
+        //     .unwrap();
     }
 
     #[test]

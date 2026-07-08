@@ -19,14 +19,17 @@ pub use util::*;
 
 pub use error::Diagnostic;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{
+    HashMap, HashSet, VecDeque,
+    hash_map::{Entry, OccupiedEntry},
+};
 use wgsl_parse::{
     SyntaxNode,
     syntax::{Ident, ModulePath, TranslationUnit},
 };
 
 use crate::{
-    error::Error,
+    error::{Error, ResolveError},
     mangler::Mangler,
     pass::UsedItems,
     resolver::Resolver,
@@ -70,11 +73,11 @@ impl From<bool> for Feature {
     }
 }
 
-#[derive(Debug)]
-pub struct Module {
+struct Module {
     pub syntax: TranslationUnit,
     pub path: ModulePath,
-    pub used_items: HashSet<String>,
+    pub used_items: HashSet<Ident>,
+    pub first_pass: bool,
 }
 
 // #[cfg(feature = "eval")]
@@ -246,12 +249,20 @@ pub enum ManglerKind {
 }
 
 pub struct Compiler {
-    /// Module resolver.
-    pub resolver: Box<dyn Resolver>,
-    /// Identifier mangler.
-    pub mangler: Box<dyn Mangler>,
-    /// Compile options.
-    pub options: CompileOptions,
+    hooks: Vec<Box<dyn CompileHooks>>,
+    options: CompileOptions,
+    resolver: Box<dyn Resolver>,
+    mangler: Box<dyn Mangler>,
+}
+
+struct CompilePass<'a> {
+    root_path: ModulePath,
+    modules: HashMap<ModulePath, Module>,
+    resolver: &'a dyn Resolver,
+}
+
+pub(crate) struct Resolutions {
+    order: Vec<ModulePath>,
 }
 
 pub struct CompileResult {
@@ -260,61 +271,160 @@ pub struct CompileResult {
     pub modules: Vec<ModulePath>,
 }
 
+impl<'a> CompilePass<'a> {
+    fn get_module(
+        &mut self,
+        path: &ModulePath,
+    ) -> Result<OccupiedEntry<ModulePath, Module>, Error> {
+        let module = match self.modules.entry(path.clone()) {
+            Entry::Occupied(mut entry) => {
+                entry.get_mut().first_pass = false;
+                entry
+            }
+            Entry::Vacant(entry) => {
+                let mut syntax = self.resolver.resolve_module(path)?;
+                pass::retarget_idents(&mut syntax);
+                entry.insert_entry(Module {
+                    syntax,
+                    path: path.clone(),
+                    used_items: HashSet::new(),
+                    first_pass: true,
+                })
+            }
+        };
+        Ok(module)
+    }
+
+    // fn process_modules_rec(
+    //     &mut self,
+    //     path: &ModulePath,
+    //     keep: &HashSet<String>,
+    // ) -> Result<(), Error> {
+    //     let mut module = self.get_module(path)?;
+    //     module.get_mut().used_items.extend(keep.iter().cloned());
+
+    //     let mut used_items = UsedItems::new();
+    //     pass::list_used(module.get(), &mut used_items);
+
+    //     module
+    //         .get_mut()
+    //         .used_items
+    //         .extend(used_items.get(path).unwrap().clone());
+
+    //     for (ext_path, ext_used_items) in &used_items {
+    //         if ext_path != path {
+    //             self.process_modules_rec(ext_path, ext_used_items)?;
+    //         }
+    //     }
+
+    //     Ok(())
+    // }
+}
+
+pub trait CompileHooks {
+    fn module_loaded(
+        &self,
+        _path: &ModulePath,
+        _syntax: &mut TranslationUnit,
+    ) -> Result<(), Error> {
+        Ok(())
+    }
+    fn before_assembly(&self, _modules: Vec<Module>) -> Result<(), Error> {
+        Ok(())
+    }
+    // fn after_assembly(&self, modules: )
+}
+
 impl Compiler {
     pub fn compile(&self, root: &ModulePath) -> Result<CompileResult, Error> {
         let sourcemapper = SourceMapper::new(root, &self.resolver, &self.mangler);
 
-        let syntax = sourcemapper.resolve_module(root)?;
-        pass::retarget_idents(&mut syntax);
+        let mut compile_pass = CompilePass {
+            root_path: root.clone(),
+            modules: Default::default(),
+            resolver: &sourcemapper,
+        };
+
+        // let syntax = sourcemapper.resolve_module(root)?;
+        // pass::retarget_idents(&mut syntax);
+        let root_module = compile_pass.get_module(root)?;
+
         let keep = keep_idents(
-            &syntax,
+            &root_module.get().syntax,
             &self.options.keep,
             self.options.keep_root,
             self.options.strip,
         );
-        let module = Module {
-            syntax,
-            path: root.clone(),
-            used_items: keep,
-        };
 
-        let mut used_items = UsedItems::new();
-        pass::list_used(&module, &mut used_items);
+        // let mut path = root.clone();
+        let mut used = UsedItems::new();
+        let mut next_used = UsedItems::new();
+        let mut next_modules = VecDeque::new();
+        next_modules.push_back(root.clone());
 
-        module
-            .used_items
-            .extend(used_items.get(root).unwrap().clone());
+        while let Some(path) = next_modules.pop_front() {
+            let mut module = compile_pass.get_module(&path)?;
+            module.get_mut().used_items.extend(keep.iter().cloned());
 
-        for path in used_items.keys() {}
+            pass::list_used(module.get(), &mut next_used);
 
-        match compile_pre_assembly(root, &sourcemapper, &self.options) {
-            Ok((mut resolutions, keep)) => {
-                resolutions.mangle(&sourcemapper, &self.options.mangle_root);
-                let sourcemap = sourcemapper.finish();
-                let mut assembly = resolutions.assemble(self.options.strip && self.options.lazy);
-                let modules = resolutions.into_module_order();
-                compile_post_assembly(&mut assembly, &self.options, &keep)
-                    .map_err(|e| {
-                        Diagnostic::from(e)
-                            .with_output(assembly.to_string())
-                            .with_sourcemap(&sourcemap)
-                            .unmangle(Some(&sourcemap), Some(&self.mangler))
-                            .into()
-                    })
-                    .map(|()| CompileResult {
-                        syntax: assembly,
-                        sourcemap: Some(sourcemap),
-                        modules,
-                    })
-            }
-            Err(e) => {
-                let sourcemap = sourcemapper.finish();
-                Err(Diagnostic::from(e)
-                    .with_sourcemap(&sourcemap)
-                    .unmangle(Some(&sourcemap), Some(&mangler))
-                    .into())
+            for (path, next_items) in next_used.drain() {
+                if let Some(items) = used.get_mut(&path) {
+                    next_items.difference(items)
+                    items.extend(next_items);
+                }
+                if !used.contains_key(&next_path) && !next_modules.contains(&next_path) {
+
+                }
             }
         }
+        // compile_pass.process_modules_rec(root, &keep)?;
+
+        // let module = Module {
+        //     syntax,
+        //     path: root.clone(),
+        //     used_items: keep,
+        // };
+
+        // let mut used_items = UsedItems::new();
+        // pass::list_used(&module, &mut used_items);
+
+        // module
+        //     .used_items
+        //     .extend(used_items.get(root).unwrap().clone());
+
+        // for path in used_items.keys() {
+        //     if path != &module.path {}
+        // }
+
+        // match compile_pre_assembly(root, &sourcemapper, &self.options) {
+        //     Ok((mut resolutions, keep)) => {
+        //         resolutions.mangle(&sourcemapper, &self.options.mangle_root);
+        //         let sourcemap = sourcemapper.finish();
+        //         let mut assembly = resolutions.assemble(self.options.strip && self.options.lazy);
+        //         let modules = resolutions.into_module_order();
+        //         compile_post_assembly(&mut assembly, &self.options, &keep)
+        //             .map_err(|e| {
+        //                 Diagnostic::from(e)
+        //                     .with_output(assembly.to_string())
+        //                     .with_sourcemap(&sourcemap)
+        //                     .unmangle(Some(&sourcemap), Some(&self.mangler))
+        //                     .into()
+        //             })
+        //             .map(|()| CompileResult {
+        //                 syntax: assembly,
+        //                 sourcemap: Some(sourcemap),
+        //                 modules,
+        //             })
+        //     }
+        //     Err(e) => {
+        //         let sourcemap = sourcemapper.finish();
+        //         Err(Diagnostic::from(e)
+        //             .with_sourcemap(&sourcemap)
+        //             .unmangle(Some(&sourcemap), Some(&mangler))
+        //             .into())
+        //     }
+        // }
         todo!()
     }
 
@@ -965,7 +1075,7 @@ fn keep_idents(
     keep: &Option<Vec<String>>,
     keep_root: bool,
     strip: bool,
-) -> HashSet<String> {
+) -> HashSet<Ident> {
     if strip && !keep_root {
         if let Some(keep) = keep {
             wesl.global_declarations
@@ -973,20 +1083,19 @@ fn keep_idents(
                 .filter_map(|decl| {
                     let ident = decl.ident()?;
                     keep.iter()
-                        .any(|name| name == &*ident.to_string())
+                        .any(|name| &*ident.name() == name)
                         .then_some(ident)
                 })
                 .collect()
         } else {
             // when stripping is enabled and keep is unset, we keep the entrypoints (default)
-            wesl.entry_points().map(|ident| ident.to_string()).collect()
+            wesl.entry_points().cloned().collect()
         }
     } else {
         // when stripping is disabled, we keep all declarations in the root module.
         wesl.global_declarations
             .iter()
             .filter_map(|decl| decl.ident())
-            .map(|ident| ident.to_string())
             .collect()
     }
 }

@@ -19,21 +19,6 @@ struct ImportedItem {
     public: bool,
 }
 
-/// Error produced during import resolution.
-#[derive(Clone, Debug, thiserror::Error)]
-pub enum ImportError {
-    #[error("duplicate declaration of `{0}`")]
-    DuplicateSymbol(String),
-    #[error("{0}")]
-    ResolveError(#[from] ResolveError),
-    #[error("module `{0}` has no declaration `{1}`")]
-    MissingDecl(ModulePath, String),
-    #[error(
-        "import of `{0}` in module `{1}` is not `@publish`, but another module tried to import it"
-    )]
-    Private(String, ModulePath),
-}
-
 type E = ImportError;
 
 #[derive(Debug)]

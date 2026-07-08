@@ -13,14 +13,14 @@ struct ImportedItem {
 }
 
 type Imports = HashMap<Ident, ImportedItem>;
-pub type UsedItems = HashMap<ModulePath, HashSet<String>>;
+pub type UsedItems = HashMap<ModulePath, HashSet<Ident>>;
 
 /// Find declarations used in external modules.
 pub fn list_used(module: &Module, used_items: &mut UsedItems) {
     let imports = flatten_imports(&module.syntax.imports, &module.path);
 
     // const_asserts are always used. we add them if the module has not been analyzed yet.
-    if !used_items.contains_key(&module.path) {
+    if module.first_pass {
         let const_asserts = module
             .syntax
             .global_declarations
@@ -28,7 +28,7 @@ pub fn list_used(module: &Module, used_items: &mut UsedItems) {
             .filter(|decl| decl.is_const_assert());
 
         for decl in const_asserts {
-            run_decl(module, decl, &imports, used_items);
+            decl_list_used(module, decl, &imports, used_items);
         }
     } else {
         used_items.insert(module.path.clone(), Default::default());
@@ -42,13 +42,13 @@ pub fn list_used(module: &Module, used_items: &mut UsedItems) {
             .find(|decl| decl.ident().as_ref() == Some(ident));
 
         if let Some(decl) = decl {
-            run_decl(module, decl, &imports, used_items);
+            decl_list_used(module, decl, &imports, used_items);
         }
     }
 }
 
 /// Find declarations used in external modules.
-fn run_decl(
+fn decl_list_used(
     module: &Module,
     decl: &GlobalDeclaration,
     imports: &Imports,
@@ -74,7 +74,7 @@ fn run_decl(
                     .insert(ty_expr.ident.to_string());
 
                 if inserted && !module.used_items.contains(&ty_expr.ident) {
-                    run_decl(module, decl, imports, used_items);
+                    decl_list_used(module, decl, imports, used_items);
                 }
             }
         }

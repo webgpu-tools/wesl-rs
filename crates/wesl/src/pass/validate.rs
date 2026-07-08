@@ -8,24 +8,7 @@ use wgsl_parse::syntax::{
 };
 use wgsl_types::idents::{BUILTIN_CONSTRUCTOR_NAMES, BUILTIN_FUNCTION_NAMES};
 
-use crate::idents::builtin_ident;
-use crate::visit::Visit;
-use crate::{Diagnostic, Error};
-
-/// WESL or WGSL Validation error.
-#[derive(Clone, Debug, thiserror::Error)]
-pub enum ValidateError {
-    #[error("cannot find declaration of `{0}`")]
-    UndefinedSymbol(String),
-    #[error("incorrect number of arguments to `{0}`, expected `{1}`, got `{2}`")]
-    ParamCount(String, usize, usize),
-    #[error("`{0}` is not callable")]
-    NotCallable(String),
-    #[error("duplicate declaration of `{0}`")]
-    Duplicate(String),
-    #[error("declaration of `{0}` is cyclic via `{1}`")]
-    Cycle(String, String),
-}
+use crate::{Diagnostic, Error, error::ValidateError, idents::builtin_ident, visit::Visit};
 
 type E = ValidateError;
 

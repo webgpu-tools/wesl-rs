@@ -4,9 +4,9 @@ use std::{
 };
 
 use crate::{
-    Diagnostic, Error, ModulePath, SyntaxUtil,
-    resolve::CodegenPkg,
-    validate::validate_wesl,
+    Diagnostic, Error, ModulePath,
+    pass::{retarget_idents, validate_wesl},
+    resolver::CodegenPkg,
     wesl_toml::{self, ScanTomlError, WeslToml},
 };
 use quote::{format_ident, quote};
@@ -336,7 +336,7 @@ impl Module {
             .source
             .parse()
             .map_err(|e: wgsl_parse::Error| to_diagnostic(e.into()))?;
-        wesl.retarget_idents();
+        retarget_idents(&mut wesl);
         validate_wesl(&wesl).map_err(|e| to_diagnostic(e.into()))?;
         for module in &self.submodules {
             module.validate(path.clone())?;

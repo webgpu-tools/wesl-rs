@@ -106,7 +106,7 @@ impl TextureType {
             TextureType::Sampled3D(st) => Some(*st),
             TextureType::SampledCube(st) => Some(*st),
             TextureType::SampledCubeArray(st) => Some(*st),
-            TextureType::Multisampled2D(_) => None,
+            TextureType::Multisampled2D(st) => Some(*st),
             TextureType::DepthMultisampled2D => None,
             TextureType::External => None,
             TextureType::Storage1D(_, _) => None,
@@ -152,6 +152,7 @@ impl TextureType {
             TextureType::Multisampled2DArray(st) => *st,
         }
     }
+    /// NOTE: a `texture_depth_multisampled_2d` is *not* considered a depth texture.
     pub fn is_depth(&self) -> bool {
         matches!(
             self,
@@ -206,6 +207,15 @@ impl TextureType {
             TextureType::Multisampled2DArray(_) => true,
             _ => false,
         }
+    }
+    pub fn is_cube(&self) -> bool {
+        matches!(
+            self,
+            TextureType::SampledCube(_)
+                | TextureType::SampledCubeArray(_)
+                | TextureType::DepthCube
+                | TextureType::DepthCubeArray
+        )
     }
 }
 
@@ -324,6 +334,16 @@ impl Type {
             Type::AbstractInt | Type::I32 | Type::U32 => true,
             #[cfg(feature = "naga-ext")]
             Type::I64 | Type::U64 => true,
+            _ => false,
+        }
+    }
+
+    /// Is a signed numeric type.
+    pub fn is_signed(&self) -> bool {
+        match self {
+            Type::AbstractInt | Type::AbstractFloat | Type::I32 | Type::F32 | Type::F16 => true,
+            #[cfg(feature = "naga-ext")]
+            Type::I64 | Type::F64 => true,
             _ => false,
         }
     }

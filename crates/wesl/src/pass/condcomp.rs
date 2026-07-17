@@ -324,13 +324,13 @@ fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) 
 }
 
 /// Run the conditional translation phase, eliminating unused code branches.
-pub fn condcomp(syntax: &mut TranslationUnit, features: &Features) -> Result<(), E> {
-    syntax.remove_voids();
-    eval_if_attrs(&mut syntax.imports, features)?;
-    eval_if_attrs(&mut syntax.global_directives, features)?;
-    eval_if_attrs(&mut syntax.global_declarations, features)?;
+pub fn condcomp(module: &mut TranslationUnit, features: &Features) -> Result<(), E> {
+    module.remove_voids();
+    eval_if_attrs(&mut module.imports, features)?;
+    eval_if_attrs(&mut module.global_directives, features)?;
+    eval_if_attrs(&mut module.global_declarations, features)?;
 
-    for decl in &mut syntax.global_declarations {
+    for decl in &mut module.global_declarations {
         if let GlobalDeclaration::Struct(decl) = decl.node_mut() {
             eval_if_attrs(&mut decl.members, features)
                 .map_err(|e| Diagnostic::from(e).with_declaration(decl.ident.to_string()))?;

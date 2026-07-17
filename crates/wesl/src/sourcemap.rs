@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, path::PathBuf};
 
-use wgsl_parse::syntax::TypeExpression;
+use wgsl_parse::{span::Span, syntax::TypeExpression};
 
 use crate::{Mangler, ModulePath, ResolveError, Resolver};
 
@@ -16,7 +16,7 @@ use crate::{Mangler, ModulePath, ResolveError, Resolver};
 /// and [`Mangler`] when compiling code.
 pub trait SourceMap {
     /// Get the module path and declaration name from a mangled name.
-    fn get_decl(&self, decl: &str) -> Option<(&ModulePath, &str)>;
+    fn get_decl(&self, decl: &str) -> Option<&SourceMapEntry>;
     /// Get a module contents.
     fn get_source(&self, path: &ModulePath) -> Option<&str>;
     /// Get a module display name.
@@ -27,10 +27,17 @@ pub trait SourceMap {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct SourceMapEntry {
+    pub path: ModulePath,
+    pub name: String,
+    pub span: Option<Span>,
+}
+
 /// Basic implementation of [`SourceMap`].
 #[derive(Clone, Debug, Default)]
 pub struct BasicSourceMap {
-    mappings: HashMap<String, (ModulePath, String)>,
+    mappings: HashMap<String, SourceMapEntry>,
     sources: HashMap<ModulePath, (Option<String>, String)>, // res -> (display_name, source)
     default_source: Option<String>,
 }
@@ -39,8 +46,8 @@ impl BasicSourceMap {
     pub fn new() -> Self {
         Default::default()
     }
-    pub fn add_decl(&mut self, decl: String, path: ModulePath, item: String) {
-        self.mappings.insert(decl, (path, item));
+    pub fn add_decl(&mut self, decl: String, entry: SourceMapEntry) {
+        self.mappings.insert(decl, entry);
     }
     pub fn add_source(&mut self, file: ModulePath, name: Option<String>, source: String) {
         self.sources.insert(file, (name, source));
@@ -51,9 +58,8 @@ impl BasicSourceMap {
 }
 
 impl SourceMap for BasicSourceMap {
-    fn get_decl(&self, decl: &str) -> Option<(&ModulePath, &str)> {
-        let (path, decl) = self.mappings.get(decl)?;
-        Some((path, decl))
+    fn get_decl(&self, decl: &str) -> Option<&SourceMapEntry> {
+        self.mappings.get(decl)
     }
 
     fn get_source(&self, path: &ModulePath) -> Option<&str> {
@@ -68,7 +74,7 @@ impl SourceMap for BasicSourceMap {
 }
 
 impl<T: SourceMap> SourceMap for Option<T> {
-    fn get_decl(&self, decl: &str) -> Option<(&ModulePath, &str)> {
+    fn get_decl(&self, decl: &str) -> Option<&SourceMapEntry> {
         self.as_ref().and_then(|map| map.get_decl(decl))
     }
     fn get_source(&self, path: &ModulePath) -> Option<&str> {
@@ -89,7 +95,7 @@ impl<T: SourceMap> SourceMap for Option<T> {
 pub struct NoSourceMap;
 
 impl SourceMap for NoSourceMap {
-    fn get_decl(&self, _decl: &str) -> Option<(&ModulePath, &str)> {
+    fn get_decl(&self, _decl: &str) -> Option<&SourceMapEntry> {
         None
     }
     fn get_source(&self, _path: &ModulePath) -> Option<&str> {
@@ -109,16 +115,16 @@ impl SourceMap for NoSourceMap {
 /// SourceMap, invoke the compiler with this instance as both the mangler and the
 /// resolver. Call [`SourceMapper::finish`] to get the final SourceMap once finished
 /// recording.
-pub struct SourceMapper<'a> {
-    pub root: &'a ModulePath,
-    pub resolver: &'a dyn Resolver,
-    pub mangler: &'a dyn Mangler,
+pub struct SourceMapper {
+    pub root: ModulePath,
+    pub resolver: Box<dyn Resolver>,
+    pub mangler: Box<dyn Mangler>,
     pub sourcemap: RefCell<BasicSourceMap>,
 }
 
-impl<'a> SourceMapper<'a> {
+impl SourceMapper {
     /// Create a new `SourceMapper` from a mangler and a resolver.
-    pub fn new(root: &'a ModulePath, resolver: &'a dyn Resolver, mangler: &'a dyn Mangler) -> Self {
+    pub fn new(root: ModulePath, resolver: Box<dyn Resolver>, mangler: Box<dyn Mangler>) -> Self {
         Self {
             root,
             resolver,
@@ -129,14 +135,14 @@ impl<'a> SourceMapper<'a> {
     /// Consume this and return a [`BasicSourceMap`].
     pub fn finish(self) -> BasicSourceMap {
         let mut sourcemap = self.sourcemap.into_inner();
-        if let Some(source) = sourcemap.get_source(self.root) {
+        if let Some(source) = sourcemap.get_source(&self.root) {
             sourcemap.set_default_source(source.to_string());
         }
         sourcemap
     }
 }
 
-impl Resolver for SourceMapper<'_> {
+impl Resolver for SourceMapper {
     fn resolve_source<'a>(
         &'a self,
         path: &ModulePath,
@@ -158,11 +164,16 @@ impl Resolver for SourceMapper<'_> {
     }
 }
 
-impl Mangler for SourceMapper<'_> {
+impl Mangler for SourceMapper {
     fn mangle(&self, path: &ModulePath, item: &str) -> String {
         let res = self.mangler.mangle(path, item);
         let mut sourcemap = self.sourcemap.borrow_mut();
-        sourcemap.add_decl(res.clone(), path.clone(), item.to_string());
+        let entry = SourceMapEntry {
+            path: path.clone(),
+            name: item.to_string(),
+            span: None,
+        };
+        sourcemap.add_decl(res.clone(), entry);
         res
     }
     fn unmangle(&self, mangled: &str) -> Option<(ModulePath, String)> {

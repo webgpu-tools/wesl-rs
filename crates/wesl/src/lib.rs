@@ -19,9 +19,9 @@ pub use util::*;
 
 pub use error::Diagnostic;
 
-use std::collections::{
-    HashMap, HashSet, VecDeque,
-    hash_map::{Entry, OccupiedEntry},
+use std::{
+    collections::{HashMap, HashSet},
+    path::Path,
 };
 use wgsl_parse::{
     SyntaxNode,
@@ -30,9 +30,9 @@ use wgsl_parse::{
 
 use crate::{
     error::{Error, ResolveError},
-    mangler::Mangler,
+    mangler::{EscapeMangler, Mangler},
     pass::UsedItems,
-    resolver::Resolver,
+    resolver::{AsyncResolver, Resolver, StandardResolver},
     sourcemap::{BasicSourceMap, SourceMapper},
 };
 
@@ -76,8 +76,18 @@ impl From<bool> for Feature {
 struct Module {
     pub syntax: TranslationUnit,
     pub path: ModulePath,
-    pub used_items: HashSet<Ident>,
-    pub first_pass: bool,
+    pub imports: Imports,
+}
+
+impl Module {
+    fn new(path: ModulePath, syntax: TranslationUnit) -> Self {
+        let imports = syntax.flatten_imports(&path);
+        Self {
+            syntax,
+            path,
+            imports,
+        }
+    }
 }
 
 // #[cfg(feature = "eval")]
@@ -145,16 +155,6 @@ struct Module {
 /// Compilation options. Used in [`compile`] and [`Wesl::set_options`].
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CompileOptions {
-    /// Toggle [WESL Imports](https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/Imports.md).
-    ///
-    /// If disabled:
-    /// * The compiler will silently remove the import statements and inline paths.
-    /// * Validation will not trigger an error if referencing an imported item.
-    pub imports: bool,
-    /// Toggle [WESL Conditional Translation](https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/ConditionalTranslation.md).
-    ///
-    /// See `features` to enable/disable each feature flag.
-    pub condcomp: bool,
     /// Toggle generics. Generics are super experimental, don't expect anything from it.
     ///
     /// Requires the `generics` crate feature flag.
@@ -179,14 +179,6 @@ pub struct CompileOptions {
     ///
     /// Requires the `eval` crate feature flag.
     pub validate: bool,
-    /// Make the import resolution lazy (This is the default mandated by WESL).
-    ///
-    /// The "lazy" import algorithm will only read a submodule is one of its item is used
-    /// by the entrypoints or `keep` declarations (recursively via static usage analysis).
-    /// In contrast, the "eager" import algorithm will follow all import paths.
-    ///
-    /// "lazy" is automatically disabled when stripping is disabled.
-    pub lazy: bool,
     /// Enable mangling of declarations in the root module.
     ///
     /// By default, WESL does not mangle root module declarations.
@@ -216,13 +208,10 @@ pub struct CompileOptions {
 impl Default for CompileOptions {
     fn default() -> Self {
         Self {
-            imports: true,
-            condcomp: true,
             generics: false,
             strip: true,
             lower: false,
             validate: true,
-            lazy: true,
             mangle_root: false,
             keep: Default::default(),
             keep_root: false,
@@ -248,189 +237,137 @@ pub enum ManglerKind {
     None,
 }
 
-pub struct Compiler {
-    hooks: Vec<Box<dyn CompileHooks>>,
-    options: CompileOptions,
-    resolver: Box<dyn Resolver>,
-    mangler: Box<dyn Mangler>,
-}
-
-struct CompilePass<'a> {
-    root_path: ModulePath,
-    modules: HashMap<ModulePath, Module>,
-    resolver: &'a dyn Resolver,
-}
-
-pub(crate) struct Resolutions {
-    order: Vec<ModulePath>,
-}
-
 pub struct CompileResult {
     pub syntax: TranslationUnit,
     pub sourcemap: BasicSourceMap,
     pub modules: Vec<ModulePath>,
 }
 
-impl<'a> CompilePass<'a> {
-    fn get_module(
-        &mut self,
-        path: &ModulePath,
-    ) -> Result<OccupiedEntry<ModulePath, Module>, Error> {
-        let module = match self.modules.entry(path.clone()) {
-            Entry::Occupied(mut entry) => {
-                entry.get_mut().first_pass = false;
-                entry
-            }
-            Entry::Vacant(entry) => {
-                let mut syntax = self.resolver.resolve_module(path)?;
-                pass::retarget_idents(&mut syntax);
-                entry.insert_entry(Module {
-                    syntax,
-                    path: path.clone(),
-                    used_items: HashSet::new(),
-                    first_pass: true,
-                })
-            }
-        };
-        Ok(module)
-    }
+pub trait CompilerDriver {
+    fn root_path(&self) -> &ModulePath;
 
-    // fn process_modules_rec(
-    //     &mut self,
-    //     path: &ModulePath,
-    //     keep: &HashSet<String>,
-    // ) -> Result<(), Error> {
-    //     let mut module = self.get_module(path)?;
-    //     module.get_mut().used_items.extend(keep.iter().cloned());
+    fn root_entrypoints(&self, root_module: &TranslationUnit) -> Result<HashSet<Ident>, Error>;
 
-    //     let mut used_items = UsedItems::new();
-    //     pass::list_used(module.get(), &mut used_items);
+    fn load_module(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error>;
 
-    //     module
-    //         .get_mut()
-    //         .used_items
-    //         .extend(used_items.get(path).unwrap().clone());
-
-    //     for (ext_path, ext_used_items) in &used_items {
-    //         if ext_path != path {
-    //             self.process_modules_rec(ext_path, ext_used_items)?;
-    //         }
-    //     }
-
-    //     Ok(())
-    // }
+    fn assemble(&self, modules: Vec<Module>) -> Result<TranslationUnit, Error>;
 }
 
-pub trait CompileHooks {
-    fn module_loaded(
-        &self,
-        _path: &ModulePath,
-        _syntax: &mut TranslationUnit,
-    ) -> Result<(), Error> {
-        Ok(())
-    }
-    fn before_assembly(&self, _modules: Vec<Module>) -> Result<(), Error> {
-        Ok(())
-    }
-    // fn after_assembly(&self, modules: )
+pub trait AsyncCompilerDriver: CompilerDriver {
+    async fn load_module_async(&self) -> Result<TranslationUnit, Error>;
 }
 
-impl Compiler {
-    pub fn compile(&self, root: &ModulePath) -> Result<CompileResult, Error> {
-        let sourcemapper = SourceMapper::new(root, &self.resolver, &self.mangler);
+pub struct StandardCompiler<'a> {
+    root_path: &'a ModulePath,
+    options: &'a CompileOptions,
+    sourcemapper: SourceMapper,
+}
 
-        let mut compile_pass = CompilePass {
-            root_path: root.clone(),
-            modules: Default::default(),
-            resolver: &sourcemapper,
-        };
+impl<'a> StandardCompiler<'a> {
+    fn new(base: impl AsRef<Path>, root: &'a ModulePath, options: &'a CompileOptions) -> Self {
+        let resolver = Box::new(StandardResolver::new(base));
+        let mangler = Box::new(EscapeMangler);
+        let sourcemapper = SourceMapper::new(root.clone(), resolver, mangler);
 
-        // let syntax = sourcemapper.resolve_module(root)?;
-        // pass::retarget_idents(&mut syntax);
-        let root_module = compile_pass.get_module(root)?;
+        Self {
+            root_path: root,
+            options,
+            sourcemapper,
+        }
+    }
+}
 
+impl CompilerDriver for StandardCompiler<'_> {
+    fn root_path(&self) -> &ModulePath {
+        &self.root_path
+    }
+
+    fn root_entrypoints(&self, root_module: &TranslationUnit) -> Result<HashSet<Ident>, Error> {
         let keep = keep_idents(
-            &root_module.get().syntax,
+            root_module,
             &self.options.keep,
             self.options.keep_root,
             self.options.strip,
         );
 
-        // let mut path = root.clone();
-        let mut used = UsedItems::new();
-        let mut next_used = UsedItems::new();
-        let mut next_modules = VecDeque::new();
-        next_modules.push_back(root.clone());
+        Ok(keep)
+    }
 
-        while let Some(path) = next_modules.pop_front() {
-            let mut module = compile_pass.get_module(&path)?;
-            module.get_mut().used_items.extend(keep.iter().cloned());
+    fn load_module(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error> {
+        let source = self.sourcemapper.resolve_source(path)?;
+        let mut module = parse_source(&source, path, &self.sourcemapper)?;
+        pass::retarget_idents(&mut module);
+        pass::condcomp(&mut module, &self.options.features)?;
 
-            pass::list_used(module.get(), &mut next_used);
-
-            for (path, next_items) in next_used.drain() {
-                if let Some(items) = used.get_mut(&path) {
-                    next_items.difference(items)
-                    items.extend(next_items);
-                }
-                if !used.contains_key(&next_path) && !next_modules.contains(&next_path) {
-
-                }
-            }
+        if self.options.validate {
+            pass::validate_wesl(&module)?;
         }
-        // compile_pass.process_modules_rec(root, &keep)?;
 
-        // let module = Module {
-        //     syntax,
-        //     path: root.clone(),
-        //     used_items: keep,
-        // };
-
-        // let mut used_items = UsedItems::new();
-        // pass::list_used(&module, &mut used_items);
-
-        // module
-        //     .used_items
-        //     .extend(used_items.get(root).unwrap().clone());
-
-        // for path in used_items.keys() {
-        //     if path != &module.path {}
-        // }
-
-        // match compile_pre_assembly(root, &sourcemapper, &self.options) {
-        //     Ok((mut resolutions, keep)) => {
-        //         resolutions.mangle(&sourcemapper, &self.options.mangle_root);
-        //         let sourcemap = sourcemapper.finish();
-        //         let mut assembly = resolutions.assemble(self.options.strip && self.options.lazy);
-        //         let modules = resolutions.into_module_order();
-        //         compile_post_assembly(&mut assembly, &self.options, &keep)
-        //             .map_err(|e| {
-        //                 Diagnostic::from(e)
-        //                     .with_output(assembly.to_string())
-        //                     .with_sourcemap(&sourcemap)
-        //                     .unmangle(Some(&sourcemap), Some(&self.mangler))
-        //                     .into()
-        //             })
-        //             .map(|()| CompileResult {
-        //                 syntax: assembly,
-        //                 sourcemap: Some(sourcemap),
-        //                 modules,
-        //             })
-        //     }
-        //     Err(e) => {
-        //         let sourcemap = sourcemapper.finish();
-        //         Err(Diagnostic::from(e)
-        //             .with_sourcemap(&sourcemap)
-        //             .unmangle(Some(&sourcemap), Some(&mangler))
-        //             .into())
-        //     }
-        // }
-        todo!()
+        Ok(module)
     }
 
-    pub async fn compile_async() -> Result<CompileResult, Error> {
-        todo!()
+    fn assemble(&self, modules: Vec<Module>) -> Result<TranslationUnit, Error> {
+        let mut assembly = pass::assemble(&modules, self.options.strip);
+
+        if self.options.lower {
+            pass::lower(&mut assembly)?;
+        }
+
+        if self.options.validate {
+            pass::validate_wgsl(&assembly)?;
+        }
+
+        Ok(assembly)
     }
+}
+
+fn compile(driver: &mut impl CompilerDriver) -> Result<TranslationUnit, Error> {
+    let root_path = driver.root_path().clone();
+    let root_module = driver.load_module(&root_path)?;
+    let root_entrypoints = driver.root_entrypoints(&root_module)?;
+
+    let mut modules = Vec::new();
+    modules.push(Module::new(root_path.clone(), root_module));
+
+    let mut newly_used = UsedItems::new();
+    let mut already_used = UsedItems::new();
+
+    newly_used.insert_module(root_path, root_entrypoints);
+
+    while !newly_used.is_empty() {
+        let mut next_newly_used = UsedItems::new();
+
+        for (path, used_items) in &newly_used.used_items {
+            let module = match modules.iter().find(|module| module.path == *path) {
+                Some(module) => module,
+                None => {
+                    let module = driver.load_module(path)?;
+                    modules.push_mut(Module::new(path.clone(), module))
+                }
+            };
+
+            pass::list_used(module, used_items, &mut already_used, &mut next_newly_used);
+        }
+
+        newly_used = next_newly_used;
+    }
+
+    let final_module = driver.assemble(modules)?;
+
+    Ok(final_module)
+}
+
+fn parse_source(
+    source: &str,
+    path: &ModulePath,
+    resolver: &impl Resolver,
+) -> Result<TranslationUnit, Error> {
+    let syntax: TranslationUnit = source.parse().map_err(|e| {
+        Diagnostic::from(e)
+            .with_module_path(path.clone(), resolver.display_name(path))
+            .with_source(source.to_string())
+    })?;
+    Ok(syntax)
 }
 
 // /// Include a WGSL file compiled with [`Wesl::build_artifact`] as a string.

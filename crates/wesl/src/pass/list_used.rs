@@ -1,26 +1,85 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use itertools::Itertools;
 use wgsl_parse::{SyntaxNode, syntax::*};
 
-use crate::{Module, visit::Visit};
+use crate::{ImportedItem, Module, visit::Visit};
 
-#[derive(Clone, Debug)]
-struct ImportedItem {
-    path: ModulePath,
-    ident: Ident, // this is the ident's original name before `as` renaming.
-    public: bool,
-}
+// #[derive(Clone, Debug)]
+// struct ImportedItem {
+//     path: ModulePath,
+//     ident: Ident, // this is the ident's original name before `as` renaming.
+//     public: bool,
+// }
 
 type Imports = HashMap<Ident, ImportedItem>;
-pub type UsedItems = HashMap<ModulePath, HashSet<Ident>>;
+
+pub struct UsedItems {
+    pub used_items: HashMap<ModulePath, HashSet<Ident>>,
+}
+
+impl UsedItems {
+    pub fn new() -> Self {
+        Self {
+            used_items: Default::default(),
+        }
+    }
+
+    pub fn contains_module(&self, path: &ModulePath) -> bool {
+        self.used_items.contains_key(path)
+    }
+
+    pub fn contains_ident(&self, path: &ModulePath, ident: &Ident) -> bool {
+        self.used_items
+            .get(path)
+            .is_some_and(|items| items.contains(ident))
+    }
+
+    pub fn contains_name(&self, path: &ModulePath, name: &str) -> bool {
+        self.used_items
+            .get(path)
+            .is_some_and(|items| items.iter().any(|ident| &**ident.name() == name))
+    }
+
+    pub fn insert_module(&mut self, path: ModulePath, idents: HashSet<Ident>) -> bool {
+        match self.used_items.entry(path) {
+            Entry::Occupied(_) => false,
+            Entry::Vacant(entry) => {
+                entry.insert(idents);
+                true
+            }
+        }
+    }
+
+    pub fn insert_ident(&mut self, path: ModulePath, ident: Ident) -> bool {
+        let entry = self.used_items.entry(path.clone()).or_default();
+        let inserted = entry.insert(ident);
+        inserted
+    }
+
+    pub fn remove_module(&mut self, path: &ModulePath) -> bool {
+        self.used_items.remove(path).is_some()
+    }
+
+    pub fn is_empty(&mut self) -> bool {
+        self.used_items.is_empty()
+    }
+}
 
 /// Find declarations used in external modules.
-pub fn list_used(module: &Module, used_items: &mut UsedItems) {
-    let imports = flatten_imports(&module.syntax.imports, &module.path);
-
+///
+/// "used" means referenced transitively from the program entry points.
+///
+/// The function call adds identifiers to the `used` parameter.
+pub fn list_used<'a>(
+    module: &Module,
+    entrypoints: impl IntoIterator<Item = &'a Ident> + 'a,
+    already_used: &mut UsedItems,
+    newly_used: &mut UsedItems,
+) {
     // const_asserts are always used. we add them if the module has not been analyzed yet.
-    if module.first_pass {
+    if already_used.contains_module(&module.path) {
+        already_used.insert_module(module.path.clone(), Default::default());
         let const_asserts = module
             .syntax
             .global_declarations
@@ -28,55 +87,58 @@ pub fn list_used(module: &Module, used_items: &mut UsedItems) {
             .filter(|decl| decl.is_const_assert());
 
         for decl in const_asserts {
-            decl_list_used(module, decl, &imports, used_items);
+            decl_list_used(module, decl, already_used, newly_used);
         }
-    } else {
-        used_items.insert(module.path.clone(), Default::default());
     }
 
-    for ident in &module.used_items {
+    for ident in entrypoints {
+        ident_list_used(&ident.name(), module, already_used, newly_used);
+    }
+}
+
+/// Find identifiers used by the declaration named `name`.
+fn ident_list_used(
+    name: &str,
+    module: &Module,
+    already_used: &mut UsedItems,
+    newly_used: &mut UsedItems,
+) {
+    if !already_used.contains_name(&module.path, name) {
         let decl = module
             .syntax
             .global_declarations
             .iter()
-            .find(|decl| decl.ident().as_ref() == Some(ident));
+            .find(|decl| decl.ident().is_some_and(|ident| &**ident.name() == name));
 
         if let Some(decl) = decl {
-            decl_list_used(module, decl, &imports, used_items);
+            already_used.insert_ident(
+                module.path.clone(),
+                decl.ident().unwrap(/* SAFETY: we found the declaration by name, so it has a name */),
+            );
+            decl_list_used(module, decl, already_used, newly_used);
+        } else {
+            // TODO: error when the ident is not found?
         }
     }
 }
 
-/// Find declarations used in external modules.
+/// Find identifiers used by a declaration.
 fn decl_list_used(
     module: &Module,
     decl: &GlobalDeclaration,
-    imports: &Imports,
-    used_items: &mut UsedItems,
+    already_used: &mut UsedItems,
+    newly_used: &mut UsedItems,
 ) {
     Visit::<TypeExpression>::visit_rec(decl, &mut |ty_expr| {
-        if let Some(import_path) = imported_item_path(ty_expr, &module.path, &imports) {
-            used_items
-                .entry(import_path)
-                .or_default()
-                .insert(ty_expr.ident.to_string());
-        } else {
-            let decl = module
-                .syntax
-                .global_declarations
-                .iter()
-                .find(|decl| decl.ident().as_ref() == Some(&ty_expr.ident));
-
-            if let Some(decl) = decl {
-                let inserted = used_items
-                    .entry(module.path.clone())
-                    .or_default()
-                    .insert(ty_expr.ident.to_string());
-
-                if inserted && !module.used_items.contains(&ty_expr.ident) {
-                    decl_list_used(module, decl, imports, used_items);
-                }
-            }
+        // this ident refers an imported item, we add it to the list of used items.
+        if let Some(import_path) = imported_item_path(ty_expr, &module.path, &module.imports)
+            && !already_used.contains_name(&import_path, &**ty_expr.ident.name())
+        {
+            newly_used.insert_ident(import_path, ty_expr.ident.clone());
+        }
+        // this ident refers a local declaration, we analyze it recursively.
+        else {
+            ident_list_used(&ty_expr.ident.name(), module, already_used, newly_used);
         }
     });
 }

@@ -1,4 +1,4 @@
-use crate::{Diagnostic, Error, error::ResolveError};
+use crate::{Error, error::ResolveError};
 
 use itertools::Itertools;
 use wgsl_parse::syntax::{ModulePath, PathOrigin, TranslationUnit};
@@ -23,16 +23,6 @@ type E = ResolveError;
 pub trait Resolver {
     /// Try to resolve a source file identified by a module path.
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError>;
-    /// Try to resolve a source file identified by a module path.
-    fn resolve_module(&self, path: &ModulePath) -> Result<TranslationUnit, ResolveError> {
-        let source = self.resolve_source(path)?;
-        let wesl: TranslationUnit = source.parse().map_err(|e| {
-            Diagnostic::from(e)
-                .with_module_path(path.clone(), self.display_name(path))
-                .with_source(source.to_string())
-        })?;
-        Ok(wesl)
-    }
     /// Get the display name of the module path. Implementing this is optional.
     fn display_name(&self, _path: &ModulePath) -> Option<String> {
         None
@@ -44,12 +34,19 @@ pub trait Resolver {
     }
 }
 
+pub trait AsyncResolver: Resolver {
+    /// Try to resolve a source file identified by a module path.
+    async fn resolve_source_async<'a>(
+        &'a self,
+        path: &ModulePath,
+    ) -> Result<Cow<'a, str>, ResolveError> {
+        self.resolve_source(path)
+    }
+}
+
 impl<T: Resolver + ?Sized> Resolver for Box<T> {
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
         (**self).resolve_source(path)
-    }
-    fn resolve_module(&self, path: &ModulePath) -> Result<TranslationUnit, ResolveError> {
-        (**self).resolve_module(path)
     }
     fn display_name(&self, path: &ModulePath) -> Option<String> {
         (**self).display_name(path)
@@ -62,9 +59,6 @@ impl<T: Resolver + ?Sized> Resolver for Box<T> {
 impl<T: Resolver> Resolver for &T {
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
         (**self).resolve_source(path)
-    }
-    fn resolve_module(&self, path: &ModulePath) -> Result<TranslationUnit, ResolveError> {
-        (**self).resolve_module(path)
     }
     fn display_name(&self, path: &ModulePath) -> Option<String> {
         (**self).display_name(path)
@@ -214,49 +208,6 @@ impl Resolver for VirtualResolver<'_> {
 pub trait ResolveFn: Fn(&mut TranslationUnit) -> Result<(), Error> {}
 impl<T: Fn(&mut TranslationUnit) -> Result<(), Error>> ResolveFn for T {}
 
-/// A WESL module preprocessor.
-///
-/// The preprocess function will be called each time the WESL compiler tries to load a
-/// module.
-pub struct Preprocessor<R: Resolver, F: ResolveFn> {
-    pub resolver: R,
-    pub preprocess: F,
-}
-
-impl<R: Resolver, F: ResolveFn> Preprocessor<R, F> {
-    /// Create a new resolver that runs the preprocessing function before each call to
-    /// [`Resolver::resolve_module`].
-    pub fn new(resolver: R, preprocess: F) -> Self {
-        Self {
-            resolver,
-            preprocess,
-        }
-    }
-}
-
-impl<R: Resolver, F: ResolveFn> Resolver for Preprocessor<R, F> {
-    fn resolve_source<'b>(&'b self, path: &ModulePath) -> Result<Cow<'b, str>, ResolveError> {
-        let res = self.resolver.resolve_source(path)?;
-        Ok(res)
-    }
-    fn resolve_module(&self, path: &ModulePath) -> Result<TranslationUnit, ResolveError> {
-        let mut wesl = self.resolver.resolve_module(path)?;
-        (self.preprocess)(&mut wesl).map_err(|e| {
-            Diagnostic::from(e)
-                .with_module_path(path.clone(), self.display_name(path))
-                .with_source(self.resolve_source(path).unwrap().to_string())
-        })?;
-        Ok(wesl)
-    }
-    fn display_name(&self, path: &ModulePath) -> Option<String> {
-        self.resolver.display_name(path)
-    }
-
-    fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
-        self.resolver.fs_path(path)
-    }
-}
-
 /// A resolver that can dispatch imports to several sub-resolvers based on the import
 /// path prefix.
 ///
@@ -333,10 +284,6 @@ impl Resolver for Router {
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
         let (resolver, path) = self.route(path)?;
         resolver.resolve_source(&path)
-    }
-    fn resolve_module(&self, path: &ModulePath) -> Result<TranslationUnit, ResolveError> {
-        let (resolver, path) = self.route(path)?;
-        resolver.resolve_module(&path)
     }
     fn display_name(&self, path: &ModulePath) -> Option<String> {
         let (resolver, path) = self.route(path).ok()?;

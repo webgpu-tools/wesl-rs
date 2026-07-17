@@ -1,13 +1,15 @@
 use wgsl_parse::{SyntaxNode, syntax::TranslationUnit};
 
-use crate::Module;
+use crate::{Module, pass::UsedItems};
 
-/// Merge all declarations into a single module. If the `strip` flag is set, it will
-/// copy over only used declarations.
-pub fn assemble(modules: &[Module], strip: bool) -> TranslationUnit {
+/// Merge all declarations into a single module.
+///
+/// If `used_items` is set, the final module includes only used items. Otherwise, it
+/// includes all declarations.
+pub fn link(modules: &[Module], used_items: Option<&UsedItems>) -> TranslationUnit {
     let mut syntax = TranslationUnit::default();
     for module in modules {
-        if strip {
+        if let Some(used_items) = &used_items {
             syntax.global_declarations.extend(
                 module
                     .syntax
@@ -17,7 +19,7 @@ pub fn assemble(modules: &[Module], strip: bool) -> TranslationUnit {
                         decl.is_const_assert()
                             || decl
                                 .ident()
-                                .is_some_and(|id| module.used_items.contains(&id))
+                                .is_some_and(|id| used_items.contains_ident(&module.path, &id))
                     })
                     .cloned(),
             );

@@ -83,7 +83,7 @@ impl Scope {
 ///
 /// Same-scope declarations with the same name will have the same identifier.
 /// Note: this can be valid code only with `@if` conditional declarations.
-pub fn retarget_idents(syntax: &mut TranslationUnit) {
+pub fn retarget_idents(module: &mut TranslationUnit) {
     fn flatten_imports(imports: &mut [ImportStatement]) -> impl Iterator<Item = &mut Ident> + '_ {
         fn rec(content: &mut ImportContent) -> impl Iterator<Item = &mut Ident> + '_ {
             match content {
@@ -311,11 +311,11 @@ pub fn retarget_idents(syntax: &mut TranslationUnit) {
 
     let mut scope = Scope::new();
 
-    for ident in flatten_imports(&mut syntax.imports) {
+    for ident in flatten_imports(&mut module.imports) {
         scope.insert(ident);
     }
 
-    for decl in &mut syntax.global_declarations {
+    for decl in &mut module.global_declarations {
         let ident = match decl.node_mut() {
             GlobalDeclaration::Void => None,
             GlobalDeclaration::Declaration(decl) => Some(&mut decl.ident),
@@ -330,7 +330,7 @@ pub fn retarget_idents(syntax: &mut TranslationUnit) {
         }
     }
 
-    for decl in &mut syntax.global_declarations {
+    for decl in &mut module.global_declarations {
         match decl.node_mut() {
             GlobalDeclaration::Void => (),
             GlobalDeclaration::Declaration(d) => {

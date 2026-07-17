@@ -71,9 +71,9 @@ impl UsedItems {
 /// "used" means referenced transitively from the program entry points.
 ///
 /// The function call adds identifiers to the `used` parameter.
-pub fn list_used<'a>(
+pub fn usage_analysis(
     module: &Module,
-    entrypoints: impl IntoIterator<Item = &'a Ident> + 'a,
+    decl_name: &str,
     already_used: &mut UsedItems,
     newly_used: &mut UsedItems,
 ) {
@@ -87,17 +87,15 @@ pub fn list_used<'a>(
             .filter(|decl| decl.is_const_assert());
 
         for decl in const_asserts {
-            decl_list_used(module, decl, already_used, newly_used);
+            decl_usage_analysis(module, decl, already_used, newly_used);
         }
     }
 
-    for ident in entrypoints {
-        ident_list_used(&ident.name(), module, already_used, newly_used);
-    }
+    ident_usage_analysis(decl_name, module, already_used, newly_used);
 }
 
 /// Find identifiers used by the declaration named `name`.
-fn ident_list_used(
+fn ident_usage_analysis(
     name: &str,
     module: &Module,
     already_used: &mut UsedItems,
@@ -115,7 +113,7 @@ fn ident_list_used(
                 module.path.clone(),
                 decl.ident().unwrap(/* SAFETY: we found the declaration by name, so it has a name */),
             );
-            decl_list_used(module, decl, already_used, newly_used);
+            decl_usage_analysis(module, decl, already_used, newly_used);
         } else {
             // TODO: error when the ident is not found?
         }
@@ -123,7 +121,7 @@ fn ident_list_used(
 }
 
 /// Find identifiers used by a declaration.
-fn decl_list_used(
+fn decl_usage_analysis(
     module: &Module,
     decl: &GlobalDeclaration,
     already_used: &mut UsedItems,
@@ -138,7 +136,7 @@ fn decl_list_used(
         }
         // this ident refers a local declaration, we analyze it recursively.
         else {
-            ident_list_used(&ty_expr.ident.name(), module, already_used, newly_used);
+            ident_usage_analysis(&ty_expr.ident.name(), module, already_used, newly_used);
         }
     });
 }

@@ -3,7 +3,7 @@
 use std::{collections::HashMap, iter::Iterator};
 
 use itertools::Itertools;
-use wgsl_parse::syntax::*;
+use wgsl_parse::{SyntaxNode, syntax::*};
 
 /// was that not in the std at some point???
 type BoxedIterator<'a, T> = Box<dyn Iterator<Item = T> + 'a>;
@@ -34,12 +34,22 @@ pub struct ImportedItem {
 pub type Imports = HashMap<Ident, ImportedItem>;
 
 pub trait SyntaxUtil {
-    fn entry_points(&self) -> impl Iterator<Item = &Ident>;
+    fn decl_ident(&self, name: &str) -> Option<Ident>;
+    fn entry_points(&self) -> impl Iterator<Item = Ident>;
     fn flatten_imports(&self, path: &ModulePath) -> Imports;
 }
 
 impl SyntaxUtil for TranslationUnit {
-    fn entry_points(&self) -> impl Iterator<Item = &Ident> {
+    fn decl_ident(&self, name: &str) -> Option<Ident> {
+        self.global_declarations
+            .iter()
+            .find_map(|decl| match decl.ident() {
+                Some(ident) if &**ident.name() == name => Some(ident),
+                _ => None,
+            })
+    }
+
+    fn entry_points(&self) -> impl Iterator<Item = Ident> {
         self.global_declarations
             .iter()
             .filter_map(|decl| match decl.node() {
@@ -52,7 +62,7 @@ impl SyntaxUtil for TranslationUnit {
                             Attribute::Vertex | Attribute::Fragment | Attribute::Compute
                         )
                     })
-                    .then_some(&decl.ident),
+                    .then_some(decl.ident.clone()),
                 _ => None,
             })
     }

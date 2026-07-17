@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, path::PathBuf};
 
 use wgsl_parse::{span::Span, syntax::TypeExpression};
 
-use crate::{Mangler, ModulePath, ResolveError, Resolver};
+use crate::{ModulePath, error::ResolveError, mangler::Mangler, resolver::Resolver};
 
 /// A SourceMap is a lookup from compiled WGSL to source WESL. It translates a mangled
 /// name into a module path and declaration name.

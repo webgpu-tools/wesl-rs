@@ -1,3 +1,5 @@
+use wgsl_types::inst::LiteralInstance;
+
 use super::syntax::*;
 use crate::span::Spanned;
 
@@ -444,6 +446,26 @@ impl Statement {
             Statement::For(stmt) => stmt.body.remove_voids(),
             Statement::While(stmt) => stmt.body.remove_voids(),
             _ => (),
+        }
+    }
+}
+
+impl From<LiteralExpression> for LiteralInstance {
+    fn from(lit: LiteralExpression) -> Self {
+        match lit {
+            LiteralExpression::Bool(l) => LiteralInstance::Bool(l),
+            LiteralExpression::AbstractInt(l) => LiteralInstance::AbstractInt(l),
+            LiteralExpression::AbstractFloat(l) => LiteralInstance::AbstractFloat(l),
+            LiteralExpression::I32(l) => LiteralInstance::I32(l),
+            LiteralExpression::U32(l) => LiteralInstance::U32(l),
+            LiteralExpression::F32(l) => LiteralInstance::F32(l),
+            LiteralExpression::F16(l) => LiteralInstance::F16(wgsl_types::inst::f16::from_f32(l)),
+            #[cfg(feature = "naga-ext")]
+            LiteralExpression::I64(l) => LiteralInstance::I64(l),
+            #[cfg(feature = "naga-ext")]
+            LiteralExpression::U64(l) => LiteralInstance::U64(l),
+            #[cfg(feature = "naga-ext")]
+            LiteralExpression::F64(l) => LiteralInstance::F64(l),
         }
     }
 }

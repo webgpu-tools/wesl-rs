@@ -4,10 +4,11 @@ use std::{
 };
 
 use crate::{
-    Diagnostic, Error, ModulePath,
+    ModulePath,
+    error::{Diagnostic, Error, TomlError},
     pass::{retarget_idents, validate_wesl},
-    resolver::CodegenPkg,
-    wesl_toml::{self, ScanTomlError, WeslToml},
+    resolver::StaticPackage,
+    wesl_toml::{self, WeslToml},
 };
 use quote::{format_ident, quote};
 use wgsl_parse::{
@@ -72,7 +73,7 @@ pub(crate) const RESERVED_MOD_NAMES: &[&str] = &[
 /// ```ignore
 /// // in build.rs
 /// fn main() {
-///    wesl::PkgBuilder::new("my_package")
+///    wesl::PackageBuilder::new("my_package")
 ///        // read all wesl files in the directory "src/shaders"
 ///        .scan_root("src/shaders")
 ///        .expect("failed to scan WESL files")
@@ -92,25 +93,25 @@ pub(crate) const RESERVED_MOD_NAMES: &[&str] = &[
 ///
 /// The package name must be a valid rust identifier, E.g. it must not contain dashes `-`.
 /// Dashes are replaced with underscores `_`.
-pub struct PkgBuilder {
+pub struct PackageBuilder {
     name: String,
-    dependencies: Vec<&'static CodegenPkg>,
+    dependencies: Vec<&'static StaticPackage>,
 }
 
 /// The type holding the source code of packages.
 ///
-/// This struct is produced by [`PkgBuilder::scan_root`], but one can also create or edit
+/// This struct is produced by [`PackageBuilder::scan_root`], but one can also create or edit
 /// packages manually by modifying this struct. The final package is produced by calling
 /// [`Self::build_artifact`] or [`Self::codegen`].
-pub struct Pkg {
+pub struct Package {
     pub crate_name: String,
     pub root: Module,
-    pub dependencies: Vec<&'static CodegenPkg>,
+    pub dependencies: Vec<&'static StaticPackage>,
 }
 
 /// The type holding the source code of individual modules in packages.
 ///
-/// See [`Pkg`].
+/// See [`Package`].
 #[derive(Debug)]
 pub struct Module {
     pub name: String,
@@ -132,7 +133,7 @@ fn cargo_crate_name() -> String {
     std::env::var("CARGO_PKG_NAME").expect("CARGO_PKG_NAME environment variable is not defined")
 }
 
-impl PkgBuilder {
+impl PackageBuilder {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.replace('-', "_"),
@@ -142,16 +143,16 @@ impl PkgBuilder {
 
     /// Add a package dependency.
     ///
-    /// Learn more about packages in [`PkgBuilder`].
-    pub fn add_package(mut self, pkg: &'static CodegenPkg) -> Self {
+    /// Learn more about packages in [`PackageBuilder`].
+    pub fn add_package(mut self, pkg: &'static StaticPackage) -> Self {
         self.dependencies.push(pkg);
         self
     }
 
     /// Add several package dependencies.
     ///
-    /// Learn more about packages in [`PkgBuilder`].
-    pub fn add_packages(mut self, pkgs: impl IntoIterator<Item = &'static CodegenPkg>) -> Self {
+    /// Learn more about packages in [`PackageBuilder`].
+    pub fn add_packages(mut self, pkgs: impl IntoIterator<Item = &'static StaticPackage>) -> Self {
         for pkg in pkgs {
             self = self.add_package(pkg);
         }
@@ -163,7 +164,7 @@ impl PkgBuilder {
     /// The input path must point at the root file or folder. The package will include
     /// all .wesl and .wgsl files reachable from the root module, recursively.
     /// The name or the root file is ignored, instead the name of the package is used.
-    pub fn scan_root(self, path: impl AsRef<Path>) -> Result<Pkg, ScanDirectoryError> {
+    pub fn scan_root(self, path: impl AsRef<Path>) -> Result<Package, ScanDirectoryError> {
         fn process_path(path: &Path) -> Result<Option<Module>, ScanDirectoryError> {
             let path_with_ext_wesl = path.with_extension("wesl");
             let path_with_ext_wgsl = path.with_extension("wgsl");
@@ -248,7 +249,7 @@ impl PkgBuilder {
         // top level module should be named by package builder and not file path
         module.name = self.name;
 
-        Ok(Pkg {
+        Ok(Package {
             crate_name: cargo_crate_name(),
             root: module,
             dependencies: self.dependencies,
@@ -264,18 +265,18 @@ impl PkgBuilder {
     /// # Example
     ///
     /// ```ignore
-    /// wesl::PkgBuilder::new("my_package")
+    /// wesl::PackageBuilder::new("my_package")
     ///     .scan_toml(".")  // looks for ./wesl.toml
     ///     .expect("failed to scan WESL files")
     ///     .build_artifact()
     ///     .expect("failed to build artifact");
     /// ```
-    pub fn scan_toml(self, dir: impl AsRef<Path>) -> Result<Pkg, ScanTomlError> {
+    pub fn scan_toml(self, dir: impl AsRef<Path>) -> Result<Package, TomlError> {
         let dir = dir.as_ref();
         let toml_path = dir.join("wesl.toml");
 
         if !toml_path.exists() {
-            return Err(ScanTomlError::TomlNotFound(toml_path));
+            return Err(TomlError::TomlNotFound(toml_path));
         }
 
         let config = WeslToml::from_file(&toml_path)?;
@@ -285,7 +286,7 @@ impl PkgBuilder {
             println!("cargo::warning={warning}");
         }
 
-        Ok(Pkg {
+        Ok(Package {
             crate_name: cargo_crate_name(),
             root: result.module,
             dependencies: self.dependencies,
@@ -309,8 +310,8 @@ impl Module {
 
         quote! {
             pub mod #mod_ident {
-                use super::CodegenModule;
-                pub const MODULE: CodegenModule = CodegenModule {
+                use super::StaticModule;
+                pub const MODULE: StaticModule = StaticModule {
                     name: #name,
                     source: #source,
                     submodules: &[#(#submodules),*]
@@ -345,7 +346,7 @@ impl Module {
     }
 }
 
-impl Pkg {
+impl Package {
     /// Generate the rust code that holds the packaged wesl files.
     /// You probably want to use [`Self::build_artifact`] instead.
     pub fn codegen(&self) -> String {
@@ -368,13 +369,13 @@ impl Pkg {
         let submods = self.root.submodules.iter().map(|submod| submod.codegen());
 
         let tokens = quote! {
-            pub const PACKAGE: CodegenPkg = CodegenPkg {
+            pub const PACKAGE: StaticPackage = StaticPackage {
                 crate_name: #crate_name,
                 root: &MODULE,
                 dependencies: &[#(#deps),*],
             };
 
-            pub const MODULE: CodegenModule = CodegenModule {
+            pub const MODULE: StaticModule = StaticModule {
                 name: #root_name,
                 source: #root_source,
                 submodules: &[#(#submodules),*]

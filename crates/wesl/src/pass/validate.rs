@@ -8,7 +8,11 @@ use wgsl_parse::syntax::{
 };
 use wgsl_types::idents::{BUILTIN_CONSTRUCTOR_NAMES, BUILTIN_FUNCTION_NAMES};
 
-use crate::{Diagnostic, Error, error::ValidateError, idents::builtin_ident, visit::Visit};
+use crate::{
+    error::{Diagnostic, Error, ValidateError},
+    idents::builtin_ident,
+    visit::Visit,
+};
 
 type E = ValidateError;
 

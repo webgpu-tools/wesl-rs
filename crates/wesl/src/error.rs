@@ -12,7 +12,7 @@ use crate::eval::EvalError;
 // use crate::{Mangler, ResolveError, SourceMap, ValidateError};
 
 /// Conditional translation error.
-#[derive(Clone, Debug, Error)]
+#[derive(Debug, Error)]
 pub enum CondCompError {
     #[error("invalid feature flag: `{0}`")]
     InvalidFeatureFlag(String),
@@ -27,7 +27,7 @@ pub enum CondCompError {
 }
 
 /// Error produced by module resolution.
-#[derive(Clone, Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum ResolveError {
     #[error("file not found: `{0}` ({1})")]
     FileNotFound(PathBuf, String),
@@ -53,7 +53,7 @@ pub enum ValidateError {
 }
 
 /// Error produced during import resolution.
-#[derive(Clone, Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum ImportError {
     #[error("duplicate declaration of `{0}`")]
     DuplicateSymbol(String),
@@ -67,8 +67,28 @@ pub enum ImportError {
     Private(String, ModulePath),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum TomlError {
+    #[error("wesl.toml not found at `{0}`")]
+    TomlNotFound(PathBuf),
+    #[error("Failed to parse wesl.toml: {0}")]
+    TomlParse(#[from] toml::de::Error),
+    #[error("expected dependencies = \"auto\"")]
+    ExpectedAuto,
+    #[error("Invalid glob pattern `{0}`: {1}")]
+    InvalidGlob(String, glob::PatternError),
+    #[error("File `{0}` is outside root `{1}`")]
+    FileOutsideRoot(PathBuf, PathBuf),
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("No source files matched the include patterns")]
+    NoFilesMatched,
+    #[error("Multiple files map to module `{0}`: {1:?}")]
+    ConflictingFiles(String, Vec<PathBuf>),
+}
+
 /// Any WESL error.
-#[derive(Clone, Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("{0}")]
     ParseError(#[from] wgsl_parse::Error),
@@ -80,6 +100,8 @@ pub enum Error {
     ImportError(#[from] ImportError),
     #[error("{0}")]
     CondCompError(#[from] CondCompError),
+    #[error("{0}")]
+    TomlError(#[from] TomlError),
     // #[cfg(feature = "generics")]
     // #[error("{0}")]
     // GenericsError(#[from] GenericsError),
@@ -96,7 +118,7 @@ pub enum Error {
 ///
 /// A diagnostic is a wrapper around an error with extra contextual metadata: the source,
 /// the declaration name, the span, ...
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Diagnostic<E: std::error::Error> {
     pub error: Box<E>,
     pub detail: Box<Detail>,

@@ -1,4 +1,4 @@
-use crate::{Error, error::ResolveError};
+use crate::error::{Error, ResolveError};
 
 use itertools::Itertools;
 use wgsl_parse::syntax::{ModulePath, PathOrigin, TranslationUnit};
@@ -34,6 +34,10 @@ pub trait Resolver {
     }
 }
 
+#[allow(
+    async_fn_in_trait,
+    reason = "it's the best we can do currently. See https://blog.rust-lang.org/2023/12/21/async-fn-rpit-in-traits/#impl-trait-in-public-traits"
+)]
 pub trait AsyncResolver: Resolver {
     /// Try to resolve a source file identified by a module path.
     async fn resolve_source_async<'a>(
@@ -56,7 +60,7 @@ impl<T: Resolver + ?Sized> Resolver for Box<T> {
     }
 }
 
-impl<T: Resolver> Resolver for &T {
+impl<T: Resolver + ?Sized> Resolver for &T {
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
         (**self).resolve_source(path)
     }
@@ -101,6 +105,11 @@ impl FileResolver {
             base: base.as_ref().to_path_buf(),
             extension: "wesl",
         }
+    }
+
+    /// Set the root directory which absolute paths refer to.
+    pub fn set_base(&mut self, base: impl AsRef<Path>) {
+        self.base = base.as_ref().to_path_buf();
     }
 
     /// Look for files that ends with a different extension. Default: "wesl".
@@ -297,34 +306,34 @@ impl Resolver for Router {
 
 /// The type holding the source code of external packages.
 ///
-/// You typically don't implement this, instead it is generated for you by [`crate::PkgBuilder`].
+/// You typically don't implement this, instead it is generated for you by [`crate::PackageBuilder`].
 /// Crates containing shader packages export `const` instances of this type, which you can
 /// then import and [add to your resolver][StandardResolver::add_package].
 #[derive(Debug, PartialEq, Eq)]
-pub struct CodegenPkg {
+pub struct StaticPackage {
     pub crate_name: &'static str,
-    pub root: &'static CodegenModule,
-    pub dependencies: &'static [&'static CodegenPkg],
+    pub root: &'static StaticModule,
+    pub dependencies: &'static [&'static StaticPackage],
 }
 
 /// The type holding the source code of modules in external packages.
 ///
-/// See [`CodegenPkg`].
+/// See [`StaticPackage`].
 #[derive(Debug, PartialEq, Eq)]
-pub struct CodegenModule {
+pub struct StaticModule {
     pub name: &'static str,
     pub source: &'static str,
-    pub submodules: &'static [&'static CodegenModule],
+    pub submodules: &'static [&'static StaticModule],
 }
 
 /// A resolver that only resolves module paths that refer to modules in external packages.
 ///
 /// Register external packages with [`Self::add_package`].
-pub struct PkgResolver {
-    packages: Vec<&'static CodegenPkg>,
+pub struct PackageResolver {
+    packages: Vec<&'static StaticPackage>,
 }
 
-impl PkgResolver {
+impl PackageResolver {
     /// Create a new resolver.
     pub fn new() -> Self {
         Self {
@@ -333,18 +342,18 @@ impl PkgResolver {
     }
 
     /// Add a package to the resolver.
-    pub fn add_package(&mut self, pkg: &'static CodegenPkg) {
+    pub fn add_package(&mut self, pkg: &'static StaticPackage) {
         self.packages.push(pkg);
     }
 }
 
-impl Default for PkgResolver {
+impl Default for PackageResolver {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Resolver for PkgResolver {
+impl Resolver for PackageResolver {
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<std::borrow::Cow<'a, str>, E> {
         let pkg_path = match &path.origin {
             PathOrigin::Package(pkg) => pkg,
@@ -404,14 +413,49 @@ impl Resolver for PkgResolver {
     }
 }
 
+/// Numeric constants (WESL feature).
+///
+/// Numeric constants live in a special package named `constants`. This package is
+/// *virtual*, meaning it doesn't exist on the filesystem. Constants can be accessed
+/// by importing them: `import constants::MY_CONSTANT;`.
+///
+/// The type is specified by the variant of [`LiteralInstance`].
+/// The most flexible instance type is `AbstractFloat`, since it can be implicitly converted to all scalar types.
+#[derive(Clone, Debug, Default)]
+pub struct Constants {
+    constants: HashMap<String, LiteralInstance>,
+}
+
+impl Constants {
+    fn new() -> Self {
+        Default::default()
+    }
+
+    fn add_constant(&mut self, name: impl ToString, value: impl Into<LiteralInstance>) {
+        self.constants.insert(name.to_string(), value.into());
+    }
+
+    fn iter(&self) -> impl Iterator<Item = (&String, &LiteralInstance)> {
+        self.constants.iter()
+    }
+}
+
+impl FromIterator<(String, LiteralInstance)> for Constants {
+    fn from_iter<T: IntoIterator<Item = (String, LiteralInstance)>>(iter: T) -> Self {
+        Self {
+            constants: HashMap::from_iter(iter),
+        }
+    }
+}
+
 /// The resolver that implements the WESL standard.
 ///
 /// It resolves modules in external packages registered with [`Self::add_package`] and
 /// modules in the local package with the filesystem.
 pub struct StandardResolver {
-    pkg: PkgResolver,
+    pkg: PackageResolver,
     files: FileResolver,
-    constants: HashMap<String, LiteralInstance>,
+    constants: Constants,
 }
 
 impl StandardResolver {
@@ -420,14 +464,14 @@ impl StandardResolver {
     /// `base` is the root directory which absolute paths refer to.
     pub fn new(base: impl AsRef<Path>) -> Self {
         Self {
-            pkg: PkgResolver::new(),
+            pkg: PackageResolver::new(),
             files: FileResolver::new(base),
-            constants: HashMap::new(),
+            constants: Constants::new(),
         }
     }
 
     /// Add an external package.
-    pub fn add_package(&mut self, pkg: &'static CodegenPkg) {
+    pub fn add_package(&mut self, pkg: &'static StaticPackage) {
         self.pkg.add_package(pkg)
     }
 
@@ -437,14 +481,14 @@ impl StandardResolver {
     /// *virtual*, meaning it doesn't exist on the filesystem. Constants can be accessed
     /// by importing them: `import constants::MY_CONSTANT;`.
     ///
-    /// The type is specified by the variant of [`LiteralInstance`].\
+    /// The type is specified by the variant of [`LiteralInstance`].
     /// If specifying a constant that is used with multiple different types or
     /// a constant that benefits from precision, like π, use AbstractFloat,
     /// which can be implicitly converted to all scalar types.
     ///
     /// Note: [`LiteralInstance`] implements [`From`] for all standard numeric types
-    pub fn add_constant(&mut self, name: impl ToString, value: LiteralInstance) {
-        self.constants.insert(name.to_string(), value);
+    pub fn add_constant(&mut self, name: impl ToString, value: impl Into<LiteralInstance>) {
+        self.constants.add_constant(name, value);
     }
 
     /// Generate a module with all declared virtual constants in the resolver
@@ -560,15 +604,15 @@ mod test {
         // standard resolver to register some constants
         let mut std = StandardResolver::new(".");
         // AbstractFloat
-        std.add_constant("TAU", std::f64::consts::TAU.into());
+        std.add_constant("TAU", std::f64::consts::TAU);
         // f32
-        std.add_constant("LIGHTING_ANGLE", 10.0f32.into());
+        std.add_constant("LIGHTING_ANGLE", 10.0f32);
         // i32
-        std.add_constant("Z_ROTATION", (-10i32).into());
+        std.add_constant("Z_ROTATION", -10i32);
         // u32
-        std.add_constant("H", (12u32).into());
+        std.add_constant("H", 12u32);
         // bool
-        std.add_constant("BRIGHTEN", (false).into());
+        std.add_constant("BRIGHTEN", false);
 
         // use virtual resolver for the main module
         let mut v = VirtualResolver::new();
@@ -617,17 +661,14 @@ mod test {
         let mut sr = StandardResolver::new(".");
 
         // add math constants
-        sr.add_constant("PI", LiteralInstance::from(std::f64::consts::PI));
-        sr.add_constant("E", LiteralInstance::from(std::f64::consts::E));
+        sr.add_constant("PI", std::f64::consts::PI);
+        sr.add_constant("E", std::f64::consts::E);
         // add misc constants
-        sr.add_constant("NEG_2", LiteralInstance::from(-2i32));
-        sr.add_constant("ONE", LiteralInstance::from(1u32));
-        sr.add_constant("F32_MAX", LiteralInstance::from(f32::MAX));
-        sr.add_constant("IS_HEAVY", LiteralInstance::from(false));
-        sr.add_constant(
-            "NUM_CONSTS",
-            LiteralInstance::from(sr.constants.len() as i64),
-        );
+        sr.add_constant("NEG_2", -2i32);
+        sr.add_constant("ONE", 1u32);
+        sr.add_constant("F32_MAX", f32::MAX);
+        sr.add_constant("IS_HEAVY", false);
+        sr.add_constant("NUM_CONSTS", sr.constants.iter().count() as i64);
 
         // generate the virtual module
         let generated = sr.generate_constant_module();
@@ -640,7 +681,7 @@ mod test {
         assert!(generated.contains("const IS_HEAVY = false;"));
         assert!(generated.contains(&format!(
             "const NUM_CONSTS = {};",
-            (sr.constants.len() as i64) - 1
+            (sr.constants.iter().count() as i64) - 1
         )));
 
         // resolve the package path with the origin `constants`,

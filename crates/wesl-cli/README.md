@@ -65,7 +65,7 @@ a binary buffer following the WebGPU layout (`--out-binary`).
 ## Packaging shader libraries
 
 The packaging command outputs to stdout the Rust codegen for the package. This
-is the same output produced by [`wesl::PkgBuilder`] in `build.rs` files. Using the
+is the same output produced by [`wesl::PackageBuilder`] in `build.rs` files. Using the
 CLI instead can be useful if you don't want to rely on a build.rs. Refer to the
 [WESL] documentation about packaging for more information.
 

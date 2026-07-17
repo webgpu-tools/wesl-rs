@@ -40,37 +40,40 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::package::{Module, RESERVED_MOD_NAMES, is_mod_ident};
+use crate::{
+    error::TomlError,
+    package::{Module, RESERVED_MOD_NAMES, is_mod_ident},
+};
 
 /// Parsed wesl.toml configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WeslToml {
     /// Package configuration.
     #[serde(flatten)]
-    package: PackageConfig,
+    pub package: PackageConfig,
     /// The `[dependencies]` section.
     #[serde(default)]
-    dependencies: DependenciesConfig,
+    pub dependencies: DependenciesConfig,
 }
 
 /// Package configuration fields.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PackageConfig {
     /// WESL edition (required).
-    edition: WeslEdition,
+    pub edition: WeslEdition,
     /// Package manager: "npm" or "cargo". Auto-detected if not specified.
     // TODO: auto-detect is not implemented, it just defaults to cargo.
     #[serde(default)]
-    package_manager: PackageManager,
+    pub package_manager: PackageManager,
     /// Root folder for package:: syntax. Default: "./shaders/"
     #[serde(default = "default_root")]
-    root: PathBuf,
+    pub root: PathBuf,
     /// Glob patterns for files to include. Default: all .wesl/.wgsl in root.
     #[serde(default = "default_include")]
-    include: Vec<String>,
+    pub include: Vec<String>,
     /// Glob patterns for files to exclude. Default: empty.
     #[serde(default = "default_exclude")]
-    exclude: Vec<String>,
+    pub exclude: Vec<String>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -126,13 +129,13 @@ enum DependenciesConfigProxy {
 }
 
 impl TryFrom<DependenciesConfigProxy> for DependenciesConfig {
-    type Error = ScanTomlError;
+    type Error = TomlError;
 
     fn try_from(cfg: DependenciesConfigProxy) -> Result<Self, Self::Error> {
         match cfg {
             DependenciesConfigProxy::None => Ok(DependenciesConfig::None),
             DependenciesConfigProxy::Auto(s) if s == "auto" => Ok(DependenciesConfig::Auto),
-            DependenciesConfigProxy::Auto(_) => Err(ScanTomlError::ExpectedAuto),
+            DependenciesConfigProxy::Auto(_) => Err(TomlError::ExpectedAuto),
             DependenciesConfigProxy::Manual(map) => Ok(DependenciesConfig::Manual(map)),
         }
     }
@@ -231,47 +234,27 @@ pub struct ScanResult {
     pub warnings: Vec<ScanWarning>,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum ScanTomlError {
-    #[error("wesl.toml not found at `{0}`")]
-    TomlNotFound(PathBuf),
-    #[error("Failed to parse wesl.toml: {0}")]
-    TomlParse(#[from] toml::de::Error),
-    #[error("expected dependencies = \"auto\"")]
-    ExpectedAuto,
-    #[error("Invalid glob pattern `{0}`: {1}")]
-    InvalidGlob(String, glob::PatternError),
-    #[error("File `{0}` is outside root `{1}`")]
-    FileOutsideRoot(PathBuf, PathBuf),
-    #[error("I/O error: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("No source files matched the include patterns")]
-    NoFilesMatched,
-    #[error("Multiple files map to module `{0}`: {1:?}")]
-    ConflictingFiles(String, Vec<PathBuf>),
-}
-
 impl WeslToml {
     /// Parse a wesl.toml file from a path.
-    pub fn from_file(path: impl AsRef<Path>) -> Result<Self, ScanTomlError> {
+    pub fn from_file(path: impl AsRef<Path>) -> Result<Self, TomlError> {
         let content = std::fs::read_to_string(path.as_ref())?;
         Self::parse_str(&content)
     }
 
     /// Parse a wesl.toml from string content.
-    pub fn parse_str(content: &str) -> Result<Self, ScanTomlError> {
-        toml::from_str(content).map_err(ScanTomlError::TomlParse)
+    pub fn parse_str(content: &str) -> Result<Self, TomlError> {
+        toml::from_str(content).map_err(TomlError::TomlParse)
     }
 }
 
 /// Scan files based on a WeslToml and build a Module hierarchy.
 ///
-/// This is the main entry point called by `PkgBuilder::scan_toml`.
+/// This is the main entry point called by `PackageBuilder::scan_toml`.
 pub fn scan_from_config(
     name: &str,
     base_dir: &Path,
     config: &WeslToml,
-) -> Result<ScanResult, ScanTomlError> {
+) -> Result<ScanResult, TomlError> {
     let root_path = std::path::absolute(base_dir.join(&config.package.root))?;
 
     let include = compile_patterns(&config.package.include)?;
@@ -280,7 +263,7 @@ pub fn scan_from_config(
     let matched_files = walk_directory(base_dir, &root_path, &include, &exclude)?;
 
     if matched_files.is_empty() {
-        return Err(ScanTomlError::NoFilesMatched);
+        return Err(TomlError::NoFilesMatched);
     }
 
     let (module, warnings) = build_module_hierarchy(name, &matched_files, &root_path)?;
@@ -288,12 +271,12 @@ pub fn scan_from_config(
 }
 
 /// Compile glob pattern strings into `glob::Pattern` values.
-fn compile_patterns(patterns: &[String]) -> Result<Vec<glob::Pattern>, ScanTomlError> {
+fn compile_patterns(patterns: &[String]) -> Result<Vec<glob::Pattern>, TomlError> {
     patterns
         .iter()
         .map(|p| {
             let stripped = p.strip_prefix("./").unwrap_or(p);
-            glob::Pattern::new(stripped).map_err(|e| ScanTomlError::InvalidGlob(p.clone(), e))
+            glob::Pattern::new(stripped).map_err(|e| TomlError::InvalidGlob(p.clone(), e))
         })
         .collect()
 }
@@ -307,14 +290,14 @@ fn walk_directory(
     root_dir: &Path,
     include: &[glob::Pattern],
     exclude: &[glob::Pattern],
-) -> Result<HashSet<PathBuf>, ScanTomlError> {
+) -> Result<HashSet<PathBuf>, TomlError> {
     let mut files = HashSet::new();
     let mut stack = vec![root_dir.to_path_buf()];
 
     while let Some(dir) = stack.pop() {
         let entries = match std::fs::read_dir(&dir) {
             Ok(rd) => rd,
-            Err(e) => return Err(ScanTomlError::Io(e)),
+            Err(e) => return Err(TomlError::Io(e)),
         };
 
         for entry in entries {
@@ -357,7 +340,7 @@ fn build_module_hierarchy(
     root_name: &str,
     files: &HashSet<PathBuf>,
     root_path: &Path,
-) -> Result<(Module, Vec<ScanWarning>), ScanTomlError> {
+) -> Result<(Module, Vec<ScanWarning>), TomlError> {
     let (entries, warnings) = derive_module_paths(files, root_path)?;
     let module = build_module_tree(root_name, entries)?;
     Ok((module, warnings))
@@ -402,13 +385,13 @@ fn validate_components(components: &[String], file_path: &Path) -> Option<ScanWa
 fn derive_module_paths(
     files: &HashSet<PathBuf>,
     root_path: &Path,
-) -> Result<(Vec<FileEntry>, Vec<ScanWarning>), ScanTomlError> {
+) -> Result<(Vec<FileEntry>, Vec<ScanWarning>), TomlError> {
     let mut entries = Vec::new();
     let mut warnings = Vec::new();
     for file_path in files {
-        let relative = file_path.strip_prefix(root_path).map_err(|_| {
-            ScanTomlError::FileOutsideRoot(file_path.clone(), root_path.to_path_buf())
-        })?;
+        let relative = file_path
+            .strip_prefix(root_path)
+            .map_err(|_| TomlError::FileOutsideRoot(file_path.clone(), root_path.to_path_buf()))?;
 
         let components = path_to_components(relative);
 
@@ -462,7 +445,7 @@ impl ModuleNode {
 }
 
 /// Build a tree of Modules from flat file entries.
-fn build_module_tree(root_name: &str, entries: Vec<FileEntry>) -> Result<Module, ScanTomlError> {
+fn build_module_tree(root_name: &str, entries: Vec<FileEntry>) -> Result<Module, TomlError> {
     let mut root = ModuleNode::new();
 
     for entry in entries {
@@ -487,14 +470,14 @@ fn build_module_tree(root_name: &str, entries: Vec<FileEntry>) -> Result<Module,
 
         if let Some(existing_path) = &node.path {
             let module_name = entry.module_components.join("::");
-            return Err(ScanTomlError::ConflictingFiles(
+            return Err(TomlError::ConflictingFiles(
                 module_name,
                 vec![existing_path.clone(), entry.path.clone()],
             ));
         }
 
         node.path = Some(entry.path.clone());
-        node.source = std::fs::read_to_string(&entry.path).map_err(ScanTomlError::Io)?;
+        node.source = std::fs::read_to_string(&entry.path).map_err(TomlError::Io)?;
     }
 
     Ok(root.into_module(root_name.to_string()))
@@ -579,7 +562,7 @@ mod tests {
 
         // Missing edition
         let missing = WeslToml::parse_str("root = \"./shaders/\"");
-        assert!(matches!(missing, Err(ScanTomlError::TomlParse(_))));
+        assert!(matches!(missing, Err(TomlError::TomlParse(_))));
 
         // Dependencies variants
         let with_deps =
@@ -627,7 +610,7 @@ mod tests {
         let config = WeslToml::parse_str("edition = \"2026_pre\"\nroot = \"./shaders/\"").unwrap();
         let result = scan_from_config("my_pkg", &base, &config);
 
-        assert!(matches!(result, Err(ScanTomlError::ConflictingFiles(_, _))));
+        assert!(matches!(result, Err(TomlError::ConflictingFiles(_, _))));
     }
 
     #[test]

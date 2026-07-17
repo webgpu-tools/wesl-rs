@@ -1,4 +1,4 @@
-use crate::{Diagnostic, error::Error, visit::Visit};
+use crate::{error::Error, visit::Visit};
 
 use wgsl_parse::syntax::*;
 
@@ -39,7 +39,7 @@ pub fn lower(wesl: &mut TranslationUnit) -> Result<(), Error> {
     }
     #[cfg(feature = "eval")]
     {
-        use crate::Diagnostic;
+        use crate::error::Diagnostic;
         use crate::eval::{Context, Exec, Lower, mark_functions_const};
         use wgsl_parse::SyntaxNode;
         mark_functions_const(wesl);

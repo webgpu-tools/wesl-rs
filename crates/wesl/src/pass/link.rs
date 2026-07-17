@@ -1,6 +1,6 @@
 use wgsl_parse::{SyntaxNode, syntax::TranslationUnit};
 
-use crate::{Module, pass::UsedItems};
+use crate::{pass::UsedItems, pipeline::Module};
 
 /// Merge all declarations into a single module.
 ///

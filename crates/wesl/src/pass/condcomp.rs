@@ -1,5 +1,4 @@
-use crate::Diagnostic;
-use crate::error::{CondCompError, Error};
+use crate::error::{CondCompError, Diagnostic, Error};
 use crate::{Feature, Features};
 use wgsl_parse::{SyntaxNode, span::Spanned, syntax::*};
 

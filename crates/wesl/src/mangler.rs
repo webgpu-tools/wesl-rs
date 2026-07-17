@@ -51,7 +51,7 @@ impl<T: Mangler + ?Sized> Mangler for Box<T> {
     }
 }
 
-impl<T: Mangler> Mangler for &T {
+impl<T: Mangler + ?Sized> Mangler for &T {
     fn mangle(&self, path: &ModulePath, item: &str) -> String {
         (**self).mangle(path, item)
     }

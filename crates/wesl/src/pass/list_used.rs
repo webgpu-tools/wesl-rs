@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet, hash_map::Entry};
 use itertools::Itertools;
 use wgsl_parse::{SyntaxNode, syntax::*};
 
-use crate::{ImportedItem, Module, visit::Visit};
+use crate::{ImportedItem, pipeline::Module, visit::Visit};
 
 // #[derive(Clone, Debug)]
 // struct ImportedItem {

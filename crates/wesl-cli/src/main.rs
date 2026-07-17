@@ -10,10 +10,12 @@ use std::{
     str::FromStr,
 };
 use wesl::{
-    CompileOptions, CompileResult, Diagnostic, Feature, Features, Inputs, ManglerKind, ModulePath,
-    PkgBuilder, Router, StandardResolver, SyntaxUtil, VirtualResolver, Wesl,
-    eval::{Eval, EvalAttrs, Instance, RefInstance, Ty, ty_eval_ty},
-    syntax::{self, AccessMode, AddressSpace, PathOrigin, TranslationUnit},
+    CompileOptions, CompileResult, Compiler, Feature, Features, ManglerKind, SyntaxUtil,
+    error::Diagnostic,
+    eval::{Eval, EvalAttrs, Inputs, Instance, LiteralInstance, RefInstance, Ty, ty_eval_ty},
+    package::PackageBuilder,
+    resolver::{Router, StandardResolver, VirtualResolver},
+    syntax::{self, AccessMode, AddressSpace, ModulePath, PathOrigin, TranslationUnit},
 };
 
 // adapted from clap cookbook: https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
@@ -56,7 +58,7 @@ enum Command {
     /// Execute a WGSL shader function on the CPU
     Exec(ExecArgs),
     /// Generate a publishable Cargo package from WESL source code
-    Package(PkgArgs),
+    Package(PackageArgs),
 }
 
 #[derive(Default, Clone, Copy, Debug, ValueEnum)]
@@ -148,10 +150,6 @@ struct CompOptsArgs {
     /// Disable performing validation checks
     #[arg(long)]
     no_validate: bool,
-    /// Eager imports: load all modules referenced by an identifier, regardless of if it is
-    /// used.
-    #[arg(long)]
-    eager: bool,
     /// Enable mangling of declarations in the root module.
     #[arg(long)]
     mangle_root: bool,
@@ -175,24 +173,41 @@ struct CompOptsArgs {
     /// Root folder for `package::` imports. Defaults to the parent directory of the root module
     #[arg(long)]
     base: Option<PathBuf>,
+    /// Literal constants in the `constants` virtual module.
+    #[arg(long = "constant", value_name="NAME=LITERAL", value_parser = parse_key_val::<String, String>)]
+    constants: Vec<(String, String)>,
 }
 
-impl From<&CompOptsArgs> for CompileOptions {
-    fn from(opts: &CompOptsArgs) -> Self {
+impl TryFrom<&CompOptsArgs> for CompileOptions {
+    type Error = CliError;
+
+    fn try_from(opts: &CompOptsArgs) -> Result<Self, CliError> {
         let flags = opts
             .feature
             .iter()
             .map(|(k, v)| (k.clone(), (*v).into()))
             .collect();
 
-        Self {
+        let constants = opts
+            .constants
+            .iter()
+            .map(
+                |(name, expr)| -> Result<(String, LiteralInstance), CliError> {
+                    let expr = expr
+                        .parse::<syntax::LiteralExpression>()
+                        .map_err(|e| Diagnostic::from(e).with_source(expr.to_string()))?;
+                    Ok((name.to_string(), LiteralInstance::from(expr)))
+                },
+            )
+            .collect::<Result<_, _>>()?;
+
+        Ok(Self {
             imports: !opts.no_imports,
             condcomp: !opts.no_cond_comp,
             generics: opts.generics,
             strip: !opts.no_strip,
             lower: opts.lower,
             validate: !opts.no_validate,
-            lazy: !opts.eager,
             mangle_root: opts.mangle_root,
             keep: if opts.no_strip {
                 None
@@ -204,7 +219,10 @@ impl From<&CompOptsArgs> for CompileOptions {
                 default: opts.feature_default.into(),
                 flags,
             },
-        }
+            mangler: opts.mangler.into(),
+            constants,
+            dependencies: Default::default(), // TODO: support passing dependencies in CLI
+        })
     }
 }
 
@@ -367,14 +385,14 @@ struct ExecArgs {
 }
 
 #[derive(Args, Clone, Debug)]
-struct PkgArgs {
+struct PackageArgs {
     /// name of the generated crate
     name: String,
     /// directory containing the .wesl shader files
     dir: PathBuf,
 }
 
-#[derive(Clone, Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 enum CliError {
     #[error("input file not found")]
     FileNotFound,
@@ -387,9 +405,9 @@ enum CliError {
     #[error("Could not convert instance to buffer (type `{0}` is not storable)")]
     NotStorable(wesl::eval::Type),
     #[error("{0}")]
-    WeslError(#[from] wesl::Error),
+    WeslError(#[from] wesl::error::Error),
     #[error("{0}")]
-    WeslDiagnostic(#[from] wesl::Diagnostic<wesl::Error>),
+    WeslDiagnostic(#[from] wesl::error::Diagnostic<wesl::error::Error>),
     #[cfg(feature = "naga")]
     #[error("naga parse error: {}", .0.emit_to_string(.1))]
     NagaParse(naga::front::wgsl::ParseError, String),
@@ -407,7 +425,7 @@ fn run_compile(
     options: &CompOptsArgs,
     file_or_source: FileOrSource,
 ) -> Result<CompileResult, CliError> {
-    let compile_options = CompileOptions::from(options);
+    let compile_options = CompileOptions::try_from(options)?;
 
     let mut compiler = Wesl::new_barebones();
     compiler
@@ -507,7 +525,7 @@ fn parse_binding(
     ))
 }
 
-fn parse_override(src: &str, wgsl: &TranslationUnit) -> Result<Instance, CliError> {
+fn eval_expr(src: &str, wgsl: &TranslationUnit) -> Result<Instance, CliError> {
     let mut ctx = wesl::eval::Context::new(wgsl);
     let expr = src
         .parse::<syntax::Expression>()
@@ -638,7 +656,7 @@ fn run(cli: Cli) -> Result<(), CliError> {
                 .overrides
                 .iter()
                 .map(|(name, expr)| -> Result<(String, Instance), CliError> {
-                    Ok((name.to_string(), parse_override(expr, &comp.syntax)?))
+                    Ok((name.to_string(), eval_expr(expr, &comp.syntax)?))
                 })
                 .collect::<Result<_, _>>()?;
 
@@ -679,7 +697,7 @@ fn run(cli: Cli) -> Result<(), CliError> {
             }
         }
         Command::Package(args) => {
-            let code = PkgBuilder::new(&args.name)
+            let code = PackageBuilder::new(&args.name)
                 .scan_root(args.dir)
                 .expect("failed to scan WESL files")
                 .validate()

@@ -1,19 +1,20 @@
 //! [`Instance`]s of WGSL [`Type`]s.
 
+use itertools::Itertools;
 use std::{
     cell::{Ref, RefCell, RefMut},
     ops::Index,
     rc::Rc,
 };
 
-use half::f16;
-use itertools::Itertools;
-
 use crate::{
     Error,
     syntax::{AccessMode, AddressSpace},
     ty::{StructType, Ty, Type},
 };
+
+// re-export
+pub use half::f16;
 
 type E = Error;
 

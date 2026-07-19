@@ -3,7 +3,7 @@ use std::{fmt::Display, path::PathBuf};
 use thiserror::Error;
 use wgsl_parse::{
     span::Span,
-    syntax::{Expression, Ident, ModulePath},
+    syntax::{Expression, ModulePath},
 };
 
 #[cfg(feature = "eval")]

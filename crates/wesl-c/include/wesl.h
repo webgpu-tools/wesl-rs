@@ -81,17 +81,6 @@ typedef struct WeslResolveSourceResult *(*WeslResolveSourceFunction)(const char 
 typedef void (*WeslResolveSourceFreeFunction)(const struct WeslResolveSourceResult *result,
                                               void *userdata);
 
-typedef struct WeslResolveModuleResult {
-  bool success;
-  struct WeslTranslationUnit *module;
-} WeslResolveModuleResult;
-
-typedef struct WeslResolveModuleResult *(*WeslResolveModuleFunctionOption)(const char *path,
-                                                                           void *userdata);
-
-typedef void (*WeslResolveModuleFreeFunctionOption)(const struct WeslResolveModuleResult *result,
-                                                    void *userdata);
-
 typedef const char *(*WeslResolveStringFunctionOption)(const char *path, void *userdata);
 
 typedef void (*WeslResolveFreeStringFunctionOption)(const char *result, void *userdata);
@@ -100,8 +89,6 @@ typedef struct WeslResolverOptions {
   void *userdata;
   WeslResolveSourceFunction resolve_source;
   WeslResolveSourceFreeFunction resolve_source_free;
-  WeslResolveModuleFunctionOption resolve_module;
-  WeslResolveModuleFreeFunctionOption resolve_module_free;
   WeslResolveStringFunctionOption display_name;
   WeslResolveFreeStringFunctionOption free_display_name;
   WeslResolveStringFunctionOption fs_path;

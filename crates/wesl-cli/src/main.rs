@@ -208,6 +208,7 @@ impl TryFrom<&CompOptsArgs> for CompileOptions {
             strip: !opts.no_strip,
             lower: opts.lower,
             validate: !opts.no_validate,
+            sourcemap: !opts.no_sourcemap,
             mangle_root: opts.mangle_root,
             keep: if opts.no_strip {
                 None
@@ -221,7 +222,7 @@ impl TryFrom<&CompOptsArgs> for CompileOptions {
             },
             mangler: opts.mangler.into(),
             constants,
-            dependencies: Default::default(), // TODO: support passing dependencies in CLI
+            dependencies: Default::default(),
         })
     }
 }
@@ -426,12 +427,7 @@ fn run_compile(
     file_or_source: FileOrSource,
 ) -> Result<CompileResult, CliError> {
     let compile_options = CompileOptions::try_from(options)?;
-
-    let mut compiler = Wesl::new_barebones();
-    compiler
-        .set_options(compile_options)
-        .use_sourcemap(!options.no_sourcemap)
-        .set_mangler(options.mangler.into());
+    let mut compiler = Compiler::new(compile_options);
 
     match file_or_source {
         FileOrSource::File(path) => {

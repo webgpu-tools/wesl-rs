@@ -2,17 +2,23 @@
 #![doc = include_str!("../README.md")]
 
 mod idents;
+
 pub mod mangler;
+pub use mangler::Mangler;
+
 pub mod resolver;
+pub use resolver::Resolver;
 
 pub mod error;
+pub use error::Error;
 
 pub mod pass;
 pub mod visit;
 
 pub mod package;
-pub mod sourcemap;
 pub mod wesl_toml;
+
+pub mod sourcemap;
 
 mod condcomp;
 pub use condcomp::*;

@@ -1,4 +1,4 @@
-use std::{collections::HashSet, path::Path};
+use std::{collections::HashSet, marker::PhantomData, path::Path};
 
 use wgsl_parse::{
     SyntaxNode,
@@ -8,12 +8,11 @@ use wgsl_parse::{
 use crate::{
     Features, SyntaxUtil,
     error::{Diagnostic, Error, ImportError},
-    mangler::Mangler,
+    mangler::{self, Mangler},
     pass::{self, UsedItems},
-    pipeline,
-    resolver::{AsyncResolver, Constants, Resolver, StaticPackage},
-    sourcemap::BasicSourceMap,
-    wesl_toml::WeslToml,
+    pipeline::{self, CompilerDriver},
+    resolver::{AsyncResolver, Constants, Resolver, StandardResolver, StaticPackage},
+    sourcemap::{BasicSourceMap, SourceMapper},
 };
 
 /// Compilation options. Used in [`compile`] and [`Wesl::set_options`].
@@ -53,6 +52,8 @@ pub struct CompileOptions {
     ///
     /// Requires the `eval` crate feature flag.
     pub validate: bool,
+    /// Enable sourcemapping, which provides better error diagnostics.
+    pub sourcemap: bool,
     /// Declaration name mangling scheme.
     pub mangler: ManglerKind,
     /// Enable mangling of declarations in the root module.
@@ -104,6 +105,17 @@ pub enum ManglerKind {
     None,
 }
 
+impl From<ManglerKind> for Box<dyn Mangler> {
+    fn from(kind: ManglerKind) -> Self {
+        match kind {
+            ManglerKind::Escape => Box::new(mangler::EscapeMangler),
+            ManglerKind::Hash => Box::new(mangler::HashMangler),
+            ManglerKind::Unicode => Box::new(mangler::UnicodeMangler),
+            ManglerKind::None => Box::new(mangler::NoMangler),
+        }
+    }
+}
+
 impl Default for CompileOptions {
     fn default() -> Self {
         Self {
@@ -113,6 +125,7 @@ impl Default for CompileOptions {
             strip: true,
             lower: false,
             validate: true,
+            sourcemap: true,
             mangler: Default::default(),
             mangle_root: false,
             keep: Default::default(),
@@ -144,37 +157,73 @@ impl Default for CompileOptions {
 ///     .to_string();
 /// ```
 #[derive(Default, Clone, Debug)]
-pub struct Compiler {
+pub struct Compiler<R> {
     options: CompileOptions,
+    _resolver: PhantomData<R>,
 }
 
-impl Compiler {
+impl Compiler<StandardResolver> {
     pub fn new(options: CompileOptions) -> Self {
-        Self { options }
+        Self {
+            options,
+            _resolver: PhantomData,
+        }
     }
 
-    pub fn compile(path: impl AsRef<Path>) -> Result<CompileResult, Error> {
+    /// Compile a WESL shader to WGSL.
+    ///
+    /// `path` defines where to look for shader files. It can be either:
+    /// * The path to a `wesl.toml` file, or a directory containing a `wesl.toml` file.
+    ///   => The compiler follows wesl-toml semantics, refer its spec.
+    /// * The path to a `.wesl` file.
+    ///   => This file is the root module. Submodules are in an adjacent directory with the same name (extension stripped).
+    /// * The path to a directory.
+    ///   => An optional `package.wesl` in the directory file serves as the root module. Other `.wesl` files and subdirectories are submodules.
+    ///
+    /// Note: `.wgsl` extensions are also supported.
+    pub fn compile(&self, path: impl AsRef<Path>) -> Result<CompileResult, Error> {
         let path = path.as_ref();
 
-        if let Some(filename) = path.file_name()
+        let toml_cfg = if let Some(filename) = path.file_name()
             && filename == "wesl.toml"
         {
-            let toml_cfg = WeslToml::from_file(path)?;
-            let base_path = path.parent().unwrap(/* SAFETY: cannot fail if `file_name` succeeds */).join(&toml_cfg.package.root);
+            Some(crate::wesl_toml::WeslToml::from_file(path)?)
+        } else {
+            None
+        };
+
+        let base_path = if let Some(cfg) = &toml_cfg {
+            path.parent().unwrap(/* SAFETY: cannot fail if `file_name` succeeds */).join(&cfg.package.root)
+        } else {
+            // TODO: check extension is wgsl or wesl.
+            path.with_extension("")
+        };
+
+        let root_module_path = ModulePath::from_path(&base_path);
+
+        let mut resolver = Box::new(StandardResolver::new(base_path));
+        let mangler = Box::<dyn Mangler>::from(self.options.mangler);
+
+        for (name, value) in self.options.constants.iter() {
+            resolver.add_constant(name.clone(), value.clone());
         }
 
-        // let resolver = Box::new(StandardResolver::new(base));
-        // let mangler = Box::new(EscapeMangler);
-        // let sourcemapper = SourceMapper::new(root.clone(), resolver, mangler);
+        let sourcemapper = SourceMapper::new(root_module_path.clone(), resolver, mangler);
 
-        Ok(todo!())
+        let mut pass = CompilationPass::new(
+            &root_module_path,
+            &self.options,
+            &sourcemapper,
+            &sourcemapper,
+        );
+        let syntax = CompilerDriver::compile(&mut pass)?;
+
+        Ok(CompileResult {
+            syntax,
+            sourcemap: sourcemapper.finish(),
+            modules: Vec::new(), // TODO
+        })
     }
-
-    // pub fn compile_with(path: impl AsRef<Path>) {
-    //     let resolver = Box::new(StandardResolver::new(base));
-    //     let mangler = Box::new(EscapeMangler);
-    //     let sourcemapper = SourceMapper::new(root.clone(), resolver, mangler);
-    // }
 }
 
 pub struct CompileResult {
@@ -189,6 +238,10 @@ pub struct CompilationPass<'a> {
     resolver: &'a dyn Resolver,
     mangler: &'a dyn Mangler,
 }
+
+// pub struct AsyncCompilationPass<'a> {
+//     async_resolver: &'a dyn AsyncResolver,
+// }
 
 impl<'a> CompilationPass<'a> {
     fn new(
@@ -289,3 +342,19 @@ impl pipeline::CompilerDriver for CompilationPass<'_> {
         Ok(module)
     }
 }
+
+// impl pipeline::AsyncCompilerDriver for CompilationPass<'_> {
+//     async fn load_module_async(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error> {
+//         let mut module = pipeline::load_module_async(path, &self.resolver).await?;
+
+//         if self.options.condcomp {
+//             pass::condcomp(&mut module, &self.options.features)?;
+//         }
+
+//         if self.options.validate {
+//             pass::validate_wesl(&module)?;
+//         }
+
+//         Ok(module)
+//     }
+// }

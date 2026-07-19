@@ -10,12 +10,14 @@ use crate::{
     resolver::StaticPackage,
     wesl_toml::{self, WeslToml},
 };
-use quote::{format_ident, quote};
 use wgsl_parse::{
     lexer::{Lexer, Token},
     syntax::TranslationUnit,
 };
 use wgsl_types::idents::RESERVED_WORDS;
+
+#[cfg(feature = "package")]
+use quote::{format_ident, quote};
 
 /// WGSL identifier predicate, including reserved words, but excluding keywords.
 pub(crate) fn is_mod_ident(name: &str) -> bool {
@@ -271,16 +273,21 @@ impl PackageBuilder {
     ///     .build_artifact()
     ///     .expect("failed to build artifact");
     /// ```
-    pub fn scan_toml(self, dir: impl AsRef<Path>) -> Result<Package, TomlError> {
-        let dir = dir.as_ref();
-        let toml_path = dir.join("wesl.toml");
+    pub fn scan_toml(self, path: impl AsRef<Path>) -> Result<Package, TomlError> {
+        let mut toml_path = path.as_ref().to_path_buf();
 
-        if !toml_path.exists() {
+        if toml_path.is_dir() {
+            toml_path.push("wesl.toml");
+        }
+
+        if !toml_path.is_file() {
             return Err(TomlError::TomlNotFound(toml_path));
         }
 
+        let dir = toml_path.parent().unwrap(/* SAFETY: toml_path is a file, must have a parent. */);
+
         let config = WeslToml::from_file(&toml_path)?;
-        let result = wesl_toml::scan_from_config(&self.name, dir, &config)?;
+        let result = wesl_toml::scan_from_config(&self.name, &dir, &config)?;
 
         for warning in &result.warnings {
             println!("cargo::warning={warning}");
@@ -294,6 +301,7 @@ impl PackageBuilder {
     }
 }
 
+#[cfg(feature = "package")]
 impl Module {
     fn codegen(&self) -> proc_macro2::TokenStream {
         let mod_ident = format_ident!("r#{}", self.name);
@@ -346,6 +354,7 @@ impl Module {
     }
 }
 
+#[cfg(feature = "package")]
 impl Package {
     /// Generate the rust code that holds the packaged wesl files.
     /// You probably want to use [`Self::build_artifact`] instead.

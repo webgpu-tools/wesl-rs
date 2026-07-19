@@ -8,8 +8,12 @@ use std::ops::Deref;
 use std::os::raw::{c_char, c_void};
 use std::ptr;
 
-use wesl::syntax::TranslationUnit;
-use wesl::{ModulePath, ResolveError, Resolver, VirtualResolver, Wesl};
+use wesl::syntax::{ModulePath, TranslationUnit};
+use wesl::{
+    Compiler,
+    error::ResolveError,
+    resolver::{Resolver, VirtualResolver},
+};
 
 #[cfg(feature = "eval")]
 use wesl::{
@@ -20,7 +24,7 @@ use wesl::{
 // TODO: this seems unfinished. only wesl_create/destroy_compiler is implemented.
 #[allow(unused)]
 pub struct WeslCompiler {
-    compiler: Wesl<wesl::NoResolver>,
+    compiler: Compiler,
 }
 
 pub struct WeslTranslationUnit {
@@ -121,9 +125,6 @@ pub struct WeslResolverOptions {
 
     pub resolve_source: WeslResolveSourceFunction,
     pub resolve_source_free: WeslResolveSourceFreeFunction,
-
-    pub resolve_module: WeslResolveModuleFunctionOption,
-    pub resolve_module_free: WeslResolveModuleFreeFunctionOption,
 
     pub display_name: WeslResolveStringFunctionOption,
     pub free_display_name: WeslResolveFreeStringFunctionOption,
@@ -285,7 +286,7 @@ fn create_c_string(s: &str) -> *const c_char {
 }
 
 fn wesl_error_to_c(e: wesl::Error) -> WeslError {
-    let d = wesl::Diagnostic::from(e);
+    let d = wesl::error::Diagnostic::from(e);
 
     let diagnostics = if let (Some(span), Some(res)) = (&d.detail.span, &d.detail.module_path) {
         let diag = WeslDiagnostic {
@@ -406,7 +407,7 @@ fn create_c_binding_array(bindings: Vec<WeslBinding>) -> *const WeslBindingArray
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn wesl_create_compiler() -> *mut WeslCompiler {
-    let compiler = Wesl::new_barebones();
+    let compiler = Compiler::default();
     Box::into_raw(Box::new(WeslCompiler { compiler }))
 }
 
@@ -563,37 +564,6 @@ impl wesl::Resolver for CustomResolver {
         Ok(result_str.to_owned().into())
     }
 
-    fn resolve_module(
-        &self,
-        path: &wesl::ModulePath,
-    ) -> Result<wesl::syntax::TranslationUnit, wesl::ResolveError> {
-        let Some(resolve) = self.options.resolve_module else {
-            // Call base implementation since we don't have one.
-            return ProxyResolver(self).resolve_module(path);
-        };
-
-        let resolve_free = self.options.resolve_module_free.unwrap();
-        let cstring = mod_path_to_cstring(path);
-
-        let result = unsafe { resolve(cstring.as_ptr(), self.options.userdata) };
-
-        let result = FreeGuard {
-            data: result,
-            free_function: resolve_free,
-            free_userdata: self.options.userdata,
-        };
-
-        if !result.success {
-            // TODO: Better error reporting.
-            return Err(ResolveError::Error(
-                wesl::Error::Custom("Custom resolver failed".into()).into(),
-            ));
-        }
-
-        let unit = unsafe { &*result.module };
-        Ok(unit.unit.clone())
-    }
-
     fn display_name(&self, path: &ModulePath) -> Option<String> {
         unsafe {
             resolver_path_to_string(
@@ -620,10 +590,6 @@ impl wesl::Resolver for CustomResolver {
 }
 
 fn validate_resolver_options(options: &WeslResolverOptions) -> Result<(), &'static str> {
-    if options.resolve_module.is_none() ^ options.resolve_module_free.is_none() {
-        return Err("resolve_module and resolve_module_free must both be provide if either is");
-    }
-
     if options.fs_path.is_none() ^ options.free_fs_path.is_none() {
         return Err("fs_path and free_fs_path must both be provide if either is");
     }
@@ -688,27 +654,29 @@ pub unsafe extern "C" fn wesl_compile(
         return result_from_str("Invalid mangler kind specified");
     };
 
-    let mut compiler = Wesl::new_barebones().set_custom_resolver(resolver);
+    let mut compiler = Compiler::new(wesl::CompileOptions {
+        imports: options.imports,
+        condcomp: options.condcomp,
+        generics: options.generics,
+        strip: options.strip,
+        lower: options.lower,
+        validate: options.validate,
+        mangle_root: options.mangle_root,
+        keep: keep_vec,
+        features: wesl::Features {
+            default: wesl::Feature::Disable,
+            flags: features_map
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
+        },
+        keep_root: options.keep_root,
+        mangler,
+        constants: todo!(),
+        dependencies: todo!(),
+    })
+    .set_custom_resolver(resolver);
     let compiler = compiler
-        .set_options(wesl::CompileOptions {
-            imports: options.imports,
-            condcomp: options.condcomp,
-            generics: options.generics,
-            strip: options.strip,
-            lower: options.lower,
-            validate: options.validate,
-            lazy: options.lazy,
-            mangle_root: options.mangle_root,
-            keep: keep_vec,
-            features: wesl::Features {
-                default: wesl::Feature::Disable,
-                flags: features_map
-                    .into_iter()
-                    .map(|(k, v)| (k, v.into()))
-                    .collect(),
-            },
-            keep_root: options.keep_root,
-        })
         .use_sourcemap(options.sourcemap)
         .set_mangler(mangler);
 
@@ -804,29 +772,32 @@ pub unsafe extern "C" fn wesl_eval(
         }
     }
 
-    let mut compiler = Wesl::new_barebones().set_custom_resolver(resolver);
-    let compiler = compiler
-        .set_options(wesl::CompileOptions {
-            imports: options.imports,
-            condcomp: options.condcomp,
-            generics: options.generics,
-            strip: options.strip,
-            lower: options.lower,
-            validate: options.validate,
-            lazy: options.lazy,
-            mangle_root: options.mangle_root,
-            keep: None,
-            features: wesl::Features {
-                default: wesl::Feature::Disable,
-                flags: features_map
-                    .into_iter()
-                    .map(|(k, v)| (k, v.into()))
-                    .collect(),
-            },
-            keep_root: options.keep_root,
-        })
-        .use_sourcemap(options.sourcemap)
-        .set_mangler(map_mangler_kind(options.mangler).expect("invalid mangler kind"));
+    let mut compiler = Compiler::new(wesl::CompileOptions {
+        imports: options.imports,
+        condcomp: options.condcomp,
+        generics: options.generics,
+        strip: options.strip,
+        lower: options.lower,
+        validate: options.validate,
+        // lazy: options.lazy,
+        mangle_root: options.mangle_root,
+        keep: None,
+        features: wesl::Features {
+            default: wesl::Feature::Disable,
+            flags: features_map
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
+        },
+        keep_root: options.keep_root,
+        mangler: options.mangler.into(),
+        constants: todo!(),
+        dependencies: todo!(),
+    })
+    .set_custom_resolver(resolver);
+    // let compiler = compiler
+    //     .use_sourcemap(options.sourcemap)
+    //     .set_mangler(map_mangler_kind(options.mangler).expect("invalid mangler kind"));
 
     match compiler.compile(&root_path) {
         Ok(result) => match result.eval(&expr_str) {

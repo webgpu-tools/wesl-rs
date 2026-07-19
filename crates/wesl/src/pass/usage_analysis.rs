@@ -3,16 +3,14 @@ use std::collections::{HashMap, HashSet, hash_map::Entry};
 use itertools::Itertools;
 use wgsl_parse::{SyntaxNode, syntax::*};
 
-use crate::{ImportedItem, pipeline::Module, visit::Visit};
+use crate::{pipeline::Module, visit::Visit};
 
-// #[derive(Clone, Debug)]
-// struct ImportedItem {
-//     path: ModulePath,
-//     ident: Ident, // this is the ident's original name before `as` renaming.
-//     public: bool,
-// }
-
-type Imports = HashMap<Ident, ImportedItem>;
+#[derive(Clone, Debug)]
+pub struct ImportedItem {
+    pub path: ModulePath,
+    pub ident: Ident, // this is the ident's original name before `as` renaming.
+    pub public: bool,
+}
 
 pub struct UsedItems {
     pub used_items: HashMap<ModulePath, HashSet<Ident>>,
@@ -175,8 +173,10 @@ fn imported_item_path(
     }
 }
 
+pub type Imports = HashMap<Ident, ImportedItem>;
+
 /// Flatten imports to a list.
-fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Imports {
+pub fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Imports {
     fn rec(content: &ImportContent, path: ModulePath, public: bool, res: &mut Imports) {
         match content {
             ImportContent::Item(item) => {

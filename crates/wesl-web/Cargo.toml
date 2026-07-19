@@ -33,7 +33,7 @@ serde-wasm-bindgen = "0.6.5"
 thiserror = "2.0.11"
 tsify = { version = "0.5.5", default-features = false, features = ["js"] }
 wasm-bindgen = "0.2.95"
-wesl = { workspace = true, features = ["eval", "serde"] }
+wesl = { workspace = true, features = ["eval"] }
 
 [features]
 default = ["ansi-to-html", "naga"]

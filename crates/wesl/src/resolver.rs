@@ -39,7 +39,7 @@ pub trait Resolver {
     reason = "it's the best we can do currently. See https://blog.rust-lang.org/2023/12/21/async-fn-rpit-in-traits/#impl-trait-in-public-traits"
 )]
 pub trait AsyncResolver: Resolver {
-    /// Try to resolve a source file identified by a module path.
+    /// Async version of [`Resolver::resolve_source`].
     async fn resolve_source_async<'a>(
         &'a self,
         path: &ModulePath,
@@ -427,15 +427,15 @@ pub struct Constants {
 }
 
 impl Constants {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Default::default()
     }
 
-    fn add_constant(&mut self, name: impl ToString, value: impl Into<LiteralInstance>) {
+    pub fn add_constant(&mut self, name: impl ToString, value: impl Into<LiteralInstance>) {
         self.constants.insert(name.to_string(), value.into());
     }
 
-    fn iter(&self) -> impl Iterator<Item = (&String, &LiteralInstance)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &LiteralInstance)> {
         self.constants.iter()
     }
 }

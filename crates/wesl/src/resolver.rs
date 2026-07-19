@@ -90,10 +90,18 @@ impl Resolver for NoResolver {
 /// A resolver that looks for files in the filesystem.
 ///
 /// It simply translates module paths to file paths. This is the intended behavior.
-#[derive(Default)]
 pub struct FileResolver {
     base: PathBuf,
     extension: &'static str,
+}
+
+impl Default for FileResolver {
+    fn default() -> Self {
+        Self {
+            base: "./shaders".into(),
+            extension: "wesl",
+        }
+    }
 }
 
 impl FileResolver {
@@ -329,6 +337,7 @@ pub struct StaticModule {
 /// A resolver that only resolves module paths that refer to modules in external packages.
 ///
 /// Register external packages with [`Self::add_package`].
+#[derive(Default)]
 pub struct PackageResolver {
     packages: Vec<&'static StaticPackage>,
 }
@@ -344,12 +353,6 @@ impl PackageResolver {
     /// Add a package to the resolver.
     pub fn add_package(&mut self, pkg: &'static StaticPackage) {
         self.packages.push(pkg);
-    }
-}
-
-impl Default for PackageResolver {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -452,6 +455,7 @@ impl FromIterator<(String, LiteralInstance)> for Constants {
 ///
 /// It resolves modules in external packages registered with [`Self::add_package`] and
 /// modules in the local package with the filesystem.
+#[derive(Default)]
 pub struct StandardResolver {
     pkg: PackageResolver,
     files: FileResolver,

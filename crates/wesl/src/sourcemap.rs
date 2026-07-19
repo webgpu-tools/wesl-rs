@@ -16,13 +16,13 @@ use crate::{ModulePath, error::ResolveError, mangler::Mangler, resolver::Resolve
 /// and [`Mangler`] when compiling code.
 pub trait SourceMap {
     /// Get the module path and declaration name from a mangled name.
-    fn get_decl(&self, decl: &str) -> Option<&SourceMapEntry>;
+    fn item(&self, decl: &str) -> Option<&SourceMapEntry>;
     /// Get a module contents.
-    fn get_source(&self, path: &ModulePath) -> Option<&str>;
+    fn source(&self, path: &ModulePath) -> Option<&str>;
     /// Get a module display name.
-    fn get_display_name(&self, path: &ModulePath) -> Option<&str>;
+    fn display_name(&self, path: &ModulePath) -> Option<&str>;
     /// Get the default module contents.
-    fn get_default_source(&self) -> Option<&str> {
+    fn default_source(&self) -> Option<&str> {
         None
     }
 }
@@ -46,7 +46,7 @@ impl BasicSourceMap {
     pub fn new() -> Self {
         Default::default()
     }
-    pub fn add_decl(&mut self, decl: String, entry: SourceMapEntry) {
+    pub fn add_item(&mut self, decl: String, entry: SourceMapEntry) {
         self.mappings.insert(decl, entry);
     }
     pub fn add_source(&mut self, file: ModulePath, name: Option<String>, source: String) {
@@ -58,33 +58,32 @@ impl BasicSourceMap {
 }
 
 impl SourceMap for BasicSourceMap {
-    fn get_decl(&self, decl: &str) -> Option<&SourceMapEntry> {
+    fn item(&self, decl: &str) -> Option<&SourceMapEntry> {
         self.mappings.get(decl)
     }
-
-    fn get_source(&self, path: &ModulePath) -> Option<&str> {
+    fn source(&self, path: &ModulePath) -> Option<&str> {
         self.sources.get(path).map(|(_, source)| source.as_str())
     }
-    fn get_display_name(&self, path: &ModulePath) -> Option<&str> {
+    fn display_name(&self, path: &ModulePath) -> Option<&str> {
         self.sources.get(path).and_then(|(name, _)| name.as_deref())
     }
-    fn get_default_source(&self) -> Option<&str> {
+    fn default_source(&self) -> Option<&str> {
         self.default_source.as_deref()
     }
 }
 
 impl<T: SourceMap> SourceMap for Option<T> {
-    fn get_decl(&self, decl: &str) -> Option<&SourceMapEntry> {
-        self.as_ref().and_then(|map| map.get_decl(decl))
+    fn item(&self, decl: &str) -> Option<&SourceMapEntry> {
+        self.as_ref().and_then(|map| map.item(decl))
     }
-    fn get_source(&self, path: &ModulePath) -> Option<&str> {
-        self.as_ref().and_then(|map| map.get_source(path))
+    fn source(&self, path: &ModulePath) -> Option<&str> {
+        self.as_ref().and_then(|map| map.source(path))
     }
-    fn get_display_name(&self, path: &ModulePath) -> Option<&str> {
-        self.as_ref().and_then(|map| map.get_display_name(path))
+    fn display_name(&self, path: &ModulePath) -> Option<&str> {
+        self.as_ref().and_then(|map| map.display_name(path))
     }
-    fn get_default_source(&self) -> Option<&str> {
-        self.as_ref().and_then(|map| map.get_default_source())
+    fn default_source(&self) -> Option<&str> {
+        self.as_ref().and_then(|map| map.default_source())
     }
 }
 
@@ -95,16 +94,16 @@ impl<T: SourceMap> SourceMap for Option<T> {
 pub struct NoSourceMap;
 
 impl SourceMap for NoSourceMap {
-    fn get_decl(&self, _decl: &str) -> Option<&SourceMapEntry> {
+    fn item(&self, _decl: &str) -> Option<&SourceMapEntry> {
         None
     }
-    fn get_source(&self, _path: &ModulePath) -> Option<&str> {
+    fn source(&self, _path: &ModulePath) -> Option<&str> {
         None
     }
-    fn get_display_name(&self, _path: &ModulePath) -> Option<&str> {
+    fn display_name(&self, _path: &ModulePath) -> Option<&str> {
         None
     }
-    fn get_default_source(&self) -> Option<&str> {
+    fn default_source(&self) -> Option<&str> {
         None
     }
 }
@@ -115,16 +114,16 @@ impl SourceMap for NoSourceMap {
 /// SourceMap, invoke the compiler with this instance as both the mangler and the
 /// resolver. Call [`SourceMapper::finish`] to get the final SourceMap once finished
 /// recording.
-pub struct SourceMapper {
+pub struct SourceMapper<'a> {
     pub root: ModulePath,
-    pub resolver: Box<dyn Resolver>,
-    pub mangler: Box<dyn Mangler>,
+    pub resolver: &'a dyn Resolver,
+    pub mangler: &'a dyn Mangler,
     pub sourcemap: RefCell<BasicSourceMap>,
 }
 
-impl SourceMapper {
+impl<'a> SourceMapper<'a> {
     /// Create a new `SourceMapper` from a mangler and a resolver.
-    pub fn new(root: ModulePath, resolver: Box<dyn Resolver>, mangler: Box<dyn Mangler>) -> Self {
+    pub fn new(root: ModulePath, resolver: &'a dyn Resolver, mangler: &'a dyn Mangler) -> Self {
         Self {
             root,
             resolver,
@@ -135,18 +134,15 @@ impl SourceMapper {
     /// Consume this and return a [`BasicSourceMap`].
     pub fn finish(self) -> BasicSourceMap {
         let mut sourcemap = self.sourcemap.into_inner();
-        if let Some(source) = sourcemap.get_source(&self.root) {
+        if let Some(source) = sourcemap.source(&self.root) {
             sourcemap.set_default_source(source.to_string());
         }
         sourcemap
     }
 }
 
-impl Resolver for SourceMapper {
-    fn resolve_source<'a>(
-        &'a self,
-        path: &ModulePath,
-    ) -> Result<std::borrow::Cow<'a, str>, ResolveError> {
+impl<'a> Resolver for SourceMapper<'a> {
+    fn resolve_source(&self, path: &ModulePath) -> Result<std::borrow::Cow<'a, str>, ResolveError> {
         let res = self.resolver.resolve_source(path)?;
         let mut sourcemap = self.sourcemap.borrow_mut();
         sourcemap.add_source(
@@ -164,7 +160,7 @@ impl Resolver for SourceMapper {
     }
 }
 
-impl Mangler for SourceMapper {
+impl<'a> Mangler for SourceMapper<'a> {
     fn mangle(&self, path: &ModulePath, item: &str) -> String {
         let res = self.mangler.mangle(path, item);
         let mut sourcemap = self.sourcemap.borrow_mut();
@@ -173,7 +169,7 @@ impl Mangler for SourceMapper {
             name: item.to_string(),
             span: None,
         };
-        sourcemap.add_decl(res.clone(), entry);
+        sourcemap.add_item(res.clone(), entry);
         res
     }
     fn unmangle(&self, mangled: &str) -> Option<(ModulePath, String)> {

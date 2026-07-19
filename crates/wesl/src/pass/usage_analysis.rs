@@ -13,7 +13,7 @@ pub struct ImportedItem {
 }
 
 pub struct UsedItems {
-    pub used_items: HashMap<ModulePath, HashSet<Ident>>,
+    used_items: HashMap<ModulePath, HashSet<Ident>>,
 }
 
 impl UsedItems {
@@ -61,6 +61,10 @@ impl UsedItems {
 
     pub fn is_empty(&mut self) -> bool {
         self.used_items.is_empty()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&ModulePath, &HashSet<Ident>)> {
+        self.used_items.iter()
     }
 }
 

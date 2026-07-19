@@ -2,7 +2,7 @@ use std::{collections::HashSet, marker::PhantomData, path::Path};
 
 use wgsl_parse::{
     SyntaxNode,
-    syntax::{Ident, ModulePath, TranslationUnit},
+    syntax::{Ident, ModulePath, PathOrigin, TranslationUnit},
 };
 
 use crate::{
@@ -10,7 +10,7 @@ use crate::{
     error::{Diagnostic, Error, ImportError},
     mangler::{self, Mangler},
     pass::{self, UsedItems},
-    pipeline::{self, CompilerDriver},
+    pipeline::{self, CompilerDriver, Module},
     resolver::{AsyncResolver, Constants, Resolver, StandardResolver, StaticPackage},
     sourcemap::{BasicSourceMap, SourceMapper},
 };
@@ -159,17 +159,32 @@ impl Default for CompileOptions {
 #[derive(Default, Clone, Debug)]
 pub struct Compiler<R> {
     options: CompileOptions,
-    _resolver: PhantomData<R>,
+    resolver: R,
 }
 
-impl Compiler<StandardResolver> {
-    pub fn new(options: CompileOptions) -> Self {
-        Self {
-            options,
-            _resolver: PhantomData,
+impl<R1> Compiler<R1> {
+    pub fn set_resolver<R2>(self, resolver: R2) -> Compiler<R2> {
+        Compiler::<R2> {
+            options: self.options,
+            resolver,
         }
     }
+}
 
+impl<R> Compiler<R> {
+    pub fn new_with_resolver(options: CompileOptions, resolver: R) -> Self {
+        Self { options, resolver }
+    }
+}
+
+impl Compiler<()> {
+    pub fn new(options: CompileOptions) -> Self {
+        let resolver = ();
+        Self { options, resolver }
+    }
+}
+
+impl Compiler<()> {
     /// Compile a WESL shader to WGSL.
     ///
     /// `path` defines where to look for shader files. It can be either:
@@ -178,7 +193,7 @@ impl Compiler<StandardResolver> {
     /// * The path to a `.wesl` file.
     ///   => This file is the root module. Submodules are in an adjacent directory with the same name (extension stripped).
     /// * The path to a directory.
-    ///   => An optional `package.wesl` in the directory file serves as the root module. Other `.wesl` files and subdirectories are submodules.
+    ///   => An optional `package.wesl` file in the directory serves as the root module. Other `.wesl` files and subdirectories are submodules.
     ///
     /// Note: `.wgsl` extensions are also supported.
     pub fn compile(&self, path: impl AsRef<Path>) -> Result<CompileResult, Error> {
@@ -195,20 +210,24 @@ impl Compiler<StandardResolver> {
         let base_path = if let Some(cfg) = &toml_cfg {
             path.parent().unwrap(/* SAFETY: cannot fail if `file_name` succeeds */).join(&cfg.package.root)
         } else {
-            // TODO: check extension is wgsl or wesl.
-            path.with_extension("")
+            path.to_path_buf()
         };
 
-        let root_module_path = ModulePath::from_path(&base_path);
+        let root_module_path = if base_path.is_file() {
+            ModulePath::new_root()
+        } else {
+            // TODO: is this correct?
+            ModulePath::new(PathOrigin::Absolute, vec!["package".to_string()])
+        };
 
-        let mut resolver = Box::new(StandardResolver::new(base_path));
+        let mut resolver = StandardResolver::new(base_path.with_extension(""));
         let mangler = Box::<dyn Mangler>::from(self.options.mangler);
 
         for (name, value) in self.options.constants.iter() {
             resolver.add_constant(name.clone(), value.clone());
         }
 
-        let sourcemapper = SourceMapper::new(root_module_path.clone(), resolver, mangler);
+        let sourcemapper = SourceMapper::new(root_module_path.clone(), &resolver, &mangler);
 
         let mut pass = CompilationPass::new(
             &root_module_path,
@@ -216,12 +235,39 @@ impl Compiler<StandardResolver> {
             &sourcemapper,
             &sourcemapper,
         );
-        let syntax = CompilerDriver::compile(&mut pass)?;
+        let res = CompilerDriver::compile(&mut pass)?;
 
         Ok(CompileResult {
-            syntax,
+            syntax: res.syntax,
             sourcemap: sourcemapper.finish(),
-            modules: Vec::new(), // TODO
+            used_items: res.used_items,
+        })
+    }
+}
+
+impl<R: Resolver> Compiler<R> {
+    /// Compile a WESL shader to WGSL.
+    ///
+    /// `path` defines where to look for shader files. It can be either:
+    /// * The path to a `wesl.toml` file, or a directory containing a `wesl.toml` file.
+    ///   => The compiler follows wesl-toml semantics, refer its spec.
+    /// * The path to a `.wesl` file.
+    ///   => This file is the root module. Submodules are in an adjacent directory with the same name (extension stripped).
+    /// * The path to a directory.
+    ///   => An optional `package.wesl` file in the directory serves as the root module. Other `.wesl` files and subdirectories are submodules.
+    ///
+    /// Note: `.wgsl` extensions are also supported.
+    pub fn compile_module(&self, root_module_path: ModulePath) -> Result<CompileResult, Error> {
+        let mangler = Box::<dyn Mangler>::from(self.options.mangler);
+
+        let mut pass =
+            CompilationPass::new(&root_module_path, &self.options, &self.resolver, &mangler);
+        let res = CompilerDriver::compile(&mut pass)?;
+
+        Ok(CompileResult {
+            syntax: res.syntax,
+            sourcemap: pass.sourcemap,
+            used_items: res.used_items,
         })
     }
 }
@@ -229,7 +275,7 @@ impl Compiler<StandardResolver> {
 pub struct CompileResult {
     pub syntax: TranslationUnit,
     pub sourcemap: BasicSourceMap,
-    pub modules: Vec<ModulePath>,
+    pub used_items: UsedItems,
 }
 
 pub struct CompilationPass<'a> {
@@ -237,6 +283,7 @@ pub struct CompilationPass<'a> {
     options: &'a CompileOptions,
     resolver: &'a dyn Resolver,
     mangler: &'a dyn Mangler,
+    sourcemap: BasicSourceMap,
 }
 
 // pub struct AsyncCompilationPass<'a> {
@@ -255,6 +302,7 @@ impl<'a> CompilationPass<'a> {
             options,
             resolver,
             mangler,
+            sourcemap: BasicSourceMap::new(),
         }
     }
 }
@@ -322,14 +370,14 @@ impl pipeline::CompilerDriver for CompilationPass<'_> {
 
     fn link(
         &self,
-        mut modules: Vec<pipeline::Module>,
+        modules: &mut Vec<pipeline::Module>,
         used_items: &UsedItems,
     ) -> Result<TranslationUnit, Error> {
-        for module in &mut modules {
+        for module in modules.iter_mut() {
             pass::mangle(&mut module.syntax, &module.path, &self.mangler);
         }
 
-        let mut module = pass::link(&modules, self.options.strip.then_some(used_items));
+        let mut module = pass::link(modules, self.options.strip.then_some(used_items));
 
         if self.options.lower {
             pass::lower(&mut module)?;

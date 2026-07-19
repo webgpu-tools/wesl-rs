@@ -15,6 +15,12 @@ pub struct Module {
     pub imports: Imports,
 }
 
+pub struct CompileResult {
+    pub syntax: TranslationUnit,
+    pub modules: Vec<Module>,
+    pub used_items: UsedItems,
+}
+
 impl Module {
     pub fn new(path: ModulePath, syntax: TranslationUnit) -> Self {
         let imports = pass::flatten_imports(&syntax.imports, &path);
@@ -25,6 +31,7 @@ impl Module {
         }
     }
 }
+
 /// Re-implementing this trait gives full control over the steps of the compilation pipeline.
 /// It is implemented by [`Compiler`].
 ///
@@ -84,10 +91,14 @@ pub trait CompilerDriver: Sized {
     ///
     /// `used_items` contains the result of static usage analysis, i.e the list identifiers
     /// which the root module entrypoints depend on, transitively.
-    fn link(&self, modules: Vec<Module>, used_items: &UsedItems) -> Result<TranslationUnit, Error>;
+    fn link(
+        &self,
+        modules: &mut Vec<Module>,
+        used_items: &UsedItems,
+    ) -> Result<TranslationUnit, Error>;
 
     /// Run the compilation pipeline.
-    fn compile(&mut self) -> Result<TranslationUnit, Error> {
+    fn compile(&mut self) -> Result<CompileResult, Error> {
         compile(self)
     }
 }
@@ -96,7 +107,7 @@ pub trait AsyncCompilerDriver: CompilerDriver {
     async fn load_module_async(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error>;
 
     /// Run the compilation pipeline.
-    async fn compile_async(&mut self) -> Result<TranslationUnit, Error> {
+    async fn compile_async(&mut self) -> Result<CompileResult, Error> {
         compile_async(self).await
     }
 }
@@ -136,7 +147,7 @@ pub async fn load_module_async(
     Ok(module)
 }
 
-pub fn compile(driver: &mut impl CompilerDriver) -> Result<TranslationUnit, Error> {
+pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error> {
     let root_path = driver.root_path().clone();
     let root_module = driver.load_module(&root_path)?;
     let root_entrypoints = driver.root_entry_points(&root_module)?;
@@ -152,7 +163,7 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<TranslationUnit, Erro
     while !newly_used.is_empty() {
         let mut next_newly_used = UsedItems::new();
 
-        for (path, used_items) in &newly_used.used_items {
+        for (path, used_items) in newly_used.iter() {
             let module = match modules.iter().find(|module| module.path == *path) {
                 Some(module) => module,
                 None => {
@@ -174,14 +185,16 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<TranslationUnit, Erro
         newly_used = next_newly_used;
     }
 
-    let final_module = driver.link(modules, &already_used)?;
+    let final_module = driver.link(&mut modules, &already_used)?;
 
-    Ok(final_module)
+    Ok(CompileResult {
+        syntax: final_module,
+        modules,
+        used_items: already_used,
+    })
 }
 
-pub async fn compile_async(
-    driver: &mut impl AsyncCompilerDriver,
-) -> Result<TranslationUnit, Error> {
+pub async fn compile_async(driver: &mut impl AsyncCompilerDriver) -> Result<CompileResult, Error> {
     let root_path = driver.root_path().clone();
     let root_module = driver.load_module(&root_path)?;
     let root_entrypoints = driver.root_entry_points(&root_module)?;
@@ -197,7 +210,7 @@ pub async fn compile_async(
     while !newly_used.is_empty() {
         let mut next_newly_used = UsedItems::new();
 
-        for (path, used_items) in &newly_used.used_items {
+        for (path, used_items) in newly_used.iter() {
             let module = match modules.iter().find(|module| module.path == *path) {
                 Some(module) => module,
                 None => {
@@ -219,7 +232,11 @@ pub async fn compile_async(
         newly_used = next_newly_used;
     }
 
-    let final_module = driver.link(modules, &already_used)?;
+    let final_module = driver.link(&mut modules, &already_used)?;
 
-    Ok(final_module)
+    Ok(CompileResult {
+        syntax: final_module,
+        modules,
+        used_items: already_used,
+    })
 }

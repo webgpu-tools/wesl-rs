@@ -444,7 +444,7 @@ fn run_compile(
             let path = ModulePath::new(PathOrigin::Absolute, vec![name]);
             let resolver = StandardResolver::new(base);
 
-            let res = compiler.set_custom_resolver(resolver).compile(&path)?;
+            let res = compiler.set_resolver(resolver).compile(&path)?;
             Ok(res)
         }
         FileOrSource::Source(source) => {

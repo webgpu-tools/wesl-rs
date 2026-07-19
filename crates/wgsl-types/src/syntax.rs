@@ -217,6 +217,22 @@ pub enum BuiltinValue {
     /// requires WGSL extension barycentric
     #[cfg(feature = "naga-ext")]
     ViewIndex,
+
+    // Mesh shaders
+    #[cfg(feature = "naga-ext")]
+    MeshTaskSize,
+    #[cfg(feature = "naga-ext")]
+    Vertices,
+    #[cfg(feature = "naga-ext")]
+    Primitives,
+    #[cfg(feature = "naga-ext")]
+    VertexCount,
+    #[cfg(feature = "naga-ext")]
+    PrimitiveCount,
+    #[cfg(feature = "naga-ext")]
+    TriangleIndices,
+    #[cfg(feature = "naga-ext")]
+    CullPrimitive,
 }
 
 /// Diagnostic Severity Control Names.
@@ -707,6 +723,20 @@ impl FromStr for BuiltinValue {
             "barycentric_no_perspective" => Ok(Self::BarycentricNoPerspective),
             #[cfg(feature = "naga-ext")]
             "view_index" => Ok(Self::ViewIndex),
+            #[cfg(feature = "naga-ext")]
+            "mesh_task_size" => Ok(Self::MeshTaskSize),
+            #[cfg(feature = "naga-ext")]
+            "vertices" => Ok(Self::Vertices),
+            #[cfg(feature = "naga-ext")]
+            "primitives" => Ok(Self::Primitives),
+            #[cfg(feature = "naga-ext")]
+            "vertex_count" => Ok(Self::VertexCount),
+            #[cfg(feature = "naga-ext")]
+            "primitive_count" => Ok(Self::PrimitiveCount),
+            #[cfg(feature = "naga-ext")]
+            "triangle_indices" => Ok(Self::TriangleIndices),
+            #[cfg(feature = "naga-ext")]
+            "cull_primitive" => Ok(Self::CullPrimitive),
             _ => Err(()),
         }
     }
@@ -911,6 +941,20 @@ impl Display for BuiltinValue {
             Self::BarycentricNoPerspective => write!(f, "barycentric_no_perspective"),
             #[cfg(feature = "naga-ext")]
             Self::ViewIndex => write!(f, "view_index"),
+            #[cfg(feature = "naga-ext")]
+            Self::MeshTaskSize => write!(f, "mesh_task_size"),
+            #[cfg(feature = "naga-ext")]
+            Self::Vertices => write!(f, "vertices"),
+            #[cfg(feature = "naga-ext")]
+            Self::Primitives => write!(f, "primitives"),
+            #[cfg(feature = "naga-ext")]
+            Self::VertexCount => write!(f, "vertex_count"),
+            #[cfg(feature = "naga-ext")]
+            Self::PrimitiveCount => write!(f, "primitive_count"),
+            #[cfg(feature = "naga-ext")]
+            Self::TriangleIndices => write!(f, "triangle_indices"),
+            #[cfg(feature = "naga-ext")]
+            Self::CullPrimitive => write!(f, "cull_primitive"),
         }
     }
 }

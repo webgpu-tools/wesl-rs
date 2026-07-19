@@ -866,6 +866,16 @@ pub fn exec_entrypoint(
                     BuiltinValue::ClipDistances | BuiltinValue::FragDepth => {
                         return Err(E::OutputBuiltin(builtin));
                     }
+                    #[cfg(feature = "naga-ext")]
+                    BuiltinValue::MeshTaskSize
+                    | BuiltinValue::Vertices
+                    | BuiltinValue::Primitives
+                    | BuiltinValue::VertexCount
+                    | BuiltinValue::PrimitiveCount
+                    | BuiltinValue::TriangleIndices
+                    | BuiltinValue::CullPrimitive => {
+                        return Err(E::OutputBuiltin(builtin));
+                    }
                 }
                 .ok_or_else(|| E::MissingBuiltinInput(builtin, p.ident.to_string()))
             } else if let Some(location) = p.attr_location(ctx)? {

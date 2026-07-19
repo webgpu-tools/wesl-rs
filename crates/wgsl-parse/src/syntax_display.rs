@@ -297,6 +297,12 @@ impl Display for Attribute {
             Attribute::Vertex => write!(f, "@vertex"),
             Attribute::Fragment => write!(f, "@fragment"),
             Attribute::Compute => write!(f, "@compute"),
+            #[cfg(feature = "naga-ext")]
+            Attribute::Task => write!(f, "@task"),
+            #[cfg(feature = "naga-ext")]
+            Attribute::Payload(p) => write!(f, "@payload({p})"),
+            #[cfg(feature = "naga-ext")]
+            Attribute::Mesh(m) => write!(f, "@mesh({m})"),
             #[cfg(feature = "imports")]
             Attribute::Publish => write!(f, "@publish"),
             #[cfg(feature = "condcomp")]

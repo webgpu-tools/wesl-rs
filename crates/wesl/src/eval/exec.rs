@@ -804,12 +804,10 @@ pub fn exec_entrypoint(
 ) -> Result<Option<Instance>, E> {
     let fn_name = entrypoint.ident.to_string();
 
-    let is_entrypoint = entrypoint.attributes.iter().any(|attr| {
-        matches!(
-            attr.node(),
-            Attribute::Vertex | Attribute::Fragment | Attribute::Compute
-        )
-    });
+    let is_entrypoint = entrypoint
+        .attributes
+        .iter()
+        .any(|attr| attr.node().is_entry_point());
     if !is_entrypoint {
         return Err(E::NotEntrypoint(fn_name));
     }

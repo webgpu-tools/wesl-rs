@@ -144,6 +144,8 @@ impl BuiltinIdent for AddressSpace {
             Self::Handle => None,
             #[cfg(feature = "naga-ext")]
             Self::Immediate => builtin_ident("immediate"),
+            #[cfg(feature = "naga-ext")]
+            Self::TaskPayload => builtin_ident("task_payload"),
         }
     }
 }

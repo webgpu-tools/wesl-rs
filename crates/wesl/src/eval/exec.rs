@@ -1079,6 +1079,8 @@ impl Exec for Declaration {
                         AddressSpace::Handle => todo!("handle address space"),
                         #[cfg(feature = "naga-ext")]
                         AddressSpace::Immediate => todo!("immediate address space"),
+                        #[cfg(feature = "naga-ext")]
+                        AddressSpace::TaskPayload => todo!("task_payload address space"),
                     }
                 }
             }

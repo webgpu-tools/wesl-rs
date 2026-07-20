@@ -8,6 +8,7 @@ use wgsl_parse::{
 
 #[cfg(feature = "eval")]
 use crate::eval::EvalError;
+use crate::sourcemap::SourceMap;
 
 // use crate::{Mangler, ResolveError, SourceMap, ValidateError};
 
@@ -265,33 +266,33 @@ impl<E: std::error::Error> Diagnostic<E> {
         self
     }
 
-    // /// Add metadata collected by the sourcemap. If the mangled declaration name was set,
-    // /// this will automatically add the source, the module path and the declaration name.
-    // pub fn with_sourcemap(mut self, sourcemap: &impl SourceMap) -> Self {
-    //     if let Some(decl) = &self.detail.declaration
-    //         && let Some((path, decl)) = sourcemap.get_decl(decl)
-    //     {
-    //         self.detail.module_path = Some(path.clone());
-    //         self.detail.declaration = Some(decl.to_string());
-    //         self.detail.display_name = sourcemap
-    //             .get_display_name(path)
-    //             .map(|name| name.to_string());
-    //         self.detail.source = sourcemap
-    //             .get_source(path)
-    //             .map(|s| s.to_string())
-    //             .or(self.detail.source);
-    //     }
+    /// Add metadata collected by the sourcemap. If the mangled declaration name was set,
+    /// this will automatically add the source, the module path and the declaration name.
+    pub fn with_sourcemap(mut self, sourcemap: &impl SourceMap) -> Self {
+        if let Some(decl) = &self.detail.declaration
+            && let Some(entry) = sourcemap.item(decl)
+        {
+            self.detail.module_path = Some(entry.path.clone());
+            self.detail.declaration = Some(entry.name.to_string());
+            self.detail.display_name = sourcemap
+                .display_name(&entry.path)
+                .map(|name| name.to_string());
+            self.detail.source = sourcemap
+                .source(&entry.path)
+                .map(|s| s.to_string())
+                .or(self.detail.source);
+        }
 
-    //     if self.detail.source.is_none() {
-    //         if let Some(path) = &self.detail.module_path {
-    //             self.detail.source = sourcemap.get_source(path).map(|s| s.to_string());
-    //         } else {
-    //             self.detail.source = sourcemap.get_default_source().map(|s| s.to_string());
-    //         }
-    //     }
+        if self.detail.source.is_none() {
+            if let Some(path) = &self.detail.module_path {
+                self.detail.source = sourcemap.source(path).map(|s| s.to_string());
+            } else {
+                self.detail.source = sourcemap.default_source().map(|s| s.to_string());
+            }
+        }
 
-    //     self
-    // }
+        self
+    }
 
     pub(crate) fn display_origin(&self) -> String {
         match (&self.detail.module_path, &self.detail.display_name) {

@@ -10,7 +10,7 @@ use std::{
     str::FromStr,
 };
 use wesl::{
-    CompileOptions, CompileResult, Compiler, Feature, Features, ManglerKind, SyntaxUtil,
+    CompileOptions, CompileResult, Compiler, Feature, Features, ManglerKind,
     error::Diagnostic,
     eval::{Eval, EvalAttrs, Inputs, Instance, LiteralInstance, RefInstance, Ty, ty_eval_ty},
     package::PackageBuilder,
@@ -427,7 +427,7 @@ fn run_compile(
     file_or_source: FileOrSource,
 ) -> Result<CompileResult, CliError> {
     let compile_options = CompileOptions::try_from(options)?;
-    let mut compiler = Compiler::new(compile_options);
+    let compiler = Compiler::new(compile_options);
 
     match file_or_source {
         FileOrSource::File(path) => {
@@ -444,7 +444,7 @@ fn run_compile(
             let path = ModulePath::new(PathOrigin::Absolute, vec![name]);
             let resolver = StandardResolver::new(base);
 
-            let res = compiler.set_resolver(resolver).compile(&path)?;
+            let res = compiler.set_resolver(resolver).compile_module(&path)?;
             Ok(res)
         }
         FileOrSource::Source(source) => {
@@ -457,7 +457,7 @@ fn run_compile(
             router.mount_resolver(path.clone(), resolver);
             router.mount_fallback_resolver(StandardResolver::new(base));
 
-            let res = compiler.set_custom_resolver(router).compile(&path)?;
+            let res = compiler.set_resolver(router).compile_module(&path)?;
             Ok(res)
         }
     }
@@ -591,10 +591,10 @@ fn run(cli: Cli) -> Result<(), CliError> {
                     // extensions.
                     wgsl_parse::recognize_str(&source)
                         .map_err(|e| Diagnostic::from(e).with_source(source.clone()))?;
-                    let mut wgsl = wgsl_parse::parse_str(&source)
+                    let mut module = wgsl_parse::parse_str(&source)
                         .map_err(|e| Diagnostic::from(e).with_source(source.clone()))?;
-                    wgsl.retarget_idents();
-                    wesl::validate_wgsl(&wgsl)?;
+                    wesl::pass::retarget_idents(&mut module);
+                    wesl::pass::validate_wgsl(&module)?;
 
                     #[cfg(feature = "naga")]
                     if args.naga {
@@ -602,10 +602,10 @@ fn run(cli: Cli) -> Result<(), CliError> {
                     }
                 }
                 CheckKind::Wesl => {
-                    let mut wesl = TranslationUnit::from_str(&source)
+                    let mut module = TranslationUnit::from_str(&source)
                         .map_err(|e| Diagnostic::from(e).with_source(source))?;
-                    wesl.retarget_idents();
-                    wesl::validate_wesl(&wesl)?;
+                    wesl::pass::retarget_idents(&mut module);
+                    wesl::pass::validate_wesl(&module)?;
                 }
             }
             println!("OK");

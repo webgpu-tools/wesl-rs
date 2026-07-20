@@ -12,6 +12,7 @@ pub struct ImportedItem {
     pub public: bool,
 }
 
+#[derive(Default, Clone)]
 pub struct UsedItems {
     used_items: HashMap<ModulePath, HashSet<Ident>>,
 }

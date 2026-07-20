@@ -40,10 +40,6 @@ enum WeslBindingType
 typedef uint8_t WeslBindingType;
 #endif // __cplusplus
 
-typedef struct WeslCompiler WeslCompiler;
-
-typedef struct WeslTranslationUnit WeslTranslationUnit;
-
 typedef struct WeslDiagnostic {
   const char *file;
   uintptr_t span_start;
@@ -64,11 +60,32 @@ typedef struct WeslResult {
   struct WeslError error;
 } WeslResult;
 
-typedef struct WeslStringMap {
-  const char *const *keys;
-  const char *const *values;
+typedef struct WeslStringArray {
+  const char *const *items;
   uintptr_t len;
-} WeslStringMap;
+} WeslStringArray;
+
+typedef struct WeslBoolMap {
+  const char *const *keys;
+  const bool *values;
+  uintptr_t len;
+} WeslBoolMap;
+
+typedef struct WeslCompileOptions {
+  bool imports;
+  bool condcomp;
+  bool generics;
+  bool strip;
+  bool lower;
+  bool validate;
+  bool sourcemap;
+  WeslManglerKind mangler;
+  bool mangle_root;
+  struct WeslStringArray keep;
+  bool keep_root;
+  struct WeslBoolMap features;
+  bool naga;
+} WeslCompileOptions;
 
 typedef struct WeslResolveSourceResult {
   bool success;
@@ -95,39 +112,6 @@ typedef struct WeslResolverOptions {
   WeslResolveFreeStringFunctionOption free_fs_path;
 } WeslResolverOptions;
 
-typedef struct WeslCompileOptions {
-  WeslManglerKind mangler;
-  bool sourcemap;
-  bool imports;
-  bool condcomp;
-  bool generics;
-  bool strip;
-  bool lower;
-  bool validate;
-  bool naga;
-  bool lazy;
-  bool keep_root;
-  bool mangle_root;
-  const struct WeslResolverOptions *resolver;
-} WeslCompileOptions;
-
-typedef struct WeslStringArray {
-  const char *const *items;
-  uintptr_t len;
-} WeslStringArray;
-
-typedef struct WeslBoolMap {
-  const char *const *keys;
-  const bool *values;
-  uintptr_t len;
-} WeslBoolMap;
-
-typedef struct WeslParseResult {
-  bool success;
-  const struct WeslTranslationUnit *data;
-  struct WeslError error;
-} WeslParseResult;
-
 typedef struct WeslBinding {
   uint32_t group;
   uint32_t binding;
@@ -147,60 +131,74 @@ typedef struct WeslExecResult {
   struct WeslError error;
 } WeslExecResult;
 
+typedef struct WeslStringMap {
+  const char *const *keys;
+  const char *const *values;
+  uintptr_t len;
+} WeslStringMap;
+
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-struct WeslCompiler *wesl_create_compiler(void);
-
-void wesl_destroy_compiler(struct WeslCompiler *compiler);
-
-struct WeslResult wesl_compile(const struct WeslStringMap *files,
-                               const char *root,
+/**
+ * Free with `wesl_free_result`.
+ */
+struct WeslResult wesl_compile(const char *root,
                                const struct WeslCompileOptions *options,
-                               const struct WeslStringArray *keep,
-                               const struct WeslBoolMap *features);
+                               const struct WeslResolverOptions *resolver);
 
-struct WeslParseResult wesl_parse(const char *source);
-
-struct WeslResult wesl_eval(const struct WeslStringMap *files,
-                            const char *root,
+/**
+ * Requires the `eval` feature to be enabled.
+ *
+ * Free with `wesl_free_result`.
+ */
+struct WeslResult wesl_eval(const char *root,
                             const char *expression,
                             const struct WeslCompileOptions *options,
-                            const struct WeslBoolMap *features);
+                            const struct WeslResolverOptions *resolver);
 
-struct WeslResult wesl_eval(const struct WeslStringMap *_files,
-                            const char *_root,
+/**
+ * Requires the `eval` feature to be enabled.
+ *
+ * Free with `wesl_free_result`.
+ */
+struct WeslResult wesl_eval(const char *_root,
                             const char *_expression,
                             const struct WeslCompileOptions *_options,
-                            const struct WeslBoolMap *_features);
+                            const struct WeslResolverOptions *_resolver);
 
-struct WeslExecResult wesl_exec(const struct WeslStringMap *files,
-                                const char *root,
+/**
+ * Requires the `eval` feature to be enabled.
+ *
+ * Free with `wesl_free_exec_result`.
+ */
+struct WeslExecResult wesl_exec(const char *root,
                                 const char *entrypoint,
                                 const struct WeslCompileOptions *options,
                                 const struct WeslBindingArray *resources,
                                 const struct WeslStringMap *overrides,
-                                const struct WeslBoolMap *features);
+                                const struct WeslResolverOptions *resolver);
 
-struct WeslExecResult wesl_exec(const struct WeslStringMap *_files,
-                                const char *_root,
+/**
+ * Requires the `eval` feature to be enabled.
+ *
+ * Free with `wesl_free_exec_result`.
+ */
+struct WeslExecResult wesl_exec(const char *_root,
                                 const char *_entrypoint,
                                 const struct WeslCompileOptions *_options,
                                 const struct WeslBindingArray *_resources,
                                 const struct WeslStringMap *_overrides,
-                                const struct WeslBoolMap *_features);
-
-void wesl_free_string(const char *ptr);
+                                const struct WeslResolverOptions *_resolver);
 
 void wesl_free_result(struct WeslResult *result);
 
 void wesl_free_exec_result(struct WeslExecResult *result);
 
-void wesl_free_parse_result(struct WeslParseResult *result);
-
-void wesl_free_translation_unit(struct WeslTranslationUnit *unit);
-
+/**
+ * Note: this function result must not be freed.
+ */
 const char *wesl_version(void);
 
 #ifdef __cplusplus

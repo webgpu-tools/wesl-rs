@@ -1,4 +1,4 @@
-use std::{collections::HashSet, marker::PhantomData, path::Path};
+use std::{collections::HashSet, path::Path};
 
 use wgsl_parse::{
     SyntaxNode,
@@ -10,7 +10,7 @@ use crate::{
     error::{Diagnostic, Error, ImportError},
     mangler::{self, Mangler},
     pass::{self, UsedItems},
-    pipeline::{self, CompilerDriver, Module},
+    pipeline::{self, CompilerDriver},
     resolver::{AsyncResolver, Constants, Resolver, StandardResolver, StaticPackage},
     sourcemap::{BasicSourceMap, SourceMapper},
 };
@@ -157,7 +157,7 @@ impl Default for CompileOptions {
 ///     .to_string();
 /// ```
 #[derive(Default, Clone, Debug)]
-pub struct Compiler<R> {
+pub struct Compiler<R = ()> {
     options: CompileOptions,
     resolver: R,
 }
@@ -239,7 +239,7 @@ impl Compiler<()> {
 
         Ok(CompileResult {
             syntax: res.syntax,
-            sourcemap: sourcemapper.finish(),
+            sourcemap: Some(sourcemapper.finish()),
             used_items: res.used_items,
         })
     }
@@ -257,25 +257,59 @@ impl<R: Resolver> Compiler<R> {
     ///   => An optional `package.wesl` file in the directory serves as the root module. Other `.wesl` files and subdirectories are submodules.
     ///
     /// Note: `.wgsl` extensions are also supported.
-    pub fn compile_module(&self, root_module_path: ModulePath) -> Result<CompileResult, Error> {
+    pub fn compile_module(&self, root_module_path: &ModulePath) -> Result<CompileResult, Error> {
         let mangler = Box::<dyn Mangler>::from(self.options.mangler);
 
         let mut pass =
-            CompilationPass::new(&root_module_path, &self.options, &self.resolver, &mangler);
+            CompilationPass::new(root_module_path, &self.options, &self.resolver, &mangler);
         let res = CompilerDriver::compile(&mut pass)?;
 
         Ok(CompileResult {
             syntax: res.syntax,
-            sourcemap: pass.sourcemap,
+            sourcemap: Some(pass.sourcemap),
             used_items: res.used_items,
         })
     }
 }
 
+#[derive(Default, Clone)]
 pub struct CompileResult {
     pub syntax: TranslationUnit,
-    pub sourcemap: BasicSourceMap,
+    pub sourcemap: Option<BasicSourceMap>,
     pub used_items: UsedItems,
+}
+
+impl CompileResult {
+    pub fn write_to_file(&self, path: impl AsRef<Path>) -> std::io::Result<()> {
+        std::fs::write(path, self.to_string())
+    }
+
+    /// Write the result in rust's `OUT_DIR`.
+    ///
+    /// This function is meant to be used in a `build.rs` workflow. The output WGSL will
+    /// be accessed with the [`include_wesl`] macro. See the crate documentation for a
+    /// usage example.
+    ///
+    /// # Panics
+    /// Panics when the output file cannot be written.
+    pub fn write_artifact(&self, artifact_name: &str) {
+        let dirname = std::env::var("OUT_DIR").unwrap();
+        let out_name = Path::new(artifact_name);
+        if out_name.iter().count() != 1 || out_name.extension().is_some() {
+            eprintln!("`out_name` cannot contain path separators or file extension");
+            panic!()
+        }
+        let mut output = Path::new(&dirname).join(out_name);
+        output.set_extension("wgsl");
+        self.write_to_file(output)
+            .expect("failed to write output shader");
+    }
+}
+
+impl std::fmt::Display for CompileResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.syntax.fmt(f)
+    }
 }
 
 pub struct CompilationPass<'a> {
@@ -406,3 +440,9 @@ impl pipeline::CompilerDriver for CompilationPass<'_> {
 //         Ok(module)
 //     }
 // }
+
+#[test]
+fn test_send_sync() {
+    fn assert_send_sync<T: Send + Sync>() {}
+    assert_send_sync::<Compiler<()>>();
+}

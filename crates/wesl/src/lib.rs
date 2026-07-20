@@ -64,7 +64,7 @@ macro_rules! include_wesl {
 ///
 /// See [`PackageBuilder`] for more information about building WESL packages.
 ///
-/// ```ignore
+/// ```no_run
 /// // Load package in `OUT_DIR/my_package.rs`
 /// wesl_pkg!(my_package);
 ///

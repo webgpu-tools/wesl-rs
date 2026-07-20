@@ -45,11 +45,12 @@ impl ModulePath {
     /// * Paths with a root (leading `/` on Unix) produce `package::` paths.
     /// * Relative paths (starting with `.` or `..`) produce `self::` or `super::` paths.
     /// * The file extension is ignored.
-    /// * The path is canonicalized and to do so it does NOT follow symlinks.
     ///
-    /// Preconditions:
+    /// # Panics
+    ///
     /// * The path must not start with a prefix, like C:\ on windows.
     /// * The path must contain at least one named component.
+    /// * The path must be canonical (not contain `.` or `..` components in the middle)
     /// * Named components must be valid module names.
     ///   (Module names are WGSL identifiers + certain reserved names, see wesl-spec#127)
     pub fn from_path(path: impl AsRef<std::path::Path>) -> Self {

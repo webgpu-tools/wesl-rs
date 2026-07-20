@@ -30,6 +30,8 @@ pub enum CondCompError {
 /// Error produced by module resolution.
 #[derive(Debug, thiserror::Error)]
 pub enum ResolveError {
+    #[error("I/O Error: {0}")]
+    Io(std::io::Error),
     #[error("file not found: `{0}` ({1})")]
     FileNotFound(PathBuf, String),
     #[error("module not found: `{0}` ({1})")]

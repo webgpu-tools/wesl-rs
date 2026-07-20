@@ -4,20 +4,20 @@ use std::{
 };
 
 use crate::{
-    ModulePath,
-    error::{Diagnostic, Error, TomlError},
+    error::TomlError,
     pass::{retarget_idents, validate_wesl},
     resolver::StaticPackage,
     wesl_toml::{self, WeslToml},
 };
-use wgsl_parse::{
-    lexer::{Lexer, Token},
-    syntax::TranslationUnit,
-};
+use wgsl_parse::lexer::{Lexer, Token};
 use wgsl_types::idents::RESERVED_WORDS;
 
 #[cfg(feature = "package")]
+use crate::{Error, error::Diagnostic};
+#[cfg(feature = "package")]
 use quote::{format_ident, quote};
+#[cfg(feature = "package")]
+use wgsl_parse::syntax::{ModulePath, TranslationUnit};
 
 /// WGSL identifier predicate, including reserved words, but excluding keywords.
 pub(crate) fn is_mod_ident(name: &str) -> bool {
@@ -72,7 +72,7 @@ pub(crate) const RESERVED_MOD_NAMES: &[&str] = &[
 ///
 /// # Usage
 ///
-/// ```ignore
+/// ```no_run
 /// // in build.rs
 /// fn main() {
 ///    wesl::PackageBuilder::new("my_package")
@@ -89,7 +89,7 @@ pub(crate) const RESERVED_MOD_NAMES: &[&str] = &[
 /// }
 /// ```
 /// Then, in your `lib.rs` file, expose the generated module with the [`crate::wesl_pkg`] macro.
-/// ```ignore
+/// ```no_run
 /// wesl::wesl_pkg!(pub my_package);
 /// ```
 ///
@@ -266,7 +266,7 @@ impl PackageBuilder {
     ///
     /// # Example
     ///
-    /// ```ignore
+    /// ```no_run
     /// wesl::PackageBuilder::new("my_package")
     ///     .scan_toml(".")  // looks for ./wesl.toml
     ///     .expect("failed to scan WESL files")

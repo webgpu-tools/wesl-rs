@@ -38,11 +38,11 @@ wesl = "0.1"
 
 Create the `build.rs` file with the following content:
 
-```rust,ignore
-# use wesl::{Wesl, FileResolver};
+```rust,no_run
+# use wesl::Compiler;
 fn main() {
-    Wesl::new("src/shaders")
-        .build_artifact(&"package::main".parse().unwrap(), "my_shader");
+    Compiler::new()
+        .build_artifact("src/shaders/main.wgsl", "my_main_shader");
 }
 ```
 
@@ -50,8 +50,8 @@ Include the compiled WGSL string in your code:
 
 ```rust,ignore
 let module = device.create_shader_module(ShaderModuleDescriptor {
-    label: Some("my_shader"),
-    source: ShaderSource::Wgsl(include_wesl!("my_shader")),
+    label: Some("my_main_shader"),
+    source: ShaderSource::Wgsl(include_wesl!("my_main_shader")),
 });
 ```
 
@@ -74,7 +74,7 @@ runtime dependencies.
 The eval/exec implementation is tested with the [WebGPU Conformance Test Suite][cts].
 
 ```rust
-# use wesl::{Wesl, VirtualResolver, eval_str};
+# use wesl::{Compiler, resolver::VirtualResolver, eval_str};
 // ...standalone expression
 let wgsl_expr = eval_str("abs(3 - 5)").unwrap().to_string();
 assert_eq!(wgsl_expr, "2");

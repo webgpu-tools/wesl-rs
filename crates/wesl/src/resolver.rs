@@ -561,6 +561,8 @@ pub fn emit_rerun_if_changed(modules: &[ModulePath], resolver: &impl Resolver) {
 
 #[cfg(test)]
 mod test {
+    use crate::{CompileOptions, Compiler};
+
     use super::*;
 
     #[test]
@@ -651,11 +653,9 @@ mod test {
         r.mount_fallback_resolver(std);
 
         // compile to test imports and casting
-        panic!()
-        // crate::Wesl::new(".")
-        //     .set_custom_resolver(r)
-        //     .compile(&"package::color_math".parse().unwrap())
-        //     .unwrap();
+        Compiler::new_with_resolver(CompileOptions::default(), r)
+            .compile_module(&"package::color_math".parse().unwrap())
+            .unwrap();
     }
 
     #[test]

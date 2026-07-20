@@ -7,7 +7,7 @@ use wgsl_parse::{
 
 use crate::{
     Features, SyntaxUtil,
-    error::{Diagnostic, Error, ImportError},
+    error::{Diagnostic, Error, ImportError, ResolveError},
     mangler::{self, Mangler},
     pass::{self, UsedItems},
     pipeline::{self, CompilerDriver},
@@ -141,18 +141,12 @@ impl Default for CompileOptions {
 ///
 /// # Basic Usage
 ///
-/// ```rust
-/// # use wesl::{Wesl, VirtualResolver};
+/// ```no_run
+/// # use wesl::{Compiler, resolver::VirtualResolver};
 /// #
-/// let compiler = Wesl::new("path/to/dir/containing/shaders");
-/// #
-/// # // just adding a virtual file here so the doctest runs without a filesystem
-/// # let mut resolver = VirtualResolver::new();
-/// # resolver.add_module("package::main".parse().unwrap(), "fn my_fn() {}".into());
-/// # let compiler = compiler.set_custom_resolver(resolver);
-/// #
+/// let compiler = Compiler::default();
 /// let wgsl_string = compiler
-///     .compile(&"package::main".parse().unwrap())
+///     .compile("path/to/shader.wgsl") // or "path/to/wesl.toml"
 ///     .unwrap()
 ///     .to_string();
 /// ```
@@ -257,6 +251,24 @@ impl<R: Resolver> Compiler<R> {
     ///   => An optional `package.wesl` file in the directory serves as the root module. Other `.wesl` files and subdirectories are submodules.
     ///
     /// Note: `.wgsl` extensions are also supported.
+    pub fn compile(&self, path: impl AsRef<Path>) -> Result<CompileResult, Error> {
+        let path = path.as_ref();
+
+        let relative_path = if let Some(root_path) = self.resolver.fs_path(&ModulePath::new_root())
+        {
+            std::path::absolute(path)
+                .map_err(|e| ResolveError::Io(e))?
+                .strip_prefix(root_path)
+                .unwrap_or(&path)
+                .to_path_buf()
+        } else {
+            path.to_path_buf()
+        };
+
+        let root_module_path = ModulePath::from_path(relative_path);
+        self.compile_module(&root_module_path)
+    }
+    /// Compile a WESL shader to WGSL.
     pub fn compile_module(&self, root_module_path: &ModulePath) -> Result<CompileResult, Error> {
         let mangler = Box::<dyn Mangler>::from(self.options.mangler);
 
@@ -408,6 +420,9 @@ impl pipeline::CompilerDriver for CompilationPass<'_> {
         used_items: &UsedItems,
     ) -> Result<TranslationUnit, Error> {
         for module in modules.iter_mut() {
+            if !self.options.mangle_root && module.path == *self.root_path {
+                continue;
+            }
             pass::mangle(&mut module.syntax, &module.path, &self.mangler);
         }
 

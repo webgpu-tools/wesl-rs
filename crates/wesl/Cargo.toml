@@ -38,6 +38,7 @@ serde = {
   features = ["derive"],
   optional = true
 }  # dep for feature 'package'
+sha2 = { version = "0.10", optional = true }  # dep for feature 'package'
 thiserror = "2.0.11"
 toml = { version = "0.9", optional = true }  # dep for feature 'package'
 wesl-macros = { workspace = true, features = ["query"] }
@@ -67,7 +68,7 @@ generics = ["wgsl-parse/generics"]
 # * `subgroupBallot()` with no argument (defaults to `true`)
 # * `textureSampleGrad()` with 1D texture
 naga-ext = ["wgsl-parse/naga-ext", "wgsl-types/naga-ext"]
-package = ["dep:glob", "dep:proc-macro2", "dep:quote", "dep:serde", "dep:toml"]
+package = ["dep:glob", "dep:proc-macro2", "dep:quote", "dep:serde", "dep:sha2", "dep:toml"]
 serde = ["wgsl-parse/serde"]
 
 [lints]

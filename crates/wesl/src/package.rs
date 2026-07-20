@@ -132,6 +132,38 @@ fn cargo_crate_name() -> String {
     std::env::var("CARGO_PKG_NAME").expect("CARGO_PKG_NAME environment variable is not defined")
 }
 
+fn cargo_crate_version() -> String {
+    std::env::var("CARGO_PKG_VERSION")
+        .expect("CARGO_PKG_VERSION environment variable is not defined")
+}
+
+/// deterministic id from the first 128 bits of a sha256 of the
+/// crate name, crate version and every module name and source.
+fn pkg_id(crate_name: &str, version: &str, root: &Module) -> u128 {
+    use sha2::Digest;
+    // 0xff can't occur in utf-8
+    fn hash_str(hasher: &mut sha2::Sha256, s: &str) {
+        hasher.update(s.as_bytes());
+        hasher.update([0xff]);
+    }
+    fn hash_module(hasher: &mut sha2::Sha256, module: &Module) {
+        hash_str(hasher, &module.name);
+        hash_str(hasher, &module.source);
+        // the scan order of submodules is not deterministic, sort for a stable hash
+        let mut submodules: Vec<&Module> = module.submodules.iter().collect();
+        submodules.sort_by(|m1, m2| m1.name.cmp(&m2.name));
+        for submod in submodules {
+            hash_module(hasher, submod);
+        }
+    }
+    let mut hasher = sha2::Sha256::new();
+    hash_str(&mut hasher, crate_name);
+    hash_str(&mut hasher, version);
+    hash_module(&mut hasher, root);
+    let digest = hasher.finalize();
+    u128::from_le_bytes(digest[..16].try_into().unwrap())
+}
+
 impl PkgBuilder {
     pub fn new(name: &str) -> Self {
         Self {
@@ -356,6 +388,8 @@ impl Pkg {
         });
 
         let crate_name = &self.crate_name;
+        let id = pkg_id(crate_name, &cargo_crate_version(), &self.root);
+        let id = proc_macro2::Literal::u128_unsuffixed(id);
         let root_name = &self.root.name;
         let root_source = &self.root.source;
 
@@ -370,6 +404,7 @@ impl Pkg {
         let tokens = quote! {
             pub const PACKAGE: CodegenPkg = CodegenPkg {
                 crate_name: #crate_name,
+                id: #id,
                 root: &MODULE,
                 dependencies: &[#(#deps),*],
             };

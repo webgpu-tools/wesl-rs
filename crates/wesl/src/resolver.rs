@@ -1,4 +1,7 @@
-use crate::error::{Error, ResolveError};
+use crate::{
+    error::{Error, ResolveError},
+    package::StaticPackage,
+};
 
 use itertools::Itertools;
 use wgsl_parse::syntax::{ModulePath, PathOrigin, TranslationUnit};
@@ -312,28 +315,6 @@ impl Resolver for Router {
     }
 }
 
-/// The type holding the source code of external packages.
-///
-/// You typically don't implement this, instead it is generated for you by [`crate::PackageBuilder`].
-/// Crates containing shader packages export `const` instances of this type, which you can
-/// then import and [add to your resolver][StandardResolver::add_package].
-#[derive(Debug, PartialEq, Eq)]
-pub struct StaticPackage {
-    pub crate_name: &'static str,
-    pub root: &'static StaticModule,
-    pub dependencies: &'static [&'static StaticPackage],
-}
-
-/// The type holding the source code of modules in external packages.
-///
-/// See [`StaticPackage`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct StaticModule {
-    pub name: &'static str,
-    pub source: &'static str,
-    pub submodules: &'static [&'static StaticModule],
-}
-
 /// A resolver that only resolves module paths that refer to modules in external packages.
 ///
 /// Register external packages with [`Self::add_package`].
@@ -533,28 +514,6 @@ impl Resolver for StandardResolver {
             self.pkg.fs_path(path)
         } else {
             self.files.fs_path(path)
-        }
-    }
-}
-
-pub fn emit_rerun_if_changed(modules: &[ModulePath], resolver: &impl Resolver) {
-    for module in modules {
-        if module.origin.is_package() {
-            continue;
-        }
-        assert!(
-            !module.origin.is_relative(),
-            "the modules passed to emit_rerun_if_changed must be absolute"
-        );
-        if let Some(mut path) = resolver.fs_path(module) {
-            // Path::display is safe here because of the ModulePath naming restrictions
-            println!("cargo::rerun-if-changed={}", path.display());
-
-            // If it's a fallback path, we need to react to the higher priority path as well
-            if path.extension().unwrap() == "wgsl" {
-                path.set_extension("wesl");
-                println!("cargo::rerun-if-changed={}", path.display());
-            }
         }
     }
 }

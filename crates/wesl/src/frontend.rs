@@ -9,9 +9,10 @@ use crate::{
     Features, SyntaxUtil,
     error::{Diagnostic, Error, ImportError, ResolveError},
     mangler::{self, Mangler},
+    package::StaticPackage,
     pass::{self, UsedItems},
     pipeline::{self, CompilerDriver},
-    resolver::{AsyncResolver, Constants, Resolver, StandardResolver, StaticPackage},
+    resolver::{AsyncResolver, Constants, Resolver, StandardResolver},
     sourcemap::{BasicSourceMap, SourceMapper},
 };
 
@@ -141,19 +142,39 @@ impl Default for CompileOptions {
 ///
 /// # Basic Usage
 ///
-/// ```no_run
+/// ```rust
 /// # use wesl::{Compiler, resolver::VirtualResolver};
 /// #
 /// let compiler = Compiler::default();
+/// #
+/// # // just adding a virtual file here so the doctest runs without a filesystem
+/// # let mut resolver = VirtualResolver::new();
+/// # let shader_string = "fn my_fn() {\n\n}\n";
+/// # resolver.add_module("package::path::to::shader".parse().unwrap(), shader_string.into());
+/// # let mut compiler = compiler.set_resolver(resolver);
+/// # compiler.options.keep_root = true; // prevent dead code elimination
+/// #
 /// let wgsl_string = compiler
-///     .compile("path/to/shader.wgsl") // or "path/to/wesl.toml"
+///     .compile("path/to/shader.wgsl")
+///     .inspect_err(|e| eprintln!("{e}")) // pretty-print errors
 ///     .unwrap()
 ///     .to_string();
+/// #
+/// # assert!(wgsl_string == shader_string);
 /// ```
-#[derive(Default, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct Compiler<R = ()> {
-    options: CompileOptions,
-    resolver: R,
+    pub options: CompileOptions,
+    pub resolver: R,
+}
+
+impl Default for Compiler<()> {
+    fn default() -> Self {
+        Self {
+            options: Default::default(),
+            resolver: Default::default(),
+        }
+    }
 }
 
 impl<R1> Compiler<R1> {
@@ -207,28 +228,37 @@ impl Compiler<()> {
             path.to_path_buf()
         };
 
-        let root_module_path = if base_path.is_file() {
+        let module_path = if base_path.is_file() {
             ModulePath::new_root()
         } else {
             // TODO: is this correct?
             ModulePath::new(PathOrigin::Absolute, vec!["package".to_string()])
         };
 
-        let mut resolver = StandardResolver::new(base_path.with_extension(""));
+        self.compile_module(base_path, &module_path)
+    }
+
+    /// Compile a WESL shader to WGSL.
+    pub fn compile_module(
+        &self,
+        base_path: impl AsRef<Path>,
+        module_path: &ModulePath,
+    ) -> Result<CompileResult, Error> {
+        let mut resolver = StandardResolver::new(base_path.as_ref().with_extension(""));
         let mangler = Box::<dyn Mangler>::from(self.options.mangler);
 
         for (name, value) in self.options.constants.iter() {
             resolver.add_constant(name.clone(), value.clone());
         }
 
-        let sourcemapper = SourceMapper::new(root_module_path.clone(), &resolver, &mangler);
+        for package in self.options.dependencies.iter() {
+            resolver.add_package(package);
+        }
 
-        let mut pass = CompilationPass::new(
-            &root_module_path,
-            &self.options,
-            &sourcemapper,
-            &sourcemapper,
-        );
+        let sourcemapper = SourceMapper::new(module_path.clone(), &resolver, &mangler);
+
+        let mut pass =
+            CompilationPass::new(&module_path, &self.options, &sourcemapper, &sourcemapper);
         let res = CompilerDriver::compile(&mut pass)?;
 
         Ok(CompileResult {
@@ -251,23 +281,36 @@ impl<R: Resolver> Compiler<R> {
     ///   => An optional `package.wesl` file in the directory serves as the root module. Other `.wesl` files and subdirectories are submodules.
     ///
     /// Note: `.wgsl` extensions are also supported.
+    ///
+    /// # Warning
+    ///
+    /// This function works best with filesystem resolvers which implement [`Resolver::fs_path`].
+    /// With `fs_path` implemented, the function makes the input file path relative to the package's root directory.
+    /// Otherwise, it converts the file path to a module path straight away, which may panic (see [`ModulePath::from_path`]).
     pub fn compile(&self, path: impl AsRef<Path>) -> Result<CompileResult, Error> {
         let path = path.as_ref();
 
-        let relative_path = if let Some(root_path) = self.resolver.fs_path(&ModulePath::new_root())
-        {
-            std::path::absolute(path)
-                .map_err(|e| ResolveError::Io(e))?
-                .strip_prefix(root_path)
+        // TODO: rework implementations of fs_path to be more fault tolerant?
+        // or add a function root_dir?
+        let relative_path = if let Some(root) = self.resolver.fs_path(&ModulePath::new_root()) {
+            let abs_path = std::path::absolute(path).map_err(|e| ResolveError::Io(e))?;
+            let abs_root = std::path::absolute(root).map_err(|e| ResolveError::Io(e))?;
+            let abs_root = abs_root.parent().unwrap_or(Path::new(""));
+            abs_path
+                .strip_prefix(abs_root)
                 .unwrap_or(&path)
                 .to_path_buf()
         } else {
-            path.to_path_buf()
+            Path::new(".").join(path)
         };
 
-        let root_module_path = ModulePath::from_path(relative_path);
+        let mut root_module_path = ModulePath::from_path(relative_path);
+        // we force the origin to be absolute if it was relative.
+        root_module_path.origin = PathOrigin::Absolute;
+
         self.compile_module(&root_module_path)
     }
+
     /// Compile a WESL shader to WGSL.
     pub fn compile_module(&self, root_module_path: &ModulePath) -> Result<CompileResult, Error> {
         let mangler = Box::<dyn Mangler>::from(self.options.mangler);
@@ -296,6 +339,37 @@ impl CompileResult {
         std::fs::write(path, self.to_string())
     }
 
+    /// Emit `rerun-if-changed` instructions so the build script reruns only if the
+    /// shader files are modified.
+    pub fn emit_rerun_if_changed(&self) {
+        let Some(sourcemap) = &self.sourcemap else {
+            println!("cargo::warning=cannot emit rerun-if-changed directive without a sourcemap");
+            return;
+        };
+
+        for (module_path, _) in self.used_items.iter() {
+            if module_path.origin.is_package() {
+                continue;
+            }
+            assert!(
+                !module_path.origin.is_relative(),
+                "the modules passed to emit_rerun_if_changed must be absolute"
+            );
+            if let Some(source) = sourcemap.file(module_path)
+                && let Some(fs_path) = &source.path
+            {
+                // Path::display is safe here because of the ModulePath naming restrictions
+                println!("cargo::rerun-if-changed={}", fs_path.display());
+
+                // If it's a fallback path, we need to react to the higher priority path as well
+                if fs_path.extension().unwrap() == "wgsl" {
+                    let fs_path = fs_path.with_extension("wesl");
+                    println!("cargo::rerun-if-changed={}", fs_path.display());
+                }
+            }
+        }
+    }
+
     /// Write the result in rust's `OUT_DIR`.
     ///
     /// This function is meant to be used in a `build.rs` workflow. The output WGSL will
@@ -303,6 +377,7 @@ impl CompileResult {
     /// usage example.
     ///
     /// # Panics
+    ///
     /// Panics when the output file cannot be written.
     pub fn write_artifact(&self, artifact_name: &str) {
         let dirname = std::env::var("OUT_DIR").unwrap();
@@ -427,6 +502,8 @@ impl pipeline::CompilerDriver for CompilationPass<'_> {
         }
 
         let mut module = pass::link(modules, self.options.strip.then_some(used_items));
+        pass::retarget_idents(&mut module);
+        println!("module : {module}");
 
         if self.options.lower {
             pass::lower(&mut module)?;

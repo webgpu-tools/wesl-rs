@@ -17,7 +17,7 @@ serde = { version = "1.0.210", features = ["derive"] }
 
 [dev-dependencies]
 bevy-wgsl = {
-  git = "https://github.com/wgsl-tooling-wg/bevy-wgsl",
+  git = "https://github.com/webgpu-tools/bevy-wgsl",
   rev = "79f97798c13143947df9b3b1dec5732991557e29"
 }
 libtest-mimic = "0.8.1"

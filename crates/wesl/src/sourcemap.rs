@@ -34,11 +34,18 @@ pub struct SourceMapEntry {
     pub span: Option<Span>,
 }
 
+#[derive(Clone, Debug)]
+pub struct SourceMapFile {
+    pub source: String,
+    pub display_name: Option<String>,
+    pub path: Option<PathBuf>,
+}
+
 /// Basic implementation of [`SourceMap`].
 #[derive(Clone, Debug, Default)]
 pub struct BasicSourceMap {
     mappings: HashMap<String, SourceMapEntry>,
-    sources: HashMap<ModulePath, (Option<String>, String)>, // res -> (display_name, source)
+    sources: HashMap<ModulePath, SourceMapFile>,
     default_source: Option<String>,
 }
 
@@ -49,8 +56,11 @@ impl BasicSourceMap {
     pub fn add_item(&mut self, decl: String, entry: SourceMapEntry) {
         self.mappings.insert(decl, entry);
     }
-    pub fn add_source(&mut self, file: ModulePath, name: Option<String>, source: String) {
-        self.sources.insert(file, (name, source));
+    pub fn file(&self, path: &ModulePath) -> Option<&SourceMapFile> {
+        self.sources.get(path)
+    }
+    pub fn add_file(&mut self, path: ModulePath, file: SourceMapFile) {
+        self.sources.insert(path, file);
     }
     pub fn set_default_source(&mut self, source: String) {
         self.default_source = Some(source);
@@ -62,10 +72,12 @@ impl SourceMap for BasicSourceMap {
         self.mappings.get(decl)
     }
     fn source(&self, path: &ModulePath) -> Option<&str> {
-        self.sources.get(path).map(|(_, source)| source.as_str())
+        self.sources.get(path).map(|file| file.source.as_str())
     }
     fn display_name(&self, path: &ModulePath) -> Option<&str> {
-        self.sources.get(path).and_then(|(name, _)| name.as_deref())
+        self.sources
+            .get(path)
+            .and_then(|file| file.display_name.as_deref())
     }
     fn default_source(&self) -> Option<&str> {
         self.default_source.as_deref()
@@ -134,8 +146,8 @@ impl<'a> SourceMapper<'a> {
     /// Consume this and return a [`BasicSourceMap`].
     pub fn finish(self) -> BasicSourceMap {
         let mut sourcemap = self.sourcemap.into_inner();
-        if let Some(source) = sourcemap.source(&self.root) {
-            sourcemap.set_default_source(source.to_string());
+        if let Some(file) = sourcemap.file(&self.root) {
+            sourcemap.set_default_source(file.source.to_string());
         }
         sourcemap
     }
@@ -145,10 +157,13 @@ impl<'a> Resolver for SourceMapper<'a> {
     fn resolve_source(&self, path: &ModulePath) -> Result<std::borrow::Cow<'a, str>, ResolveError> {
         let res = self.resolver.resolve_source(path)?;
         let mut sourcemap = self.sourcemap.borrow_mut();
-        sourcemap.add_source(
+        sourcemap.add_file(
             path.clone(),
-            self.resolver.display_name(path),
-            res.clone().into(),
+            SourceMapFile {
+                source: res.clone().into(),
+                display_name: self.resolver.display_name(path),
+                path: self.resolver.fs_path(path),
+            },
         );
         Ok(res)
     }

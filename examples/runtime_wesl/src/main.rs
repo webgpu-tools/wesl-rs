@@ -1,13 +1,15 @@
 fn main() {
-    let source = wesl::Wesl::new("src/shaders")
-        .add_package(&random_wgsl::PACKAGE)
-        .compile(&"package::main".parse().unwrap())
-        .inspect_err(|e| {
-            eprintln!("{e}");
-            panic!();
-        })
-        .unwrap()
-        .to_string();
+    let source = wesl::Compiler::new(wesl::CompileOptions {
+        dependencies: vec![&random_wgsl::PACKAGE],
+        ..Default::default()
+    })
+    .compile("src/shaders/main.wesl")
+    .inspect_err(|e| {
+        eprintln!("{e}");
+        panic!();
+    })
+    .unwrap()
+    .to_string();
 
     println!("{source}");
 }

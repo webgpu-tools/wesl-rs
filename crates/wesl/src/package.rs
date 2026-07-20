@@ -6,7 +6,6 @@ use std::{
 use crate::{
     error::TomlError,
     pass::{retarget_idents, validate_wesl},
-    resolver::StaticPackage,
     wesl_toml::{self, WeslToml},
 };
 use wgsl_parse::lexer::{Lexer, Token};
@@ -75,7 +74,7 @@ pub(crate) const RESERVED_MOD_NAMES: &[&str] = &[
 /// ```no_run
 /// // in build.rs
 /// fn main() {
-///    wesl::PackageBuilder::new("my_package")
+///    wesl::package::PackageBuilder::new("my_package")
 ///        // read all wesl files in the directory "src/shaders"
 ///        .scan_root("src/shaders")
 ///        .expect("failed to scan WESL files")
@@ -88,8 +87,10 @@ pub(crate) const RESERVED_MOD_NAMES: &[&str] = &[
 ///        .expect("failed to build artifact");
 /// }
 /// ```
+///
 /// Then, in your `lib.rs` file, expose the generated module with the [`crate::wesl_pkg`] macro.
-/// ```no_run
+///
+/// ```rust,ignore
 /// wesl::wesl_pkg!(pub my_package);
 /// ```
 ///
@@ -119,6 +120,28 @@ pub struct Module {
     pub name: String,
     pub source: String,
     pub submodules: Vec<Module>,
+}
+
+/// The type holding the source code of external packages.
+///
+/// You typically don't implement this, instead it is generated for you by [`crate::PackageBuilder`].
+/// Crates containing shader packages export `const` instances of this type, which you can
+/// then import and [add to your resolver][StandardResolver::add_package].
+#[derive(Debug, PartialEq, Eq)]
+pub struct StaticPackage {
+    pub crate_name: &'static str,
+    pub root: &'static StaticModule,
+    pub dependencies: &'static [&'static StaticPackage],
+}
+
+/// The type holding the source code of modules in external packages.
+///
+/// See [`StaticPackage`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct StaticModule {
+    pub name: &'static str,
+    pub source: &'static str,
+    pub submodules: &'static [&'static StaticModule],
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -267,7 +290,7 @@ impl PackageBuilder {
     /// # Example
     ///
     /// ```no_run
-    /// wesl::PackageBuilder::new("my_package")
+    /// wesl::package::PackageBuilder::new("my_package")
     ///     .scan_toml(".")  // looks for ./wesl.toml
     ///     .expect("failed to scan WESL files")
     ///     .build_artifact()

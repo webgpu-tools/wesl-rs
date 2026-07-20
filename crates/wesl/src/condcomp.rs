@@ -36,3 +36,13 @@ impl From<bool> for Feature {
         }
     }
 }
+
+impl Features {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn add_feature(&mut self, name: impl ToString, value: impl Into<Feature>) {
+        self.flags.insert(name.to_string(), value.into());
+    }
+}

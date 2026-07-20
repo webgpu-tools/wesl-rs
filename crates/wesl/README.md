@@ -9,19 +9,24 @@ See also the [standalone CLI][cli].
 See [`Wesl`] for an overview of the high-level API.
 
 ```rust
-# use wesl::{Wesl, VirtualResolver};
-let compiler = Wesl::new("src/shaders");
+# use wesl::{Compiler, resolver::VirtualResolver};
+#
+let compiler = Compiler::default();
+#
 # // just adding a virtual file here so the doctest runs without a filesystem
 # let mut resolver = VirtualResolver::new();
-# resolver.add_module("package::main".parse().unwrap(), "fn my_fn() {}".into());
-# let compiler = compiler.set_custom_resolver(resolver);
-
-// compile a WESL file to a WGSL string
-let wgsl_str = compiler
-    .compile(&"package::main".parse().unwrap())
-    .inspect_err(|e| eprintln!("WESL error: {e}")) // pretty errors with `display()`
-    .unwrap()
-    .to_string();
+# let shader_string = "fn my_fn() {\n\n}\n";
+# resolver.add_module("package::path::to::shader".parse().unwrap(), shader_string.into());
+# let mut compiler = compiler.set_resolver(resolver);
+# compiler.options.keep_root = true;
+#
+let compile_result = compiler
+    .compile("path/to/shader.wesl")
+    .inspect_err(|e| eprintln!("{e}")) // pretty-print errors
+    .expect("compilation error");
+let wgsl_string = compile_result.syntax.to_string();
+#
+# assert!(&wgsl_string == shader_string);
 ```
 
 ## Usage in [`build.rs`](https://doc.rust-lang.org/cargo/reference/build-scripts.html)
@@ -39,10 +44,16 @@ wesl = "0.1"
 Create the `build.rs` file with the following content:
 
 ```rust,no_run
-# use wesl::Compiler;
+# use wesl::{Compiler, resolver::VirtualResolver};
 fn main() {
-    Compiler::new()
-        .build_artifact("src/shaders/main.wgsl", "my_main_shader");
+    let compiler = Compiler::default();
+    let compile_result = compiler
+        .compile("src/shaders/main.wesl")
+        .inspect_err(|e| eprintln!("{e}")) // pretty-print errors
+        .expect("compilation error");
+
+    compile_result.emit_rerun_if_changed(); // optional, it prevents re-running the script if the shader have not changed
+    compile_result.write_artifact("my_main_shader"); // writes the compiled file to `$OUT_DIR/my_main_shader.wesl`.
 }
 ```
 
@@ -51,7 +62,7 @@ Include the compiled WGSL string in your code:
 ```rust,ignore
 let module = device.create_shader_module(ShaderModuleDescriptor {
     label: Some("my_main_shader"),
-    source: ShaderSource::Wgsl(include_wesl!("my_main_shader")),
+    source: ShaderSource::Wgsl(include_wesl!("my_main_shader")), // `include_wesl` is a tiny convenience macro to load `$OUT_DIR/my_main_shader.wesl`.
 });
 ```
 
@@ -81,11 +92,14 @@ assert_eq!(wgsl_expr, "2");
 
 // ...expression using declarations in a WESL file
 let source = "const my_const = 4; @const fn my_fn(v: u32) -> u32 { return v * 10; }";
+#
 # let mut resolver = VirtualResolver::new();
-# resolver.add_module("package::source".parse().unwrap(), source.into());
-# let compiler = Wesl::new_barebones().set_custom_resolver(resolver);
+# resolver.add_module("package::main".parse().unwrap(), source.into());
+# let mut compiler = Compiler::default().set_resolver(resolver);
+# compiler.options.keep_root = true; // prevent dead code elimination
+#
 let wgsl_expr = compiler
-    .compile(&"package::source".parse().unwrap()).unwrap()
+    .compile("main.wgsl").unwrap()
     .eval("my_fn(my_const) + 2").unwrap()
     .to_string();
 assert_eq!(wgsl_expr, "42u");

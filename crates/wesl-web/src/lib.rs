@@ -4,8 +4,9 @@ use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 use wesl::{
-    CompileResult, Eval, Inputs, VirtualResolver, Wesl,
-    eval::{EvalAttrs, Instance, RefInstance, Ty, ty_eval_ty},
+    CompileResult, Compiler,
+    eval::{Eval, EvalAttrs, Inputs, Instance, RefInstance, Ty, ty_eval_ty},
+    resolver::VirtualResolver,
     syntax::{self, AccessMode, AddressSpace, TranslationUnit},
 };
 
@@ -160,7 +161,7 @@ pub struct DumpOptions {
     source: String,
 }
 
-#[derive(Clone, Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 enum CliError {
     #[error("resource `@group({0}) @binding({1})` not found")]
     ResourceNotFound(u32, u32),
@@ -173,7 +174,7 @@ enum CliError {
     #[error("{0}")]
     Wesl(#[from] wesl::Error),
     #[error("{0}")]
-    Diagnostic(#[from] wesl::Diagnostic<wesl::Error>),
+    Diagnostic(#[from] wesl::error::Diagnostic),
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
@@ -205,31 +206,31 @@ fn run_compile(args: CompileOptions) -> Result<CompileResult, wesl::Error> {
         resolver.add_module(path, source.into());
     }
 
-    let comp = Wesl::new_barebones()
-        .set_custom_resolver(resolver)
-        .set_options(wesl::CompileOptions {
-            imports: args.imports,
-            condcomp: args.condcomp,
-            generics: args.generics,
-            strip: args.strip,
-            lower: args.lower,
-            validate: args.validate,
-            lazy: args.lazy,
-            mangle_root: args.mangle_root,
-            keep: args.keep,
-            features: wesl::Features {
-                default: args.features_default.into(),
-                flags: args
-                    .features
-                    .into_iter()
-                    .map(|(k, v)| (k, v.into()))
-                    .collect(),
-            },
-            keep_root: args.keep_root,
-        })
-        .use_sourcemap(args.sourcemap)
-        .set_mangler(args.mangler.into())
-        .compile(&root)?;
+    let comp = Compiler::new(wesl::CompileOptions {
+        imports: args.imports,
+        condcomp: args.condcomp,
+        generics: args.generics,
+        strip: args.strip,
+        lower: args.lower,
+        validate: args.validate,
+        sourcemap: args.sourcemap,
+        mangler: args.mangler.into(),
+        mangle_root: args.mangle_root,
+        keep: args.keep,
+        keep_root: args.keep_root,
+        features: wesl::Features {
+            default: args.features_default.into(),
+            flags: args
+                .features
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
+        },
+        constants: Default::default(),    // TODO
+        dependencies: Default::default(), // TODO
+    })
+    .set_resolver(resolver)
+    .compile_module(&root)?;
     Ok(comp)
 }
 
@@ -256,7 +257,7 @@ fn parse_binding(
         .ok_or(CliError::ResourceNotFound(b.group, b.binding))?;
 
     let ty = ty_eval_ty(&ty_expr, &mut ctx).map_err(|e| {
-        wesl::Diagnostic::from(e)
+        wesl::error::Diagnostic::from(e)
             .with_ctx(&ctx)
             .with_source(ty_expr.to_string())
     })?;
@@ -295,9 +296,9 @@ fn parse_override(src: &str, wgsl: &TranslationUnit) -> Result<Instance, CliErro
     let mut ctx = wesl::eval::Context::new(wgsl);
     let expr = src
         .parse::<syntax::Expression>()
-        .map_err(|e| wesl::Diagnostic::from(e).with_source(src.to_string()))?;
+        .map_err(|e| wesl::error::Diagnostic::from(e).with_source(src.to_string()))?;
     let inst = expr.eval_value(&mut ctx).map_err(|e| {
-        wesl::Diagnostic::from(e)
+        wesl::error::Diagnostic::from(e)
             .with_ctx(&ctx)
             .with_source(src.to_string())
     })?;
@@ -330,7 +331,7 @@ pub fn init_log(level: &str) {
 
 fn wesl_err_to_diagnostic(e: wesl::Error, source: Option<String>) -> Error {
     log::debug!("[WESL] error: {e:?}");
-    let d = wesl::Diagnostic::from(e);
+    let d = wesl::error::Diagnostic::from(e);
     Error {
         source: source.or_else(|| d.detail.output.clone()),
         #[cfg(feature = "ansi-to-html")]

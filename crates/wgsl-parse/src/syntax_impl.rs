@@ -50,7 +50,6 @@ impl ModulePath {
     ///
     /// * The path must not start with a prefix, like C:\ on windows.
     /// * The path must contain at least one named component.
-    /// * The path must be canonical (not contain `.` or `..` components in the middle)
     /// * Named components must be valid module names.
     ///   (Module names are WGSL identifiers + certain reserved names, see wesl-spec#127)
     pub fn from_path(path: impl AsRef<std::path::Path>) -> Self {
@@ -76,12 +75,20 @@ impl ModulePath {
             None => panic!("path is empty"),
         };
 
-        let components = parts
-            .map(|part| match part {
-                Component::Normal(name) => name.to_string_lossy().to_string(),
-                _ => panic!("unexpected path component"),
-            })
-            .collect::<Vec<_>>();
+        let mut components = Vec::new();
+        for part in parts {
+            match part {
+                Component::Prefix(_) | Component::RootDir => panic!("unexpected path component"),
+                Component::CurDir => {}
+                Component::ParentDir => {
+                    components.pop().expect("path escapes its origin");
+                    // TODO: if we escape the root we should insert a `super::`
+                }
+                Component::Normal(name) => {
+                    components.push(name.to_string_lossy().to_string());
+                }
+            }
+        }
 
         Self { origin, components }
     }

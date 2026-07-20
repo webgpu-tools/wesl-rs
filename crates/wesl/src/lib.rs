@@ -16,6 +16,8 @@ pub mod pass;
 pub mod visit;
 
 pub mod package;
+pub use package::PackageBuilder;
+
 pub mod wesl_toml;
 
 pub mod sourcemap;
@@ -64,7 +66,8 @@ macro_rules! include_wesl {
 ///
 /// See [`PackageBuilder`] for more information about building WESL packages.
 ///
-/// ```no_run
+/// ```rust,ignore
+/// # use wesl::wesl_pkg;
 /// // Load package in `OUT_DIR/my_package.rs`
 /// wesl_pkg!(my_package);
 ///
@@ -82,7 +85,7 @@ macro_rules! wesl_pkg {
      ($(#[$attr:meta])* $vis:vis $pkg_name:ident, $source:expr) => {
          $(#[$attr])* $vis mod $pkg_name {
              #![allow(non_snake_case)]
-             use $crate::{StaticModule, StaticPackage};
+             use $crate::package::{StaticModule, StaticPackage};
              include!(concat!(env!("OUT_DIR"), "/", $source));
          }
      };

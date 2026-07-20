@@ -1,5 +1,5 @@
 fn main() {
-    wesl::PkgBuilder::new("b")
+    wesl::PackageBuilder::new("b")
         .add_package(&c::c::PACKAGE)
         .add_package(&d::d::PACKAGE)
         .scan_root("src/main")

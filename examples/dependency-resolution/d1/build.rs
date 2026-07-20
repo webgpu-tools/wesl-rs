@@ -1,5 +1,5 @@
 fn main() {
-    wesl::PkgBuilder::new("d")
+    wesl::PackageBuilder::new("d")
         .scan_root("src/main")
         .expect("failed to scan WESL files")
         .validate()

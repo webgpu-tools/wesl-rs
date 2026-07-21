@@ -465,11 +465,11 @@ fn run_compile(
 
 fn parse_binding(
     b: &Binding,
-    wgsl: &TranslationUnit,
+    module: &TranslationUnit,
 ) -> Result<((u32, u32), RefInstance), CliError> {
-    let mut ctx = wesl::eval::Context::new(wgsl);
+    let mut ctx = wesl::eval::Context::new(module);
 
-    let ty_expr = wgsl
+    let ty_expr = module
         .global_declarations
         .iter()
         .find_map(|d| match d.node() {
@@ -521,8 +521,8 @@ fn parse_binding(
     ))
 }
 
-fn eval_expr(src: &str, wgsl: &TranslationUnit) -> Result<Instance, CliError> {
-    let mut ctx = wesl::eval::Context::new(wgsl);
+fn eval_expr(src: &str, module: &TranslationUnit) -> Result<Instance, CliError> {
+    let mut ctx = wesl::eval::Context::new(module);
     let expr = src
         .parse::<syntax::Expression>()
         .map_err(|e| Diagnostic::from(e).with_source(src.to_string()))?;

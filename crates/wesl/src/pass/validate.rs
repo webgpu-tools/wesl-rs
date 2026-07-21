@@ -21,7 +21,7 @@ type E = ValidateError;
 /// * OR it is a built-in name
 ///
 /// Note that this function could be simplified if we didn't care about the diagnostics metadata (declaration and expression)
-fn check_defined_symbols(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
+fn check_defined_symbols(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
     fn check_ty(ty: &TypeExpression) -> Result<(), Diagnostic<Error>> {
         if ty.path.is_none()
             && ty.ident.use_count() == 1
@@ -78,15 +78,15 @@ fn check_defined_symbols(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>
         Ok(())
     }
 
-    for decl in &wesl.global_declarations {
+    for decl in &module.global_declarations {
         check_decl(decl)?;
     }
     Ok(())
 }
 
-fn check_function_calls(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
-    fn check_call(call: &FunctionCall, ident: &Ident, wesl: &TranslationUnit) -> Result<(), E> {
-        let decl = wesl
+fn check_function_calls(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
+    fn check_call(call: &FunctionCall, ident: &Ident, module: &TranslationUnit) -> Result<(), E> {
+        let decl = module
             .global_declarations
             .iter()
             .find(|decl| decl.ident().is_some_and(|id| &id == ident))
@@ -115,7 +115,7 @@ fn check_function_calls(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>>
                 if decl.ty.template_args.is_some() {
                     // TODO: check args for builtin functions
                 } else {
-                    check_call(call, &decl.ty.ident, wesl)?;
+                    check_call(call, &decl.ty.ident, module)?;
                 }
             }
             Some(_) => return Err(E::NotCallable(ident.to_string())),
@@ -138,15 +138,15 @@ fn check_function_calls(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>>
         };
         Ok(())
     }
-    fn check_expr(expr: &Expression, wesl: &TranslationUnit) -> Result<(), E> {
+    fn check_expr(expr: &Expression, module: &TranslationUnit) -> Result<(), E> {
         if let Expression::FunctionCall(call) = expr {
-            check_call(call, &call.ty.ident, wesl)?;
+            check_call(call, &call.ty.ident, module)?;
         }
         Ok(())
     }
-    for decl in &wesl.global_declarations {
+    for decl in &module.global_declarations {
         for expr in Visit::<ExpressionNode>::visit(decl.node()) {
-            check_expr(expr, wesl).map_err(|e| {
+            check_expr(expr, module).map_err(|e| {
                 let mut err = Diagnostic::from(e);
                 err.detail.span = Some(expr.span());
                 err.detail.declaration = decl.ident().map(|id| id.name().to_string());
@@ -157,7 +157,7 @@ fn check_function_calls(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>>
     Ok(())
 }
 
-fn check_duplicate_decl(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
+fn check_duplicate_decl(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
     let mut unique = HashSet::new();
 
     fn check_ident(id: &Ident, unique: &mut HashSet<String>) -> Result<(), Diagnostic<Error>> {
@@ -187,7 +187,7 @@ fn check_duplicate_decl(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>>
         Ok(())
     }
 
-    for import in &wesl.imports {
+    for import in &module.imports {
         if import
             .attributes()
             .iter()
@@ -199,7 +199,7 @@ fn check_duplicate_decl(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>>
         check_import_content(&import.content, &mut unique)?;
     }
 
-    for decl in &wesl.global_declarations {
+    for decl in &module.global_declarations {
         if decl
             .attributes()
             .iter()
@@ -215,12 +215,12 @@ fn check_duplicate_decl(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>>
     Ok(())
 }
 
-fn check_cycles(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
+fn check_cycles(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
     fn check_decl(
         id: &Ident,
         decl: &GlobalDeclaration,
         unique: &mut HashSet<Ident>,
-        wesl: &TranslationUnit,
+        module: &TranslationUnit,
     ) -> Result<(), E> {
         let mut res = Ok(());
 
@@ -229,22 +229,22 @@ fn check_cycles(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
                 if ty.ident == *id {
                     res = Err(E::Cycle(id.to_string(), decl.ident().unwrap().to_string()));
                 } else if unique.insert(ty.ident.clone())
-                    && let Some(decl) = wesl
+                    && let Some(decl) = module
                         .global_declarations
                         .iter()
                         .find(|decl| decl.ident().as_ref() == Some(&ty.ident))
                 {
-                    res = check_decl(id, decl, unique, wesl);
+                    res = check_decl(id, decl, unique, module);
                 }
             }
         });
 
         res
     }
-    for decl in &wesl.global_declarations {
+    for decl in &module.global_declarations {
         if let Some(id) = decl.ident() {
             let mut unique = HashSet::new();
-            check_decl(&id, decl, &mut unique, wesl)
+            check_decl(&id, decl, &mut unique, module)
                 .map_err(|e| Diagnostic::from(e).with_declaration(id.to_string()))?;
         }
     }
@@ -262,10 +262,10 @@ fn check_cycles(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
 /// * Duplicate declarations: declarations in the same scope cannot have the same name.
 ///   (except for unresolved conditional compilation)
 /// * Cyclic declarations: no cycles are allowed in declarations.
-pub fn validate_wesl(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
-    check_defined_symbols(wesl)?;
-    check_duplicate_decl(wesl)?;
-    check_cycles(wesl)?;
+pub fn validate_wesl(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
+    check_defined_symbols(module)?;
+    check_duplicate_decl(module)?;
+    check_cycles(module)?;
     Ok(())
 }
 
@@ -277,10 +277,10 @@ pub fn validate_wesl(wesl: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
 /// * Cyclic declarations: no cycles are allowed in declarations.
 /// * Function calls: call expressions must refer to a function or a type constructor.
 ///   Check the number of arguments but not their type.
-pub fn validate_wgsl(wgsl: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
-    check_defined_symbols(wgsl)?;
-    check_duplicate_decl(wgsl)?;
-    check_cycles(wgsl)?;
-    check_function_calls(wgsl)?;
+pub fn validate_wgsl(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
+    check_defined_symbols(module)?;
+    check_duplicate_decl(module)?;
+    check_cycles(module)?;
+    check_function_calls(module)?;
     Ok(())
 }

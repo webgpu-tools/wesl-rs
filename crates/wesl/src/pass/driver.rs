@@ -87,12 +87,15 @@ pub trait CompilerDriver: Sized {
 }
 
 pub trait AsyncCompilerDriver: CompilerDriver {
-    async fn load_module_async(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error>;
+    fn load_module_async(
+        &mut self,
+        path: &ModulePath,
+    ) -> impl Future<Output = Result<TranslationUnit, Error>>;
 
     /// Run the compilation pipeline.
     ///
     /// See standalone default implementation in [`pass::compile_async`].
-    async fn compile_async(&mut self) -> Result<CompileResult, Error> {
-        pass::compile_async(self).await
+    fn compile_async(&mut self) -> impl Future<Output = Result<CompileResult, Error>> {
+        pass::compile_async(self)
     }
 }

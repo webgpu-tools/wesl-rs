@@ -37,17 +37,13 @@ pub trait Resolver {
     }
 }
 
-#[allow(
-    async_fn_in_trait,
-    reason = "it's the best we can do currently. See https://blog.rust-lang.org/2023/12/21/async-fn-rpit-in-traits/#impl-trait-in-public-traits"
-)]
 pub trait AsyncResolver: Resolver {
     /// Async version of [`Resolver::resolve_source`].
-    async fn resolve_source_async<'a>(
+    fn resolve_source_async<'a>(
         &'a self,
         path: &ModulePath,
-    ) -> Result<Cow<'a, str>, ResolveError> {
-        self.resolve_source(path)
+    ) -> impl Future<Output = Result<Cow<'a, str>, ResolveError>> {
+        async { self.resolve_source(path) }
     }
 }
 

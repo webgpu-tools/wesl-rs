@@ -35,9 +35,9 @@ One can inject variables into the following places by prefixing the name with
 a `#` symbol:
 
 | Code location | Injected type | Indirectly supported injection type with `Into` |
-|---------------|---------------|-------------------------------------------------|
+| ------------- | ------------- | ----------------------------------------------- |
 | name of a global declaration | `GlobalDeclaration` | `Declaration` `TypeAlias` `Struct` `Function` `ConstAssert` |
-| name of a struct member | `StructMember` |   |
+| name of a struct member | `StructMember` | |
 | name of an attribute, after `@` | `Attribute` | `BuiltinValue` `InterpolateAttribute` `WorkgroupSizeAttribute` `TypeConstraint` `CustomAttribute` |
 | type or identifier expression | `Expression` | `LiteralExpression` `ParenthesizedExpression` `NamedComponentExpression` `IndexingExpression` `UnaryExpression` `BinaryExpression` `FunctionCallExpression` `TypeOrIdentifierExpression` and transitively: `bool` `i64` (AbstractInt) `f64` (AbstractFloat) `i32` `u32` `f32` `Ident` |
 | name of an attribute preceding and empty block statement | `Statement` | `CompoundStatement` `AssignmentStatement` `IncrementStatement` `DecrementStatement` `IfStatement` `SwitchStatement` `LoopStatement` `ForStatement` `WhileStatement` `BreakStatement` `ContinueStatement` `ReturnStatement` `DiscardStatement` `FunctionCallStatement` `ConstAssertStatement` `DeclarationStatement` |

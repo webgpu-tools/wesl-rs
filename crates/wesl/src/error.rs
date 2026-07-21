@@ -448,6 +448,10 @@ impl Diagnostic<Error> {
             }
         }
 
+        if let Some(decl) = &mut self.detail.declaration {
+            unmangle_name(decl, sourcemap, mangler);
+        }
+
         match &mut *self.error {
             Error::ParseError(_) => {}
             Error::ValidateError(e) => match e {

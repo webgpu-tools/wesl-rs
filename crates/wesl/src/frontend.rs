@@ -258,11 +258,14 @@ impl Compiler<()> {
 
         let mut pass =
             CompilationPass::new(&module_path, &self.options, &sourcemapper, &sourcemapper);
-        let res = CompilerDriver::compile(&mut pass)?;
+
+        let res = CompilerDriver::compile(&mut pass);
+        let sourcemap = sourcemapper.finish();
+        let res = res.map_err(|e| Diagnostic::from(e).with_sourcemap(&sourcemap))?;
 
         Ok(CompileResult {
             syntax: res.syntax,
-            sourcemap: Some(sourcemapper.finish()),
+            sourcemap: Some(sourcemap),
             used_items: res.used_items,
         })
     }
@@ -320,7 +323,7 @@ impl<R: Resolver> Compiler<R> {
 
         Ok(CompileResult {
             syntax: res.syntax,
-            sourcemap: Some(pass.sourcemap),
+            sourcemap: None,
             used_items: res.used_items,
         })
     }
@@ -403,7 +406,6 @@ pub struct CompilationPass<'a> {
     options: &'a CompileOptions,
     resolver: &'a dyn Resolver,
     mangler: &'a dyn Mangler,
-    sourcemap: BasicSourceMap,
 }
 
 // pub struct AsyncCompilationPass<'a> {
@@ -422,7 +424,6 @@ impl<'a> CompilationPass<'a> {
             options,
             resolver,
             mangler,
-            sourcemap: BasicSourceMap::new(),
         }
     }
 }

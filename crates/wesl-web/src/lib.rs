@@ -468,11 +468,11 @@ fn run_impl(args: Command) -> Result<RunResult, Error> {
             Ok(RunResult::Exec(resources))
         }
         Command::Dump(args) => {
-            let wesl = args
+            let module = args
                 .source
                 .parse::<syntax::TranslationUnit>()
                 .map_err(|e| wesl_err_to_diagnostic(e.into(), None))?;
-            Ok(RunResult::Dump(wesl))
+            Ok(RunResult::Dump(module))
         }
     }
 }

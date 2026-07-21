@@ -144,8 +144,8 @@ pub fn eval_str(expr: &str) -> Result<Instance, Error> {
     let expr = expr
         .parse::<syntax::Expression>()
         .map_err(|e| Error::Error(Diagnostic::from(e).with_source(expr.to_string())))?;
-    let wgsl = TranslationUnit::default();
-    let (inst, ctx) = eval(&expr, &wgsl);
+    let module = TranslationUnit::default();
+    let (inst, ctx) = eval(&expr, &module);
     inst.map_err(|e| {
         Error::Error(
             Diagnostic::from(e)

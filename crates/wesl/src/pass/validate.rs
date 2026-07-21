@@ -11,7 +11,7 @@ use wgsl_types::idents::{BUILTIN_CONSTRUCTOR_NAMES, BUILTIN_FUNCTION_NAMES};
 use crate::{
     error::{Diagnostic, Error, ValidateError},
     idents::builtin_ident,
-    visit::Visit,
+    pass::Visit,
 };
 
 type E = ValidateError;

@@ -6,7 +6,7 @@ use std::{
 use crate::{
     error::TomlError,
     pass::{retarget_idents, validate_wesl},
-    wesl_toml::{self, WeslToml},
+    toml_cfg::{self, WeslToml},
 };
 use wgsl_parse::lexer::{Lexer, Token};
 use wgsl_types::idents::RESERVED_WORDS;
@@ -108,7 +108,7 @@ pub struct PackageBuilder {
 /// [`Self::build_artifact`] or [`Self::codegen`].
 pub struct Package {
     pub crate_name: String,
-    pub root: Module,
+    pub root: PackageModule,
     pub dependencies: Vec<&'static StaticPackage>,
 }
 
@@ -116,10 +116,10 @@ pub struct Package {
 ///
 /// See [`Package`].
 #[derive(Debug)]
-pub struct Module {
+pub struct PackageModule {
     pub name: String,
     pub source: String,
-    pub submodules: Vec<Module>,
+    pub submodules: Vec<PackageModule>,
 }
 
 /// The type holding the source code of external packages.
@@ -130,7 +130,7 @@ pub struct Module {
 #[derive(Debug, PartialEq, Eq)]
 pub struct StaticPackage {
     pub crate_name: &'static str,
-    pub root: &'static StaticModule,
+    pub root: &'static StaticPackageModule,
     pub dependencies: &'static [&'static StaticPackage],
 }
 
@@ -138,10 +138,10 @@ pub struct StaticPackage {
 ///
 /// See [`StaticPackage`].
 #[derive(Debug, PartialEq, Eq)]
-pub struct StaticModule {
+pub struct StaticPackageModule {
     pub name: &'static str,
     pub source: &'static str,
-    pub submodules: &'static [&'static StaticModule],
+    pub submodules: &'static [&'static StaticPackageModule],
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -190,7 +190,7 @@ impl PackageBuilder {
     /// all .wesl and .wgsl files reachable from the root module, recursively.
     /// The name or the root file is ignored, instead the name of the package is used.
     pub fn scan_root(self, path: impl AsRef<Path>) -> Result<Package, ScanDirectoryError> {
-        fn process_path(path: &Path) -> Result<Option<Module>, ScanDirectoryError> {
+        fn process_path(path: &Path) -> Result<Option<PackageModule>, ScanDirectoryError> {
             let path_with_ext_wesl = path.with_extension("wesl");
             let path_with_ext_wgsl = path.with_extension("wgsl");
             let path_without_ext = path.with_extension("");
@@ -257,7 +257,7 @@ impl PackageBuilder {
                 return Ok(None);
             }
 
-            let module = Module {
+            let module = PackageModule {
                 name: path_filename,
                 source,
                 submodules,
@@ -310,7 +310,7 @@ impl PackageBuilder {
         let dir = toml_path.parent().unwrap(/* SAFETY: toml_path is a file, must have a parent. */);
 
         let config = WeslToml::from_file(&toml_path)?;
-        let result = wesl_toml::scan_from_config(&self.name, &dir, &config)?;
+        let result = toml_cfg::scan_from_config(&self.name, &dir, &config)?;
 
         for warning in &result.warnings {
             println!("cargo::warning={warning}");
@@ -325,7 +325,7 @@ impl PackageBuilder {
 }
 
 #[cfg(feature = "package")]
-impl Module {
+impl PackageModule {
     fn codegen(&self) -> proc_macro2::TokenStream {
         let mod_ident = format_ident!("r#{}", self.name);
         let name = &self.name;
@@ -341,8 +341,8 @@ impl Module {
 
         quote! {
             pub mod #mod_ident {
-                use super::StaticModule;
-                pub const MODULE: StaticModule = StaticModule {
+                use super::StaticPackageModule;
+                pub const MODULE: StaticPackageModule = StaticPackagemodule {
                     name: #name,
                     source: #source,
                     submodules: &[#(#submodules),*]
@@ -364,12 +364,12 @@ impl Module {
                 .with_module_path(path.clone(), None)
                 .with_source(self.source.clone())
         };
-        let mut wesl: TranslationUnit = self
+        let mut module: TranslationUnit = self
             .source
             .parse()
             .map_err(|e: wgsl_parse::Error| to_diagnostic(e.into()))?;
-        retarget_idents(&mut wesl);
-        validate_wesl(&wesl).map_err(|e| to_diagnostic(e.into()))?;
+        retarget_idents(&mut module);
+        validate_wesl(&module).map_err(|e| to_diagnostic(e.into()))?;
         for module in &self.submodules {
             module.validate(path.clone())?;
         }
@@ -407,7 +407,7 @@ impl Package {
                 dependencies: &[#(#deps),*],
             };
 
-            pub const MODULE: StaticModule = StaticModule {
+            pub const MODULE: StaticPackageModule = StaticPackageModule {
                 name: #root_name,
                 source: #root_source,
                 submodules: &[#(#submodules),*]

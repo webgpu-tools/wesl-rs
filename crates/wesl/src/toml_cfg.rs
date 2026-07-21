@@ -42,7 +42,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     error::TomlError,
-    package::{Module, RESERVED_MOD_NAMES, is_mod_ident},
+    package::{PackageModule, RESERVED_MOD_NAMES, is_mod_ident},
 };
 
 /// Parsed wesl.toml configuration.
@@ -229,7 +229,7 @@ impl std::fmt::Display for ScanWarning {
 #[derive(Debug)]
 pub struct ScanResult {
     /// The root module containing the scanned file hierarchy.
-    pub module: Module,
+    pub module: PackageModule,
     /// Warnings encountered during scanning.
     pub warnings: Vec<ScanWarning>,
 }
@@ -340,7 +340,7 @@ fn build_module_hierarchy(
     root_name: &str,
     files: &HashSet<PathBuf>,
     root_path: &Path,
-) -> Result<(Module, Vec<ScanWarning>), TomlError> {
+) -> Result<(PackageModule, Vec<ScanWarning>), TomlError> {
     let (entries, warnings) = derive_module_paths(files, root_path)?;
     let module = build_module_tree(root_name, entries)?;
     Ok((module, warnings))
@@ -429,14 +429,14 @@ impl ModuleNode {
         }
     }
 
-    fn into_module(self, name: String) -> Module {
+    fn into_module(self, name: String) -> PackageModule {
         let submodules = self
             .children
             .into_iter()
             .map(|(name, node)| node.into_module(name))
             .collect();
 
-        Module {
+        PackageModule {
             name,
             source: self.source,
             submodules,
@@ -445,7 +445,7 @@ impl ModuleNode {
 }
 
 /// Build a tree of Modules from flat file entries.
-fn build_module_tree(root_name: &str, entries: Vec<FileEntry>) -> Result<Module, TomlError> {
+fn build_module_tree(root_name: &str, entries: Vec<FileEntry>) -> Result<PackageModule, TomlError> {
     let mut root = ModuleNode::new();
 
     for entry in entries {

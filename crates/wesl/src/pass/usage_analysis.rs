@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet, hash_map::Entry};
 use itertools::Itertools;
 use wgsl_parse::{SyntaxNode, syntax::*};
 
-use crate::visit::Visit;
+use crate::pass::Visit;
 
 pub struct Module {
     pub syntax: TranslationUnit,

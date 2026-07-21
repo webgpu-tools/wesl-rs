@@ -1,46 +1,40 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 
-mod idents;
-
-pub mod mangler;
-pub use mangler::Mangler;
-
-pub mod resolver;
-pub use resolver::Resolver;
-
-pub mod error;
-pub use error::Error;
-
-pub mod pass;
-pub mod visit;
-
-pub mod package;
-pub use package::PackageBuilder;
-
-pub mod wesl_toml;
-
-pub mod sourcemap;
-
 mod frontend;
-pub use frontend::*;
-
 #[cfg(feature = "eval")]
 mod frontend_eval;
-#[cfg(feature = "eval")]
-pub use frontend_eval::*;
-
+mod idents;
 mod util;
-pub use util::*;
 
-use wgsl_parse::syntax::ModulePath;
+pub(crate) use util::*;
 
+pub mod error;
 #[cfg(feature = "eval")]
 pub mod eval;
+pub mod mangler;
+pub mod package;
+pub mod pass;
+pub mod resolver;
+pub mod sourcemap;
+pub mod toml_cfg;
+
+pub use crate::{
+    error::Error,
+    frontend::*,
+    mangler::Mangler,
+    package::PackageBuilder,
+    pass::{Feature, Features},
+    resolver::{Constants, Resolver},
+};
+
+#[cfg(feature = "eval")]
+pub use crate::frontend_eval::*;
 
 // re-exports
-pub use wesl_macros::*;
 pub use wgsl_parse::syntax;
+
+use wgsl_parse::syntax::ModulePath;
 
 /// Include a WGSL file compiled with [`Wesl::build_artifact`] as a string.
 ///
@@ -80,7 +74,7 @@ macro_rules! wesl_pkg {
      ($(#[$attr:meta])* $vis:vis $pkg_name:ident, $source:expr) => {
          $(#[$attr])* $vis mod $pkg_name {
              #![allow(non_snake_case)]
-             use $crate::package::{StaticModule, StaticPackage};
+             use $crate::package::{StaticPackageModule, StaticPackage};
              include!(concat!(env!("OUT_DIR"), "/", $source));
          }
      };

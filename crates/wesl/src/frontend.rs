@@ -216,7 +216,7 @@ impl Compiler<()> {
         let toml_cfg = if let Some(filename) = path.file_name()
             && filename == "wesl.toml"
         {
-            Some(crate::wesl_toml::WeslToml::from_file(path)?)
+            Some(crate::toml_cfg::WeslToml::from_file(path)?)
         } else {
             None
         };

@@ -3,7 +3,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::{idents::builtin_ident, visit::Visit};
+use crate::{idents::builtin_ident, pass::Visit};
 use wesl_macros::query_mut;
 
 use wgsl_parse::syntax::*;
@@ -439,15 +439,15 @@ fn test_retarget_idents() {
         fn g19() {}
     "#;
 
-    let wgsl: TranslationUnit = source.parse().expect("parse failure");
+    let module: TranslationUnit = source.parse().expect("parse failure");
     let source_stripped = source.replace(|c: char| c.is_ascii_digit(), "");
-    let mut wgsl_stripped: TranslationUnit = source_stripped.parse().expect("parse failure");
-    retarget_idents(&mut wgsl_stripped);
+    let mut module_stripped: TranslationUnit = source_stripped.parse().expect("parse failure");
+    retarget_idents(&mut module_stripped);
 
     let mut idents = HashSet::new();
     let mut ordered_idents = Vec::new();
     // the test assumes that Visit is in depth-first order so the ident order is predictable.
-    for ty in Visit::<TypeExpression>::visit(&wgsl_stripped) {
+    for ty in Visit::<TypeExpression>::visit(&module_stripped) {
         let inserted = idents.insert(ty.ident.clone());
         if inserted {
             ordered_idents.push(ty.ident.clone());
@@ -459,8 +459,8 @@ fn test_retarget_idents() {
         ident.clone().rename(format!("{ident}{i}"));
     }
 
-    println!("=== expectation ===\n{wgsl}");
-    println!("=== test output ===\n{wgsl_stripped}");
+    println!("=== expectation ===\n{module}");
+    println!("=== test output ===\n{module_stripped}");
 
-    assert_eq!(wgsl.to_string(), wgsl_stripped.to_string())
+    assert_eq!(module.to_string(), module_stripped.to_string())
 }

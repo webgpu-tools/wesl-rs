@@ -387,8 +387,6 @@ impl Resolver for Router {
 #[derive(Debug, PartialEq, Eq)]
 pub struct CodegenPkg {
     pub crate_name: &'static str,
-    /// Uniquely identifies a package instance.
-    pub id: u128,
     pub root: &'static CodegenModule,
     pub dependencies: &'static [&'static CodegenPkg],
 }
@@ -516,13 +514,13 @@ impl Resolver for PkgResolver {
         queue.extend(self.packages.iter().map(|p| (p.root.name.to_string(), *p)));
         let mut visited = Vec::new();
         while let Some((name, candidate)) = queue.pop_front() {
-            if candidate.id == pkg.id {
+            if std::ptr::eq(candidate, *pkg) {
                 return ModulePath::new(PathOrigin::Package(name), path.components.clone());
             }
-            if visited.contains(&candidate.id) {
+            if visited.contains(&std::ptr::from_ref(candidate)) {
                 continue;
             }
-            visited.push(candidate.id);
+            visited.push(std::ptr::from_ref(candidate));
             for dep in candidate.dependencies {
                 queue.push_back((format!("{name}/{}", dep.root.name), *dep));
             }
@@ -707,7 +705,6 @@ mod test {
         };
         static C: CodegenPkg = CodegenPkg {
             crate_name: "c",
-            id: 0xc,
             root: &C_ROOT,
             dependencies: &[],
         };
@@ -718,7 +715,6 @@ mod test {
         };
         static D1: CodegenPkg = CodegenPkg {
             crate_name: "d",
-            id: 0xd1,
             root: &D1_ROOT,
             dependencies: &[],
         };
@@ -729,7 +725,6 @@ mod test {
         };
         static D2: CodegenPkg = CodegenPkg {
             crate_name: "d",
-            id: 0xd2,
             root: &D2_ROOT,
             dependencies: &[],
         };
@@ -740,7 +735,6 @@ mod test {
         };
         static A: CodegenPkg = CodegenPkg {
             crate_name: "a",
-            id: 0xa,
             root: &A_ROOT,
             dependencies: &[&C, &D1],
         };
@@ -751,20 +745,8 @@ mod test {
         };
         static B: CodegenPkg = CodegenPkg {
             crate_name: "b",
-            id: 0xb,
             root: &B_ROOT,
             dependencies: &[&C, &D2],
-        };
-        static C_COPY_ROOT: CodegenModule = CodegenModule {
-            name: "c",
-            source: "",
-            submodules: &[],
-        };
-        static C_COPY: CodegenPkg = CodegenPkg {
-            crate_name: "c",
-            id: 0xc,
-            root: &C_COPY_ROOT,
-            dependencies: &[],
         };
         static E_ROOT: CodegenModule = CodegenModule {
             name: "e",
@@ -773,9 +755,8 @@ mod test {
         };
         static E: CodegenPkg = CodegenPkg {
             crate_name: "e",
-            id: 0xe,
             root: &E_ROOT,
-            dependencies: &[&C_COPY],
+            dependencies: &[&C],
         };
 
         let mut r = PkgResolver::new();
@@ -789,7 +770,7 @@ mod test {
         assert_eq!(canon("a/c::foo"), canon("b/c::foo"));
         assert_eq!(canon("a/c::foo"), "a/c::foo".parse().unwrap());
 
-        // C_COPY is a different static with the same id
+        // e reaches the same static through its own dependency
         assert_eq!(canon("e/c::foo"), "a/c::foo".parse().unwrap());
 
         // two versions of d

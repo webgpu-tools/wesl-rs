@@ -342,7 +342,7 @@ impl PackageModule {
         quote! {
             pub mod #mod_ident {
                 use super::StaticPackageModule;
-                pub const MODULE: StaticPackageModule = StaticPackagemodule {
+                pub const MODULE: StaticPackageModule = StaticPackageModule {
                     name: #name,
                     source: #source,
                     submodules: &[#(#submodules),*]

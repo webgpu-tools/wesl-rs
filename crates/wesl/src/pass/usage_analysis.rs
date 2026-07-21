@@ -53,6 +53,7 @@ impl UsedItems {
             .is_some_and(|items| items.iter().any(|ident| &**ident.name() == name))
     }
 
+    /// Returns true if inserted.
     pub fn insert_module(&mut self, path: ModulePath, idents: HashSet<Ident>) -> bool {
         match self.used_items.entry(path) {
             Entry::Occupied(_) => false,
@@ -63,12 +64,14 @@ impl UsedItems {
         }
     }
 
+    /// Returns true if inserted.
     pub fn insert_ident(&mut self, path: ModulePath, ident: Ident) -> bool {
         let entry = self.used_items.entry(path.clone()).or_default();
         let inserted = entry.insert(ident);
         inserted
     }
 
+    /// Returns true if deleted.
     pub fn remove_module(&mut self, path: &ModulePath) -> bool {
         self.used_items.remove(path).is_some()
     }
@@ -127,10 +130,6 @@ pub fn usage_analysis(
         });
 
         if let Some(decl) = decl {
-            already_used.insert_ident(
-                module.path.clone(),
-                decl.ident().unwrap(/* SAFETY: we found the declaration by name, so it has a name */),
-            );
             decl_usage_analysis(module, decl, already_used, to_analyze);
         } else {
             // TODO: error when the ident is not found?
@@ -145,6 +144,14 @@ fn decl_usage_analysis(
     already_used: &mut UsedItems,
     newly_used: &mut UsedItems,
 ) {
+    if decl
+        .ident()
+        .is_some_and(|ident| !already_used.insert_ident(module.path.clone(), ident))
+    {
+        // the ident has already been analyzed.
+        return;
+    }
+
     Visit::<TypeExpression>::visit_rec(decl, &mut |ty_expr| {
         // this ident refers an imported item, we add it to the list of used items.
         if let Some((import_path, import_ident)) =
@@ -155,7 +162,17 @@ fn decl_usage_analysis(
         }
         // this ident refers a local declaration, we analyze it recursively.
         else {
-            usage_analysis(module, &ty_expr.ident.name(), already_used, newly_used);
+            // look up a global decl with the same ident - not just the same name,
+            // because it could be shadowed by a local decl
+            let decl = module
+                .syntax
+                .global_declarations
+                .iter()
+                .find(|decl| decl.ident().is_some_and(|ident| ident == ty_expr.ident));
+
+            if let Some(decl) = decl {
+                decl_usage_analysis(module, decl, already_used, newly_used);
+            }
         }
     });
 }

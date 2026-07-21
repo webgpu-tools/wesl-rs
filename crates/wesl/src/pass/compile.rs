@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use itertools::Itertools;
 use wgsl_parse::syntax::{Ident, ModulePath, TranslationUnit};
 
 use crate::{
@@ -14,16 +13,15 @@ pub fn root_entry_points(root_module: &TranslationUnit) -> HashSet<Ident> {
     root_module.entry_points().collect()
 }
 
+/// Note: it does not call [`pass::retarget_idents`], because that must be done right after [`pass::condcomp`].
 pub fn load_module(path: &ModulePath, resolver: &impl Resolver) -> Result<TranslationUnit, Error> {
     let source = resolver.resolve_source(path)?;
 
-    let mut module: TranslationUnit = source.parse().map_err(|e| {
+    let module: TranslationUnit = source.parse().map_err(|e| {
         Diagnostic::from(e)
             .with_module_path(path.clone(), resolver.display_name(path))
             .with_source(source.to_string())
     })?;
-
-    pass::retarget_idents(&mut module);
 
     Ok(module)
 }

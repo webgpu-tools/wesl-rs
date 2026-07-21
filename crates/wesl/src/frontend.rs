@@ -481,6 +481,8 @@ impl CompilerDriver for CompilationPass<'_> {
             pass::condcomp(&mut module, &self.options.features)?;
         }
 
+        pass::retarget_idents(&mut module);
+
         if self.options.validate {
             pass::validate_wesl(&module)?;
         }

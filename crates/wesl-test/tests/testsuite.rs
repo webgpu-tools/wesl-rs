@@ -347,7 +347,6 @@ fn json_case(case: &Test) -> Result<(), libtest_mimic::Failed> {
             let mut valid = wesl::pass::validate_wesl(&module);
             if *lower && valid.is_ok() {
                 valid = wesl::pass::lower(&mut module).map_err(Diagnostic::from);
-                println!("module: {module}");
             }
             match (valid, case.expect) {
                 (Err(_), Expectation::Fail) | (Ok(()), Expectation::Pass) => Ok(()),

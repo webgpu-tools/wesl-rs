@@ -346,6 +346,12 @@ pub enum Attribute {
     Vertex,
     Fragment,
     Compute,
+    #[cfg(feature = "naga-ext")]
+    Task,
+    #[cfg(feature = "naga-ext")]
+    Payload(ExpressionNode),
+    #[cfg(feature = "naga-ext")]
+    Mesh(ExpressionNode),
     #[cfg(feature = "imports")]
     Publish,
     #[cfg(feature = "condcomp")]
@@ -361,6 +367,17 @@ pub enum Attribute {
     EarlyDepthTest(Option<ConservativeDepth>),
     #[from]
     Custom(CustomAttribute),
+}
+
+impl Attribute {
+    pub fn is_entry_point(&self) -> bool {
+        match self {
+            Attribute::Vertex | Attribute::Fragment | Attribute::Compute => true,
+            #[cfg(feature = "naga-ext")]
+            Attribute::Task | Attribute::Mesh(_) => true,
+            _ => false,
+        }
+    }
 }
 
 pub type AttributeNode = Spanned<Attribute>;

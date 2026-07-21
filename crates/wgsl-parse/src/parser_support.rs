@@ -224,6 +224,21 @@ pub(crate) fn parse_attribute(
             true => Ok(Attribute::Compute),
             false => Err(E::Attribute("compute", "expected 0 arguments")),
         },
+        #[cfg(feature = "naga-ext")]
+        "task" => match zero_args(args) {
+            true => Ok(Attribute::Task),
+            false => Err(E::Attribute("task", "expected 0 arguments")),
+        },
+        #[cfg(feature = "naga-ext")]
+        "payload" => match one_arg(args) {
+            Some(expr) => Ok(Attribute::Payload(expr)),
+            None => Err(E::Attribute("payload", "expected 1 arguments")),
+        },
+        #[cfg(feature = "naga-ext")]
+        "mesh" => match one_arg(args) {
+            Some(expr) => Ok(Attribute::Mesh(expr)),
+            None => Err(E::Attribute("mesh", "expected 1 arguments")),
+        },
         #[cfg(feature = "imports")]
         "publish" => Ok(Attribute::Publish),
         #[cfg(feature = "condcomp")]

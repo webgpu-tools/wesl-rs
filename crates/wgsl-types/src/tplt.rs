@@ -209,6 +209,10 @@ impl PtrTemplate {
                     (AddressSpace::Immediate, _) => {
                         todo!("immediate")
                     }
+                    #[cfg(feature = "naga-ext")]
+                    (AddressSpace::TaskPayload, _) => {
+                        todo!("task_payload")
+                    }
                 };
                 Ok(PtrTemplate { space, ty, access })
             }

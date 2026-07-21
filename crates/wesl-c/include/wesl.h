@@ -4,22 +4,26 @@
 #include <stdlib.h>
 
 enum WeslManglerKind
-#ifdef __cplusplus
+#if defined(__cplusplus) || __STDC_VERSION__ >= 202311L
   : uint8_t
-#endif // __cplusplus
+#endif // defined(__cplusplus) || __STDC_VERSION__ >= 202311L
  {
   WESL_MANGLER_ESCAPE = 0,
   WESL_MANGLER_HASH = 1,
   WESL_MANGLER_NONE = 2,
 };
 #ifndef __cplusplus
+#if __STDC_VERSION__ >= 202311L
+typedef enum WeslManglerKind WeslManglerKind;
+#else
 typedef uint8_t WeslManglerKind;
+#endif // __STDC_VERSION__ >= 202311L
 #endif // __cplusplus
 
 enum WeslBindingType
-#ifdef __cplusplus
+#if defined(__cplusplus) || __STDC_VERSION__ >= 202311L
   : uint8_t
-#endif // __cplusplus
+#endif // defined(__cplusplus) || __STDC_VERSION__ >= 202311L
  {
   WESL_BINDING_UNIFORM = 0,
   WESL_BINDING_STORAGE = 1,
@@ -37,7 +41,11 @@ enum WeslBindingType
   WESL_BINDING_READ_ONLY = 13,
 };
 #ifndef __cplusplus
+#if __STDC_VERSION__ >= 202311L
+typedef enum WeslBindingType WeslBindingType;
+#else
 typedef uint8_t WeslBindingType;
+#endif // __STDC_VERSION__ >= 202311L
 #endif // __cplusplus
 
 typedef struct WeslCompiler WeslCompiler;

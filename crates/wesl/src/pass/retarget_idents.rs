@@ -1,12 +1,16 @@
 use std::{
-    collections::{HashMap, hash_map::Entry},
+    collections::{HashMap, HashSet, hash_map::Entry},
     rc::Rc,
 };
 
-use crate::{idents::builtin_ident, pass::Visit};
+use crate::{
+    SyntaxUtil,
+    idents::builtin_ident,
+    pass::{Imports, Module, UsedItems, Visit, imported_item_path},
+};
 use wesl_macros::query_mut;
 
-use wgsl_parse::syntax::*;
+use wgsl_parse::{SyntaxNode, syntax::*};
 
 /// was that not in the std at some point???
 type BoxedIterator<'a, T> = Box<dyn Iterator<Item = T> + 'a>;
@@ -377,6 +381,101 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
             }
             GlobalDeclaration::ConstAssert(d) => {
                 Visit::<TypeExpression>::visit_mut(d).for_each(|ty| retarget_ty(ty, &scope))
+            }
+        }
+    }
+}
+
+/// Retarget used identifiers to point at the corresponding declaration.
+///
+/// We call this after resolve, because it is mutating the modules, and we want to keep
+/// mutations and lookups separate if possible, to avoid multiple mut borrows.
+///
+/// # Panics
+///
+/// * if an identifier has no corresponding declaration.
+pub fn retarget_modules(modules: &mut Vec<Module>, used_items: &UsedItems) {
+    // unfortunately I have to pass 3 module_xxx by ref here because I can't mutably borrow `ty` and immutably borrow a `Module`.
+    fn retarget_ty<'a>(
+        ty: &mut TypeExpression,
+        module_path: &ModulePath,
+        module_imports: &Imports,
+        module_idents: &HashSet<Ident>,
+        other_modules: impl IntoIterator<Item = &'a Module> + Clone + 'a,
+    ) {
+        // first the recursive call
+        for ty in Visit::<TypeExpression>::visit_mut(ty) {
+            retarget_ty(
+                ty,
+                module_path,
+                module_imports,
+                module_idents,
+                other_modules.clone(),
+            );
+        }
+
+        if let Some((import_path, import_ident)) =
+            imported_item_path(ty, module_path, module_imports)
+        {
+            // if the import path points to a local decl.
+            if import_path == *module_path {
+                let Some(ident) = module_idents
+                    .iter()
+                    .find(|ident| *ident.name() == *import_ident.name())
+                    .cloned()
+                else {
+                    debug_assert!(false, "no declaration {import_ident} in {import_path}");
+                    return;
+                };
+                ty.path = None;
+                ty.ident = ident;
+            } else {
+                let Some(import_module) = other_modules.into_iter().find(|m| m.path == import_path)
+                else {
+                    debug_assert!(false, "no importable module {import_path}");
+                    return;
+                };
+
+                let Some(ident) = import_module.syntax.decl_ident(&**import_ident.name()) else {
+                    debug_assert!(false, "no declaration {import_ident} in {import_path}");
+                    return;
+                };
+
+                ty.path = None;
+                ty.ident = ident;
+            }
+        }
+    }
+
+    for i in 0..modules.len() {
+        // shenanigans to get both a mutable reference to the current module,
+        // and an immutable reference to the other modules.
+        let (left, right) = modules.split_at_mut(i);
+        let (module, right) =
+            right.split_first_mut().unwrap(/* SAFETY: the 1st element exists at index i */);
+        let other_modules = left.iter().chain(right.iter());
+
+        let Some(module_used_items) = used_items.get(&module.path) else {
+            debug_assert!(false, "missing module {} in retarget_idents", module.path);
+            continue;
+        };
+
+        for decl in &mut module.syntax.global_declarations {
+            // we only retarget used declarations. Other declarations are not checked.
+            if let Some(ident) = decl.ident()
+                && !module_used_items.contains(&ident)
+            {
+                continue;
+            }
+
+            for ty in Visit::<TypeExpression>::visit_mut(decl.node_mut()) {
+                retarget_ty(
+                    ty,
+                    &module.path,
+                    &module.imports,
+                    module_used_items,
+                    other_modules.clone(),
+                );
             }
         }
     }

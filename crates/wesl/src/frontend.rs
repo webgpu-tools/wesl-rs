@@ -493,6 +493,8 @@ impl CompilerDriver for CompilationPass<'_> {
         modules: &mut Vec<Module>,
         used_items: &UsedItems,
     ) -> Result<TranslationUnit, Error> {
+        pass::retarget_modules(modules, used_items);
+
         for module in modules.iter_mut() {
             if !self.options.mangle_root && module.path == *self.root_path {
                 continue;
@@ -501,7 +503,6 @@ impl CompilerDriver for CompilationPass<'_> {
         }
 
         let mut module = pass::link(modules, self.options.strip.then_some(used_items));
-        pass::retarget_idents(&mut module);
 
         if self.options.lower {
             pass::lower(&mut module)?;

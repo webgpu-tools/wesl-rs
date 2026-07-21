@@ -44,7 +44,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: "true"
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/bin/
@@ -69,7 +69,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: "true"
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/bin/
@@ -98,7 +98,7 @@ jobs:
   #     - uses: actions/checkout@v4
   #       with:
   #         submodules: "true"
-  #     - uses: actions/cache@v4
+  #     - uses: actions/cache@v6
   #       with:
   #         path: |
   #           ~/.cargo/bin/
@@ -167,7 +167,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/bin/
@@ -206,7 +206,7 @@ jobs:
           submodules: "true"
 
       - name: Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/bin/

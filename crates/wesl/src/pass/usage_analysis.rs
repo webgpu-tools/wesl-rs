@@ -3,8 +3,24 @@ use std::collections::{HashMap, HashSet, hash_map::Entry};
 use itertools::Itertools;
 use wgsl_parse::{SyntaxNode, syntax::*};
 
-use crate::{pipeline::Module, visit::Visit};
+use crate::visit::Visit;
 
+pub struct Module {
+    pub syntax: TranslationUnit,
+    pub path: ModulePath,
+    pub imports: Imports,
+}
+
+impl Module {
+    pub fn new(path: ModulePath, syntax: TranslationUnit) -> Self {
+        let imports = flatten_imports(&syntax.imports, &path);
+        Self {
+            syntax,
+            path,
+            imports,
+        }
+    }
+}
 #[derive(Clone, Debug)]
 pub struct ImportedItem {
     pub path: ModulePath,
@@ -68,7 +84,6 @@ impl UsedItems {
         self.used_items.iter()
     }
 }
-
 /// Find declarations used in external modules.
 ///
 /// "used" means referenced transitively from the program entry points.

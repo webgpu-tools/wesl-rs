@@ -22,11 +22,6 @@ pub mod wesl_toml;
 
 pub mod sourcemap;
 
-mod condcomp;
-pub use condcomp::*;
-
-mod pipeline;
-
 mod frontend;
 pub use frontend::*;
 

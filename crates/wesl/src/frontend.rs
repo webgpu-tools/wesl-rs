@@ -6,12 +6,11 @@ use wgsl_parse::{
 };
 
 use crate::{
-    Features, SyntaxUtil,
+    SyntaxUtil,
     error::{Diagnostic, Error, ImportError, ResolveError},
     mangler::{self, Mangler},
     package::StaticPackage,
-    pass::{self, UsedItems},
-    pipeline::{self, CompilerDriver},
+    pass::{self, CompilerDriver, Features, Module, UsedItems},
     resolver::{AsyncResolver, Constants, Resolver, StandardResolver},
     sourcemap::{BasicSourceMap, SourceMapper},
 };
@@ -445,7 +444,7 @@ pub async fn load_module_async(
     Ok(module)
 }
 
-impl pipeline::CompilerDriver for CompilationPass<'_> {
+impl CompilerDriver for CompilationPass<'_> {
     fn root_path(&self) -> &ModulePath {
         &self.root_path
     }
@@ -476,7 +475,7 @@ impl pipeline::CompilerDriver for CompilationPass<'_> {
     }
 
     fn load_module(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error> {
-        let mut module = pipeline::load_module(path, &self.resolver)?;
+        let mut module = pass::load_module(path, &self.resolver)?;
 
         if self.options.condcomp {
             pass::condcomp(&mut module, &self.options.features)?;
@@ -491,7 +490,7 @@ impl pipeline::CompilerDriver for CompilationPass<'_> {
 
     fn link(
         &self,
-        modules: &mut Vec<pipeline::Module>,
+        modules: &mut Vec<Module>,
         used_items: &UsedItems,
     ) -> Result<TranslationUnit, Error> {
         for module in modules.iter_mut() {
@@ -503,7 +502,6 @@ impl pipeline::CompilerDriver for CompilationPass<'_> {
 
         let mut module = pass::link(modules, self.options.strip.then_some(used_items));
         pass::retarget_idents(&mut module);
-        println!("module : {module}");
 
         if self.options.lower {
             pass::lower(&mut module)?;

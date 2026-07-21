@@ -81,54 +81,57 @@ impl UsedItems {
         self.used_items.iter()
     }
 }
-/// Find declarations used in external modules.
+
+/// Find declarations used in external modules which this module depends on, no matter what.
 ///
-/// "used" means referenced transitively from the program entry points.
+/// Currently, only items referenced by module-scope `const_assert`s are always included.
 ///
-/// The function call adds identifiers to the `used` parameter.
+/// See [`usage_analysis`].
+pub fn root_usage_analysis(
+    module: &Module,
+    already_used: &mut UsedItems,
+    to_analyze: &mut UsedItems,
+) {
+    if already_used.contains_module(&module.path) {
+        return;
+    }
+
+    already_used.insert_module(module.path.clone(), Default::default());
+    let const_asserts = module
+        .syntax
+        .global_declarations
+        .iter()
+        .filter(|decl| decl.is_const_assert());
+
+    for decl in const_asserts {
+        decl_usage_analysis(module, decl, already_used, to_analyze);
+    }
+}
+
+/// Find declaration names which a local declaration depends on.
+///
+/// Adds *external* referenced idents to the `to_analyze` parameter.
+/// Perform usage analysis recursively with *local* referenced idents, and adds them to `already_used`.
+/// So at the end of the call, `to_analyze` contains incomplete usage analysis which needs to continue
+/// in a separate module. `already_used` contains finished analysis.
 pub fn usage_analysis(
     module: &Module,
     decl_name: &str,
     already_used: &mut UsedItems,
-    newly_used: &mut UsedItems,
+    to_analyze: &mut UsedItems,
 ) {
-    // const_asserts are always used. we add them if the module has not been analyzed yet.
-    if already_used.contains_module(&module.path) {
-        already_used.insert_module(module.path.clone(), Default::default());
-        let const_asserts = module
-            .syntax
-            .global_declarations
-            .iter()
-            .filter(|decl| decl.is_const_assert());
-
-        for decl in const_asserts {
-            decl_usage_analysis(module, decl, already_used, newly_used);
-        }
-    }
-
-    ident_usage_analysis(decl_name, module, already_used, newly_used);
-}
-
-/// Find identifiers used by the declaration named `name`.
-fn ident_usage_analysis(
-    name: &str,
-    module: &Module,
-    already_used: &mut UsedItems,
-    newly_used: &mut UsedItems,
-) {
-    if !already_used.contains_name(&module.path, name) {
-        let decl = module
-            .syntax
-            .global_declarations
-            .iter()
-            .find(|decl| decl.ident().is_some_and(|ident| &**ident.name() == name));
+    if !already_used.contains_name(&module.path, decl_name) {
+        let decl = module.syntax.global_declarations.iter().find(|decl| {
+            decl.ident()
+                .is_some_and(|ident| &**ident.name() == decl_name)
+        });
 
         if let Some(decl) = decl {
             already_used.insert_ident(
                 module.path.clone(),
                 decl.ident().unwrap(/* SAFETY: we found the declaration by name, so it has a name */),
             );
-            decl_usage_analysis(module, decl, already_used, newly_used);
+            decl_usage_analysis(module, decl, already_used, to_analyze);
         } else {
             // TODO: error when the ident is not found?
         }
@@ -152,7 +155,7 @@ fn decl_usage_analysis(
         }
         // this ident refers a local declaration, we analyze it recursively.
         else {
-            ident_usage_analysis(&ty_expr.ident.name(), module, already_used, newly_used);
+            usage_analysis(module, &ty_expr.ident.name(), already_used, newly_used);
         }
     });
 }

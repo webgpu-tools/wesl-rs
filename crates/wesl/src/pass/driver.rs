@@ -42,25 +42,36 @@ pub trait CompilerDriver: Sized {
         Ok(pass::root_entry_points(root_module))
     }
 
-    /// Perform static usage analysis of a module.
+    /// Find declarations used in external modules which this module depends on, no matter what.
     ///
-    /// Find identifiers of global declarations that a declaration named `decl_name` depends on.
-    /// * If the dependency is implemented in the current module, it is added to `already_used`,
-    ///   and is usage-analyzed recursively.
-    /// * Otherwise, if it lives in another module, and is not in `already_used` it is added to `newly_used`.
+    /// Currently, only items referenced by module-scope `const_assert`s are always included.
+    ///
+    /// See [`Self::usage_analysis`].
+    fn root_usage_analysis(
+        &self,
+        module: &Module,
+        already_used: &mut UsedItems,
+        to_analyze: &mut UsedItems,
+    ) -> Result<(), Error> {
+        pass::root_usage_analysis(module, already_used, to_analyze);
+        Ok(())
+    }
+
+    /// Find declaration names which a local declaration depends on.
+    ///
+    /// Adds *external* referenced idents to the `to_analyze` parameter.
+    /// Perform usage analysis recursively with *local* referenced idents, and adds them to `already_used`.
+    /// So at the end of the call, `to_analyze` contains incomplete usage analysis which needs to continue
+    /// in a separate module. `already_used` contains finished analysis.
     fn usage_analysis(
         &self,
         module: &Module,
         decl_name: &str,
         already_used: &mut UsedItems,
-        newly_used: &mut UsedItems,
+        to_analyze: &mut UsedItems,
     ) -> Result<(), Error> {
-        Ok(pass::usage_analysis(
-            module,
-            decl_name,
-            already_used,
-            newly_used,
-        ))
+        pass::usage_analysis(module, decl_name, already_used, to_analyze);
+        Ok(())
     }
 
     /// Get the [`TranslationUnit`] for a module at a given path.

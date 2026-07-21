@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use itertools::Itertools;
 use wgsl_parse::syntax::{Ident, ModulePath, TranslationUnit};
 
 use crate::{
@@ -53,15 +54,14 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
     let mut modules = Vec::new();
     modules.push(Module::new(root_path.clone(), root_module));
 
-    let mut newly_used = UsedItems::new();
-    let mut already_used = UsedItems::new();
+    let mut used_items = UsedItems::new();
+    let mut to_analyze = UsedItems::new();
+    to_analyze.insert_module(root_path, root_entrypoints);
 
-    newly_used.insert_module(root_path, root_entrypoints);
+    loop {
+        let mut next_to_analyze = UsedItems::new();
 
-    while !newly_used.is_empty() {
-        let mut next_newly_used = UsedItems::new();
-
-        for (path, used_items) in newly_used.iter() {
+        for (path, items_to_analyze) in to_analyze.iter() {
             let module = match modules.iter().find(|module| module.path == *path) {
                 Some(module) => module,
                 None => {
@@ -70,25 +70,31 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
                 }
             };
 
-            for item in used_items {
+            pass::root_usage_analysis(module, &mut used_items, &mut next_to_analyze);
+
+            for item in items_to_analyze {
                 driver.usage_analysis(
                     module,
                     &item.name(),
-                    &mut already_used,
-                    &mut next_newly_used,
+                    &mut used_items,
+                    &mut next_to_analyze,
                 )?;
             }
         }
 
-        newly_used = next_newly_used;
+        if next_to_analyze.is_empty() {
+            break;
+        }
+
+        to_analyze = next_to_analyze;
     }
 
-    let final_module = driver.link(&mut modules, &already_used)?;
+    let final_module = driver.link(&mut modules, &used_items)?;
 
     Ok(CompileResult {
         syntax: final_module,
         modules,
-        used_items: already_used,
+        used_items,
     })
 }
 

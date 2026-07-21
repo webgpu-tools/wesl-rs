@@ -26,8 +26,8 @@ derive_more = {
     "unwrap",
   ]
 }
-itertools = "0.14.0"
-lalrpop-util = "0.22.1"
+itertools = "0.15.0"
+lalrpop-util = "0.23.1"
 lexical = { version = "7.0.4", features = ["format", "power-of-two"] }
 logos = "0.16.0"
 serde = { version = "1.0.215", features = ["derive", "rc"], optional = true }
@@ -36,7 +36,7 @@ tokrepr = { workspace = true, optional = true }
 wgsl-types = { workspace = true }
 
 [build-dependencies]
-lalrpop = { version = "0.22.1", default-features = false }
+lalrpop = { version = "0.23.1", default-features = false }
 
 [features]
 default = []

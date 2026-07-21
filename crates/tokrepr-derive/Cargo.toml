@@ -11,7 +11,7 @@ license.workspace = true
 proc-macro = true
 
 [dependencies]
-itertools = "0.14.0"
+itertools = "0.15.0"
 proc-macro2 = "1.0.86"
 quote = "1.0.37"
 syn = "2.0.77"

@@ -536,6 +536,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b4baf93f58d4425749ca49a51c50ebab072c5df6994d08fed93541c331481dc"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -571,7 +580,7 @@ dependencies = [
  "ascii-canvas",
  "bit-set",
  "ena",
- "itertools",
+ "itertools 0.14.0",
  "lalrpop-util",
  "petgraph",
  "regex",
@@ -1224,7 +1233,7 @@ dependencies = [
 name = "tokrepr-derive"
 version = "0.1.0"
 dependencies = [
- "itertools",
+ "itertools 0.15.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -1460,7 +1469,7 @@ dependencies = [
  "derive_more",
  "glob",
  "half",
- "itertools",
+ "itertools 0.15.0",
  "num-traits",
  "proc-macro2",
  "quote",
@@ -1496,7 +1505,7 @@ dependencies = [
 name = "wesl-macros"
 version = "0.4.0"
 dependencies = [
- "itertools",
+ "itertools 0.15.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -1506,7 +1515,7 @@ dependencies = [
 name = "wesl-quote"
 version = "0.4.0"
 dependencies = [
- "itertools",
+ "itertools 0.15.0",
  "proc-macro-error2",
  "proc-macro2",
  "quote",
@@ -1553,7 +1562,7 @@ version = "0.4.0"
 dependencies = [
  "annotate-snippets",
  "derive_more",
- "itertools",
+ "itertools 0.15.0",
  "lalrpop",
  "lalrpop-util",
  "lexical",
@@ -1569,7 +1578,7 @@ name = "wgsl-types"
 version = "0.4.0"
 dependencies = [
  "half",
- "itertools",
+ "itertools 0.15.0",
  "num-traits",
  "serde",
  "tokrepr",

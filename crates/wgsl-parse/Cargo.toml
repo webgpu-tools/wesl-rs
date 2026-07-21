@@ -26,7 +26,7 @@ derive_more = {
     "unwrap",
   ]
 }
-itertools = "0.14.0"
+itertools = "0.15.0"
 lalrpop-util = "0.22.1"
 lexical = { version = "7.0.4", features = ["format", "power-of-two"] }
 logos = "0.16.0"

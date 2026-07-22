@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use wgsl_parse::syntax::{Ident, ModulePath, TranslationUnit};
 
 use crate::{
-    error::Error,
+    error::{Error, ImportError},
     pass::{self, Module, UsedItems},
 };
 
@@ -70,7 +70,14 @@ pub trait CompilerDriver: Sized {
         already_used: &mut UsedItems,
         to_analyze: &mut UsedItems,
     ) -> Result<(), Error> {
-        pass::usage_analysis(module, decl_name, already_used, to_analyze);
+        let found = pass::usage_analysis(module, decl_name, already_used, to_analyze);
+
+        if !found {
+            return Err(
+                ImportError::MissingDecl(module.path.clone(), decl_name.to_string()).into(),
+            );
+        }
+
         Ok(())
     }
 

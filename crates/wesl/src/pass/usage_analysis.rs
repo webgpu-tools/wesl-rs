@@ -117,12 +117,14 @@ pub fn root_usage_analysis(
 /// Perform usage analysis recursively with *local* referenced idents, and adds them to `already_used`.
 /// So at the end of the call, `to_analyze` contains incomplete usage analysis which needs to continue
 /// in a separate module. `already_used` contains finished analysis.
+///
+/// Returns `false` if the declaration is not found.
 pub fn usage_analysis(
     module: &Module,
     decl_name: &str,
     already_used: &mut UsedItems,
     to_analyze: &mut UsedItems,
-) {
+) -> bool {
     if !already_used.contains_name(&module.path, decl_name) {
         let decl = module.syntax.global_declarations.iter().find(|decl| {
             decl.ident()
@@ -132,9 +134,10 @@ pub fn usage_analysis(
         if let Some(decl) = decl {
             decl_usage_analysis(module, decl, already_used, to_analyze);
         } else {
-            // TODO: error when the ident is not found?
+            return false;
         }
     }
+    true
 }
 
 /// Find identifiers used by a declaration.

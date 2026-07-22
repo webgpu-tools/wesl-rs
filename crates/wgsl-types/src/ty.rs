@@ -341,6 +341,11 @@ impl Type {
             Type::AbstractInt => true,
             Type::AbstractFloat => true,
             Type::Array(ty, _) | Type::Vec(_, ty) | Type::Mat(_, _, ty) => ty.is_abstract(),
+            // there are a couple internal structs with abstract members:
+            // __frexp_result_xxx and __ldexp_result_xxx
+            Type::Struct(s) if s.name.starts_with("__") => {
+                s.members.iter().any(|m| m.ty.is_abstract())
+            }
             _ => false,
         }
     }

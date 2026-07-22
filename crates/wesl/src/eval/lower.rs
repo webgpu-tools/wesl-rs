@@ -106,9 +106,11 @@ impl<T: Lower> Lower for Spanned<T> {
 impl Lower for Expression {
     fn lower(&mut self, ctx: &mut Context) -> Result<(), E> {
         match self.eval_value(ctx) {
-            Ok(inst) => *self = inst.to_expr(ctx)?,
+            Ok(inst) if !matches!(&inst, Instance::Struct(s) if s.ty.name.starts_with("__")) => {
+                *self = inst.to_expr(ctx)?
+            }
             // These are supposed to be the only acceptable errors when evaluating valid code.
-            Err(E::Todo(_) | E::NotAccessible(_, ShaderStage::Const) | E::NotConst(_)) => {
+            Ok(_) | Err(E::Todo(_) | E::NotAccessible(_, ShaderStage::Const) | E::NotConst(_)) => {
                 ctx.err_span = None;
                 match self {
                     Expression::Literal(_) => (),
@@ -222,7 +224,7 @@ impl Lower for Declaration {
             (Some(ty), _) => ty_eval_ty(ty, ctx)?,
         };
 
-        if ty.is_concrete() {
+        if ty.is_concrete() && !matches!(&ty, Type::Struct(s) if s.name.starts_with("__")) {
             self.ty = Some(ty.to_expr(ctx)?.unwrap_type_or_identifier());
         }
 

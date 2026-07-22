@@ -34,8 +34,8 @@ pub fn lower(module: &mut TranslationUnit) -> Result<(), Error> {
     #[cfg(not(feature = "eval"))]
     {
         // these are redundant with eval::lower.
-        remove_type_aliases(module);
-        remove_global_consts(module);
+        inline_type_aliases(module);
+        inline_global_consts(module);
     }
     #[cfg(feature = "eval")]
     {
@@ -67,9 +67,8 @@ pub fn lower(module: &mut TranslationUnit) -> Result<(), Error> {
 }
 
 /// Eliminate all type aliases.
-/// Naga doesn't like this: `alias T = u32; vec<T>`
 #[allow(unused)]
-fn remove_type_aliases(wesl: &mut TranslationUnit) {
+fn inline_type_aliases(wesl: &mut TranslationUnit) {
     let take_next_alias = |wesl: &mut TranslationUnit| {
         let index = wesl
             .global_declarations
@@ -96,9 +95,10 @@ fn remove_type_aliases(wesl: &mut TranslationUnit) {
 /// Replace usages of the const-declaration with its expression.
 ///
 /// # Panics
+///
 /// panics if the const-declaration is ill-formed, i.e. has no initializer.
 #[allow(unused)]
-fn remove_global_consts(wesl: &mut TranslationUnit) {
+fn inline_global_consts(wesl: &mut TranslationUnit) {
     let take_next_const = |wesl: &mut TranslationUnit| {
         let index = wesl.global_declarations.iter().position(|decl| {
             matches!(

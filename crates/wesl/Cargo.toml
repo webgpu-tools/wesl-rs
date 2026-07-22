@@ -69,3 +69,6 @@ package = ["dep:proc-macro2", "dep:quote"]
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+insta = { version = "1.48.0", features = ["yaml"] }

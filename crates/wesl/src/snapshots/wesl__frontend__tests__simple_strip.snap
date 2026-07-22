@@ -1,0 +1,50 @@
+---
+source: crates/wesl/src/frontend.rs
+expression: result.syntax.to_string()
+---
+diagnostic (error, foo);
+diagnostic (error, foo.bar);
+enable f16;
+requires unrestricted_pointer_parameters;
+requires subgroup_id, buffer_view;
+
+const c1 = 1;
+
+const c2: u32 = 2;
+
+const_assert c1 == 1;
+
+const_assert (c1 < c2);
+
+@compute @workgroup_size(1)
+fn comp_main1() {
+
+}
+
+@compute @workgroup_size(8, 8)
+fn comp_main2(@builtin(global_invocation_id) p1: vec3<u32>) {
+
+}
+
+@compute @workgroup_size(8, 8, 1)
+fn comp_main3(@builtin(local_invocation_id) p1: vec3<u32>, @builtin(local_invocation_index) p2: u32, @builtin(workgroup_id) p3: vec3<u32>, @builtin(num_workgroups) p4: vec3<u32>) {
+
+}
+
+@fragment
+fn f10() -> @location(0) vec4<f32> {
+    if true {
+        discard;
+    }
+    return vec4<f32>(0.0);
+}
+
+@fragment
+fn frag_main(@builtin(position) p1: vec4<f32>, @location(0) @interpolate(flat) p2: f32) -> @location(0) vec4<f32> {
+    return vec4<f32>(p2);
+}
+
+@vertex
+fn vert_main(@builtin(vertex_index) p1: u32) -> @builtin(position) vec4<f32> {
+    return vec4<f32>(f32(p1));
+}

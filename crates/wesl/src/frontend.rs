@@ -540,3 +540,79 @@ fn test_send_sync() {
     fn assert_send_sync<T: Send + Sync>() {}
     assert_send_sync::<Compiler<()>>();
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fixtures_dir() -> &'static Path {
+        Path::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/compile"
+        ))
+    }
+
+    #[test]
+    fn simple() {
+        let test_path = fixtures_dir().join("simple/shaders/main.wgsl");
+
+        let mut result = Compiler::new(CompileOptions {
+            strip: false,
+            lower: false,
+            validate: true,
+            ..Default::default()
+        })
+        .compile(test_path)
+        .unwrap();
+
+        // normalize for comparison
+        result.syntax.sort_decls();
+
+        insta::assert_snapshot!(result.syntax.to_string());
+    }
+
+    #[test]
+    fn simple_lower() {
+        let test_path = fixtures_dir().join("simple/shaders/main.wgsl");
+
+        let mut result = Compiler::new(CompileOptions {
+            strip: false,
+            lower: true,
+            validate: true,
+            ..Default::default()
+        })
+        .compile(test_path)
+        .unwrap();
+
+        // normalize for comparison
+        result.syntax.sort_decls();
+
+        // "lower" behaves differently when "eval" is enabled.
+        let name = if cfg!(feature = "eval") {
+            "simple_lower_eval"
+        } else {
+            "simple_lower"
+        };
+
+        insta::assert_snapshot!(name, result.syntax.to_string());
+    }
+
+    #[test]
+    fn simple_strip() {
+        let test_path = fixtures_dir().join("simple/shaders/main.wgsl");
+
+        let mut result = Compiler::new(CompileOptions {
+            strip: true,
+            lower: false,
+            validate: true,
+            ..Default::default()
+        })
+        .compile(test_path)
+        .unwrap();
+
+        // normalize for comparison
+        result.syntax.sort_decls();
+
+        insta::assert_snapshot!(result.syntax.to_string());
+    }
+}

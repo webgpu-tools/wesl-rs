@@ -677,7 +677,7 @@ impl Display for WhileStatement {
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let cond = &self.condition;
         let body = &self.body;
-        write!(f, "while ({cond}) {body}")
+        write!(f, "while {cond} {body}")
     }
 }
 

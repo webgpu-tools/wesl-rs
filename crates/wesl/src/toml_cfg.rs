@@ -491,7 +491,7 @@ mod tests {
     fn fixtures_dir() -> &'static Path {
         Path::new(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/tests/fixtures/wesl_toml"
+            "/tests/fixtures/toml_cfg"
         ))
     }
 
@@ -651,7 +651,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nested_wesl_toml_excluded() {
+    fn test_nested_toml_cfg_excluded() {
         // A subdirectory with its own wesl.toml should be excluded from scanning
         let base = fixtures_dir().join("nested");
         let config = WeslToml::parse_str(

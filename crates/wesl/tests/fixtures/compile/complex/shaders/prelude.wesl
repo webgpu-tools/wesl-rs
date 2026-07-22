@@ -5,7 +5,11 @@
 
 // re-exports with renaming; the originals must be `public` (a re-export
 // cannot widen visibility).
-public import package::util::{dot2 as pdot2, cross2 as x2};
-public import package::util::ops::double as dbl;
+// TODO: visibility
+// public import package::util::{dot2 as pdot2, cross2 as x2};
+// public import package::util::ops::double as dbl;
+@public import package::util::{dot2 as pdot2, cross2 as x2};
+@public import package::util::ops::double as dbl;
 
-@!wildcardable;
+// TODO: wildcards
+// @!wildcardable;

@@ -6,6 +6,8 @@ import package::cycle_a::A_OFFSET;
 // the module whose items are used).
 const_assert A_OFFSET > 0.0;
 
-public fn pong(x: f32) -> f32 {
+// TODO: visibility
+// public fn pong(x: f32) -> f32 {
+fn pong(x: f32) -> f32 {
     return x * 2.0 + A_OFFSET;
 }

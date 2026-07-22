@@ -5,7 +5,9 @@
 // its `ops` submodule.
 import super::super::ops::double;
 
-public fn mix2(x: f32) -> f32 {
+// TODO: visibility
+// public fn mix2(x: f32) -> f32 {
+fn mix2(x: f32) -> f32 {
     // inline import with a `super` prefix: `super::super` = `package::util`.
     return double(x) * 0.5 + super::super::dot2(vec2f(x), vec2f(1.0));
 }

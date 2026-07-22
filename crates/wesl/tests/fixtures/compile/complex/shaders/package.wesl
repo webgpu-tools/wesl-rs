@@ -17,11 +17,15 @@ import constants::{PI, TRUE};
 
 // -- import statements: single item, collections, nested collections,
 // -- wildcard as a member of a collection ------------------------------------
-import package::util::{dot2, ops::{double, *}}; // flattens to dot2, ops::double, ops::*
+// TODO: wildcards
+// import package::util::{dot2, ops::{double, *}}; // flattens to dot2, ops::double, ops::*
+import package::util::{dot2, ops::{double, scale, shift, OPS_BASE}}; // flattens to dot2, ops::double, ops::*
 
 // wildcard import of a module that only contains re-exports (`public import`).
 // brings `pdot2`, `x2` and `dbl` into scope.
-import package::prelude::*;
+// TODO: wildcards
+// import package::prelude::*;
+import package::prelude::{pdot2, x2, dbl};
 
 // modules that circularly import each other (cycle_a <-> cycle_b).
 import package::cycle_a::ping2;
@@ -44,9 +48,13 @@ import package::gfx::tonemap;
 // -- visibility and re-exports (public imports) -------------------------------
 // re-exported entry points, resource variable and override become part of the
 // pipeline-visible API of this entry module, keeping their (aliased) names.
-public import package::gfx::{vert_main, frag_main as fs_main};
-public import package::gfx::scene_data;
-public import package::gfx::exposure;
+// TODO: visibility
+// public import package::gfx::{vert_main, frag_main as fs_main};
+// public import package::gfx::scene_data;
+// public import package::gfx::exposure;
+import package::gfx::{vert_main, frag_main as fs_main};
+import package::gfx::scene_data;
+import package::gfx::exposure;
 
 // -- conditional directives ---------------------------------------------------
 @if(feat2)
@@ -79,12 +87,16 @@ override root_boost: f32 = 2.0;
 
 // visibility keywords on global declarations:
 // `private` = visible only in this module, no keyword = package-visible.
-private const ROOT_SECRET: f32 = 0.5;
+// TODO: visibility
+// private const ROOT_SECRET: f32 = 0.5;
+const ROOT_SECRET: f32 = 0.5;
 
 // this *declaration* shares its name with the *module* `package::util`
 // (util.wesl): modules and declarations live in separate namespaces.
 // `gfx.wesl` imports `package::util` and uses both `util()` and `util::dot2`.
-public fn util() -> f32 {
+// TODO: visibility
+// public fn util() -> f32 {
+fn util() -> f32 {
     return ROOT_SECRET * 8.0;
 }
 

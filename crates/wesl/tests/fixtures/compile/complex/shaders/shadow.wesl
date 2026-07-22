@@ -11,7 +11,9 @@ fn uses_globals() -> f32 {
     return level + PI + dot2(vec2f(1.0), vec2f(2.0));
 }
 
-public fn shadowed_fn(dot2: f32) -> f32 {
+// TODO: visibility
+// public fn shadowed_fn(dot2: f32) -> f32 {
+fn shadowed_fn(dot2: f32) -> f32 {
     // the formal parameter `dot2` shadows the imported function for the
     // entire body; the import is still usable through `uses_globals`.
     let base = uses_globals() + dot2;

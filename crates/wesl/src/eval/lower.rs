@@ -530,6 +530,7 @@ impl Lower for ForStatement {
         with_scope!(ctx, {
             self.initializer.lower(ctx)?;
             self.condition.lower(ctx)?;
+            self.update.lower(ctx)?;
             compound_lower(&mut self.body, ctx, CompoundScope::Transparent)?;
             Ok(())
         })

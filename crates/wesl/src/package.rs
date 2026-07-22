@@ -4,19 +4,18 @@ use std::{
 };
 
 use crate::{
-    error::TomlError,
+    error::{Diagnostic, Error, TomlError},
     pass::{retarget_idents, validate_wesl},
     toml_cfg::{self, WeslToml},
 };
-use wgsl_parse::lexer::{Lexer, Token};
+use wgsl_parse::{
+    lexer::{Lexer, Token},
+    syntax::{ModulePath, TranslationUnit},
+};
 use wgsl_types::idents::RESERVED_WORDS;
 
 #[cfg(feature = "package")]
-use crate::{Error, error::Diagnostic};
-#[cfg(feature = "package")]
 use quote::{format_ident, quote};
-#[cfg(feature = "package")]
-use wgsl_parse::syntax::{ModulePath, TranslationUnit};
 
 /// WGSL identifier predicate, including reserved words, but excluding keywords.
 pub(crate) fn is_mod_ident(name: &str) -> bool {
@@ -74,6 +73,7 @@ pub(crate) const RESERVED_MOD_NAMES: &[&str] = &[
 /// ```no_run
 /// // in build.rs
 /// fn main() {
+/// #  #[cfg(feature = "package")]
 ///    wesl::package::PackageBuilder::new("my_package")
 ///        // read all wesl files in the directory "src/shaders"
 ///        .scan_root("src/shaders")
@@ -290,6 +290,7 @@ impl PackageBuilder {
     /// # Example
     ///
     /// ```no_run
+    /// # #[cfg(feature = "package")]
     /// wesl::package::PackageBuilder::new("my_package")
     ///     .scan_toml(".")  // looks for ./wesl.toml
     ///     .expect("failed to scan WESL files")
@@ -324,6 +325,39 @@ impl PackageBuilder {
     }
 }
 
+impl PackageModule {
+    fn validate(&self, parent_path: ModulePath) -> Result<(), Error> {
+        let mut path = parent_path.clone();
+        path.push(&self.name);
+
+        eprintln!("INFO: validate {path}");
+
+        let to_diagnostic = |e: Error| {
+            Diagnostic::from(e)
+                .with_module_path(path.clone(), None)
+                .with_source(self.source.clone())
+        };
+        let mut module: TranslationUnit = self
+            .source
+            .parse()
+            .map_err(|e: wgsl_parse::Error| to_diagnostic(e.into()))?;
+        retarget_idents(&mut module);
+        validate_wesl(&module).map_err(|e| to_diagnostic(e.into()))?;
+        for module in &self.submodules {
+            module.validate(path.clone())?;
+        }
+        Ok(())
+    }
+}
+
+impl Package {
+    /// Run validation checks on each of the scanned files.
+    pub fn validate(self) -> Result<Self, Error> {
+        self.root.validate(ModulePath::new_root())?;
+        Ok(self)
+    }
+}
+
 #[cfg(feature = "package")]
 impl PackageModule {
     fn codegen(&self) -> proc_macro2::TokenStream {
@@ -351,29 +385,6 @@ impl PackageModule {
                 #(#submods)*
             }
         }
-    }
-
-    fn validate(&self, parent_path: ModulePath) -> Result<(), Error> {
-        let mut path = parent_path.clone();
-        path.push(&self.name);
-
-        eprintln!("INFO: validate {path}");
-
-        let to_diagnostic = |e: Error| {
-            Diagnostic::from(e)
-                .with_module_path(path.clone(), None)
-                .with_source(self.source.clone())
-        };
-        let mut module: TranslationUnit = self
-            .source
-            .parse()
-            .map_err(|e: wgsl_parse::Error| to_diagnostic(e.into()))?;
-        retarget_idents(&mut module);
-        validate_wesl(&module).map_err(|e| to_diagnostic(e.into()))?;
-        for module in &self.submodules {
-            module.validate(path.clone())?;
-        }
-        Ok(())
     }
 }
 
@@ -417,12 +428,6 @@ impl Package {
         };
 
         tokens.to_string()
-    }
-
-    /// Run validation checks on each of the scanned files.
-    pub fn validate(self) -> Result<Self, Error> {
-        self.root.validate(ModulePath::new_root())?;
-        Ok(self)
     }
 
     /// Generate the build artifact that can then be exposed by the [`super::wesl_pkg`] macro.

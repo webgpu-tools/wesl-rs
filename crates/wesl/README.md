@@ -85,6 +85,7 @@ runtime dependencies.
 The eval/exec implementation is tested with the [WebGPU Conformance Test Suite][cts].
 
 ```rust
+# #[cfg(feature = "eval")] { // feature-gate
 # use wesl::{Compiler, resolver::VirtualResolver, eval_str};
 // ...standalone expression
 let wgsl_expr = eval_str("abs(3 - 5)").unwrap().to_string();
@@ -103,6 +104,7 @@ let wgsl_expr = compiler
     .eval("my_fn(my_const) + 2").unwrap()
     .to_string();
 assert_eq!(wgsl_expr, "42u");
+# } // end feature-gate
 ```
 
 ## Features

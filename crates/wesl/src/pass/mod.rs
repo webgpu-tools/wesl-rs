@@ -20,6 +20,6 @@ pub use link::link;
 pub use lower::lower;
 pub use mangle::mangle;
 pub use retarget_idents::{retarget_idents, retarget_modules};
-pub use usage_analysis::{Module, UsedItems, root_usage_analysis, usage_analysis};
+pub use usage_analysis::{Module, UsedItems, module_usage_analysis, usage_analysis};
 pub use validate::{validate_wesl, validate_wgsl};
 pub use visit::Visit;

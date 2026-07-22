@@ -47,13 +47,13 @@ pub trait CompilerDriver: Sized {
     /// Currently, only items referenced by module-scope `const_assert`s are always included.
     ///
     /// See [`Self::usage_analysis`].
-    fn root_usage_analysis(
+    fn module_usage_analysis(
         &self,
         module: &Module,
         already_used: &mut UsedItems,
         to_analyze: &mut UsedItems,
     ) -> Result<(), Error> {
-        pass::root_usage_analysis(module, already_used, to_analyze);
+        pass::module_usage_analysis(module, already_used, to_analyze);
         Ok(())
     }
 

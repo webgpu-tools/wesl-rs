@@ -68,7 +68,7 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
                 }
             };
 
-            pass::root_usage_analysis(module, &mut used_items, &mut next_to_analyze);
+            driver.module_usage_analysis(module, &mut used_items, &mut next_to_analyze)?;
 
             for item in items_to_analyze {
                 driver.usage_analysis(

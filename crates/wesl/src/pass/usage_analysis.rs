@@ -105,7 +105,7 @@ impl UsedItems {
 /// Currently, only items referenced by module-scope `const_assert`s are always included.
 ///
 /// See [`usage_analysis`].
-pub fn root_usage_analysis(
+pub fn module_usage_analysis(
     module: &Module,
     already_used: &mut UsedItems,
     to_analyze: &mut UsedItems,

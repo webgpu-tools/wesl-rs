@@ -26,6 +26,21 @@ pub struct UsedItems {
     used_items: HashMap<ModulePath, HashSet<Ident>>,
 }
 
+/// Just a convenience
+impl std::fmt::Display for UsedItems {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use itertools::Itertools;
+        for (path, items) in self.iter() {
+            write!(
+                f,
+                "{path} -> {}\n",
+                items.iter().map(ToString::to_string).format(", ")
+            )?;
+        }
+        Ok(())
+    }
+}
+
 impl UsedItems {
     pub fn new() -> Self {
         Self {

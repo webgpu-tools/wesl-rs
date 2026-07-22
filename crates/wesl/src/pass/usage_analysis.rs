@@ -126,13 +126,20 @@ pub fn usage_analysis(
     to_analyze: &mut UsedItems,
 ) -> bool {
     if !already_used.contains_name(&module.path, decl_name) {
-        let decl = module.syntax.global_declarations.iter().find(|decl| {
+        if let Some(decl) = module.syntax.global_declarations.iter().find(|decl| {
             decl.ident()
                 .is_some_and(|ident| &**ident.name() == decl_name)
-        });
-
-        if let Some(decl) = decl {
+        }) {
+            // we found a declaration with the right name, let's analyze it.
             decl_usage_analysis(module, decl, already_used, to_analyze);
+        } else if let Some((_, item)) = module
+            .imports
+            .iter()
+            .find(|(ident, _)| *ident.name() == decl_name)
+            && item.public
+        {
+            // there is no declaration with this name, but there is a re-export.
+            to_analyze.insert_ident(item.path.clone(), item.ident.clone());
         } else {
             return false;
         }
@@ -145,7 +152,7 @@ fn decl_usage_analysis(
     module: &Module,
     decl: &GlobalDeclaration,
     already_used: &mut UsedItems,
-    newly_used: &mut UsedItems,
+    to_analyze: &mut UsedItems,
 ) {
     if decl
         .ident()
@@ -156,12 +163,12 @@ fn decl_usage_analysis(
     }
 
     Visit::<TypeExpression>::visit_rec(decl, &mut |ty_expr| {
-        // this ident refers an imported item, we add it to the list of used items.
+        // if this ident refers an imported item, we add it to the list of used items.
         if let Some((import_path, import_ident)) =
             imported_item_path(ty_expr, &module.path, &module.imports)
             && !already_used.contains_name(&import_path, &**ty_expr.ident.name())
         {
-            newly_used.insert_ident(import_path, import_ident);
+            to_analyze.insert_ident(import_path, import_ident);
         }
         // this ident refers a local declaration, we analyze it recursively.
         else {
@@ -174,7 +181,7 @@ fn decl_usage_analysis(
                 .find(|decl| decl.ident().is_some_and(|ident| ident == ty_expr.ident));
 
             if let Some(decl) = decl {
-                decl_usage_analysis(module, decl, already_used, newly_used);
+                decl_usage_analysis(module, decl, already_used, to_analyze);
             }
         }
     });

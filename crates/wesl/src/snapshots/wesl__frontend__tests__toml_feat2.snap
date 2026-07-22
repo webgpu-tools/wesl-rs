@@ -1,0 +1,175 @@
+---
+source: crates/wesl/src/frontend.rs
+expression: result.syntax.to_string()
+---
+diagnostic (off, derivative_uniformity);
+
+const K: f32 = 2.0;
+
+const constants_PI = 3.1415;
+
+const constants_TRUE = true;
+
+const package__1cycle_a__1A_OFFSET: f32 = 0.25;
+
+const package_shadow_level: f32 = 1.0;
+
+const package_util_EPSILON: f32 = 1e-5;
+
+const package_util__1INTERNAL_SCALE: f32 = 2.0;
+
+const package_util_ops__1OPS_BASE: f32 = 4.0;
+
+override package_gfx_exposure: f32 = 1.0;
+
+override package_gfx_gain: f32 = package_gfx_exposure * 2.0;
+
+override root_boost: f32 = 2.0;
+
+var<private> counter: u32 = 0u;
+
+@group(0) @binding(0)
+var<storage, read_write> package_gfx__1scene_data: array<vec4f>;
+
+struct Aux {
+    n: u32,
+    extra_field: f32
+}
+
+struct Config {
+    size: f32,
+    extra: vec3f
+}
+
+alias Vec = vec3f;
+
+const_assert K == 2.0;
+
+const_assert constants_PI > 3.0;
+
+const_assert constants_TRUE;
+
+const_assert package__1cycle_a__1A_OFFSET > 0.0;
+
+const_assert package_util_ops__1OPS_BASE > 0.0;
+
+@compute @workgroup_size(1)
+fn my_compute(@builtin(global_invocation_id) gid: vec3u) {
+    let inline_pkg = package_util_norm2(vec2f(1.0, 2.0));
+    let inline_dep = random_noise_value__1value_noise(2.0);
+    let a = package_util_dot2(vec2f(constants_PI), vec2f(1.0));
+    let b = package_util_ops_double(a) + K + root_boost;
+    let c = package_util_ops_shift(b);
+    let d = package_util_ops__1OPS_BASE;
+    let e = package_util_dot2(vec2f(d), vec2f(1.0)) + package_util_cross2(vec2f(a), vec2f(b)) + package_util_ops_double(c);
+    let f = package__1cycle_a_ping2(e);
+    let g = package_shadow__1shadowed_fn(f);
+    let h = package_legacy__1legacy_fn(g);
+    let i = random_hash_rand11(h) + package_util_deep_mix_mix2(inline_pkg) + package_gfx_tonemap(vec2f(inline_dep));
+    let cond = K * 2.0;
+    var acc = 0.0;
+    acc = cond;
+    counter++;
+    _ = counter;
+    let cfg = Config(1.0, vec3f(0.0));
+    acc += cfg.size;
+    let v = Vec(0.5);
+    acc += v.x;
+    let aux = Aux(gid.x, 0.5);
+    acc += f32(aux.n);
+    acc += weight(a, 2.0);
+    if constants_TRUE {
+        acc += 1.0;
+    }
+    switch gid.x {
+        case 2u {
+            acc += 2.0;
+        }
+        case 3u, 4u {
+            acc += 3.0;
+        }
+        case default {
+            acc += 0.5;
+        }
+    }
+    for (var t = 0u; t < 4u; t++) {
+        continue;
+    }
+    package_gfx__1scene_data[gid.x] = vec4f(acc + b + c + e + g + i);
+}
+
+fn package__1cycle_a_ping(x: f32) -> f32 {
+    return x + package__1cycle_a__1A_OFFSET;
+}
+
+fn package__1cycle_a_ping2(x: f32) -> f32 {
+    return package__1cycle_b_pong(x) + package__1cycle_a_ping(0.0);
+}
+
+fn package__1cycle_b_pong(x: f32) -> f32 {
+    return x * 2.0 + package__1cycle_a__1A_OFFSET;
+}
+
+fn package_gfx_tonemap(c: vec2f) -> f32 {
+    return package_util_cross2(c, vec2f(package_util_EPSILON)) * package_gfx_gain;
+}
+
+fn package_legacy__1legacy_fn(x: f32) -> f32 {
+    return clamp(x, 0.0, 1.0);
+}
+
+fn package_shadow__1shadowed_fn(dot2: f32) -> f32 {
+    let base = package_shadow__1uses_globals() + dot2;
+    let level = base + 1.0;
+    var PI = 3.0;
+    {
+        let PI = PI * 2.0;
+        return level + PI;
+    }
+}
+
+fn package_shadow__1uses_globals() -> f32 {
+    return package_shadow_level + constants_PI + package_util_dot2(vec2f(1.0), vec2f(2.0));
+}
+
+fn package_util_cross2(a: vec2f, b: vec2f) -> f32 {
+    return a.x * b.y - a.y * b.x;
+}
+
+fn package_util_deep_mix_mix2(x: f32) -> f32 {
+    return package_util_ops_double(x) * 0.5 + package_util_dot2(vec2f(x), vec2f(1.0));
+}
+
+fn package_util_dot2(a: vec2f, b: vec2f) -> f32 {
+    return a.x * b.x + a.y * b.y;
+}
+
+fn package_util_norm2(a: vec2f) -> f32 {
+    return sqrt(max(package_util_dot2(a, a), package_util_EPSILON)) * package_util__1INTERNAL_SCALE / package_util_ops_double(1.0);
+}
+
+fn package_util_ops_double(x: f32) -> f32 {
+    return x * 2.0;
+}
+
+fn package_util_ops_shift(x: f32) -> f32 {
+    return x + 4.0;
+}
+
+fn random_hash_rand11(n: f32) -> f32 {
+    return fract(sin(n) * 43758.5453123);
+}
+
+fn random_noise_value__1value_noise(p: f32) -> f32 {
+    let fl = floor(p);
+    return mix(random_hash_rand11(fl), random_hash_rand11(fl + 1.0), fract(p));
+}
+
+@compute @workgroup_size(2)
+fn variant() {
+    package_gfx__1scene_data[1] = vec4f(K);
+}
+
+fn weight(x: f32, boost: f32) -> f32 {
+    return x * boost;
+}

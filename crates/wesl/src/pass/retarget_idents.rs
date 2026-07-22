@@ -396,6 +396,9 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
 /// * if an identifier has no corresponding declaration.
 pub fn retarget_modules(modules: &mut Vec<Module>, used_items: &UsedItems) {
     // unfortunately I have to pass 3 module_xxx by ref here because I can't mutably borrow `ty` and immutably borrow a `Module`.
+    // TODO: could we get away with using just used_items instead of other_modules?
+    // in theory it contains all used identifiers, and we wouldn't have to deal with the double borrow
+    // shenanigans. The only concern is re-exports, they would need to be retargeted.
     fn retarget_ty<'a>(
         ty: &mut TypeExpression,
         module_path: &ModulePath,
@@ -414,35 +417,69 @@ pub fn retarget_modules(modules: &mut Vec<Module>, used_items: &UsedItems) {
             );
         }
 
-        if let Some((import_path, import_ident)) =
+        if let Some((mut import_path, mut import_ident)) =
             imported_item_path(ty, module_path, module_imports)
         {
-            // if the import path points to a local decl.
-            if import_path == *module_path {
-                let Some(ident) = module_idents
-                    .iter()
-                    .find(|ident| *ident.name() == *import_ident.name())
-                    .cloned()
-                else {
-                    debug_assert!(false, "no declaration {import_ident} in {import_path}");
-                    return;
-                };
-                ty.path = None;
-                ty.ident = ident;
-            } else {
-                let Some(import_module) = other_modules.into_iter().find(|m| m.path == import_path)
-                else {
-                    debug_assert!(false, "no importable module {import_path}");
-                    return;
-                };
-
-                let Some(ident) = import_module.syntax.decl_ident(&**import_ident.name()) else {
-                    debug_assert!(false, "no declaration {import_ident} in {import_path}");
-                    return;
-                };
-
-                ty.path = None;
-                ty.ident = ident;
+            // because of re-exports, we may have to look up the import module in a loop.
+            // TODO: check that there can't be re-export cycles: A exports foo from B, B exports foo from A...
+            loop {
+                // if the import path points to a local decl.
+                // this is a special case but does the same as the code below, because the current
+                // module is not stored in `other_modules`.
+                if import_path == *module_path {
+                    if let Some(ident) = module_idents
+                        .iter()
+                        .find(|ident| *ident.name() == *import_ident.name())
+                        .cloned()
+                    {
+                        // we found a declaration with the right name.
+                        ty.path = None;
+                        ty.ident = ident;
+                        return;
+                    } else if let Some((_, item)) = module_imports
+                        .iter()
+                        .find(|(ident, _)| *ident.name() == *ty.ident.name())
+                        && item.public
+                    {
+                        // there is no declaration with this name, but there is a re-export.
+                        // we loop again with a new path and ident to look up.
+                        // TODO: check that there can't be re-export cycles: A exports foo from B, B exports foo from A...
+                        import_path = item.path.clone();
+                        import_ident = item.ident.clone();
+                    } else {
+                        debug_assert!(false, "no declaration {import_ident} in {import_path}");
+                        return;
+                    }
+                } else {
+                    let Some(import_module) = other_modules
+                        .clone()
+                        .into_iter()
+                        .find(|m| m.path == import_path)
+                    else {
+                        debug_assert!(false, "no importable module {import_path}");
+                        return;
+                    };
+                    if let Some(ident) = import_module.syntax.decl_ident(&**import_ident.name()) {
+                        // we found a declaration with the right name.
+                        ty.path = None;
+                        ty.ident = ident;
+                        return;
+                    } else if let Some((_, item)) = import_module
+                        .imports
+                        .iter()
+                        .find(|(ident, _)| *ident.name() == *ty.ident.name())
+                        && item.public
+                    {
+                        // there is no declaration with this name, but there is a re-export.
+                        // we loop again with a new path and ident to look up.
+                        // TODO: check that there can't be re-export cycles: A exports foo from B, B exports foo from A...
+                        import_path = item.path.clone();
+                        import_ident = item.ident.clone();
+                    } else {
+                        debug_assert!(false, "no declaration {import_ident} in {import_path}");
+                        return;
+                    }
+                }
             }
         }
     }

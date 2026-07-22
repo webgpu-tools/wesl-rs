@@ -8,8 +8,8 @@
 // TODO: visibility
 // public import package::util::{dot2 as pdot2, cross2 as x2};
 // public import package::util::ops::double as dbl;
-@public import package::util::{dot2 as pdot2, cross2 as x2};
-@public import package::util::ops::double as dbl;
+@publish import package::util::{dot2 as pdot2, cross2 as x2};
+@publish import package::util::ops::double as dbl;
 
 // TODO: wildcards
 // @!wildcardable;

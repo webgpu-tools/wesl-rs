@@ -12,9 +12,9 @@ const c1 = 1;
 
 const c2: u32 = 2;
 
-const_assert c1 == 1;
-
 const_assert (c1 < c2);
+
+const_assert c1 == 1;
 
 @compute @workgroup_size(1)
 fn comp_main1() {

@@ -576,19 +576,28 @@ mod tests {
 
         compiler.options.lower = false;
         compiler.options.strip = false;
-        let mut result = compiler.compile(&test_path).unwrap();
+        let mut result = compiler
+            .compile(&test_path)
+            .inspect_err(|e| eprintln!("{e}"))
+            .unwrap();
         result.syntax.sort_decls(); // normalize for comparison
         insta::assert_snapshot!("simple", result.syntax.to_string());
 
         compiler.options.lower = false;
         compiler.options.strip = true;
-        let mut result = compiler.compile(&test_path).unwrap();
+        let mut result = compiler
+            .compile(&test_path)
+            .inspect_err(|e| eprintln!("{e}"))
+            .unwrap();
         result.syntax.sort_decls(); // normalize for comparison
         insta::assert_snapshot!("simple_strip", result.syntax.to_string());
 
         compiler.options.lower = true;
         compiler.options.strip = false;
-        let mut result = compiler.compile(&test_path).unwrap();
+        let mut result = compiler
+            .compile(&test_path)
+            .inspect_err(|e| eprintln!("{e}"))
+            .unwrap();
         result.syntax.sort_decls(); // normalize for comparison
         insta::assert_snapshot!(lower_name, result.syntax.to_string());
     }
@@ -612,13 +621,19 @@ mod tests {
 
         compiler.options.features.add_feature("feat1", true);
         compiler.options.features.add_feature("feat2", false);
-        let mut result = compiler.compile(&test_path).unwrap();
+        let mut result = compiler
+            .compile(&test_path)
+            .inspect_err(|e| eprintln!("{e}"))
+            .unwrap();
         result.syntax.sort_decls(); // normalize for comparison
         insta::assert_snapshot!("toml_feat1", result.syntax.to_string());
 
         compiler.options.features.add_feature("feat1", false);
         compiler.options.features.add_feature("feat2", true);
-        let mut result = compiler.compile(&test_path).unwrap();
+        let mut result = compiler
+            .compile(&test_path)
+            .inspect_err(|e| eprintln!("{e}"))
+            .unwrap();
         result.syntax.sort_decls(); // normalize for comparison
         insta::assert_snapshot!("toml_feat2", result.syntax.to_string());
     }

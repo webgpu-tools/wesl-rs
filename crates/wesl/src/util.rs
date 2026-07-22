@@ -58,52 +58,76 @@ impl SyntaxUtil for TranslationUnit {
     }
 
     fn sort_decls(&mut self) {
-        use std::cmp::Ordering;
+        use std::cmp::Ordering::*;
         type Decl = GlobalDeclaration;
         self.global_declarations
             .sort_unstable_by(|a, b| match (a.node(), b.node()) {
-                (Decl::Void, Decl::Void) => Ordering::Equal,
-                (Decl::Void, Decl::Declaration(_)) => Ordering::Less,
-                (Decl::Void, Decl::Struct(_)) => Ordering::Less,
-                (Decl::Void, Decl::TypeAlias(_)) => Ordering::Less,
-                (Decl::Void, Decl::ConstAssert(_)) => Ordering::Less,
-                (Decl::Void, Decl::Function(_)) => Ordering::Less,
+                (Decl::Void, Decl::Void) => Equal,
+                (Decl::Void, Decl::Declaration(_)) => Less,
+                (Decl::Void, Decl::Struct(_)) => Less,
+                (Decl::Void, Decl::TypeAlias(_)) => Less,
+                (Decl::Void, Decl::ConstAssert(_)) => Less,
+                (Decl::Void, Decl::Function(_)) => Less,
 
-                (Decl::Declaration(_), Decl::Void) => Ordering::Greater,
+                (Decl::Declaration(_), Decl::Void) => Greater,
                 (Decl::Declaration(d1), Decl::Declaration(d2)) => {
-                    d1.ident.name().cmp(&d2.ident.name())
+                    // sort in this order: const < override < let < var
+                    // then sort by name.
+                    match (d1.kind, d2.kind) {
+                        (DeclarationKind::Const, DeclarationKind::Const)
+                        | (DeclarationKind::Override, DeclarationKind::Override)
+                        | (DeclarationKind::Let, DeclarationKind::Let)
+                        | (DeclarationKind::Var(_), DeclarationKind::Var(_)) => {
+                            d1.ident.name().cmp(&d2.ident.name())
+                        }
+                        (DeclarationKind::Const, DeclarationKind::Override) => Less,
+                        (DeclarationKind::Const, DeclarationKind::Let) => Less,
+                        (DeclarationKind::Const, DeclarationKind::Var(_)) => Less,
+                        (DeclarationKind::Override, DeclarationKind::Const) => Greater,
+                        (DeclarationKind::Override, DeclarationKind::Let) => Less,
+                        (DeclarationKind::Override, DeclarationKind::Var(_)) => Less,
+                        (DeclarationKind::Let, DeclarationKind::Const) => Greater,
+                        (DeclarationKind::Let, DeclarationKind::Override) => Greater,
+                        (DeclarationKind::Let, DeclarationKind::Var(_)) => Less,
+                        (DeclarationKind::Var(_), DeclarationKind::Const) => Greater,
+                        (DeclarationKind::Var(_), DeclarationKind::Override) => Greater,
+                        (DeclarationKind::Var(_), DeclarationKind::Let) => Greater,
+                    }
                 }
-                (Decl::Declaration(_), Decl::Struct(_)) => Ordering::Less,
-                (Decl::Declaration(_), Decl::TypeAlias(_)) => Ordering::Less,
-                (Decl::Declaration(_), Decl::ConstAssert(_)) => Ordering::Less,
-                (Decl::Declaration(_), Decl::Function(_)) => Ordering::Less,
+                (Decl::Declaration(_), Decl::Struct(_)) => Less,
+                (Decl::Declaration(_), Decl::TypeAlias(_)) => Less,
+                (Decl::Declaration(_), Decl::ConstAssert(_)) => Less,
+                (Decl::Declaration(_), Decl::Function(_)) => Less,
 
-                (Decl::Struct(_), Decl::Void) => Ordering::Greater,
-                (Decl::Struct(_), Decl::Declaration(_)) => Ordering::Greater,
+                (Decl::Struct(_), Decl::Void) => Greater,
+                (Decl::Struct(_), Decl::Declaration(_)) => Greater,
                 (Decl::Struct(d1), Decl::Struct(d2)) => d1.ident.name().cmp(&d2.ident.name()),
-                (Decl::Struct(_), Decl::TypeAlias(_)) => Ordering::Less,
-                (Decl::Struct(_), Decl::ConstAssert(_)) => Ordering::Less,
-                (Decl::Struct(_), Decl::Function(_)) => Ordering::Less,
+                (Decl::Struct(_), Decl::TypeAlias(_)) => Less,
+                (Decl::Struct(_), Decl::ConstAssert(_)) => Less,
+                (Decl::Struct(_), Decl::Function(_)) => Less,
 
-                (Decl::TypeAlias(_), Decl::Void) => Ordering::Greater,
-                (Decl::TypeAlias(_), Decl::Declaration(_)) => Ordering::Greater,
-                (Decl::TypeAlias(_), Decl::Struct(_)) => Ordering::Greater,
+                (Decl::TypeAlias(_), Decl::Void) => Greater,
+                (Decl::TypeAlias(_), Decl::Declaration(_)) => Greater,
+                (Decl::TypeAlias(_), Decl::Struct(_)) => Greater,
                 (Decl::TypeAlias(d1), Decl::TypeAlias(d2)) => d1.ident.name().cmp(&d2.ident.name()),
-                (Decl::TypeAlias(_), Decl::ConstAssert(_)) => Ordering::Less,
-                (Decl::TypeAlias(_), Decl::Function(_)) => Ordering::Less,
+                (Decl::TypeAlias(_), Decl::ConstAssert(_)) => Less,
+                (Decl::TypeAlias(_), Decl::Function(_)) => Less,
 
-                (Decl::ConstAssert(_), Decl::Void) => Ordering::Greater,
-                (Decl::ConstAssert(_), Decl::Declaration(_)) => Ordering::Greater,
-                (Decl::ConstAssert(_), Decl::Struct(_)) => Ordering::Greater,
-                (Decl::ConstAssert(_), Decl::TypeAlias(_)) => Ordering::Greater,
-                (Decl::ConstAssert(_), Decl::ConstAssert(_)) => Ordering::Equal,
-                (Decl::ConstAssert(_), Decl::Function(_)) => Ordering::Less,
+                (Decl::ConstAssert(_), Decl::Void) => Greater,
+                (Decl::ConstAssert(_), Decl::Declaration(_)) => Greater,
+                (Decl::ConstAssert(_), Decl::Struct(_)) => Greater,
+                (Decl::ConstAssert(_), Decl::TypeAlias(_)) => Greater,
+                (Decl::ConstAssert(c1), Decl::ConstAssert(c2)) => {
+                    // const_assert have no identifiers, we compare the stringification
+                    c1.to_string().cmp(&c2.to_string())
+                }
+                (Decl::ConstAssert(_), Decl::Function(_)) => Less,
 
-                (Decl::Function(_), Decl::Void) => Ordering::Greater,
-                (Decl::Function(_), Decl::Declaration(_)) => Ordering::Greater,
-                (Decl::Function(_), Decl::Struct(_)) => Ordering::Greater,
-                (Decl::Function(_), Decl::TypeAlias(_)) => Ordering::Greater,
-                (Decl::Function(_), Decl::ConstAssert(_)) => Ordering::Greater,
+                (Decl::Function(_), Decl::Void) => Greater,
+                (Decl::Function(_), Decl::Declaration(_)) => Greater,
+                (Decl::Function(_), Decl::Struct(_)) => Greater,
+                (Decl::Function(_), Decl::TypeAlias(_)) => Greater,
+                (Decl::Function(_), Decl::ConstAssert(_)) => Greater,
                 (Decl::Function(d1), Decl::Function(d2)) => d1.ident.name().cmp(&d2.ident.name()),
             });
     }

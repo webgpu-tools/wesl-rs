@@ -70,6 +70,15 @@ pub fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Import
         }
     }
 
+    println!(
+        "imports for {path}: {}",
+        res.iter()
+            .map(|(ident, item)| format!(
+                "{}::{} as {ident} ({})",
+                item.path, item.ident, item.public
+            ))
+            .format(", ")
+    );
     res
 }
 

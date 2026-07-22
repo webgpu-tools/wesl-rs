@@ -1,0 +1,7 @@
+edition = "2026_pre"
+root = "./shaders"
+include = ["shaders/**/*.wesl", "shaders/**/*.wgsl"]
+exclude = ["**/excluded"]
+
+[dependencies]
+random = { package = "random_wgsl" }

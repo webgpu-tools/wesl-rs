@@ -552,67 +552,74 @@ mod tests {
         ))
     }
 
-    #[test]
-    fn simple() {
-        let test_path = fixtures_dir().join("simple/shaders/main.wgsl");
-
-        let mut result = Compiler::new(CompileOptions {
-            strip: false,
-            lower: false,
-            validate: true,
-            ..Default::default()
-        })
-        .compile(test_path)
-        .unwrap();
-
-        // normalize for comparison
-        result.syntax.sort_decls();
-
-        insta::assert_snapshot!(result.syntax.to_string());
+    // basically an expansion of the `wesl_pkg` macro.
+    mod package_random {
+        use crate::package::{StaticPackage, StaticPackageModule};
+        include!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/compile/package_random.rs"
+        ));
     }
 
     #[test]
-    fn simple_lower() {
+    fn compile_simple() {
         let test_path = fixtures_dir().join("simple/shaders/main.wgsl");
 
-        let mut result = Compiler::new(CompileOptions {
-            strip: false,
-            lower: true,
-            validate: true,
-            ..Default::default()
-        })
-        .compile(test_path)
-        .unwrap();
-
-        // normalize for comparison
-        result.syntax.sort_decls();
+        let mut compiler = Compiler::default();
 
         // "lower" behaves differently when "eval" is enabled.
-        let name = if cfg!(feature = "eval") {
+        let lower_name = if cfg!(feature = "eval") {
             "simple_lower_eval"
         } else {
             "simple_lower"
         };
 
-        insta::assert_snapshot!(name, result.syntax.to_string());
+        compiler.options.lower = false;
+        compiler.options.strip = false;
+        let mut result = compiler.compile(&test_path).unwrap();
+        result.syntax.sort_decls(); // normalize for comparison
+        insta::assert_snapshot!("simple", result.syntax.to_string());
+
+        compiler.options.lower = false;
+        compiler.options.strip = true;
+        let mut result = compiler.compile(&test_path).unwrap();
+        result.syntax.sort_decls(); // normalize for comparison
+        insta::assert_snapshot!("simple_strip", result.syntax.to_string());
+
+        compiler.options.lower = true;
+        compiler.options.strip = false;
+        let mut result = compiler.compile(&test_path).unwrap();
+        result.syntax.sort_decls(); // normalize for comparison
+        insta::assert_snapshot!(lower_name, result.syntax.to_string());
     }
 
     #[test]
-    fn simple_strip() {
-        let test_path = fixtures_dir().join("simple/shaders/main.wgsl");
+    fn compile_toml() {
+        let test_path = fixtures_dir().join("complex/wesl.toml");
 
-        let mut result = Compiler::new(CompileOptions {
-            strip: true,
-            lower: false,
-            validate: true,
+        let features = Features::new();
+
+        let mut constants = Constants::new();
+        constants.add_constant("PI", 3.1415);
+        constants.add_constant("TRUE", true);
+
+        let mut compiler = Compiler::new(CompileOptions {
+            features,
+            constants,
+            dependencies: vec![&package_random::PACKAGE],
             ..Default::default()
-        })
-        .compile(test_path)
-        .unwrap();
+        });
 
-        // normalize for comparison
-        result.syntax.sort_decls();
+        compiler.options.features.add_feature("feat1", true);
+        compiler.options.features.add_feature("feat2", false);
+        let mut result = compiler.compile(&test_path).unwrap();
+        result.syntax.sort_decls(); // normalize for comparison
+        insta::assert_snapshot!("toml_feat1", result.syntax.to_string());
 
-        insta::assert_snapshot!(result.syntax.to_string());
+        compiler.options.features.add_feature("feat1", false);
+        compiler.options.features.add_feature("feat2", true);
+        let mut result = compiler.compile(&test_path).unwrap();
+        result.syntax.sort_decls(); // normalize for comparison
+        insta::assert_snapshot!("toml_feat2", result.syntax.to_string());
     }
 }

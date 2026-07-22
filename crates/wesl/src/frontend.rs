@@ -475,6 +475,27 @@ impl CompilerDriver for CompilationPass<'_> {
         }
     }
 
+    fn module_usage_analysis(
+        &self,
+        module: &Module,
+        already_used: &mut UsedItems,
+        to_analyze: &mut UsedItems,
+    ) -> Result<(), Error> {
+        pass::module_usage_analysis(module, already_used, to_analyze);
+
+        // when strip is disabled, all declarations in the module are included so they
+        // must be usage-analyzed.
+        if !self.options.strip {
+            for decl in &module.syntax.global_declarations {
+                if let Some(ident) = decl.ident() {
+                    self.usage_analysis(module, &ident.name(), already_used, to_analyze)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     fn load_module(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error> {
         let mut module = pass::load_module(path, &self.resolver)?;
 

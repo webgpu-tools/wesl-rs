@@ -401,8 +401,8 @@ pub fn testsuite_case(case: &WgslTestSrc) -> Result<(), libtest_mimic::Failed> {
 
     if let Some(expect_wgsl) = &case.underscore_wgsl {
         let mut expect_wgsl = wgsl_parse::parse_str(expect_wgsl)?;
-        sort_decls(&mut case_wgsl.syntax);
-        sort_decls(&mut expect_wgsl);
+        case_wgsl.syntax.sort_declarations();
+        expect_wgsl.sort_declarations();
         assert_eq!(case_wgsl.to_string(), expect_wgsl.to_string());
     }
 
@@ -470,53 +470,4 @@ pub fn bevy_case(path: PathBuf) -> Result<(), libtest_mimic::Failed> {
     Compiler::new(compile_options)
         .compile_module(base, &ModulePath::new(PathOrigin::Absolute, vec![name]))?;
     Ok(())
-}
-
-fn sort_decls(wgsl: &mut TranslationUnit) {
-    use std::cmp::Ordering;
-    type Decl = GlobalDeclaration;
-    wgsl.global_declarations
-        .sort_unstable_by(|a, b| match (a.node(), b.node()) {
-            (Decl::Void, Decl::Void) => Ordering::Equal,
-            (Decl::Void, Decl::Declaration(_)) => Ordering::Less,
-            (Decl::Void, Decl::Struct(_)) => Ordering::Less,
-            (Decl::Void, Decl::TypeAlias(_)) => Ordering::Less,
-            (Decl::Void, Decl::ConstAssert(_)) => Ordering::Less,
-            (Decl::Void, Decl::Function(_)) => Ordering::Less,
-
-            (Decl::Declaration(_), Decl::Void) => Ordering::Greater,
-            (Decl::Declaration(d1), Decl::Declaration(d2)) => d1.ident.name().cmp(&d2.ident.name()),
-            (Decl::Declaration(_), Decl::Struct(_)) => Ordering::Less,
-            (Decl::Declaration(_), Decl::TypeAlias(_)) => Ordering::Less,
-            (Decl::Declaration(_), Decl::ConstAssert(_)) => Ordering::Less,
-            (Decl::Declaration(_), Decl::Function(_)) => Ordering::Less,
-
-            (Decl::Struct(_), Decl::Void) => Ordering::Greater,
-            (Decl::Struct(_), Decl::Declaration(_)) => Ordering::Greater,
-            (Decl::Struct(d1), Decl::Struct(d2)) => d1.ident.name().cmp(&d2.ident.name()),
-            (Decl::Struct(_), Decl::TypeAlias(_)) => Ordering::Less,
-            (Decl::Struct(_), Decl::ConstAssert(_)) => Ordering::Less,
-            (Decl::Struct(_), Decl::Function(_)) => Ordering::Less,
-
-            (Decl::TypeAlias(_), Decl::Void) => Ordering::Greater,
-            (Decl::TypeAlias(_), Decl::Declaration(_)) => Ordering::Greater,
-            (Decl::TypeAlias(_), Decl::Struct(_)) => Ordering::Greater,
-            (Decl::TypeAlias(d1), Decl::TypeAlias(d2)) => d1.ident.name().cmp(&d2.ident.name()),
-            (Decl::TypeAlias(_), Decl::ConstAssert(_)) => Ordering::Less,
-            (Decl::TypeAlias(_), Decl::Function(_)) => Ordering::Less,
-
-            (Decl::ConstAssert(_), Decl::Void) => Ordering::Greater,
-            (Decl::ConstAssert(_), Decl::Declaration(_)) => Ordering::Greater,
-            (Decl::ConstAssert(_), Decl::Struct(_)) => Ordering::Greater,
-            (Decl::ConstAssert(_), Decl::TypeAlias(_)) => Ordering::Greater,
-            (Decl::ConstAssert(_), Decl::ConstAssert(_)) => Ordering::Equal,
-            (Decl::ConstAssert(_), Decl::Function(_)) => Ordering::Less,
-
-            (Decl::Function(_), Decl::Void) => Ordering::Greater,
-            (Decl::Function(_), Decl::Declaration(_)) => Ordering::Greater,
-            (Decl::Function(_), Decl::Struct(_)) => Ordering::Greater,
-            (Decl::Function(_), Decl::TypeAlias(_)) => Ordering::Greater,
-            (Decl::Function(_), Decl::ConstAssert(_)) => Ordering::Greater,
-            (Decl::Function(d1), Decl::Function(d2)) => d1.ident.name().cmp(&d2.ident.name()),
-        });
 }

@@ -388,7 +388,7 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
 
 /// Retarget used identifiers to point at the corresponding declaration.
 ///
-/// We call this after resolve, because it is mutating the modules, and we want to keep
+/// We call this after usage analysis, because it is mutating the modules, and we want to keep
 /// mutations and lookups separate if possible, to avoid multiple mut borrows.
 ///
 /// # Panics

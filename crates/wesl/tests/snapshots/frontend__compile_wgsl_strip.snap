@@ -1,5 +1,5 @@
 ---
-source: crates/wesl/src/frontend.rs
+source: crates/wesl/tests/frontend.rs
 expression: result.syntax.to_string()
 ---
 diagnostic (error, foo);

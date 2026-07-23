@@ -1,5 +1,5 @@
 ---
-source: crates/wesl/src/frontend.rs
+source: crates/wesl/tests/frontend.rs
 expression: result.syntax.to_string()
 ---
 diagnostic (error, foo);
@@ -10,7 +10,7 @@ requires subgroup_id, buffer_view;
 
 override o1: f32;
 
-override o2: i32 = 0;
+override o2 = 0;
 
 @id(10)
 override o3: u32 = 0;
@@ -21,7 +21,7 @@ var vh1: texture_2d<f32>;
 @group(0) @binding(3)
 var vh2: sampler;
 
-var<private> vp1: i32 = 0;
+var<private> vp1 = 0;
 
 var<private> vp2: u32 = 0;
 
@@ -78,6 +78,10 @@ struct S4 {
     m6: vec4<f32>
 }
 
+const_assert ((1) < (2));
+
+const_assert (1) == 1;
+
 @compute @workgroup_size(1)
 fn comp_main1() {
 
@@ -99,8 +103,10 @@ fn f1() {
 
 @fragment
 fn f10() -> @location(0) vec4<f32> {
-    discard;
-    return vec4(0f, 0f, 0f, 0f);
+    if true {
+        discard;
+    }
+    return vec4<f32>(0.0);
 }
 
 fn f11(p1: ptr<function, u32>) {
@@ -108,12 +114,19 @@ fn f11(p1: ptr<function, u32>) {
 }
 
 fn f12() {
-    var v1: u32 = 0u;
+    var v1 = 0u;
     f11(&v1);
 }
 
 fn f13() {
-
+    var v1 = vec4<f32>(0.0);
+    v1.x = 1.0;
+    v1[0] = 2.0;
+    v1.x += 1.0;
+    var v2 = S3();
+    v2.m1 = 1u;
+    v2.m4.x = 1.0;
+    v2.m5[0] = 1u;
 }
 
 fn f2(p1: u32, p2: f32) {
@@ -125,7 +138,7 @@ fn f3(@builtin(vertex_index) p1: u32, p2: f32) -> u32 {
 }
 
 fn f4() -> @location(0) vec4<f32> {
-    return vec4(0f, 0f, 0f, 0f);
+    return vec4<f32>(0.0);
 }
 
 @must_use
@@ -134,88 +147,90 @@ fn f5() -> u32 {
 }
 
 fn f7() {
-    let e1: i32 = 1;
-    let e2: f32 = 1.0;
-    let e3: bool = true;
-    let e4: i32 = 1;
-    let e5: vec2<f32> = vec2(0f, 0f);
-    let e6: i32 = 3;
-    let e7: vec3<f32> = vec3(1f, 2f, 3f);
-    let e8: vec3<f32> = vec3(1f, 1f, 1f);
-    let e9: mat2x2<f32> = mat2x2(1f, 0f, 0f, 1f);
-    let e10: array<u32, 3> = array(1u, 2u, 3u);
-    let e11: S2 = S2(1u, 2f);
-    let e12: u32 = f3(0u, 0f);
-    let e13: u32 = 1u;
-    let e14: i32 = -1;
-    let e15: bool = false;
-    let e16: u32 = 4294967294u;
-    var e17: i32 = 1;
-    let e18: ptr<function, i32> = &e17;
-    let e19: i32 = *e18;
-    let e20: i32 = 3;
-    let e21: i32 = -1;
-    let e22: i32 = 2;
-    let e23: i32 = 0;
-    let e24: i32 = 1;
-    let e25: u32 = 0u;
-    let e26: u32 = 3u;
-    let e27: u32 = 3u;
-    let e28: u32 = 4u;
-    let e29: u32 = 0u;
-    let e30: bool = true;
-    let e31: bool = false;
-    let e32: bool = true;
-    let e33: bool = false;
-    let e34: bool = false;
-    let e35: bool = true;
-    let e36: bool = false;
-    let e37: bool = true;
-    let e38: i32 = 5;
-    let e39: i32 = -3;
-    let e40: vec4<f32> = vec4(1f, 2f, 3f, 4f);
-    let e41: f32 = e40.x;
-    let e42: vec2<f32> = e40.xy;
-    let e43: vec3<f32> = e40.xyz;
-    let e44: vec4<f32> = e40.xyzw;
-    let e45: f32 = e40.r;
-    let e46: vec4<f32> = e40.rgba;
-    let e47: f32 = e40[0];
-    let e48: f32 = e40.xy[1];
-    let e49: u32 = e11.m1;
-    let e50: f32 = e11.m2;
-    var e51: array<array<u32, 2>, 2> = array(array(1u, 2u), array(3u, 4u));
-    let e52: u32 = e51[0][1];
+    let e1 = 1;
+    let e2 = 1.0;
+    let e3 = true;
+    let e4 = (1);
+    let e5 = vec2<f32>();
+    let e6 = (1 + 2);
+    let e7 = vec3<f32>(1.0, 2.0, 3.0);
+    let e8 = vec3f(1.0);
+    let e9 = mat2x2<f32>(1.0, 0.0, 0.0, 1.0);
+    let e10 = array<u32, 3>(1u, 2u, 3u);
+    let e11 = S2(1u, 2.0);
+    let e12 = f3(0u, 0.0);
+    let e13 = bitcast<u32>(1i);
+    let e14 = -1;
+    let e15 = !true;
+    let e16 = ~1u;
+    var e17 = 1;
+    let e18 = &e17;
+    let e19 = *e18;
+    let e20 = 1 + 2;
+    let e21 = 1 - 2;
+    let e22 = 1 * 2;
+    let e23 = 1 / 2;
+    let e24 = 1 % 2;
+    let e25 = 1u & 2u;
+    let e26 = 1u | 2u;
+    let e27 = 1u ^ 2u;
+    let e28 = 1u << 2u;
+    let e29 = 1u >> 2u;
+    let e30 = 1 < 2;
+    let e31 = 1 > 2;
+    let e32 = 1 <= 2;
+    let e33 = 1 >= 2;
+    let e34 = 1 == 2;
+    let e35 = 1 != 2;
+    let e36 = true && false;
+    let e37 = true || false;
+    let e38 = 1 + 2 * 3 - 4 / 2;
+    let e39 = (1 + 2) * (3 - 4);
+    let e40 = vec4<f32>(1.0, 2.0, 3.0, 4.0);
+    let e41 = e40.x;
+    let e42 = e40.xy;
+    let e43 = e40.xyz;
+    let e44 = e40.xyzw;
+    let e45 = e40.r;
+    let e46 = e40.rgba;
+    let e47 = e40[0];
+    let e48 = e40.xy[1];
+    let e49 = e11.m1;
+    let e50 = e11.m2;
+    var e51 = array<array<u32, 2>, 2>(array<u32, 2>(1u, 2u), array<u32, 2>(3u, 4u));
+    let e52 = e51[0][1];
 }
 
 fn f8() {
-    let s1: i32 = 1;
+    let s1 = 1;
     let s2: u32 = 1u;
-    var s5: i32 = 3;
+    const s3 = 2;
+    const s4: i32 = 2i;
+    var s5 = 3;
     var s6: f32 = 3.0;
     var s7: u32;
     var<function> s8: u32;
-    var<function> s9: u32 = 0u;
-    var s10: i32 = 0;
+    var<function> s9 = 0u;
+    var s10 = 0;
     s10 = 1;
     s10 += 1;
     s10 -= 1;
     s10 *= 2;
     s10 /= 2;
     s10 %= 2;
-    var s11: u32 = 0u;
+    var s11 = 0u;
     s11 &= 1u;
     s11 |= 1u;
     s11 ^= 1u;
     s11 <<= 1u;
     s11 >>= 1u;
     _ = 1;
-    _ = 0u;
-    var s12: i32 = 0;
+    _ = f5();
+    var s12 = 0;
     s12++;
     s12--;
-    var s13: i32 = 0;
-    let s14: ptr<function, i32> = &s13;
+    var s13 = 0;
+    let s14 = &s13;
     *s14 = 5;
     (*s14) = 6;
     if s10 > 0 {
@@ -229,6 +244,10 @@ fn f8() {
     }
     else {
         s10 = 3;
+    }
+    @diagnostic(off, derivative_uniformity)
+    if true {
+    
     }
     switch s10 {
         case 0 {
@@ -246,7 +265,7 @@ fn f8() {
             s10 = 0;
         }
     }
-    var s15: i32 = 0;
+    var s15 = 0;
     loop {
         s15 += 1;
         if s15 > 10 {
@@ -263,7 +282,7 @@ fn f8() {
         }
         continue;
     }
-    for (var s16: i32 = 0; s16 < 10; s16++) {
+    for (var s16 = 0; s16 < 10; s16++) {
         s10 += s16;
     }
     for (; ; ) {
@@ -272,14 +291,22 @@ fn f8() {
     for (s10++; ; s10++) {
     
     }
-    var s17: i32 = 0;
+    for (f1(); false; f1()) {
+    
+    }
+    var s17 = 0;
     while s17 < 10 {
         s17 += 1;
     }
     {
-        let s18: i32 = 1;
-        let s19: i32 = 2;
+        let s18 = 1;
+        {
+            let s19 = 2;
+        }
     }
+    f1();
+    f2(0u, 0.0);
+    const_assert 1 < 2;
 }
 
 fn f9(p1: bool) -> u32 {

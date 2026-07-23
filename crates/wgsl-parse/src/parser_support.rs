@@ -45,9 +45,7 @@ pub(crate) fn apply_components(
                 Component::Named(component) => {
                     Expression::NamedComponent(NamedComponentExpression { base, component })
                 }
-                Component::Index(index) => {
-                    Expression::Indexing(IndexingExpression { base, index })
-                }
+                Component::Index(index) => Expression::Indexing(IndexingExpression { base, index }),
             };
             (expression, base_span.extend(component_span))
         })

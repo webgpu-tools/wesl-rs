@@ -80,9 +80,9 @@ typedef struct WeslCompileOptions {
   bool validate;
   bool sourcemap;
   WeslManglerKind mangler;
-  bool mangle_root;
+  bool mangle_main;
   struct WeslStringArray keep;
-  bool keep_root;
+  bool keep_main;
   struct WeslBoolMap features;
   bool naga;
 } WeslCompileOptions;
@@ -144,7 +144,7 @@ extern "C" {
 /**
  * Free with `wesl_free_result`.
  */
-struct WeslResult wesl_compile(const char *root,
+struct WeslResult wesl_compile(const char *main,
                                const struct WeslCompileOptions *options,
                                const struct WeslResolverOptions *resolver);
 
@@ -153,7 +153,7 @@ struct WeslResult wesl_compile(const char *root,
  *
  * Free with `wesl_free_result`.
  */
-struct WeslResult wesl_eval(const char *root,
+struct WeslResult wesl_eval(const char *main,
                             const char *expression,
                             const struct WeslCompileOptions *options,
                             const struct WeslResolverOptions *resolver);
@@ -163,7 +163,7 @@ struct WeslResult wesl_eval(const char *root,
  *
  * Free with `wesl_free_result`.
  */
-struct WeslResult wesl_eval(const char *_root,
+struct WeslResult wesl_eval(const char *_main,
                             const char *_expression,
                             const struct WeslCompileOptions *_options,
                             const struct WeslResolverOptions *_resolver);
@@ -173,7 +173,7 @@ struct WeslResult wesl_eval(const char *_root,
  *
  * Free with `wesl_free_exec_result`.
  */
-struct WeslExecResult wesl_exec(const char *root,
+struct WeslExecResult wesl_exec(const char *main,
                                 const char *entrypoint,
                                 const struct WeslCompileOptions *options,
                                 const struct WeslBindingArray *resources,
@@ -185,7 +185,7 @@ struct WeslExecResult wesl_exec(const char *root,
  *
  * Free with `wesl_free_exec_result`.
  */
-struct WeslExecResult wesl_exec(const char *_root,
+struct WeslExecResult wesl_exec(const char *_main,
                                 const char *_entrypoint,
                                 const struct WeslCompileOptions *_options,
                                 const struct WeslBindingArray *_resources,

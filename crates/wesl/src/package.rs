@@ -1,3 +1,5 @@
+//! Shader packaging.
+
 use std::{
     collections::HashSet,
     path::{Path, PathBuf},
@@ -5,7 +7,7 @@ use std::{
 
 use crate::{
     error::{Diagnostic, Error, TomlError},
-    pass::{retarget_idents, validate_wesl},
+    pass,
     toml_cfg::{self, WeslToml},
 };
 use wgsl_parse::{
@@ -124,9 +126,9 @@ pub struct PackageModule {
 
 /// The type holding the source code of external packages.
 ///
-/// You typically don't implement this, instead it is generated for you by [`crate::PackageBuilder`].
+/// You typically don't implement this, instead it is generated for you by [`PackageBuilder`].
 /// Crates containing shader packages export `const` instances of this type, which you can
-/// then import and [add to your resolver][StandardResolver::add_package].
+/// then import and [add to your resolver][crate::resolver::StandardResolver::add_package].
 #[derive(Debug, PartialEq, Eq)]
 pub struct StaticPackage {
     pub crate_name: &'static str,
@@ -144,13 +146,14 @@ pub struct StaticPackageModule {
     pub submodules: &'static [&'static StaticPackageModule],
 }
 
+/// Error type for [`PackageBuilder::scan_root`].
 #[derive(Debug, thiserror::Error)]
 pub enum ScanDirectoryError {
-    #[error("Package root was not found: `{0}`")]
+    #[error("Package root directory not found: `{0}`")]
     RootNotFound(PathBuf),
     #[error("Module name `{0}` is reserved")]
     ReservedModName(String),
-    #[error("I/O error while scanning package root: {0}")]
+    #[error("I/O error while scanning package directory: {0}")]
     Io(#[from] std::io::Error),
 }
 
@@ -184,12 +187,11 @@ impl PackageBuilder {
         self
     }
 
-    /// Reads all files to include in the package, starting from the root module.
+    // TODO: semantics have changed: the package root module is now in a special `package.wesl` file relative to the root dir.
+    /// Read all files to include in the package, starting from the package root directory.
     ///
-    /// The input path must point at the root file or folder. The package will include
-    /// all .wesl and .wgsl files reachable from the root module, recursively.
-    /// The name or the root file is ignored, instead the name of the package is used.
-    pub fn scan_root(self, path: impl AsRef<Path>) -> Result<Package, ScanDirectoryError> {
+    /// The package will include all `.wesl` and `.wgsl` files reachable from the package root, recursively.
+    pub fn scan_root(self, pkg_root_dir: impl AsRef<Path>) -> Result<Package, ScanDirectoryError> {
         fn process_path(path: &Path) -> Result<Option<PackageModule>, ScanDirectoryError> {
             let path_with_ext_wesl = path.with_extension("wesl");
             let path_with_ext_wgsl = path.with_extension("wgsl");
@@ -266,10 +268,10 @@ impl PackageBuilder {
             Ok(Some(module))
         }
 
-        let root_path = path.as_ref().to_path_buf();
-        let potential_module = process_path(&root_path)?;
+        let pkg_root_dir = pkg_root_dir.as_ref().to_path_buf();
+        let potential_module = process_path(&pkg_root_dir)?;
         let Some(mut module) = potential_module else {
-            return Err(ScanDirectoryError::RootNotFound(root_path));
+            return Err(ScanDirectoryError::RootNotFound(pkg_root_dir));
         };
         // top level module should be named by package builder and not file path
         module.name = self.name;
@@ -281,6 +283,7 @@ impl PackageBuilder {
         })
     }
 
+    // TODO: semantics have changed: the package root module is now in a special `package.wesl` file relative to the root dir.
     /// Reads a wesl.toml file and builds a package from its configuration.
     ///
     /// The wesl.toml file should be located in the given directory and contain:
@@ -297,8 +300,8 @@ impl PackageBuilder {
     ///     .build_artifact()
     ///     .expect("failed to build artifact");
     /// ```
-    pub fn scan_toml(self, path: impl AsRef<Path>) -> Result<Package, TomlError> {
-        let mut toml_path = path.as_ref().to_path_buf();
+    pub fn scan_toml(self, toml_path: impl AsRef<Path>) -> Result<Package, TomlError> {
+        let mut toml_path = toml_path.as_ref().to_path_buf();
 
         if toml_path.is_dir() {
             toml_path.push("wesl.toml");
@@ -341,8 +344,8 @@ impl PackageModule {
             .source
             .parse()
             .map_err(|e: wgsl_parse::Error| to_diagnostic(e.into()))?;
-        retarget_idents(&mut module);
-        validate_wesl(&module).map_err(|e| to_diagnostic(e.into()))?;
+        pass::retarget_idents(&mut module);
+        pass::validate_wesl(&module).map_err(|e| to_diagnostic(e.into()))?;
         for module in &self.submodules {
             module.validate(path.clone())?;
         }
@@ -351,7 +354,7 @@ impl PackageModule {
 }
 
 impl Package {
-    /// Run validation checks on each of the scanned files.
+    /// Run [validation][pass::validate_wesl] on each of the scanned files.
     pub fn validate(self) -> Result<Self, Error> {
         self.root.validate(ModulePath::new_root())?;
         Ok(self)

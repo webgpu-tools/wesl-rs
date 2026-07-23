@@ -53,7 +53,7 @@ pub struct EvalResult<'a> {
 
 impl EvalResult<'_> {
     // TODO: make context non-mut
-    /// Get the WGSL string representing the evaluated expression.
+    /// Convert the result instance to its in-memory representation.
     pub fn to_buffer(&mut self) -> Option<Vec<u8>> {
         self.inst.to_buffer()
     }
@@ -66,9 +66,9 @@ impl std::fmt::Display for EvalResult<'_> {
 }
 
 impl CompileResult {
-    /// Evaluate a const-expression in the context of this compilation result.
+    /// Evaluate a const-expression in the context of this compilation result (experimental).
     ///
-    /// Highly experimental. Not all builtin WGSL functions are supported yet.
+    /// Not all builtin WGSL functions are supported yet.
     /// Contrary to [`eval_str`], the provided expression can reference declarations
     /// in the compiled WGSL: global const-declarations and user-defined functions with
     /// the `@const` attribute.
@@ -98,7 +98,7 @@ impl CompileResult {
         Ok(res)
     }
 
-    /// Execute an entrypoint in the same way that it would be executed on the GPU.
+    /// Execute an entrypoint in the same way that it would be executed on the GPU (experimental).
     ///
     /// Experimental.
     ///
@@ -134,12 +134,12 @@ impl CompileResult {
     }
 }
 
-/// Evaluate a const-expression.
+/// Evaluate a const-expression from a string (experimental).
 ///
 /// Only builtin function declarations marked `@const` can be called from
 /// const-expressions.
 ///
-/// Experimental. Not all builtin `@const` WGSL functions are supported yet.
+/// Not all builtin `@const` WGSL functions are supported yet.
 pub fn eval_str(expr: &str) -> Result<Instance, Error> {
     let expr = expr
         .parse::<syntax::Expression>()
@@ -155,7 +155,12 @@ pub fn eval_str(expr: &str) -> Result<Instance, Error> {
     })
 }
 
-/// Low-level version of [`eval_str`].
+/// Evaluate a const-expression (experimental).
+///
+/// Only builtin function declarations marked `@const` can be called from
+/// const-expressions.
+///
+/// Not all builtin `@const` WGSL functions are supported yet.
 pub fn eval<'s>(
     expr: &syntax::Expression,
     wgsl: &'s TranslationUnit,
@@ -165,7 +170,7 @@ pub fn eval<'s>(
     (res, ctx)
 }
 
-/// Low-level version of [`CompileResult::exec`].
+/// Execute a shader on the CPU (experimental).
 pub fn exec<'s>(
     expr: &impl Eval,
     wgsl: &'s TranslationUnit,

@@ -68,7 +68,7 @@ impl From<Feature> for wesl::Feature {
 pub struct CompileOptions {
     #[tsify(type = "{ [name: string]: string }")]
     pub files: HashMap<String, String>,
-    pub root: String,
+    pub main: String,
     #[serde(default)]
     pub mangler: ManglerKind,
     pub sourcemap: bool,
@@ -82,8 +82,8 @@ pub struct CompileOptions {
     pub lazy: bool,
     #[serde(default)]
     pub keep: Option<Vec<String>>,
-    pub keep_root: bool,
-    pub mangle_root: bool,
+    pub keep_main: bool,
+    pub mangle_main: bool,
     #[tsify(type = "{ [name: string]: Feature }")]
     pub features: HashMap<String, Feature>,
     #[serde(default)]
@@ -195,8 +195,8 @@ pub struct Error {
 
 fn run_compile(args: CompileOptions) -> Result<CompileResult, wesl::Error> {
     let mut resolver = VirtualResolver::new();
-    let root = args.root.parse().map_err(|e| {
-        wesl::Error::Custom(format!("`{}` is not a valid module path: {e}", args.root))
+    let main_module_path = args.main.parse().map_err(|e| {
+        wesl::Error::Custom(format!("`{}` is not a valid module path: {e}", args.main))
     })?;
 
     for (path, source) in args.files {
@@ -215,9 +215,9 @@ fn run_compile(args: CompileOptions) -> Result<CompileResult, wesl::Error> {
         validate: args.validate,
         sourcemap: args.sourcemap,
         mangler: args.mangler.into(),
-        mangle_root: args.mangle_root,
+        mangle_main: args.mangle_main,
         keep: args.keep,
-        keep_root: args.keep_root,
+        keep_main: args.keep_main,
         features: wesl::Features {
             default: args.features_default.into(),
             flags: args
@@ -229,8 +229,8 @@ fn run_compile(args: CompileOptions) -> Result<CompileResult, wesl::Error> {
         constants: Default::default(),    // TODO
         dependencies: Default::default(), // TODO
     })
-    .set_resolver(resolver)
-    .compile_module(&root)?;
+    .with_resolver(resolver)
+    .compile_module(&main_module_path)?;
     Ok(comp)
 }
 

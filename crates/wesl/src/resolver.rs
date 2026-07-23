@@ -1,3 +1,5 @@
+//! [`Resolver`] trait and implementations.
+
 use crate::{
     error::{Error, ResolveError},
     package::StaticPackage,
@@ -90,14 +92,14 @@ impl Resolver for NoResolver {
 ///
 /// It simply translates module paths to file paths. This is the intended behavior.
 pub struct FileResolver {
-    base: PathBuf,
+    pkg_root_dir: PathBuf,
     extension: &'static str,
 }
 
 impl Default for FileResolver {
     fn default() -> Self {
         Self {
-            base: "./shaders".into(),
+            pkg_root_dir: "./shaders".into(),
             extension: "wesl",
         }
     }
@@ -106,17 +108,17 @@ impl Default for FileResolver {
 impl FileResolver {
     /// Create a new resolver.
     ///
-    /// `base` is the root directory which absolute paths refer to.
-    pub fn new(base: impl AsRef<Path>) -> Self {
+    /// `pkg_root_dir` is the package root directory which `package::` paths refer to.
+    pub fn new(pkg_root_dir: impl AsRef<Path>) -> Self {
         Self {
-            base: base.as_ref().to_path_buf(),
+            pkg_root_dir: pkg_root_dir.as_ref().to_path_buf(),
             extension: "wesl",
         }
     }
 
-    /// Set the root directory which absolute paths refer to.
-    pub fn set_base(&mut self, base: impl AsRef<Path>) {
-        self.base = base.as_ref().to_path_buf();
+    /// Set the the package root directory which `package::` paths refer to.
+    pub fn set_root(&mut self, pkg_root_dir: impl AsRef<Path>) {
+        self.pkg_root_dir = pkg_root_dir.as_ref().to_path_buf();
     }
 
     /// Look for files that ends with a different extension. Default: "wesl".
@@ -132,7 +134,7 @@ impl FileResolver {
                     .to_string(),
             ));
         }
-        let mut fs_path = self.base.to_path_buf();
+        let mut fs_path = self.pkg_root_dir.to_path_buf();
         fs_path.extend(&path.components);
         fs_path.set_extension(self.extension);
         if fs_path.exists() {
@@ -401,7 +403,7 @@ impl Resolver for PackageResolver {
 ///
 /// The type is specified by the variant of [`LiteralInstance`].
 /// The most flexible instance type is `AbstractFloat`, since it can be implicitly converted to all scalar types.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Constants {
     constants: HashMap<String, LiteralInstance>,
 }
@@ -442,11 +444,11 @@ pub struct StandardResolver {
 impl StandardResolver {
     /// Create a new resolver.
     ///
-    /// `base` is the root directory which absolute paths refer to.
-    pub fn new(base: impl AsRef<Path>) -> Self {
+    /// `pkg_root_dir` is the package root directory which `package::` paths refer to.
+    pub fn new(pkg_root_dir: impl AsRef<Path>) -> Self {
         Self {
             pkg: PackageResolver::new(),
-            files: FileResolver::new(base),
+            files: FileResolver::new(pkg_root_dir),
             constants: Constants::new(),
         }
     }
@@ -645,8 +647,8 @@ mod test {
 
         // resolve the package path with the origin `constants`,
         // the source of which should be the same as the generated module
-        let src_root = sr.resolve_source(&"constants".parse().unwrap()).unwrap();
-        assert_eq!(src_root, generated);
+        let constants_src = sr.resolve_source(&"constants".parse().unwrap()).unwrap();
+        assert_eq!(constants_src, generated);
 
         // resolving a path with components should return the same
         let src_comp = sr

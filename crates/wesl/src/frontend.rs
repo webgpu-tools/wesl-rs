@@ -11,22 +11,23 @@ use crate::{
     mangler::{self, Mangler},
     package::StaticPackage,
     pass::{self, CompilerDriver, Features, Module, UsedItems},
-    resolver::{AsyncResolver, Constants, Resolver, StandardResolver},
+    resolver::{Constants, Resolver, StandardResolver},
     sourcemap::{BasicSourceMap, SourceMapper},
 };
 
-/// Compilation options. Used in [`compile`] and [`Wesl::set_options`].
-#[derive(Clone, Debug)]
+/// Compilation options used by [`Compiler`].
+#[derive(Clone, Debug, PartialEq)]
 pub struct CompileOptions {
     /// Toggle [WESL Imports](https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/Imports.md).
     ///
     /// If disabled:
-    /// * The compiler will silently remove the import statements and inline paths.
+    ///
+    /// * The compiler will silently remove all import statements and inline paths.
     /// * Validation will not trigger an error if referencing an imported item.
     pub imports: bool,
     /// Toggle [WESL Conditional Translation](https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/ConditionalTranslation.md).
     ///
-    /// See `features` to enable/disable each feature flag.
+    /// See [`Self::features`] to enable/disable each feature flag.
     pub condcomp: bool,
     /// Toggle generics. Generics are super experimental, don't expect anything from it.
     ///
@@ -35,8 +36,8 @@ pub struct CompileOptions {
     /// Enable stripping (aka. Dead Code Elimination).
     ///
     /// By default, all declarations reachable by entrypoint functions, const_asserts and
-    /// pipeline-overridable constants are kept. See [`Self::keep`] and
-    /// [`Self::keep_root`] to control what gets stripped.
+    /// pipeline-overridable constants in the main module are kept.
+    /// See [`Self::keep`] and [`Self::keep_main`] to control what gets stripped.
     ///
     /// Stripping can have side-effects: modules are loaded only if statically accessed,
     /// and `const_assert` statements are not always preserved.
@@ -44,11 +45,12 @@ pub struct CompileOptions {
     pub strip: bool,
     /// Enable lowering/polyfills. This transforms the output code in various ways.
     ///
-    /// See [`lower`].
+    /// See [`pass::lower`] for the list of transforms.
     pub lower: bool,
-    /// Enable validation of individual WESL modules and the final output.
+    /// Enable validation of individual WESL modules and of the final output.
+    ///
     /// This will catch *some* errors, not all.
-    /// See [`validate_wesl`] and [`validate_wgsl`].
+    /// See [`pass::validate_wesl`] and [`pass::validate_wgsl`] for the list of validations.
     ///
     /// Requires the `eval` crate feature flag.
     pub validate: bool,
@@ -56,29 +58,26 @@ pub struct CompileOptions {
     pub sourcemap: bool,
     /// Declaration name mangling scheme.
     pub mangler: ManglerKind,
-    /// Enable mangling of declarations in the root module.
+    /// Enable mangling of declarations in the main module.
     ///
-    /// By default, WESL does not mangle root module declarations.
-    pub mangle_root: bool,
-    /// If `Some`, specify a list of root module declarations to keep. If `None`, only the
-    /// entrypoint functions (and their dependencies) are kept.
+    /// By default, WESL does not mangle main module declarations.
+    pub mangle_main: bool,
+    /// If `Some`, specify a list of main module declarations to keep.
+    /// If `None`, only the entrypoint functions (and their dependencies) are kept.
     ///
-    /// This option has no effect if [`Self::keep_root`] is enabled or  [`Self::strip`] is
+    /// This option has no effect if [`Self::keep_main`] is enabled or  [`Self::strip`] is
     /// disabled.
     pub keep: Option<Vec<String>>,
-    /// If `true`, all root module declarations are preserved when stripping is enabled.
+    /// If `true`, all main module declarations are preserved when stripping is enabled.
     ///
     /// This option takes precedence over [`Self::keep`], and has no effect if
     /// [`Self::strip`] is disabled.
-    pub keep_root: bool,
-    /// [WESL Conditional Translation](https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/ConditionalTranslation.md)
-    /// Conditional translation feature flags.
-    ///
-    /// Conditional translation can be incremental. If not all feature flags are handled,
-    /// the output will contain unevaluated `@if` attributes and will therefore *not* be
-    /// valid WGSL.
+    pub keep_main: bool,
+    /// Conditional Translation feature flags.
     ///
     /// This option has no effect if [`Self::condcomp`] is disabled.
+    ///
+    /// See [`Features`].
     pub features: Features,
     /// Literal constants in the `constants` virtual module.
     ///
@@ -88,7 +87,7 @@ pub struct CompileOptions {
     pub dependencies: Vec<&'static StaticPackage>,
 }
 
-/// Declaration name mangling scheme. Used in [`Wesl::set_mangler`].
+/// Declaration name mangling scheme. Used in [`CompileOptions::mangler`].
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ManglerKind {
     /// Escaped path mangler.
@@ -127,9 +126,9 @@ impl Default for CompileOptions {
             validate: true,
             sourcemap: true,
             mangler: Default::default(),
-            mangle_root: false,
+            mangle_main: false,
             keep: Default::default(),
-            keep_root: false,
+            keep_main: false,
             features: Default::default(),
             constants: Default::default(),
             dependencies: Default::default(),
@@ -150,8 +149,8 @@ impl Default for CompileOptions {
 /// # let mut resolver = VirtualResolver::new();
 /// # let shader_string = "fn my_fn() {\n\n}\n";
 /// # resolver.add_module("package::path::to::shader".parse().unwrap(), shader_string.into());
-/// # let mut compiler = compiler.set_resolver(resolver);
-/// # compiler.options.keep_root = true; // prevent dead code elimination
+/// # let mut compiler = compiler.with_resolver(resolver);
+/// # compiler.options.keep_main = true; // prevent dead code elimination
 /// #
 /// let wgsl_string = compiler
 ///     .compile("path/to/shader.wgsl")
@@ -177,7 +176,8 @@ impl Default for Compiler<()> {
 }
 
 impl<R1> Compiler<R1> {
-    pub fn set_resolver<R2>(self, resolver: R2) -> Compiler<R2> {
+    /// Set the compilation [`crate::Resolver`] or [`crate::AsyncResolver`].
+    pub fn with_resolver<R2>(self, resolver: R2) -> Compiler<R2> {
         Compiler::<R2> {
             options: self.options,
             resolver,
@@ -186,12 +186,16 @@ impl<R1> Compiler<R1> {
 }
 
 impl<R> Compiler<R> {
+    /// Shorthand for `Compiler::new(options).with_resolver(resolver)`.
     pub fn new_with_resolver(options: CompileOptions, resolver: R) -> Self {
         Self { options, resolver }
     }
 }
 
 impl Compiler<()> {
+    /// Create a new compiler.
+    ///
+    /// By default, the compiler will use a [`StandardResolver`] when compiling.
     pub fn new(options: CompileOptions) -> Self {
         let resolver = ();
         Self { options, resolver }
@@ -199,17 +203,22 @@ impl Compiler<()> {
 }
 
 impl Compiler<()> {
+    // TODO: implement and validate semantics described here.
     /// Compile a WESL shader to WGSL.
     ///
-    /// `path` defines where to look for shader files. It can be either:
-    /// * The path to a `wesl.toml` file, or a directory containing a `wesl.toml` file.
-    ///   => The compiler follows wesl-toml semantics, refer its spec.
-    /// * The path to a `.wesl` file.
-    ///   => This file is the root module. Submodules are in an adjacent directory with the same name (extension stripped).
-    /// * The path to a directory.
-    ///   => An optional `package.wesl` file in the directory serves as the root module. Other `.wesl` files and subdirectories are submodules.
+    /// `path` defines where to look for shader files.
+    /// It can point to a `wesl.toml` file, a shader file or a directory.
     ///
-    /// Note: `.wgsl` extensions are also supported.
+    /// The main module is the root module if `path` points to a toml file or a directory.
+    /// Otherwise, it is the file that `path` points to.
+    ///
+    /// | Path         | Pkg root dir         | Main module                |
+    /// | ------------ | -------------------- | -------------------------- |
+    /// | `wesl.toml`  | `toml.root`          | `package.wesl` in root dir |
+    /// | directory    | this directory       | `package.wesl` in root dir |
+    /// | `.wesl` file | parent dir this file | this file                  |
+    ///
+    /// Note: `.wgsl` extensions are also supported, but `.wesl` takes priority.
     pub fn compile(&self, path: impl AsRef<Path>) -> Result<CompileResult, Error> {
         let path = path.as_ref();
 
@@ -272,23 +281,33 @@ impl Compiler<()> {
 }
 
 impl<R: Resolver> Compiler<R> {
+    // TODO: implement and validate semantics described here.
     /// Compile a WESL shader to WGSL.
     ///
-    /// `path` defines where to look for shader files. It can be either:
-    /// * The path to a `wesl.toml` file, or a directory containing a `wesl.toml` file.
-    ///   => The compiler follows wesl-toml semantics, refer its spec.
-    /// * The path to a `.wesl` file.
-    ///   => This file is the root module. Submodules are in an adjacent directory with the same name (extension stripped).
-    /// * The path to a directory.
-    ///   => An optional `package.wesl` file in the directory serves as the root module. Other `.wesl` files and subdirectories are submodules.
+    /// `path` defines where to look for shader files.
+    /// It can point to a `wesl.toml` file, a shader file or a directory.
     ///
-    /// Note: `.wgsl` extensions are also supported.
+    /// The main module is the root module if `path` points to a toml file or a directory.
+    /// Otherwise, it is the file that `path` points to.
+    ///
+    /// | Path         | Pkg root dir         | Main module                |
+    /// | ------------ | -------------------- | -------------------------- |
+    /// | `wesl.toml`  | `toml.root`          | `package.wesl` in root dir |
+    /// | directory    | this directory       | `package.wesl` in root dir |
+    /// | `.wesl` file | parent dir this file | this file                  |
+    ///
+    /// Note: `.wgsl` extensions are also supported, but `.wesl` takes priority.
     ///
     /// # Warning
     ///
     /// This function works best with filesystem resolvers which implement [`Resolver::fs_path`].
     /// With `fs_path` implemented, the function makes the input file path relative to the package's root directory.
-    /// Otherwise, it converts the file path to a module path straight away, which may panic (see [`ModulePath::from_path`]).
+    /// Otherwise, assumes that the package root directory is the current working directory.
+    ///
+    /// # Panics
+    ///
+    /// Can panic if  [`ModulePath::from_path`] fails.
+    // TODO: we don't want that panic.
     pub fn compile(&self, path: impl AsRef<Path>) -> Result<CompileResult, Error> {
         let path = path.as_ref();
 
@@ -306,19 +325,22 @@ impl<R: Resolver> Compiler<R> {
             Path::new(".").join(path)
         };
 
-        let mut root_module_path = ModulePath::from_path(relative_path);
+        let mut main_path = ModulePath::from_path(relative_path);
         // we force the origin to be absolute if it was relative.
-        root_module_path.origin = PathOrigin::Absolute;
+        main_path.origin = PathOrigin::Absolute;
 
-        self.compile_module(&root_module_path)
+        self.compile_module(&main_path)
     }
 
     /// Compile a WESL shader to WGSL.
-    pub fn compile_module(&self, root_module_path: &ModulePath) -> Result<CompileResult, Error> {
+    ///
+    /// `main_path` is the main module path, which exposes entry points, bindings and overrrides.
+    ///
+    /// The package root directory depends on the [`Resolver`] implementation.
+    pub fn compile_module(&self, main_path: &ModulePath) -> Result<CompileResult, Error> {
         let mangler = Box::<dyn Mangler>::from(self.options.mangler);
 
-        let mut pass =
-            CompilationPass::new(root_module_path, &self.options, &self.resolver, &mangler);
+        let mut pass = CompilationPass::new(main_path, &self.options, &self.resolver, &mangler);
         let res = CompilerDriver::compile(&mut pass)?;
 
         Ok(CompileResult {
@@ -329,14 +351,22 @@ impl<R: Resolver> Compiler<R> {
     }
 }
 
+/// Result of [`Compiler::compile`].
+///
+/// This type contains the resulting WGSL syntax tree, the sourcemap (if enabled),
+/// and the list of used modules/declarations.
+///
+/// It implements [`std::fmt::Display`], call `to_string()` to get the compiled WGSL.
 #[derive(Default, Clone)]
 pub struct CompileResult {
+    /// The syntax tree of the resulting
     pub syntax: TranslationUnit,
     pub sourcemap: Option<BasicSourceMap>,
     pub used_items: UsedItems,
 }
 
 impl CompileResult {
+    /// Write the compiled result to a file.
     pub fn write_to_file(&self, path: impl AsRef<Path>) -> std::io::Result<()> {
         std::fs::write(path, self.to_string())
     }
@@ -375,7 +405,7 @@ impl CompileResult {
     /// Write the result in rust's `OUT_DIR`.
     ///
     /// This function is meant to be used in a `build.rs` workflow. The output WGSL will
-    /// be accessed with the [`include_wesl`] macro. See the crate documentation for a
+    /// be accessed with the [`crate::include_wesl`] macro. See the crate documentation for a
     /// usage example.
     ///
     /// # Panics
@@ -401,26 +431,23 @@ impl std::fmt::Display for CompileResult {
     }
 }
 
-pub struct CompilationPass<'a> {
-    root_path: &'a ModulePath,
+/// Ephemeral type that implements [`CompilerDriver`] for a single compilation pass in [`Compiler::compile`]
+struct CompilationPass<'a> {
+    main_path: &'a ModulePath,
     options: &'a CompileOptions,
     resolver: &'a dyn Resolver,
     mangler: &'a dyn Mangler,
 }
 
-// pub struct AsyncCompilationPass<'a> {
-//     async_resolver: &'a dyn AsyncResolver,
-// }
-
 impl<'a> CompilationPass<'a> {
     fn new(
-        root_path: &'a ModulePath,
+        main_path: &'a ModulePath,
         options: &'a CompileOptions,
         resolver: &'a dyn Resolver,
         mangler: &'a dyn Mangler,
     ) -> Self {
         Self {
-            root_path,
+            main_path,
             options,
             resolver,
             mangler,
@@ -428,32 +455,15 @@ impl<'a> CompilationPass<'a> {
     }
 }
 
-pub async fn load_module_async(
-    path: &ModulePath,
-    resolver: &impl AsyncResolver,
-) -> Result<TranslationUnit, Error> {
-    let source = resolver.resolve_source_async(path).await?;
-
-    let mut module: TranslationUnit = source.parse().map_err(|e| {
-        Diagnostic::from(e)
-            .with_module_path(path.clone(), resolver.display_name(path))
-            .with_source(source.to_string())
-    })?;
-
-    pass::retarget_idents(&mut module);
-
-    Ok(module)
-}
-
 impl CompilerDriver for CompilationPass<'_> {
-    fn root_path(&self) -> &ModulePath {
-        &self.root_path
+    fn main_path(&self) -> &ModulePath {
+        &self.main_path
     }
 
-    fn root_entry_points(&self, root_module: &TranslationUnit) -> Result<HashSet<Ident>, Error> {
-        // keep all declarations when strip is disabled or keep_root is enabled.
-        if !self.options.strip || self.options.keep_root {
-            Ok(root_module
+    fn main_entry_points(&self, main_module: &TranslationUnit) -> Result<HashSet<Ident>, Error> {
+        // keep all declarations when strip is disabled or keep_main is enabled.
+        if !self.options.strip || self.options.keep_main {
+            Ok(main_module
                 .global_declarations
                 .iter()
                 .filter_map(|decl| decl.ident())
@@ -463,15 +473,15 @@ impl CompilerDriver for CompilationPass<'_> {
         else if let Some(keep) = &self.options.keep {
             keep.iter()
                 .map(|name| {
-                    root_module.decl_ident(name).ok_or_else(|| {
-                        ImportError::MissingDecl(self.root_path.clone(), name.to_string()).into()
+                    main_module.decl_ident(name).ok_or_else(|| {
+                        ImportError::MissingDecl(self.main_path.clone(), name.to_string()).into()
                     })
                 })
                 .collect::<Result<HashSet<Ident>, Error>>()
         }
         // otherwise, we keep the WGSL entry points. this is the default.
         else {
-            Ok(root_module.entry_points().collect())
+            Ok(main_module.entry_points().collect())
         }
     }
 
@@ -520,7 +530,7 @@ impl CompilerDriver for CompilationPass<'_> {
         pass::retarget_modules(modules, used_items);
 
         for module in modules.iter_mut() {
-            if !self.options.mangle_root && module.path == *self.root_path {
+            if !self.options.mangle_main && module.path == *self.main_path {
                 continue;
             }
             pass::mangle(&mut module.syntax, &module.path, &self.mangler);
@@ -540,7 +550,7 @@ impl CompilerDriver for CompilationPass<'_> {
     }
 }
 
-// impl pipeline::AsyncCompilerDriver for CompilationPass<'_> {
+// impl AsyncCompilerDriver for CompilationPass<'_> {
 //     async fn load_module_async(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error> {
 //         let mut module = pipeline::load_module_async(path, &self.resolver).await?;
 

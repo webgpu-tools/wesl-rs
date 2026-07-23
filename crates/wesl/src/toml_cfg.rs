@@ -1,4 +1,4 @@
-//! wesl.toml configuration parsing and file scanning.
+//! `wesl.toml` configuration parsing and file scanning.
 //!
 //! This module handles reading wesl.toml configuration files and building
 //! module hierarchies from glob patterns.
@@ -65,7 +65,7 @@ pub struct PackageConfig {
     // TODO: auto-detect is not implemented, it just defaults to cargo.
     #[serde(default)]
     pub package_manager: PackageManager,
-    /// Root folder for package:: syntax. Default: "./shaders/"
+    /// Package root directory for package:: syntax. Default: "./shaders/"
     #[serde(default = "default_root")]
     pub root: PathBuf,
     /// Glob patterns for files to include. Default: all .wesl/.wgsl in root.
@@ -102,7 +102,7 @@ fn default_exclude() -> Vec<String> {
     vec!["**/node_modules/".to_string()]
 }
 
-/// The [dependencies] section of wesl.toml.
+/// The `[dependencies]` section of wesl.toml.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(
     untagged,
@@ -228,7 +228,7 @@ impl std::fmt::Display for ScanWarning {
 /// Result of scanning files, including any non-fatal warnings.
 #[derive(Debug)]
 pub struct ScanResult {
-    /// The root module containing the scanned file hierarchy.
+    /// The package root module containing the scanned file hierarchy.
     pub module: PackageModule,
     /// Warnings encountered during scanning.
     pub warnings: Vec<ScanWarning>,
@@ -251,22 +251,22 @@ impl WeslToml {
 ///
 /// This is the main entry point called by `PackageBuilder::scan_toml`.
 pub fn scan_from_config(
-    name: &str,
-    base_dir: &Path,
+    pkg_name: &str,
+    toml_dir: &Path,
     config: &WeslToml,
 ) -> Result<ScanResult, TomlError> {
-    let root_path = std::path::absolute(base_dir.join(&config.package.root))?;
+    let pkg_root_path = std::path::absolute(toml_dir.join(&config.package.root))?;
 
     let include = compile_patterns(&config.package.include)?;
     let exclude = compile_patterns(&config.package.exclude)?;
 
-    let matched_files = walk_directory(base_dir, &root_path, &include, &exclude)?;
+    let matched_files = walk_directory(toml_dir, &pkg_root_path, &include, &exclude)?;
 
     if matched_files.is_empty() {
         return Err(TomlError::NoFilesMatched);
     }
 
-    let (module, warnings) = build_module_hierarchy(name, &matched_files, &root_path)?;
+    let (module, warnings) = build_module_hierarchy(pkg_name, &matched_files, &pkg_root_path)?;
     Ok(ScanResult { module, warnings })
 }
 
@@ -281,18 +281,18 @@ fn compile_patterns(patterns: &[String]) -> Result<Vec<glob::Pattern>, TomlError
         .collect()
 }
 
-/// Walk `root_dir` recursively, collecting files that match any include pattern
+/// Walk `pkg_root_dir` recursively, collecting files that match any include pattern
 /// and no exclude pattern. Patterns are matched against paths relative to
-/// `base_dir` (the directory containing wesl.toml). Directories containing
+/// `toml_dir` (the directory containing wesl.toml). Directories containing
 /// their own `wesl.toml` are treated as separate packages and skipped entirely.
 fn walk_directory(
-    base_dir: &Path,
-    root_dir: &Path,
+    toml_dir: &Path,
+    pkg_root_dir: &Path,
     include: &[glob::Pattern],
     exclude: &[glob::Pattern],
 ) -> Result<HashSet<PathBuf>, TomlError> {
     let mut files = HashSet::new();
-    let mut stack = vec![root_dir.to_path_buf()];
+    let mut stack = vec![pkg_root_dir.to_path_buf()];
 
     while let Some(dir) = stack.pop() {
         let entries = match std::fs::read_dir(&dir) {
@@ -302,12 +302,12 @@ fn walk_directory(
 
         for entry in entries {
             let path = entry?.path();
-            let rel = path.strip_prefix(base_dir).unwrap_or(&path);
+            let rel = path.strip_prefix(toml_dir).unwrap_or(&path);
 
             if glob_match(exclude, rel) {
                 // skip excluded paths
             } else if path.is_dir() {
-                let is_nested_pkg = path != root_dir && path.join("wesl.toml").is_file();
+                let is_nested_pkg = path != toml_dir && path.join("wesl.toml").is_file();
                 if !is_nested_pkg {
                     stack.push(path);
                 }
@@ -337,12 +337,12 @@ struct FileEntry {
 
 /// Build a Module hierarchy from a flat list of files.
 fn build_module_hierarchy(
-    root_name: &str,
+    pkg_name: &str,
     files: &HashSet<PathBuf>,
-    root_path: &Path,
+    pkg_root_path: &Path,
 ) -> Result<(PackageModule, Vec<ScanWarning>), TomlError> {
-    let (entries, warnings) = derive_module_paths(files, root_path)?;
-    let module = build_module_tree(root_name, entries)?;
+    let (entries, warnings) = derive_module_paths(files, pkg_root_path)?;
+    let module = build_module_tree(pkg_name, entries)?;
     Ok((module, warnings))
 }
 
@@ -381,17 +381,17 @@ fn validate_components(components: &[String], file_path: &Path) -> Option<ScanWa
     None
 }
 
-/// Derive module path components from file paths by stripping the root prefix.
+/// Derive module path components from file paths by stripping the package root prefix.
 fn derive_module_paths(
     files: &HashSet<PathBuf>,
-    root_path: &Path,
+    pkg_root_dir: &Path,
 ) -> Result<(Vec<FileEntry>, Vec<ScanWarning>), TomlError> {
     let mut entries = Vec::new();
     let mut warnings = Vec::new();
     for file_path in files {
-        let relative = file_path
-            .strip_prefix(root_path)
-            .map_err(|_| TomlError::FileOutsideRoot(file_path.clone(), root_path.to_path_buf()))?;
+        let relative = file_path.strip_prefix(pkg_root_dir).map_err(|_| {
+            TomlError::FileOutsideRoot(file_path.clone(), pkg_root_dir.to_path_buf())
+        })?;
 
         let components = path_to_components(relative);
 
@@ -445,7 +445,7 @@ impl ModuleNode {
 }
 
 /// Build a tree of Modules from flat file entries.
-fn build_module_tree(root_name: &str, entries: Vec<FileEntry>) -> Result<PackageModule, TomlError> {
+fn build_module_tree(pkg_name: &str, entries: Vec<FileEntry>) -> Result<PackageModule, TomlError> {
     let mut root = ModuleNode::new();
 
     for entry in entries {
@@ -480,7 +480,7 @@ fn build_module_tree(root_name: &str, entries: Vec<FileEntry>) -> Result<Package
         node.source = std::fs::read_to_string(&entry.path).map_err(TomlError::Io)?;
     }
 
-    Ok(root.into_module(root_name.to_string()))
+    Ok(root.into_module(pkg_name.to_string()))
 }
 
 #[cfg(test)]

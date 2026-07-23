@@ -9,8 +9,8 @@ use crate::{
     resolver::{AsyncResolver, Resolver},
 };
 
-pub fn root_entry_points(root_module: &TranslationUnit) -> HashSet<Ident> {
-    root_module.entry_points().collect()
+pub fn main_entry_points(main_module: &TranslationUnit) -> HashSet<Ident> {
+    main_module.entry_points().collect()
 }
 
 /// Note: it does not call [`pass::retarget_idents`], because that must be done right after [`pass::condcomp`].
@@ -45,16 +45,16 @@ pub async fn load_module_async(
 
 /// Default implementation of [`CompilerDriver::compile`]
 pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error> {
-    let root_path = driver.root_path().clone();
-    let root_module = driver.load_module(&root_path)?;
-    let root_entrypoints = driver.root_entry_points(&root_module)?;
+    let main_path = driver.main_path().clone();
+    let main_module = driver.load_module(&main_path)?;
+    let main_entrypoints = driver.main_entry_points(&main_module)?;
 
     let mut modules = Vec::new();
-    modules.push(Module::new(root_path.clone(), root_module));
+    modules.push(Module::new(main_path.clone(), main_module));
 
     let mut used_items = UsedItems::new();
     let mut to_analyze = UsedItems::new();
-    to_analyze.insert_module(root_path, root_entrypoints);
+    to_analyze.insert_module(main_path, main_entrypoints);
 
     loop {
         let mut next_to_analyze = UsedItems::new();
@@ -97,17 +97,17 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
 }
 
 pub async fn compile_async(driver: &mut impl AsyncCompilerDriver) -> Result<CompileResult, Error> {
-    let root_path = driver.root_path().clone();
-    let root_module = driver.load_module(&root_path)?;
-    let root_entrypoints = driver.root_entry_points(&root_module)?;
+    let main_path = driver.main_path().clone();
+    let main_module = driver.load_module(&main_path)?;
+    let main_entrypoints = driver.main_entry_points(&main_module)?;
 
     let mut modules = Vec::new();
-    modules.push(Module::new(root_path.clone(), root_module));
+    modules.push(Module::new(main_path.clone(), main_module));
 
     let mut newly_used = UsedItems::new();
     let mut already_used = UsedItems::new();
 
-    newly_used.insert_module(root_path, root_entrypoints);
+    newly_used.insert_module(main_path, main_entrypoints);
 
     while !newly_used.is_empty() {
         let mut next_newly_used = UsedItems::new();

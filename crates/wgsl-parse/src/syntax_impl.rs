@@ -681,6 +681,7 @@ macro_rules! impl_attrs_struct {
     };
 }
 
+#[allow(unused)]
 macro_rules! impl_attrs_enum {
     ($($variant: path),* $(,)?) => {
         fn attributes(&self) -> &[AttributeNode] {

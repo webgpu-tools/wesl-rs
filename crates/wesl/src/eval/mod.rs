@@ -1,3 +1,5 @@
+//! Typechecking, Evaluation and Validation.
+
 mod attrs;
 mod constant;
 mod error;

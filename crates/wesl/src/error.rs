@@ -1,3 +1,5 @@
+//! [`enum@Error`] types.
+
 use std::{fmt::Display, path::PathBuf};
 
 use thiserror::Error;
@@ -9,8 +11,6 @@ use wgsl_parse::{
 #[cfg(feature = "eval")]
 use crate::eval::EvalError;
 use crate::{Mangler, sourcemap::SourceMap};
-
-// use crate::{Mangler, ResolveError, SourceMap, ValidateError};
 
 /// Conditional translation error.
 #[derive(Debug, Error)]
@@ -315,14 +315,15 @@ impl<E: std::error::Error> Diagnostic<E> {
     }
 }
 
-// TODO: this is no longer used, but should
 impl Diagnostic<Error> {
-    /// XXX: this function has issues when the root module identifiers are not mangled.
+    /// XXX: this function has issues when the main module identifiers are not mangled.
     /// unmangle any mangled identifiers in the error.
     ///
     /// The mangled must be the same used for compiling the WGSL source. It must have
-    /// unmangling capabilities. If not, you might want to use a [`crate::SourceMapper`].
-    pub fn unmangle(
+    /// unmangling capabilities. If not, you might want to use a [`crate::sourcemap::SourceMapper`].
+    // TODO: this is no longer used, but should
+    #[allow(dead_code, reason = "TODO this should be re-added")]
+    fn unmangle(
         mut self,
         sourcemap: Option<&impl SourceMap>,
         mangler: Option<&impl Mangler>,

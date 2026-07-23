@@ -18,8 +18,8 @@ pub struct CompileResult {
 ///
 /// The steps, default-implemented in [`Self::compile`], are:
 ///
-/// 1. Load the root module.
-/// 2. Get the list declarations in the root module serving as entry points;
+/// 1. Load the main module.
+/// 2. Get the list declarations in the main module serving as entry points;
 ///    they are the basis of static usage analysis.
 /// 3. Run static usage analysis: for each entry point, collect the list of declarations it depends on, transitively. Usage analysis returns the set of imported identifiers (defined in other modules).
 /// 4. Load missing imported modules found via usage analysis.
@@ -31,15 +31,15 @@ pub struct CompileResult {
 /// * Conditional translation runs after module loading.
 /// * Name mangling runs before assembly.
 pub trait CompilerDriver: Sized {
-    /// Get the path of the root module.
-    fn root_path(&self) -> &ModulePath;
+    /// Get the path of the main module.
+    fn main_path(&self) -> &ModulePath;
 
     /// List identifiers of declarations serving as starting point for static usage analysis.
     ///
     /// Typically they are the entry points functions (`@verted`, `@fragment` and `@compute`),
     /// but some users might want to keep different declarations.
-    fn root_entry_points(&self, root_module: &TranslationUnit) -> Result<HashSet<Ident>, Error> {
-        Ok(pass::root_entry_points(root_module))
+    fn main_entry_points(&self, main_module: &TranslationUnit) -> Result<HashSet<Ident>, Error> {
+        Ok(pass::main_entry_points(main_module))
     }
 
     /// Find declarations used in external modules which this module depends on, no matter what.
@@ -89,7 +89,7 @@ pub trait CompilerDriver: Sized {
     /// Assemble the list of loaded module into a final output.
     ///
     /// `used_items` contains the result of static usage analysis, i.e the list identifiers
-    /// which the root module entrypoints depend on, transitively.
+    /// which the main module entrypoints depend on, transitively.
     fn link(
         &self,
         modules: &mut Vec<Module>,

@@ -1,3 +1,5 @@
+//! [`SourceMap`] trait and implementations.
+
 use std::{cell::RefCell, collections::HashMap, path::PathBuf};
 
 use wgsl_parse::{span::Span, syntax::TypeExpression};
@@ -127,7 +129,7 @@ impl SourceMap for NoSourceMap {
 /// resolver. Call [`SourceMapper::finish`] to get the final SourceMap once finished
 /// recording.
 pub struct SourceMapper<'a> {
-    pub root: ModulePath,
+    pub main_path: ModulePath,
     pub resolver: &'a dyn Resolver,
     pub mangler: &'a dyn Mangler,
     pub sourcemap: RefCell<BasicSourceMap>,
@@ -135,9 +137,13 @@ pub struct SourceMapper<'a> {
 
 impl<'a> SourceMapper<'a> {
     /// Create a new `SourceMapper` from a mangler and a resolver.
-    pub fn new(root: ModulePath, resolver: &'a dyn Resolver, mangler: &'a dyn Mangler) -> Self {
+    pub fn new(
+        main_path: ModulePath,
+        resolver: &'a dyn Resolver,
+        mangler: &'a dyn Mangler,
+    ) -> Self {
         Self {
-            root,
+            main_path,
             resolver,
             mangler,
             sourcemap: Default::default(),
@@ -146,7 +152,7 @@ impl<'a> SourceMapper<'a> {
     /// Consume this and return a [`BasicSourceMap`].
     pub fn finish(self) -> BasicSourceMap {
         let mut sourcemap = self.sourcemap.into_inner();
-        if let Some(file) = sourcemap.file(&self.root) {
+        if let Some(file) = sourcemap.file(&self.main_path) {
             sourcemap.set_default_source(file.source.to_string());
         }
         sourcemap

@@ -106,9 +106,9 @@ pub struct WeslCompileOptions {
     pub validate: bool,
     pub sourcemap: bool,
     pub mangler: WeslManglerKind,
-    pub mangle_root: bool,
+    pub mangle_main: bool,
     pub keep: WeslStringArray,
-    pub keep_root: bool,
+    pub keep_main: bool,
     pub features: WeslBoolMap,
     // pub constants: todo!() // TODO
     pub naga: bool,
@@ -250,13 +250,13 @@ impl From<&WeslCompileOptions> for wesl::CompileOptions {
             validate: options.validate,
             sourcemap: options.sourcemap,
             mangler: options.mangler.into(),
-            mangle_root: options.mangle_root,
+            mangle_main: options.mangle_main,
             keep: if keep_vec.is_empty() {
                 None
             } else {
                 Some(keep_vec)
             },
-            keep_root: options.keep_root,
+            keep_main: options.keep_main,
             features: wesl::Features {
                 default: wesl::Feature::Disable,
                 flags: features_map
@@ -625,33 +625,33 @@ fn create_resolver(
 /// Free with `wesl_free_result`.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn wesl_compile(
-    root: *const c_char,
+    main: *const c_char,
     options: &WeslCompileOptions,
     resolver: Option<&WeslResolverOptions>,
 ) -> WeslResult {
-    if root.is_null() {
+    if main.is_null() {
         return WeslResult::error(WeslError::from("Invalid parameters"));
     }
 
-    let root_str = unsafe { CStr::from_ptr(root) }
+    let main_str = unsafe { CStr::from_ptr(main) }
         .to_string_lossy()
         .to_string();
 
-    let root_path = match root_str.parse() {
+    let main_path = match main_str.parse() {
         Ok(path) => path,
         Err(e) => {
-            return WeslResult::error(WeslError::from(format!("Invalid root path: {e}").as_str()));
+            return WeslResult::error(WeslError::from(format!("Invalid main path: {e}").as_str()));
         }
     };
 
-    let resolver = match create_resolver(&root_str, resolver) {
+    let resolver = match create_resolver(&main_str, resolver) {
         Ok(resolver) => resolver,
         Err(err) => return WeslResult::error(WeslError::from(err)),
     };
 
-    let compiler = Compiler::new(wesl::CompileOptions::from(options)).set_resolver(resolver);
+    let compiler = Compiler::new(wesl::CompileOptions::from(options)).with_resolver(resolver);
 
-    match compiler.compile_module(&root_path) {
+    match compiler.compile_module(&main_path) {
         Ok(result) => {
             let output = result.to_string();
             WeslResult::success(create_c_string(&output))
@@ -666,29 +666,29 @@ pub unsafe extern "C" fn wesl_compile(
 #[cfg(feature = "eval")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn wesl_eval(
-    root: *const c_char,
+    main: *const c_char,
     expression: *const c_char,
     options: &WeslCompileOptions,
     resolver: Option<&WeslResolverOptions>,
 ) -> WeslResult {
-    let root_str = unsafe { CStr::from_ptr(root).to_string_lossy() };
+    let main_str = unsafe { CStr::from_ptr(main).to_string_lossy() };
     let expr_str = unsafe { CStr::from_ptr(expression).to_string_lossy() };
 
-    let root_path = match root_str.parse() {
+    let main_path = match main_str.parse() {
         Ok(path) => path,
         Err(e) => {
-            return WeslResult::error(WeslError::from(format!("Invalid root path: {e}").as_str()));
+            return WeslResult::error(WeslError::from(format!("Invalid main path: {e}").as_str()));
         }
     };
 
-    let resolver = match create_resolver(&root_str, resolver) {
+    let resolver = match create_resolver(&main_str, resolver) {
         Ok(resolver) => resolver,
         Err(err) => return WeslResult::error(WeslError::from(err)),
     };
 
-    let compiler = Compiler::new(wesl::CompileOptions::from(options)).set_resolver(resolver);
+    let compiler = Compiler::new(wesl::CompileOptions::from(options)).with_resolver(resolver);
 
-    match compiler.compile_module(&root_path) {
+    match compiler.compile_module(&main_path) {
         Ok(result) => match result.eval(&expr_str) {
             Ok(eval_result) => WeslResult::success(create_c_string(&eval_result.inst.to_string())),
             Err(e) => WeslResult::error(WeslError::from(e)),
@@ -703,7 +703,7 @@ pub unsafe extern "C" fn wesl_eval(
 #[cfg(not(feature = "eval"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn wesl_eval(
-    _root: *const c_char,
+    _main: *const c_char,
     _expression: *const c_char,
     _options: *const WeslCompileOptions,
     _resolver: Option<&WeslResolverOptions>,
@@ -719,35 +719,35 @@ pub unsafe extern "C" fn wesl_eval(
 #[cfg(feature = "eval")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn wesl_exec(
-    root: &c_char,
+    main: &c_char,
     entrypoint: &c_char,
     options: &WeslCompileOptions,
     resources: Option<&WeslBindingArray>,
     overrides: Option<&WeslStringMap>,
     resolver: Option<&WeslResolverOptions>,
 ) -> WeslExecResult {
-    let root_str = unsafe { CStr::from_ptr(root).to_string_lossy() };
+    let main_str = unsafe { CStr::from_ptr(main).to_string_lossy() };
     let entrypoint_str = unsafe { CStr::from_ptr(entrypoint).to_string_lossy() };
     let resources_vec: Vec<_> = resources.map(Into::into).unwrap_or_default();
     let overrides_map: HashMap<_, _> = overrides.map(Into::into).unwrap_or_default();
 
-    let root_path = match root_str.parse() {
+    let main_path = match main_str.parse() {
         Ok(path) => path,
         Err(e) => {
             return WeslExecResult::error(WeslError::from(
-                format!("Invalid root path: {e}").as_str(),
+                format!("Invalid main path: {e}").as_str(),
             ));
         }
     };
 
-    let resolver = match create_resolver(&root_str, resolver) {
+    let resolver = match create_resolver(&main_str, resolver) {
         Ok(resolver) => resolver,
         Err(err) => return WeslExecResult::error(WeslError::from(err)),
     };
 
-    let compiler = Compiler::new(wesl::CompileOptions::from(options)).set_resolver(resolver);
+    let compiler = Compiler::new(wesl::CompileOptions::from(options)).with_resolver(resolver);
 
-    match compiler.compile_module(&root_path) {
+    match compiler.compile_module(&main_path) {
         Ok(result) => {
             // parse resources
             let parsed_resources: Result<HashMap<(u32, u32), RefInstance>, wesl::Error> =
@@ -820,7 +820,7 @@ pub unsafe extern "C" fn wesl_exec(
 #[cfg(not(feature = "eval"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn wesl_exec(
-    _root: *const c_char,
+    _main: *const c_char,
     _entrypoint: *const c_char,
     _options: &WeslCompileOptions,
     _resources: Option<&WeslBindingArray>,

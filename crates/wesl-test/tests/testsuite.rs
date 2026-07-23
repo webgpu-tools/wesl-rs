@@ -388,16 +388,16 @@ pub fn testsuite_case(case: &WgslTestSrc) -> Result<(), libtest_mimic::Failed> {
         resolver.add_module(path, file.into());
     }
 
-    let root_module = ModulePath::from_str("package::main")?;
+    let main_module = ModulePath::from_str("package::main")?;
     let compile_options = CompileOptions {
         // TODO
         // lazy: !case.requires.iter().any(|r| r == "eager"),
-        keep_root: true,
+        keep_main: true,
         ..Default::default()
     };
 
     let mut case_wgsl =
-        Compiler::new_with_resolver(compile_options, resolver).compile_module(&root_module)?;
+        Compiler::new_with_resolver(compile_options, resolver).compile_module(&main_module)?;
 
     if let Some(expect_wgsl) = &case.underscore_wgsl {
         let mut expect_wgsl = wgsl_parse::parse_str(expect_wgsl)?;
@@ -412,8 +412,8 @@ pub fn testsuite_case(case: &WgslTestSrc) -> Result<(), libtest_mimic::Failed> {
 pub fn validation_case(path: PathBuf) -> Result<(), libtest_mimic::Failed> {
     let input = std::fs::read_to_string(path).expect("failed to read test file");
     let mut resolver = VirtualResolver::new();
-    let root = ModulePath::from_str("package::main")?;
-    resolver.add_module(root.clone(), input.into());
+    let main_path = ModulePath::from_str("package::main")?;
+    resolver.add_module(main_path.clone(), input.into());
     let compile_options = CompileOptions {
         strip: false,
         lower: true,
@@ -421,7 +421,7 @@ pub fn validation_case(path: PathBuf) -> Result<(), libtest_mimic::Failed> {
         mangler: ManglerKind::None,
         ..Default::default()
     };
-    let _ = Compiler::new_with_resolver(compile_options, resolver).compile_module(&root)?;
+    let _ = Compiler::new_with_resolver(compile_options, resolver).compile_module(&main_path)?;
     Ok(())
 }
 

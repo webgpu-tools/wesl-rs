@@ -6,7 +6,7 @@ See also the [standalone CLI][cli].
 
 ## Basic Usage
 
-See [`Wesl`] for an overview of the high-level API.
+See [`Compiler`] for an overview of the high-level API.
 
 ```rust
 # use wesl::{Compiler, resolver::VirtualResolver};
@@ -17,8 +17,8 @@ let compiler = Compiler::default();
 # let mut resolver = VirtualResolver::new();
 # let shader_string = "fn my_fn() {\n\n}\n";
 # resolver.add_module("package::path::to::shader".parse().unwrap(), shader_string.into());
-# let mut compiler = compiler.set_resolver(resolver);
-# compiler.options.keep_root = true;
+# let mut compiler = compiler.with_resolver(resolver);
+# compiler.options.keep_main = true;
 #
 let compile_result = compiler
     .compile("path/to/shader.wesl")
@@ -66,7 +66,7 @@ let module = device.create_shader_module(ShaderModuleDescriptor {
 });
 ```
 
-## Write shaders inline with the [`quote_module`] macro
+## Write shaders inline with the `quote_module` macro
 
 See the [`wesl-quote`][wesl-quote] crate.
 
@@ -96,8 +96,8 @@ let source = "const my_const = 4; @const fn my_fn(v: u32) -> u32 { return v * 10
 #
 # let mut resolver = VirtualResolver::new();
 # resolver.add_module("package::main".parse().unwrap(), source.into());
-# let mut compiler = Compiler::default().set_resolver(resolver);
-# compiler.options.keep_root = true; // prevent dead code elimination
+# let mut compiler = Compiler::default().with_resolver(resolver);
+# compiler.options.keep_main = true; // prevent dead code elimination
 #
 let wgsl_expr = compiler
     .compile("main.wgsl").unwrap()

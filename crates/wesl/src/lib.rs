@@ -25,7 +25,7 @@ pub use crate::{
     mangler::Mangler,
     package::PackageBuilder,
     pass::{Feature, Features},
-    resolver::{Constants, Resolver},
+    resolver::{AsyncResolver, Constants, Resolver},
 };
 
 #[cfg(feature = "eval")]
@@ -36,16 +36,16 @@ pub use wgsl_parse::syntax;
 
 use wgsl_parse::syntax::ModulePath;
 
-/// Include a WGSL file compiled with [`Wesl::build_artifact`] as a string.
+/// Include a WGSL file compiled with [`CompileResult::write_artifact`] as a string.
 ///
-/// The argument corresponds to the `artifact_name` passed to [`Wesl::build_artifact`].
+/// The argument corresponds to the `artifact_name` passed to `write_artifact`.
 ///
 /// This is a very simple convenience macro. See the crate documentation for a usage
 /// example.
 #[macro_export]
 macro_rules! include_wesl {
-    ($root:literal) => {
-        include_str!(concat!(env!("OUT_DIR"), "/", $root, ".wgsl"))
+    ($artifact_name:literal) => {
+        include_str!(concat!(env!("OUT_DIR"), "/", $artifact_name, ".wgsl"))
     };
 }
 

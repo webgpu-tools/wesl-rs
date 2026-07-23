@@ -7,7 +7,7 @@ pub trait Visit<T> {
     ///
     /// Implementations of Visit do not recurse past `T`, meaning that if you really want
     /// to visit all children of type T you would have to call `<T as Visit<T>>::visit` on
-    /// each visited `T`. Alternatively, use [`Self::visit_each_mut`] which solves this
+    /// each visited `T`. Alternatively, use [`Self::visit_rec`] which solves this
     /// exact problem.
     fn visit<'a>(&'a self) -> impl Iterator<Item = &'a T>
     where
@@ -18,7 +18,7 @@ pub trait Visit<T> {
     where
         T: 'a;
 
-    /// Visit each child node of type `T` in the subtree of `Self`, recursively.
+    /// Visit each child node of type `T` in the subtree of `Self`, recursively in depth-first order.
     ///
     /// Due to Rust's aliasing model, you can't iterate mutably on a node and its
     /// children. This function allows visiting recursively by passing a closure instead.
@@ -34,7 +34,7 @@ pub trait Visit<T> {
         });
     }
 
-    /// Mutable version of [`Self::visit_each_rec_mut`].
+    /// Mutable version of [`Self::visit_rec`].
     #[allow(unused)]
     fn visit_rec_mut<'a, F>(&'a mut self, f: &mut F)
     where

@@ -23,6 +23,10 @@ pub enum Feature {
 
 /// Toggle conditional compilation feature flags.
 ///
+/// Conditional translation is incremental if [`field@Self::default`] is set to [`Feature::Keep`].
+/// If not all feature flags are handled, the output will contain unevaluated `@if`
+/// attributes and will therefore *not* be valid WGSL.
+///
 /// Feature flags set to `true` are enabled, and `false` are disabled. Feature flags not
 /// present in `flags` are treated according to `default`.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

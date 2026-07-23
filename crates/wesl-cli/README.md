@@ -70,7 +70,7 @@ CLI instead can be useful if you don't want to rely on a build.rs. Refer to the
 [WESL] documentation about packaging for more information.
 
 ```bash
-wesl package mypkgname <path/to/root.wesl> > mypkgname.rs
+wesl package mypkgname <path/to/package/root/directory> > mypkgname.rs
 ```
 
 [WESL]: https://docs.rs/crate/wesl

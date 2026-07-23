@@ -1,3 +1,5 @@
+//! [`Mangler`] trait and implementations.
+
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;

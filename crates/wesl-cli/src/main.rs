@@ -150,29 +150,29 @@ struct CompOptsArgs {
     /// Disable performing validation checks
     #[arg(long)]
     no_validate: bool,
-    /// Enable mangling of declarations in the root module.
+    /// Enable mangling of declarations in the main module.
     #[arg(long)]
-    mangle_root: bool,
+    mangle_main: bool,
     /// Disable performing validation checks with naga
     #[cfg(feature = "naga")]
     #[arg(long)]
     no_naga: bool,
-    /// Root module declaration names to keep. Keeps all root module entrypoints by
+    /// Main module declaration names to keep. Keeps all main module entrypoints by
     /// default. Can be repeated to keep multiple declarations
     #[arg(long)]
     keep: Option<Vec<String>>,
-    /// Keep all root module declarations instead of just the entrypoints
+    /// Keep all main module declarations instead of just the entrypoints
     #[arg(long)]
-    keep_root: bool,
+    keep_main: bool,
     /// Set a conditional compilation feature flag. Can be repeated
     #[arg(short='D', long, value_name="NAME | NAME=[enable, disable, keep, error]", value_parser = parse_key_val::<String, ClapFeature>)]
     feature: Vec<(String, ClapFeature)>,
     /// Default behavior for unspecified conditional compilation features
     #[arg(long, default_value = "disable")]
     feature_default: ClapFeature,
-    /// Root folder for `package::` imports. Defaults to the parent directory of the root module
+    /// Package root directory for `package::` imports. Defaults to the parent directory of the main module.
     #[arg(long)]
-    base: Option<PathBuf>,
+    root: Option<PathBuf>,
     /// Literal constants in the `constants` virtual module.
     #[arg(long = "constant", value_name="NAME=LITERAL", value_parser = parse_key_val::<String, String>)]
     constants: Vec<(String, String)>,
@@ -209,13 +209,13 @@ impl TryFrom<&CompOptsArgs> for CompileOptions {
             lower: opts.lower,
             validate: !opts.no_validate,
             sourcemap: !opts.no_sourcemap,
-            mangle_root: opts.mangle_root,
+            mangle_main: opts.mangle_main,
             keep: if opts.no_strip {
                 None
             } else {
                 opts.keep.clone()
             },
-            keep_root: opts.keep_root,
+            keep_main: opts.keep_main,
             features: Features {
                 default: opts.feature_default.into(),
                 flags,
@@ -432,7 +432,7 @@ fn run_compile(
     match file_or_source {
         FileOrSource::File(path) => {
             let base = options
-                .base
+                .root
                 .as_deref()
                 .or(path.parent())
                 .ok_or(CliError::FileNotFound)?;
@@ -444,7 +444,7 @@ fn run_compile(
             let path = ModulePath::new(PathOrigin::Absolute, vec![name]);
             let resolver = StandardResolver::new(base);
 
-            let res = compiler.set_resolver(resolver).compile_module(&path)?;
+            let res = compiler.with_resolver(resolver).compile_module(&path)?;
             Ok(res)
         }
         FileOrSource::Source(source) => {
@@ -457,7 +457,7 @@ fn run_compile(
             router.mount_resolver(path.clone(), resolver);
             router.mount_fallback_resolver(StandardResolver::new(base));
 
-            let res = compiler.set_resolver(router).compile_module(&path)?;
+            let res = compiler.with_resolver(router).compile_module(&path)?;
             Ok(res)
         }
     }

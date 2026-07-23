@@ -152,7 +152,7 @@ fn load_module_with_source<R: Resolver>(
     let module = Module::new(source, path.clone());
     let module = resolutions.push_module(module);
 
-    let imports = flatten_imports(&module.borrow().source.imports, path);
+    let imports = flatten_imports(&module.borrow().source.imports, path, resolver);
     {
         let mut module = module.borrow_mut();
         module.imports = imports;
@@ -220,7 +220,7 @@ fn resolve_ty<R: Resolver>(
 
     // get the path and identifier referred to by the TypeExpression, if it is imported
     let (ext_path, ext_id) = if let Some(path) = &ty.path {
-        let path = resolve_inline_path(path, &module.path, &module.imports);
+        let path = resolve_inline_path(path, &module.path, &module.imports, resolver);
         (path, &ty.ident)
     } else if let Some(item) = module.imports.get(&ty.ident) {
         (item.path.clone(), &item.ident)
@@ -308,7 +308,7 @@ pub fn resolve_lazy<'a>(
         }
     }
 
-    resolutions.retarget()?;
+    resolutions.retarget(resolver)?;
     Ok(resolutions)
 }
 
@@ -339,12 +339,16 @@ pub fn resolve_eager(
     let mut resolutions = Resolutions::new_uninit();
     load_module_with_source(source, path, &mut resolutions, resolver, &resolve_module)?;
 
-    resolutions.retarget()?;
+    resolutions.retarget(resolver)?;
     Ok(resolutions)
 }
 
 /// Flatten imports to a list.
-fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Imports {
+fn flatten_imports(
+    imports: &[ImportStatement],
+    path: &ModulePath,
+    resolver: &impl Resolver,
+) -> Imports {
     fn rec(content: &ImportContent, path: ModulePath, public: bool, res: &mut Imports) {
         match content {
             ImportContent::Item(item) => {
@@ -373,7 +377,7 @@ fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Imports {
         let public = import.attributes.iter().any(|attr| attr.is_publish());
         match &import.path {
             Some(import_path) => {
-                let path = path.join_path(import_path);
+                let path = resolver.canonical_path(&path.join_path(import_path));
                 rec(&import.content, path, public, &mut res);
             }
             None => {
@@ -389,10 +393,10 @@ fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Imports {
                             let mut components = import.path.iter().cloned();
                             if let Some(pkg_name) = components.next() {
                                 // `import {foo::bar}`, foo becomes the package name.
-                                let path = ModulePath::new(
+                                let path = resolver.canonical_path(&ModulePath::new(
                                     PathOrigin::Package(pkg_name),
                                     components.collect_vec(),
-                                );
+                                ));
                                 rec(&import.content, path, public, &mut res);
                             }
                         }
@@ -413,6 +417,7 @@ fn resolve_inline_path(
     path: &ModulePath,
     parent_path: &ModulePath,
     imports: &Imports,
+    resolver: &impl Resolver,
 ) -> ModulePath {
     match &path.origin {
         PathOrigin::Package(pkg_name) => {
@@ -426,10 +431,10 @@ fn resolve_inline_path(
                 res.push(&ext_item.ident.name()); // c
                 res.join(path.components.iter().cloned())
             } else {
-                parent_path.join_path(path)
+                resolver.canonical_path(&parent_path.join_path(path))
             }
         }
-        _ => parent_path.join_path(path),
+        _ => resolver.canonical_path(&parent_path.join_path(path)),
     }
 }
 
@@ -456,7 +461,7 @@ impl Resolutions {
     /// Panics
     /// * if an identifier has no corresponding declaration.
     /// * if a module is already borrowed.
-    fn retarget(&self) -> Result<(), Error> {
+    fn retarget(&self, resolver: &impl Resolver) -> Result<(), Error> {
         fn find_ext_ident(
             modules: &Modules,
             src_path: &ModulePath,
@@ -485,14 +490,22 @@ impl Resolutions {
             module_imports: &Imports,
             module_idents: &HashMap<Ident, usize>,
             ty: &mut TypeExpression,
+            resolver: &impl Resolver,
         ) -> Result<(), Error> {
             // first the recursive call
             for ty in Visit::<TypeExpression>::visit_mut(ty) {
-                retarget_ty(modules, module_path, module_imports, module_idents, ty)?;
+                retarget_ty(
+                    modules,
+                    module_path,
+                    module_imports,
+                    module_idents,
+                    ty,
+                    resolver,
+                )?;
             }
 
             let (ext_path, ext_id) = if let Some(path) = &ty.path {
-                let res = resolve_inline_path(path, module_path, module_imports);
+                let res = resolve_inline_path(path, module_path, module_imports, resolver);
                 (res, &ty.ident)
             } else if let Some(item) = module_imports.get(&ty.ident) {
                 (item.path.clone(), &item.ident)
@@ -546,6 +559,7 @@ impl Resolutions {
                         &module.imports,
                         &module.idents,
                         ty,
+                        resolver,
                     )?;
                 }
             }

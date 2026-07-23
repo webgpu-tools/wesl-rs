@@ -310,7 +310,7 @@ impl Module {
         quote! {
             pub mod #mod_ident {
                 use super::CodegenModule;
-                pub const MODULE: CodegenModule = CodegenModule {
+                pub static MODULE: CodegenModule = CodegenModule {
                     name: #name,
                     source: #source,
                     submodules: &[#(#submodules),*]
@@ -368,13 +368,13 @@ impl Pkg {
         let submods = self.root.submodules.iter().map(|submod| submod.codegen());
 
         let tokens = quote! {
-            pub const PACKAGE: CodegenPkg = CodegenPkg {
+            pub static PACKAGE: CodegenPkg = CodegenPkg {
                 crate_name: #crate_name,
                 root: &MODULE,
                 dependencies: &[#(#deps),*],
             };
 
-            pub const MODULE: CodegenModule = CodegenModule {
+            pub static MODULE: CodegenModule = CodegenModule {
                 name: #root_name,
                 source: #root_source,
                 submodules: &[#(#submodules),*]

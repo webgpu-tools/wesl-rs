@@ -53,6 +53,10 @@ pub trait Resolver {
     fn fs_path(&self, _path: &ModulePath) -> Option<PathBuf> {
         None
     }
+    /// Get the canonical form of a module path.
+    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
+        path.clone()
+    }
 }
 
 impl<T: Resolver + ?Sized> Resolver for Box<T> {
@@ -68,6 +72,9 @@ impl<T: Resolver + ?Sized> Resolver for Box<T> {
     fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
         (**self).fs_path(path)
     }
+    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
+        (**self).canonical_path(path)
+    }
 }
 
 impl<T: Resolver> Resolver for &T {
@@ -82,6 +89,9 @@ impl<T: Resolver> Resolver for &T {
     }
     fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
         (**self).fs_path(path)
+    }
+    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
+        (**self).canonical_path(path)
     }
 }
 
@@ -266,6 +276,9 @@ impl<R: Resolver, F: ResolveFn> Resolver for Preprocessor<R, F> {
     fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
         self.resolver.fs_path(path)
     }
+    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
+        self.resolver.canonical_path(path)
+    }
 }
 
 /// A resolver that can dispatch imports to several sub-resolvers based on the import
@@ -356,6 +369,13 @@ impl Resolver for Router {
     fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
         let (resolver, path) = self.route(path).ok()?;
         resolver.fs_path(&path)
+    }
+    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
+        // a rewritten path is in the sub-resolver's namespace
+        match self.route(path) {
+            Ok((resolver, routed)) if routed == *path => resolver.canonical_path(path),
+            _ => path.clone(),
+        }
     }
 }
 
@@ -466,6 +486,47 @@ impl Resolver for PkgResolver {
         }
         Ok(cur_mod.source.into())
     }
+
+    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
+        let PathOrigin::Package(pkg_path) = &path.origin else {
+            return path.clone();
+        };
+
+        // same package lookup as resolve_source, but failures return the path unchanged
+        let pkg_parts = pkg_path.split('/').collect_vec();
+        let Some(root_pkg) = pkg_parts
+            .first()
+            .and_then(|name| self.packages.iter().find(|p| p.root.name == *name))
+        else {
+            return path.clone();
+        };
+        let Ok(pkg) = pkg_parts.iter().skip(1).try_fold(root_pkg, |dep, name| {
+            dep.dependencies
+                .iter()
+                .find(|p| p.root.name == *name)
+                .ok_or(())
+        }) else {
+            return path.clone();
+        };
+
+        // pick the first name found in BFS order over registered packages
+        let mut queue = std::collections::VecDeque::new();
+        queue.extend(self.packages.iter().map(|p| (p.root.name.to_string(), *p)));
+        let mut visited = Vec::new();
+        while let Some((name, candidate)) = queue.pop_front() {
+            if std::ptr::eq(candidate, *pkg) {
+                return ModulePath::new(PathOrigin::Package(name), path.components.clone());
+            }
+            if visited.contains(&std::ptr::from_ref(candidate)) {
+                continue;
+            }
+            visited.push(std::ptr::from_ref(candidate));
+            for dep in candidate.dependencies {
+                queue.push_back((format!("{name}/{}", dep.root.name), *dep));
+            }
+        }
+        path.clone()
+    }
 }
 
 /// The resolver that implements the WESL standard.
@@ -551,6 +612,23 @@ impl Resolver for StandardResolver {
             self.files.fs_path(path)
         }
     }
+    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
+        // the constants module is shared for all sub-dependencies
+        if let PathOrigin::Package(pkg_name) = &path.origin
+            && (pkg_name == "constants" || pkg_name.ends_with("/constants"))
+        {
+            return ModulePath::new(
+                PathOrigin::Package("constants".to_string()),
+                path.components.clone(),
+            );
+        }
+
+        if path.origin.is_package() {
+            self.pkg.canonical_path(path)
+        } else {
+            path.clone()
+        }
+    }
 }
 
 pub fn emit_rerun_if_changed(modules: &[ModulePath], resolver: &impl Resolver) {
@@ -616,6 +694,92 @@ mod test {
             r.resolve_source(&"foo::bar".parse().unwrap()).unwrap(),
             "m6"
         );
+    }
+
+    #[test]
+    fn canonical_paths() {
+        static C_ROOT: CodegenModule = CodegenModule {
+            name: "c",
+            source: "",
+            submodules: &[],
+        };
+        static C: CodegenPkg = CodegenPkg {
+            crate_name: "c",
+            root: &C_ROOT,
+            dependencies: &[],
+        };
+        static D1_ROOT: CodegenModule = CodegenModule {
+            name: "d",
+            source: "",
+            submodules: &[],
+        };
+        static D1: CodegenPkg = CodegenPkg {
+            crate_name: "d",
+            root: &D1_ROOT,
+            dependencies: &[],
+        };
+        static D2_ROOT: CodegenModule = CodegenModule {
+            name: "d",
+            source: "",
+            submodules: &[],
+        };
+        static D2: CodegenPkg = CodegenPkg {
+            crate_name: "d",
+            root: &D2_ROOT,
+            dependencies: &[],
+        };
+        static A_ROOT: CodegenModule = CodegenModule {
+            name: "a",
+            source: "",
+            submodules: &[],
+        };
+        static A: CodegenPkg = CodegenPkg {
+            crate_name: "a",
+            root: &A_ROOT,
+            dependencies: &[&C, &D1],
+        };
+        static B_ROOT: CodegenModule = CodegenModule {
+            name: "b",
+            source: "",
+            submodules: &[],
+        };
+        static B: CodegenPkg = CodegenPkg {
+            crate_name: "b",
+            root: &B_ROOT,
+            dependencies: &[&C, &D2],
+        };
+        static E_ROOT: CodegenModule = CodegenModule {
+            name: "e",
+            source: "",
+            submodules: &[],
+        };
+        static E: CodegenPkg = CodegenPkg {
+            crate_name: "e",
+            root: &E_ROOT,
+            dependencies: &[&C],
+        };
+
+        let mut r = PkgResolver::new();
+        r.add_package(&A);
+        r.add_package(&B);
+        r.add_package(&E);
+
+        let canon = |s: &str| r.canonical_path(&s.parse().unwrap());
+
+        // a and b depend on the same instance of c
+        assert_eq!(canon("a/c::foo"), canon("b/c::foo"));
+        assert_eq!(canon("a/c::foo"), "a/c::foo".parse().unwrap());
+
+        // e reaches the same static through its own dependency
+        assert_eq!(canon("e/c::foo"), "a/c::foo".parse().unwrap());
+
+        // two versions of d
+        assert_eq!(canon("a/d::foo"), "a/d::foo".parse().unwrap());
+        assert_eq!(canon("b/d::foo"), "b/d::foo".parse().unwrap());
+
+        assert_eq!(canon("a::foo"), "a::foo".parse().unwrap());
+
+        assert_eq!(canon("z/c::foo"), "z/c::foo".parse().unwrap());
     }
 
     #[test]

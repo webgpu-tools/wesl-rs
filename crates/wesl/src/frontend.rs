@@ -263,20 +263,28 @@ impl Compiler<()> {
             resolver.add_package(package);
         }
 
-        let sourcemapper = SourceMapper::new(main_path.clone(), &resolver, &mangler);
+        if self.options.sourcemap {
+            let sourcemapper = SourceMapper::new(main_path.clone(), &resolver, &mangler);
+            let mut pass =
+                CompilationPass::new(&main_path, &self.options, &sourcemapper, &sourcemapper);
+            let res = CompilerDriver::compile(&mut pass);
+            let sourcemap = sourcemapper.finish();
+            let res = res.map_err(|e| Diagnostic::from(e).with_sourcemap(&sourcemap))?;
 
-        let mut pass =
-            CompilationPass::new(&main_path, &self.options, &sourcemapper, &sourcemapper);
-
-        let res = CompilerDriver::compile(&mut pass);
-        let sourcemap = sourcemapper.finish();
-        let res = res.map_err(|e| Diagnostic::from(e).with_sourcemap(&sourcemap))?;
-
-        Ok(CompileResult {
-            syntax: res.syntax,
-            sourcemap: Some(sourcemap),
-            used_items: res.used_items,
-        })
+            Ok(CompileResult {
+                syntax: res.syntax,
+                sourcemap: Some(sourcemap),
+                used_items: res.used_items,
+            })
+        } else {
+            let mut pass = CompilationPass::new(&main_path, &self.options, &resolver, &mangler);
+            let res = CompilerDriver::compile(&mut pass)?;
+            Ok(CompileResult {
+                syntax: res.syntax,
+                sourcemap: None,
+                used_items: res.used_items,
+            })
+        }
     }
 }
 

@@ -1,0 +1,16 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(1)
+var mySampler: sampler;
+
+@group(0) @binding(2)
+var myTexture: texture_cube<f32>;
+
+@fragment
+fn main(@location(0) fragUV: vec2<f32>, @location(1) fragPosition: vec4<f32>) -> @location(0) vec4<f32> {
+    var cubemapVec: vec3<f32> = fragPosition.xyz - vec3(0.5, 0.5, 0.5);
+    cubemapVec.z *= -1;
+    return textureSample(myTexture, mySampler, cubemapVec);
+}

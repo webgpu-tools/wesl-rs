@@ -1,0 +1,21 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+fn barriers() {
+
+}
+
+@compute @workgroup_size(1)
+fn compute() {
+
+}
+
+fn derivatives() {
+
+}
+
+@fragment
+fn fragment() -> @location(0) vec4<f32> {
+    return vec4(0f, 0f, 0f, 0f);
+}

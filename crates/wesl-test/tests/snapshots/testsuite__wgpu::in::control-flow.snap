@@ -1,0 +1,60 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@compute @workgroup_size(1)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
+    storageBarrier();
+    workgroupBarrier();
+    textureBarrier();
+    var pos: i32;
+    switch 1 {
+        case default {
+            pos = 1;
+        }
+    }
+    switch pos {
+        case 1 {
+            pos = 0;
+            break;
+        }
+        case 2 {
+            pos = 1;
+        }
+        case 3, 4 {
+            pos = 2;
+        }
+        case 5 {
+            pos = 3;
+        }
+        case default, 6 {
+            pos = 4;
+        }
+    }
+    switch 0u {
+        case 0u {
+        
+        }
+        case default {
+        
+        }
+    }
+    switch pos {
+        case 1 {
+            pos = 0;
+            break;
+        }
+        case 2 {
+            pos = 1;
+        }
+        case 3 {
+            pos = 2;
+        }
+        case 4 {
+        
+        }
+        case default {
+            pos = 3;
+        }
+    }
+}

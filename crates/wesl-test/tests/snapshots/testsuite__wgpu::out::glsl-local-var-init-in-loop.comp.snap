@@ -1,0 +1,12 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@compute @workgroup_size(1, 1, 1)
+fn main() {
+    return;
+}
+
+fn main_1() {
+
+}

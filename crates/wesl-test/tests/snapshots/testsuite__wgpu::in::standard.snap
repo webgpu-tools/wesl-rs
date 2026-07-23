@@ -1,0 +1,23 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@fragment
+fn derivatives(@builtin(position) foo: vec4<f32>) -> @location(0) vec4<f32> {
+    var x: vec4<f32> = dpdxCoarse(foo);
+    var y: vec4<f32> = dpdyCoarse(foo);
+    var z: vec4<f32> = fwidthCoarse(foo);
+    x = dpdxFine(foo);
+    y = dpdyFine(foo);
+    z = fwidthFine(foo);
+    x = dpdx(foo);
+    y = dpdy(foo);
+    z = fwidth(foo);
+    let a: bool = true;
+    return (x + y) * z;
+}
+
+fn test_any_and_all_for_bool() -> bool {
+    let a: bool = true;
+    return all(a);
+}

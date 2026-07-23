@@ -1,0 +1,8 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@fragment
+fn main(@builtin(view_index) view_index: i32) {
+    return;
+}

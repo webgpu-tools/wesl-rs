@@ -1,0 +1,37 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(2) @binding(0)
+var<uniform> material: CustomMaterial;
+
+struct CustomMaterial {
+    time: f32
+}
+
+struct VertexOutput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(2)
+    uv: vec2<f32>
+}
+
+@fragment
+fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
+    return package_util__2make_polka_dots(mesh.uv, material.time);
+}
+
+fn package_util__2make_polka_dots(pos: vec2<f32>, time: f32) -> vec4<f32> {
+    let scaled_pos: vec2<f32> = pos * 6.0;
+    let cell: vec2<f32> = vec2<f32>(fract(scaled_pos.x), fract(scaled_pos.y));
+    let dist_from_center: f32 = distance(cell, vec2(0.5f, 0.5f));
+    let is_even: f32 = (floor(scaled_pos.x) + floor(scaled_pos.y)) % 2.0;
+    var dot_color: vec3<f32> = vec3(0f, 0f, 0f);
+    {
+        let color1: vec3<f32> = vec3(1f, 0.4f, 0.8f);
+        let color2: vec3<f32> = vec3(0.6f, 0.2f, 1f);
+        dot_color = mix(color1, color2, is_even);
+    }
+    let is_dot: f32 = step(dist_from_center, 0.3);
+    return vec4<f32>(dot_color * is_dot, is_dot);
+}

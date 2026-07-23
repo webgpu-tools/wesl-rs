@@ -1,0 +1,242 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(21)
+var bevy_pbr__2mesh_view_bindings__1irradiance_volume: texture_3d<f32>;
+
+@group(0) @binding(13)
+var<uniform> bevy_pbr__2mesh_view_bindings__1light_probes: bevy_pbr__2mesh_view_types_LightProbes;
+
+@group(0) @binding(22)
+var bevy_pbr__2mesh_view_bindings__2irradiance_volume_sampler: sampler;
+
+@group(0) @binding(10)
+var<uniform> bevy_pbr__2mesh_view_bindings__3cluster_offsets_and_counts: bevy_pbr__2mesh_view_types_ClusterOffsetsAndCounts;
+
+@group(0) @binding(1)
+var<uniform> bevy_pbr__2mesh_view_bindings_lights: bevy_pbr__2mesh_view_types_Lights;
+
+@group(0) @binding(0)
+var<uniform> bevy_pbr__2mesh_view_bindings_view: bevy_render_view_View;
+
+@group(2) @binding(100)
+var<uniform> irradiance_volume_info: VoxelVisualizationIrradianceVolumeInfo;
+
+struct VoxelVisualizationIrradianceVolumeInfo {
+    world_from_voxel: mat4x4<f32>,
+    voxel_from_world: mat4x4<f32>,
+    resolution: vec3<u32>,
+    intensity: f32
+}
+
+struct bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges {
+    first_point_light_index_offset: u32,
+    first_spot_light_index_offset: u32,
+    first_reflection_probe_index_offset: u32,
+    first_irradiance_volume_index_offset: u32,
+    first_decal_offset: u32,
+    last_clusterable_object_index_offset: u32
+}
+
+struct bevy_pbr__1forward_io_VertexOutput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    world_position: vec4<f32>,
+    @location(1)
+    world_normal: vec3<f32>,
+    @location(2)
+    uv: vec2<f32>,
+    @location(6) @interpolate(flat)
+    instance_index: u32
+}
+
+struct bevy_pbr__1light_probe_LightProbeQueryResult {
+    texture_index: i32,
+    intensity: f32,
+    light_from_world: mat4x4<f32>,
+    affects_lightmapped_mesh_diffuse: bool
+}
+
+struct bevy_pbr__2mesh_view_types_ClusterOffsetsAndCounts {
+    data: array<vec4<u32>, 1024>
+}
+
+struct bevy_pbr__2mesh_view_types_DirectionalCascade {
+    clip_from_world: mat4x4<f32>,
+    texel_size: f32,
+    far_bound: f32
+}
+
+struct bevy_pbr__2mesh_view_types_DirectionalLight {
+    cascades: array<bevy_pbr__2mesh_view_types_DirectionalCascade, 10>,
+    color: vec4<f32>,
+    direction_to_light: vec3<f32>,
+    flags: u32,
+    soft_shadow_size: f32,
+    shadow_depth_bias: f32,
+    shadow_normal_bias: f32,
+    num_cascades: u32,
+    cascades_overlap_proportion: f32,
+    depth_texture_base_index: u32,
+    skip: u32
+}
+
+struct bevy_pbr__2mesh_view_types_LightProbe {
+    light_from_world_transposed: mat3x4<f32>,
+    cubemap_index: i32,
+    intensity: f32,
+    affects_lightmapped_mesh_diffuse: u32
+}
+
+struct bevy_pbr__2mesh_view_types_LightProbes {
+    reflection_probes: array<bevy_pbr__2mesh_view_types_LightProbe, 8>,
+    irradiance_volumes: array<bevy_pbr__2mesh_view_types_LightProbe, 8>,
+    reflection_probe_count: i32,
+    irradiance_volume_count: i32,
+    view_cubemap_index: i32,
+    smallest_specular_mip_level_for_view: u32,
+    intensity_for_view: f32,
+    view_environment_map_affects_lightmapped_mesh_diffuse: u32
+}
+
+struct bevy_pbr__2mesh_view_types_Lights {
+    directional_lights: array<bevy_pbr__2mesh_view_types_DirectionalLight, 10>,
+    ambient_color: vec4<f32>,
+    cluster_dimensions: vec4<u32>,
+    cluster_factors: vec4<f32>,
+    n_directional_lights: u32,
+    spot_light_shadowmap_offset: i32,
+    environment_map_smallest_specular_mip_level: u32,
+    environment_map_intensity: f32
+}
+
+struct bevy_render_view_ColorGrading {
+    balance: mat3x3<f32>,
+    saturation: vec3<f32>,
+    contrast: vec3<f32>,
+    gamma: vec3<f32>,
+    gain: vec3<f32>,
+    lift: vec3<f32>,
+    midtone_range: vec2<f32>,
+    exposure: f32,
+    hue: f32,
+    post_saturation: f32
+}
+
+struct bevy_render_view_View {
+    clip_from_world: mat4x4<f32>,
+    unjittered_clip_from_world: mat4x4<f32>,
+    world_from_clip: mat4x4<f32>,
+    world_from_view: mat4x4<f32>,
+    view_from_world: mat4x4<f32>,
+    clip_from_view: mat4x4<f32>,
+    view_from_clip: mat4x4<f32>,
+    world_position: vec3<f32>,
+    exposure: f32,
+    viewport: vec4<f32>,
+    frustum: array<vec4<f32>, 6>,
+    color_grading: bevy_render_view_ColorGrading,
+    mip_bias: f32,
+    frame_count: u32
+}
+
+fn bevy_pbr__1clustered_forward__2fragment_cluster_index(frag_coord: vec2<f32>, view_z: f32, is_orthographic: bool) -> u32 {
+    let xy: vec2<u32> = vec2<u32>(floor((frag_coord - bevy_pbr__2mesh_view_bindings_view.viewport.xy) * bevy_pbr__2mesh_view_bindings_lights.cluster_factors.xy));
+    let z_slice: u32 = bevy_pbr__1clustered_forward__4view_z_to_z_slice(view_z, is_orthographic);
+    return min((xy.y * bevy_pbr__2mesh_view_bindings_lights.cluster_dimensions.x + xy.x) * bevy_pbr__2mesh_view_bindings_lights.cluster_dimensions.z + z_slice, bevy_pbr__2mesh_view_bindings_lights.cluster_dimensions.w - 1u);
+}
+
+fn bevy_pbr__1clustered_forward__4unpack_clusterable_object_index_ranges(cluster_index: u32) -> bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges {
+    {
+        let raw_offset_and_counts: u32 = bevy_pbr__2mesh_view_bindings__3cluster_offsets_and_counts.data[cluster_index >> 2u][cluster_index & 3u];
+        let offset_and_counts: vec3<u32> = vec3<u32>((raw_offset_and_counts >> 18u) & 16383u, (raw_offset_and_counts >> 9u) & 511u, raw_offset_and_counts & 511u);
+        let offset_a: u32 = offset_and_counts.x;
+        let offset_b: u32 = offset_a + offset_and_counts.y;
+        let offset_c: u32 = offset_b + offset_and_counts.z;
+        return bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges(offset_a, offset_b, offset_c, offset_c, offset_c, offset_c);
+    }
+}
+
+fn bevy_pbr__1clustered_forward__4view_z_to_z_slice(view_z: f32, is_orthographic: bool) -> u32 {
+    var z_slice: u32 = 0u;
+    if is_orthographic {
+        z_slice = u32(floor((view_z - bevy_pbr__2mesh_view_bindings_lights.cluster_factors.z) * bevy_pbr__2mesh_view_bindings_lights.cluster_factors.w));
+    }
+    else {
+        z_slice = u32(log(-view_z) * bevy_pbr__2mesh_view_bindings_lights.cluster_factors.z - bevy_pbr__2mesh_view_bindings_lights.cluster_factors.w + 1.0);
+    }
+    return min(z_slice, bevy_pbr__2mesh_view_bindings_lights.cluster_dimensions.z - 1u);
+}
+
+fn bevy_pbr__1irradiance_volume__2irradiance_volume_light(world_position: vec3<f32>, N: vec3<f32>, clusterable_object_index_ranges: ptr<function, bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges>) -> vec3<f32> {
+    let query_result: bevy_pbr__1light_probe_LightProbeQueryResult = bevy_pbr__1light_probe__2query_light_probe(world_position, true, clusterable_object_index_ranges);
+    if (query_result.texture_index < 0) {
+        return vec3(0f, 0f, 0f);
+    }
+    let irradiance_volume_texture: texture_3d<f32> = bevy_pbr__2mesh_view_bindings__1irradiance_volume;
+    let atlas_resolution: vec3<f32> = vec3<f32>(textureDimensions(irradiance_volume_texture));
+    let resolution: vec3<f32> = vec3<f32>(textureDimensions(irradiance_volume_texture) / vec3(1u, 2u, 3u));
+    var unit_pos: vec3<f32> = (query_result.light_from_world * vec4(world_position, 1f)).xyz;
+    let stp: vec3<f32> = clamp((unit_pos + 0.5) * resolution, vec3(0.5f, 0.5f, 0.5f), resolution - vec3(0.5f, 0.5f, 0.5f));
+    let uvw: vec3<f32> = stp / atlas_resolution;
+    let neg_offset: vec3<f32> = select(vec3(0f, 0f, 0f), vec3(0.5f, 0.5f, 0.5f), N < vec3(0f, 0f, 0f));
+    let uvw_x: vec3<f32> = uvw + vec3(0f, neg_offset.x, 0f);
+    let uvw_y: vec3<f32> = uvw + vec3(0f, neg_offset.y, 0.33333334f);
+    let uvw_z: vec3<f32> = uvw + vec3(0f, neg_offset.z, 0.6666667f);
+    let rgb_x: vec3<f32> = textureSampleLevel(irradiance_volume_texture, bevy_pbr__2mesh_view_bindings__2irradiance_volume_sampler, uvw_x, 0.0).rgb;
+    let rgb_y: vec3<f32> = textureSampleLevel(irradiance_volume_texture, bevy_pbr__2mesh_view_bindings__2irradiance_volume_sampler, uvw_y, 0.0).rgb;
+    let rgb_z: vec3<f32> = textureSampleLevel(irradiance_volume_texture, bevy_pbr__2mesh_view_bindings__2irradiance_volume_sampler, uvw_z, 0.0).rgb;
+    let NN: vec3<f32> = N * N;
+    return (rgb_x * NN.x + rgb_y * NN.y + rgb_z * NN.z) * query_result.intensity;
+}
+
+fn bevy_pbr__1light_probe__2query_light_probe(world_position: vec3<f32>, is_irradiance_volume: bool, clusterable_object_index_ranges: ptr<function, bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges>) -> bevy_pbr__1light_probe_LightProbeQueryResult {
+    var result: bevy_pbr__1light_probe_LightProbeQueryResult;
+    result.texture_index = -1;
+    var light_probe_count: i32;
+    if is_irradiance_volume {
+        light_probe_count = bevy_pbr__2mesh_view_bindings__1light_probes.irradiance_volume_count;
+    }
+    else {
+        light_probe_count = bevy_pbr__2mesh_view_bindings__1light_probes.reflection_probe_count;
+    }
+    for (var light_probe_index: i32 = 0; light_probe_index < light_probe_count && result.texture_index < 0; light_probe_index += 1) {
+        var light_probe: bevy_pbr__2mesh_view_types_LightProbe;
+        if is_irradiance_volume {
+            light_probe = bevy_pbr__2mesh_view_bindings__1light_probes.irradiance_volumes[light_probe_index];
+        }
+        else {
+            light_probe = bevy_pbr__2mesh_view_bindings__1light_probes.reflection_probes[light_probe_index];
+        }
+        let light_from_world: mat4x4<f32> = bevy_pbr__1light_probe__2transpose_affine_matrix(light_probe.light_from_world_transposed);
+        let probe_space_pos: vec3<f32> = (light_from_world * vec4<f32>(world_position, 1f)).xyz;
+        if (all(abs(probe_space_pos) <= vec3(0.5f, 0.5f, 0.5f))) {
+            result.texture_index = light_probe.cubemap_index;
+            result.intensity = light_probe.intensity;
+            result.light_from_world = light_from_world;
+            result.affects_lightmapped_mesh_diffuse = light_probe.affects_lightmapped_mesh_diffuse != 0u;
+        }
+    }
+    return result;
+}
+
+fn bevy_pbr__1light_probe__2transpose_affine_matrix(matrix: mat3x4<f32>) -> mat4x4<f32> {
+    let matrix4x4: mat4x4<f32> = mat4x4<f32>(matrix[0], matrix[1], matrix[2], vec4(0f, 0f, 0f, 1f));
+    return transpose(matrix4x4);
+}
+
+@fragment
+fn fragment(mesh: bevy_pbr__1forward_io_VertexOutput) -> @location(0) vec4<f32> {
+    var unit_pos: vec3<f32> = (irradiance_volume_info.voxel_from_world * vec4(mesh.world_position.xyz, 1f)).xyz;
+    let resolution: vec3<f32> = vec3<f32>(irradiance_volume_info.resolution);
+    let stp: vec3<f32> = clamp((unit_pos + 0.5) * resolution, vec3(0.5f, 0.5f, 0.5f), resolution - vec3(0.5f, 0.5f, 0.5f));
+    let stp_rounded: vec3<f32> = round(stp - 0.5f) + 0.5f;
+    let rounded_world_pos: vec3<f32> = (irradiance_volume_info.world_from_voxel * vec4(stp_rounded, 1f)).xyz;
+    let view_z: f32 = dot(vec4<f32>(bevy_pbr__2mesh_view_bindings_view.view_from_world[0].z, bevy_pbr__2mesh_view_bindings_view.view_from_world[1].z, bevy_pbr__2mesh_view_bindings_view.view_from_world[2].z, bevy_pbr__2mesh_view_bindings_view.view_from_world[3].z), mesh.world_position);
+    let cluster_index: u32 = bevy_pbr__1clustered_forward__2fragment_cluster_index(mesh.position.xy, view_z, false);
+    var clusterable_object_index_ranges: bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges = bevy_pbr__1clustered_forward__4unpack_clusterable_object_index_ranges(cluster_index);
+    let rgb: vec3<f32> = bevy_pbr__1irradiance_volume__2irradiance_volume_light(mesh.world_position.xyz, mesh.world_normal, &clusterable_object_index_ranges) / irradiance_volume_info.intensity;
+    return vec4<f32>(rgb, 1f);
+}

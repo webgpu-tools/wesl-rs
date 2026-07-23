@@ -1,0 +1,57 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+struct Foo {
+    a: vec4<f32>,
+    b: i32
+}
+
+@compute @workgroup_size(1)
+fn main() {
+    var foo: Foo;
+    foo = Foo(vec4(1f, 1f, 1f, 1f), 1i);
+    let m0: mat2x2<f32> = mat2x2(1f, 0f, 0f, 1f);
+    let m1: mat4x4<f32> = mat4x4(1f, 0f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 0f, 1f);
+    let zvc0: bool = false;
+    let zvc1: i32 = 0i;
+    let zvc2: u32 = 0u;
+    let zvc3: f32 = 0f;
+    let zvc4: vec2<u32> = vec2(0u, 0u);
+    let zvc5: mat2x2<f32> = mat2x2(0f, 0f, 0f, 0f);
+    let zvc6: array<Foo, 3> = array(Foo(vec4(0f, 0f, 0f, 0f), 0i), Foo(vec4(0f, 0f, 0f, 0f), 0i), Foo(vec4(0f, 0f, 0f, 0f), 0i));
+    let zvc7: Foo = Foo(vec4(0f, 0f, 0f, 0f), 0i);
+    let zvc8: vec2<u32> = vec2(0, 0);
+    let zvc9: vec2<f32> = vec2(0, 0);
+    let cit0: vec2<u32> = vec2(0u, 0u);
+    let cit1: mat2x2<f32> = mat2x2(0.0, 0.0, 0.0, 0.0);
+    let cit2: array<i32, 4> = array(0, 1, 2, 3);
+    let ic0: bool = false;
+    let ic1: i32 = 0i;
+    let ic2: u32 = 0u;
+    let ic3: f32 = 0f;
+    let ic4: vec2<u32> = vec2(0u, 0u);
+    let ic5: mat2x3<f32> = mat2x3(0f, 0f, 0f, 0f, 0f, 0f);
+    let ic6: vec2<u32> = vec2(0u, 0u);
+    let ic7: mat2x3<f32> = mat2x3(0f, 0f, 0f, 0f, 0f, 0f);
+    let cc00: i32 = 1i;
+    let cc01: i32 = 1i;
+    let cc02: i32 = 1i;
+    let cc03: i32 = 1i;
+    let cc04: i32 = 1i;
+    let cc05: u32 = 1u;
+    let cc06: u32 = 1u;
+    let cc07: u32 = 1u;
+    let cc08: u32 = 1u;
+    let cc09: u32 = 1u;
+    let cc10: f32 = 1f;
+    let cc11: f32 = 1f;
+    let cc12: f32 = 1f;
+    let cc13: f32 = 1f;
+    let cc14: f32 = 1f;
+    let cc15: bool = true;
+    let cc16: bool = true;
+    let cc17: bool = true;
+    let cc18: bool = true;
+    let cc19: bool = true;
+}

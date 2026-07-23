@@ -1,0 +1,24 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+fn exact_1(a_2: i32) {
+
+}
+
+fn implicit(a_4: f32) {
+
+}
+
+fn implicit_dims_2(v_4: vec3<f32>) {
+
+}
+
+@fragment
+fn main() {
+    return;
+}
+
+fn main_1() {
+
+}

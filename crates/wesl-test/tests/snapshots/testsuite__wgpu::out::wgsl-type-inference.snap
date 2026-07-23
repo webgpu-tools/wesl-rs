@@ -1,0 +1,40 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@compute @workgroup_size(1, 1, 1)
+fn main() {
+    var g0x: i32 = 1i;
+    var g2x: f32 = 1f;
+    var g7x: mat2x2<f32> = mat2x2(1f, 1f, 1f, 1f);
+    var c0x: i32 = 1i;
+    var c1x: u32 = 1u;
+    var c2x: f32 = 1f;
+    var c3x: f32 = 1f;
+    var c4x: vec4<i32> = vec4(0i, 0i, 0i, 0i);
+    var c5x: vec4<i32> = vec4(1i, 1i, 1i, 1i);
+    var c6x: mat2x2<f32> = mat2x2(0f, 0f, 0f, 0f);
+    var c7x: mat2x2<f32> = mat2x2(1f, 1f, 1f, 1f);
+    var l0x: i32;
+    var l1x: u32;
+    var l2x: f32;
+    var l3x: f32;
+    var l4x: vec4<i32>;
+    var v0_: i32 = 1i;
+    var v1_: u32 = 1u;
+    var v2_: f32 = 1f;
+    var v3_: f32 = 1f;
+    var v4_: vec4<i32> = vec4(0i, 0i, 0i, 0i);
+    var v5_: vec4<i32> = vec4(1i, 1i, 1i, 1i);
+    var v6_: mat2x2<f32> = mat2x2(0f, 0f, 0f, 0f);
+    var v7_: mat2x2<f32> = mat2x2(1f, 1f, 1f, 1f);
+    let l5_: vec4<i32> = vec4(1i, 1i, 1i, 1i);
+    let l6_: mat2x2<f32> = mat2x2(0f, 0f, 0f, 0f);
+    let l7_: mat2x2<f32> = mat2x2(1f, 1f, 1f, 1f);
+    l0x = 1i;
+    l1x = 1u;
+    l2x = 1f;
+    l3x = 1f;
+    l4x = vec4(0i, 0i, 0i, 0i);
+    return;
+}

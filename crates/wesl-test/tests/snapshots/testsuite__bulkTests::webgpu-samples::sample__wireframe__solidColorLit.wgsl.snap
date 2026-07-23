@@ -1,0 +1,41 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(0)
+var<uniform> uni: Uniforms;
+
+struct Uniforms {
+    worldViewProjectionMatrix: mat4x4<f32>,
+    worldMatrix: mat4x4<f32>,
+    color: vec4<f32>
+}
+
+struct VSOut {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    normal: vec3<f32>
+}
+
+struct Vertex {
+    @location(0)
+    position: vec4<f32>,
+    @location(1)
+    normal: vec3<f32>
+}
+
+@fragment
+fn fs(vin: VSOut) -> @location(0) vec4<f32> {
+    let lightDirection: vec3<f32> = vec3(0.32444283f, 0.8111071f, 0.48666427f);
+    let light: f32 = dot(normalize(vin.normal), lightDirection) * 0.5 + 0.5;
+    return vec4<f32>(uni.color.rgb * light, uni.color.a);
+}
+
+@vertex
+fn vs(vin: Vertex) -> VSOut {
+    var vOut: VSOut;
+    vOut.position = uni.worldViewProjectionMatrix * vin.position;
+    vOut.normal = (uni.worldMatrix * vec4<f32>(vin.normal, 0)).xyz;
+    return vOut;
+}

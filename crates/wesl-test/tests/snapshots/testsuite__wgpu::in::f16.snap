@@ -1,0 +1,100 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+enable f16;
+
+@group(0) @binding(2)
+var<storage> input_arrays: StorageCompatible;
+
+@group(0) @binding(1)
+var<storage> input_storage: UniformCompatible;
+
+@group(0) @binding(0)
+var<uniform> input_uniform: UniformCompatible;
+
+@group(0) @binding(3)
+var<storage, read_write> output: UniformCompatible;
+
+@group(0) @binding(4)
+var<storage, read_write> output_arrays: StorageCompatible;
+
+struct StorageCompatible {
+    val_f16_array_2: array<f16, 2>
+}
+
+struct UniformCompatible {
+    val_u32: u32,
+    val_i32: i32,
+    val_f32: f32,
+    val_f16: f16,
+    val_f16_2: vec2<f16>,
+    val_f16_3: vec3<f16>,
+    val_f16_4: vec4<f16>,
+    final_value: f16,
+    val_mat2x2: mat2x2<f16>,
+    val_mat2x3: mat2x3<f16>,
+    val_mat2x4: mat2x4<f16>,
+    val_mat3x2: mat3x2<f16>,
+    val_mat3x3: mat3x3<f16>,
+    val_mat3x4: mat3x4<f16>,
+    val_mat4x2: mat4x2<f16>,
+    val_mat4x3: mat4x3<f16>,
+    val_mat4x4: mat4x4<f16>
+}
+
+fn f16_function(x: f16) -> f16 {
+    var val: f16 = 15.203125h;
+    val += -33344h;
+    val += val + 5h;
+    val += f16(input_uniform.val_f32 + f32(val));
+    val += vec3<f16>(input_uniform.val_f16).z;
+    output.val_i32 = 65504i;
+    output.val_i32 = -65504i;
+    output.val_u32 = 65504u;
+    output.val_u32 = 0u;
+    output.val_f32 = 65504f;
+    output.val_f32 = -65504f;
+    output.val_f16 = input_uniform.val_f16 + input_storage.val_f16;
+    output.val_f16_2 = input_uniform.val_f16_2 + input_storage.val_f16_2;
+    output.val_f16_3 = input_uniform.val_f16_3 + input_storage.val_f16_3;
+    output.val_f16_4 = input_uniform.val_f16_4 + input_storage.val_f16_4;
+    output.val_mat2x2 = input_uniform.val_mat2x2 + input_storage.val_mat2x2;
+    output.val_mat2x3 = input_uniform.val_mat2x3 + input_storage.val_mat2x3;
+    output.val_mat2x4 = input_uniform.val_mat2x4 + input_storage.val_mat2x4;
+    output.val_mat3x2 = input_uniform.val_mat3x2 + input_storage.val_mat3x2;
+    output.val_mat3x3 = input_uniform.val_mat3x3 + input_storage.val_mat3x3;
+    output.val_mat3x4 = input_uniform.val_mat3x4 + input_storage.val_mat3x4;
+    output.val_mat4x2 = input_uniform.val_mat4x2 + input_storage.val_mat4x2;
+    output.val_mat4x3 = input_uniform.val_mat4x3 + input_storage.val_mat4x3;
+    output.val_mat4x4 = input_uniform.val_mat4x4 + input_storage.val_mat4x4;
+    output_arrays.val_f16_array_2 = input_arrays.val_f16_array_2;
+    val += abs(val);
+    val += clamp(val, val, val);
+    val += dot(vec2(val), vec2(val));
+    val += max(val, val);
+    val += min(val, val);
+    val += sign(val);
+    val += 1h;
+    let float_vec2: vec2<f32> = vec2<f32>(input_uniform.val_f16_2);
+    output.val_f16_2 = vec2<f16>(float_vec2);
+    let float_vec3: vec3<f32> = vec3<f32>(input_uniform.val_f16_3);
+    output.val_f16_3 = vec3<f16>(float_vec3);
+    let float_vec4: vec4<f32> = vec4<f32>(input_uniform.val_f16_4);
+    output.val_f16_4 = vec4<f16>(float_vec4);
+    output.val_mat2x2 = mat2x2<f16>(mat2x2<f32>(input_uniform.val_mat2x2));
+    output.val_mat2x3 = mat2x3<f16>(mat2x3<f32>(input_uniform.val_mat2x3));
+    output.val_mat2x4 = mat2x4<f16>(mat2x4<f32>(input_uniform.val_mat2x4));
+    output.val_mat3x2 = mat3x2<f16>(mat3x2<f32>(input_uniform.val_mat3x2));
+    output.val_mat3x3 = mat3x3<f16>(mat3x3<f32>(input_uniform.val_mat3x3));
+    output.val_mat3x4 = mat3x4<f16>(mat3x4<f32>(input_uniform.val_mat3x4));
+    output.val_mat4x2 = mat4x2<f16>(mat4x2<f32>(input_uniform.val_mat4x2));
+    output.val_mat4x3 = mat4x3<f16>(mat4x3<f32>(input_uniform.val_mat4x3));
+    output.val_mat4x4 = mat4x4<f16>(mat4x4<f32>(input_uniform.val_mat4x4));
+    return val;
+}
+
+@compute @workgroup_size(1)
+fn main() {
+    output.final_value = f16_function(2h);
+}

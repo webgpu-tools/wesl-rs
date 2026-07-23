@@ -1,0 +1,44 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@fragment
+fn main() {
+    let v: vec4<f32> = vec4(0f, 0f, 0f, 0f);
+    let a: f32 = 57.29578f;
+    let b: f32 = 0.017453292f;
+    let c: vec4<f32> = degrees(v);
+    let d: vec4<f32> = radians(v);
+    let e: vec4<f32> = saturate(v);
+    let g: vec4<f32> = refract(v, v, 1f);
+    let sign_b: vec4<i32> = vec4(-1i, -1i, -1i, -1i);
+    let sign_d: vec4<f32> = vec4(-1f, -1f, -1f, -1f);
+    let const_dot: i32 = 0i;
+    let flb_b: vec2<i32> = vec2(-1i, -1i);
+    let flb_c: vec2<u32> = vec2(0u, 0u);
+    let ftb_c: vec2<i32> = vec2(0i, 0i);
+    let ftb_d: vec2<u32> = vec2(0u, 0u);
+    let ctz_e: vec2<u32> = vec2(32u, 32u);
+    let ctz_f: vec2<i32> = vec2(32i, 32i);
+    let ctz_g: vec2<u32> = vec2(0u, 0u);
+    let ctz_h: vec2<i32> = vec2(0i, 0i);
+    let clz_c: vec2<i32> = vec2(0i, 0i);
+    let clz_d: vec2<u32> = vec2(31u, 31u);
+    let lde_a: f32 = 4f;
+    let lde_b: vec2<f32> = vec2(8f, 32f);
+    let modf_a = modf(1.5f);
+    let modf_b: f32 = modf(1.5f).fract;
+    let modf_c: f32 = modf(1.5f).whole;
+    let modf_d = modf(vec2(1.5f, 1.5f));
+    let modf_e: f32 = modf(vec4(1.5f, 1.5f, 1.5f, 1.5f)).whole.x;
+    let modf_f: f32 = modf(vec2(1.5f, 1.5f)).fract.y;
+    let frexp_a = frexp(1.5f);
+    let frexp_b: f32 = 0.75f;
+    let frexp_c: i32 = 1i;
+    let frexp_d: i32 = 1i;
+    let quantizeToF16_a: f32 = quantizeToF16(1f);
+    let quantizeToF16_b: vec2<f32> = quantizeToF16(vec2(1f, 1f));
+    let quantizeToF16_c: vec3<f32> = quantizeToF16(vec3(1f, 1f, 1f));
+    let quantizeToF16_d: vec4<f32> = quantizeToF16(vec4(1f, 1f, 1f, 1f));
+    return;
+}

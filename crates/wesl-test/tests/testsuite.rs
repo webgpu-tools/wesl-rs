@@ -50,6 +50,14 @@ fn eprint_wgsl_test(case: &WgslTestSrc) {
     );
 }
 
+fn test_name(path: impl AsRef<std::path::Path>) -> String {
+    path.as_ref()
+        .file_stem()
+        .unwrap()
+        .to_string_lossy()
+        .to_string()
+}
+
 fn main() {
     let mut tests: Vec<libtest_mimic::Trial> = Vec::new();
 
@@ -66,7 +74,7 @@ fn main() {
             let file = std::fs::read_to_string(path).expect("failed to read test file");
             let json: Vec<Test> = serde_json::from_str(&file).expect("failed to parse json file");
             json.into_iter().map(|case| {
-                let name = format!("{path}::{}", case.name);
+                let name = format!("spec-tests::{}::{}", test_name(path), case.name);
                 let ignored = case.skip.unwrap_or(false);
                 libtest_mimic::Trial::test(name, move || {
                     json_case(&case).inspect_err(|_| eprint_test(&case))
@@ -79,24 +87,28 @@ fn main() {
     let coverage_tests = ["spec-tests/ctor_coverage.wgsl"];
     for path in coverage_tests {
         tests.push({
-            libtest_mimic::Trial::test(path, move || validation_case(PathBuf::from(path)))
+            let name = format!("spec-tests::{}", test_name(path));
+            libtest_mimic::Trial::test(name.clone(), move || {
+                validation_case(name.clone(), PathBuf::from(path))
+            })
         });
     }
 
-    tests.extend({
-        let file =
-            std::fs::read_to_string("wesl-testsuite/src/test-cases-json/importSyntaxCases.json")
-                .expect("failed to read test file");
-        let json: Vec<ParsingTest> =
-            serde_json::from_str(&file).expect("failed to parse json file");
-        json.into_iter().map(|mut case| {
-            case.normalize();
-            let name = format!("importSyntaxCases.json::{}", case.src);
-            libtest_mimic::Trial::test(name, move || {
-                testsuite_syntax_case(&case).inspect_err(|_| eprint_parsing_test(&case))
+    let testsuite_syntax_tests = ["wesl-testsuite/src/test-cases-json/importSyntaxCases.json"];
+    for path in testsuite_syntax_tests {
+        tests.extend({
+            let file = std::fs::read_to_string(path).expect("failed to read test file");
+            let json: Vec<ParsingTest> =
+                serde_json::from_str(&file).expect("failed to parse json file");
+            json.into_iter().map(|mut case| {
+                case.normalize();
+                let name = format!("testsuite::{}::{}", test_name(path), case.src);
+                libtest_mimic::Trial::test(name, move || {
+                    testsuite_syntax_case(&case).inspect_err(|_| eprint_parsing_test(&case))
+                })
             })
-        })
-    });
+        });
+    }
 
     let testsuite_tests = [
         "wesl-testsuite/src/test-cases-json/importCases.json",
@@ -109,7 +121,7 @@ fn main() {
             let json: Vec<WgslTestSrc> =
                 serde_json::from_str(&file).expect("failed to parse json file");
             json.into_iter().map(|case| {
-                let name = format!("importCases.json::{}", case.name);
+                let name = format!("testsuite::{}::{}", test_name(path), case.name);
                 libtest_mimic::Trial::test(name, move || {
                     testsuite_case(&case).inspect_err(|_| eprint_wgsl_test(&case))
                 })
@@ -123,7 +135,7 @@ fn main() {
         let json: Vec<WgslBulkTest> =
             serde_json::from_str(&file).expect("failed to parse json file");
         json.into_iter().flat_map(|bulk_case| {
-            let name = format!("bulkTests.json::{}", bulk_case.name);
+            let name = format!("bulkTests::{}", test_name(&bulk_case.base_dir));
             let cwd = std::path::Path::new("wesl-testsuite");
             fetch_bulk_test(&bulk_case, cwd)
                 .unwrap_or_else(|_| panic!("failed to fetch bulk test {name}"));
@@ -135,19 +147,18 @@ fn main() {
             let base_dir = cwd.join(&bulk_case.base_dir);
             let include_paths: Vec<_> = bulk_case
                 .include
-                .map(|v| v.iter().map(|v| base_dir.join(v)).collect())
-                .unwrap_or_else(|| {
-                    std::fs::read_dir(&bulk_case.base_dir)
-                        .unwrap_or_else(|_| panic!("missing dir `{}`", &bulk_case.base_dir))
-                        .filter_map(|e| e.ok())
-                        .filter(|e| e.path().extension() == Some(OsStr::new("wgsl")))
-                        .map(|v| v.path())
-                        .collect()
-                });
+                .expect("Required include field")
+                .iter()
+                .map(|v| base_dir.join(v))
+                .collect();
 
-            include_paths.into_iter().map(move |shader_path| {
-                libtest_mimic::Trial::test(format!("{name}::{shader_path:?}"), move || {
-                    validation_case(shader_path)
+            include_paths.into_iter().map(move |path| {
+                let name = format!(
+                    "{name}::{}",
+                    path.strip_prefix(&base_dir).unwrap().display()
+                );
+                libtest_mimic::Trial::test(name.clone(), move || {
+                    validation_case(name.clone(), path)
                 })
             })
         })
@@ -159,8 +170,8 @@ fn main() {
             .filter_map(|e| e.ok())
             .filter(|e| e.path().extension() == Some(OsStr::new("wgsl")))
             .map(|e| {
-                let name = format!("bevy::{}", e.file_name().display());
-                libtest_mimic::Trial::test(name, move || bevy_case(e.path()))
+                let name = format!("bevy::{}", test_name(e.path()));
+                libtest_mimic::Trial::test(name.clone(), move || bevy_case(name.clone(), e.path()))
             })
     });
 
@@ -177,19 +188,21 @@ fn main() {
             .filter(|(e, _)| e.path().extension() == Some(OsStr::new("wgsl")))
             .map(|(e, d)| {
                 let filename = e.file_name();
-                let name = format!("wgpu::{d}::{}", filename.display());
-                libtest_mimic::Trial::test(name, move || validation_case(e.path()))
-                    .with_ignored_flag(
-                        [
-                            "lexical-scopes.wgsl",     // https://github.com/gfx-rs/wgpu/issues/8235
-                            "msl-vpt-formats-x1.wgsl", // https://github.com/gfx-rs/wgpu/issues/8225
-                            "msl-vpt-formats-x2.wgsl", // https://github.com/gfx-rs/wgpu/issues/8225
-                            "msl-vpt-formats-x3.wgsl", // https://github.com/gfx-rs/wgpu/issues/8225
-                            "msl-vpt-formats-x4.wgsl", // https://github.com/gfx-rs/wgpu/issues/8225
-                        ]
-                        .iter()
-                        .any(|f| filename.to_str() == Some(f)),
-                    )
+                let name = format!("wgpu::{d}::{}", test_name(&filename));
+                libtest_mimic::Trial::test(name.clone(), move || {
+                    validation_case(name.clone(), e.path())
+                })
+                .with_ignored_flag(
+                    [
+                        "lexical-scopes.wgsl",     // https://github.com/gfx-rs/wgpu/issues/8235
+                        "msl-vpt-formats-x1.wgsl", // https://github.com/gfx-rs/wgpu/issues/8225
+                        "msl-vpt-formats-x2.wgsl", // https://github.com/gfx-rs/wgpu/issues/8225
+                        "msl-vpt-formats-x3.wgsl", // https://github.com/gfx-rs/wgpu/issues/8225
+                        "msl-vpt-formats-x4.wgsl", // https://github.com/gfx-rs/wgpu/issues/8225
+                    ]
+                    .iter()
+                    .any(|f| filename.to_str() == Some(f)),
+                )
             })
     });
 
@@ -409,7 +422,7 @@ pub fn testsuite_case(case: &WgslTestSrc) -> Result<(), libtest_mimic::Failed> {
     Ok(())
 }
 
-pub fn validation_case(path: PathBuf) -> Result<(), libtest_mimic::Failed> {
+pub fn validation_case(test_name: String, path: PathBuf) -> Result<(), libtest_mimic::Failed> {
     let input = std::fs::read_to_string(path).expect("failed to read test file");
     let mut resolver = VirtualResolver::new();
     let main_path = ModulePath::from_str("package::main")?;
@@ -421,12 +434,22 @@ pub fn validation_case(path: PathBuf) -> Result<(), libtest_mimic::Failed> {
         mangler: ManglerKind::None,
         ..Default::default()
     };
-    let _ = Compiler::new_with_resolver(compile_options, resolver).compile_module(&main_path)?;
+
+    let mut compiler = Compiler::new_with_resolver(compile_options, resolver);
+
+    // first we compile with strip: false to catch more bugs.
+    let _ = compiler.compile_module(&main_path)?;
+
+    // second, we run with strip: true, which is the default for WESL, and save the snapshot.
+    compiler.options.strip = true;
+    let mut res = compiler.compile_module(&main_path)?;
+    res.syntax.sort_declarations();
+    insta::assert_snapshot!(test_name, res.syntax.to_string());
     Ok(())
 }
 
-pub fn bevy_case(path: PathBuf) -> Result<(), libtest_mimic::Failed> {
-    let base = path.parent().ok_or("file not found")?;
+pub fn bevy_case(test_name: String, path: PathBuf) -> Result<(), libtest_mimic::Failed> {
+    let pkg_root_dir = path.parent().ok_or("file not found")?;
     let name = path
         .file_stem()
         .ok_or("file not found")?
@@ -467,7 +490,16 @@ pub fn bevy_case(path: PathBuf) -> Result<(), libtest_mimic::Failed> {
         ..Default::default()
     };
 
-    Compiler::new(compile_options)
-        .compile_module(base, &ModulePath::new(PathOrigin::Absolute, vec![name]))?;
+    let mut compiler = Compiler::new(compile_options);
+    let main_path = ModulePath::new(PathOrigin::Absolute, vec![name]);
+
+    // first we compile with strip: false to catch more bugs.
+    let _ = compiler.compile_module(pkg_root_dir, &main_path)?;
+
+    // second, we run with strip: true, which is the default for WESL, and save the snapshot.
+    compiler.options.strip = true;
+    let mut res = compiler.compile_module(pkg_root_dir, &main_path)?;
+    res.syntax.sort_declarations();
+    insta::assert_snapshot!(test_name, res.syntax.to_string());
     Ok(())
 }

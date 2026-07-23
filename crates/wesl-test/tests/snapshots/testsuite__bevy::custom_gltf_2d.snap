@@ -1,0 +1,121 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(1) @binding(0)
+var<storage> bevy_sprite__1mesh2d_bindings_mesh: array<bevy_sprite__1mesh2d_types_Mesh2d>;
+
+@group(0) @binding(1)
+var<uniform> bevy_sprite__2mesh2d_view_bindings_globals: bevy_render_globals_Globals;
+
+@group(0) @binding(0)
+var<uniform> bevy_sprite__2mesh2d_view_bindings_view: bevy_render_view_View;
+
+struct FragmentInput {
+    @location(0)
+    color: vec4<f32>,
+    @location(1)
+    barycentric: vec3<f32>
+}
+
+struct Vertex {
+    @builtin(instance_index)
+    instance_index: u32,
+    @location(0)
+    position: vec3<f32>,
+    @location(1)
+    color: vec4<f32>,
+    @location(2)
+    barycentric: vec3<f32>
+}
+
+struct VertexOutput {
+    @builtin(position)
+    clip_position: vec4<f32>,
+    @location(0)
+    color: vec4<f32>,
+    @location(1)
+    barycentric: vec3<f32>
+}
+
+struct bevy_render_globals_Globals {
+    time: f32,
+    delta_time: f32,
+    frame_count: u32
+}
+
+struct bevy_render_view_ColorGrading {
+    balance: mat3x3<f32>,
+    saturation: vec3<f32>,
+    contrast: vec3<f32>,
+    gamma: vec3<f32>,
+    gain: vec3<f32>,
+    lift: vec3<f32>,
+    midtone_range: vec2<f32>,
+    exposure: f32,
+    hue: f32,
+    post_saturation: f32
+}
+
+struct bevy_render_view_View {
+    clip_from_world: mat4x4<f32>,
+    unjittered_clip_from_world: mat4x4<f32>,
+    world_from_clip: mat4x4<f32>,
+    world_from_view: mat4x4<f32>,
+    view_from_world: mat4x4<f32>,
+    clip_from_view: mat4x4<f32>,
+    view_from_clip: mat4x4<f32>,
+    world_position: vec3<f32>,
+    exposure: f32,
+    viewport: vec4<f32>,
+    frustum: array<vec4<f32>, 6>,
+    color_grading: bevy_render_view_ColorGrading,
+    mip_bias: f32,
+    frame_count: u32
+}
+
+struct bevy_sprite__1mesh2d_types_Mesh2d {
+    world_from_local: mat3x4<f32>,
+    local_from_world_transpose_a: mat2x4<f32>,
+    local_from_world_transpose_b: f32,
+    flags: u32,
+    tag: u32
+}
+
+fn bevy_render_maths__2affine3_to_square(affine: mat3x4<f32>) -> mat4x4<f32> {
+    return transpose(mat4x4<f32>(affine[0], affine[1], affine[2], vec4(0f, 0f, 0f, 1f)));
+}
+
+fn bevy_sprite__1mesh2d_functions__3get_world_from_local(instance_index: u32) -> mat4x4<f32> {
+    return bevy_render_maths__2affine3_to_square(bevy_sprite__1mesh2d_bindings_mesh[instance_index].world_from_local);
+}
+
+fn bevy_sprite__1mesh2d_functions__4mesh2d_position_local_to_clip(world_from_local: mat4x4<f32>, vertex_position: vec4<f32>) -> vec4<f32> {
+    let world_position: vec4<f32> = bevy_sprite__1mesh2d_functions__4mesh2d_position_local_to_world(world_from_local, vertex_position);
+    return bevy_sprite__1mesh2d_functions__4mesh2d_position_world_to_clip(world_position);
+}
+
+fn bevy_sprite__1mesh2d_functions__4mesh2d_position_local_to_world(world_from_local: mat4x4<f32>, vertex_position: vec4<f32>) -> vec4<f32> {
+    return world_from_local * vertex_position;
+}
+
+fn bevy_sprite__1mesh2d_functions__4mesh2d_position_world_to_clip(world_position: vec4<f32>) -> vec4<f32> {
+    return bevy_sprite__2mesh2d_view_bindings_view.clip_from_world * world_position;
+}
+
+@fragment
+fn fragment(input: FragmentInput) -> @location(0) vec4<f32> {
+    let d: f32 = min(input.barycentric.x, min(input.barycentric.y, input.barycentric.z));
+    let t: f32 = 0.05 * (0.85 + sin(5.0 * bevy_sprite__2mesh2d_view_bindings_globals.time));
+    return mix(vec4(1.0, 1.0, 1.0, 1.0), input.color, smoothstep(t, t + 0.01, d));
+}
+
+@vertex
+fn vertex(vertex: Vertex) -> VertexOutput {
+    var out: VertexOutput;
+    let world_from_local: mat4x4<f32> = bevy_sprite__1mesh2d_functions__3get_world_from_local(vertex.instance_index);
+    out.clip_position = bevy_sprite__1mesh2d_functions__4mesh2d_position_local_to_clip(world_from_local, vec4<f32>(vertex.position, 1.0));
+    out.color = vertex.color;
+    out.barycentric = vertex.barycentric;
+    return out;
+}

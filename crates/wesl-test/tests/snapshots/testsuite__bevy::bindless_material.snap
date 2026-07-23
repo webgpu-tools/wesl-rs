@@ -1,0 +1,35 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(2) @binding(0)
+var<uniform> material_color: Color;
+
+@group(2) @binding(2)
+var material_color_sampler: sampler;
+
+@group(2) @binding(1)
+var material_color_texture: texture_2d<f32>;
+
+struct Color {
+    base_color: vec4<f32>
+}
+
+struct bevy_pbr__1forward_io_VertexOutput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    world_position: vec4<f32>,
+    @location(1)
+    world_normal: vec3<f32>,
+    @location(2)
+    uv: vec2<f32>,
+    @location(6) @interpolate(flat)
+    instance_index: u32
+}
+
+@fragment
+fn fragment(in: bevy_pbr__1forward_io_VertexOutput) -> @location(0) vec4<f32> {
+    let base_color: vec4<f32> = material_color.base_color;
+    return base_color * textureSampleLevel(material_color_texture, material_color_sampler, in.uv, 0.0);
+}

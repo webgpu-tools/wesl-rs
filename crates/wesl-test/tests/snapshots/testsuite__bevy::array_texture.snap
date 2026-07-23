@@ -1,0 +1,908 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(8)
+var<uniform> bevy_pbr__2mesh_view_bindings__1clusterable_objects: bevy_pbr__2mesh_view_types_ClusterableObjects;
+
+@group(0) @binding(5)
+var bevy_pbr__2mesh_view_bindings__2directional_shadow_textures: texture_depth_2d_array;
+
+@group(0) @binding(2)
+var bevy_pbr__2mesh_view_bindings__2point_shadow_textures: texture_depth_cube_array;
+
+@group(0) @binding(10)
+var<uniform> bevy_pbr__2mesh_view_bindings__3cluster_offsets_and_counts: bevy_pbr__2mesh_view_types_ClusterOffsetsAndCounts;
+
+@group(0) @binding(9)
+var<uniform> bevy_pbr__2mesh_view_bindings__3clusterable_object_index_lists: bevy_pbr__2mesh_view_types_ClusterLightIndexLists;
+
+@group(0) @binding(6)
+var bevy_pbr__2mesh_view_bindings__4directional_shadow_textures_comparison_sampler: sampler_comparison;
+
+@group(0) @binding(3)
+var bevy_pbr__2mesh_view_bindings__4point_shadow_textures_comparison_sampler: sampler_comparison;
+
+@group(0) @binding(11)
+var<uniform> bevy_pbr__2mesh_view_bindings_globals: bevy_render_globals_Globals;
+
+@group(0) @binding(1)
+var<uniform> bevy_pbr__2mesh_view_bindings_lights: bevy_pbr__2mesh_view_types_Lights;
+
+@group(0) @binding(0)
+var<uniform> bevy_pbr__2mesh_view_bindings_view: bevy_render_view_View;
+
+@group(2) @binding(0)
+var my_array_texture: texture_2d_array<f32>;
+
+@group(2) @binding(1)
+var my_array_texture_sampler: sampler;
+
+struct bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges {
+    first_point_light_index_offset: u32,
+    first_spot_light_index_offset: u32,
+    first_reflection_probe_index_offset: u32,
+    first_irradiance_volume_index_offset: u32,
+    first_decal_offset: u32,
+    last_clusterable_object_index_offset: u32
+}
+
+struct bevy_pbr__1forward_io_VertexOutput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    world_position: vec4<f32>,
+    @location(1)
+    world_normal: vec3<f32>,
+    @location(2)
+    uv: vec2<f32>,
+    @location(6) @interpolate(flat)
+    instance_index: u32
+}
+
+struct bevy_pbr__1pbr_types_PbrInput {
+    material: bevy_pbr__1pbr_types_StandardMaterial,
+    diffuse_occlusion: vec3<f32>,
+    specular_occlusion: f32,
+    frag_coord: vec4<f32>,
+    world_position: vec4<f32>,
+    world_normal: vec3<f32>,
+    N: vec3<f32>,
+    V: vec3<f32>,
+    lightmap_light: vec3<f32>,
+    clearcoat_N: vec3<f32>,
+    anisotropy_strength: f32,
+    anisotropy_T: vec3<f32>,
+    anisotropy_B: vec3<f32>,
+    is_orthographic: bool,
+    flags: u32
+}
+
+struct bevy_pbr__1pbr_types_StandardMaterial {
+    base_color: vec4<f32>,
+    emissive: vec4<f32>,
+    attenuation_color: vec4<f32>,
+    uv_transform: mat3x3<f32>,
+    reflectance: vec3<f32>,
+    perceptual_roughness: f32,
+    metallic: f32,
+    diffuse_transmission: f32,
+    specular_transmission: f32,
+    thickness: f32,
+    ior: f32,
+    attenuation_distance: f32,
+    clearcoat: f32,
+    clearcoat_perceptual_roughness: f32,
+    anisotropy_strength: f32,
+    anisotropy_rotation: vec2<f32>,
+    flags: u32,
+    alpha_cutoff: f32,
+    parallax_depth_scale: f32,
+    max_parallax_layer_count: f32,
+    lightmap_exposure: f32,
+    max_relief_mapping_search_steps: u32,
+    deferred_lighting_pass_id: u32
+}
+
+struct bevy_pbr__2mesh_view_types_ClusterLightIndexLists {
+    data: array<vec4<u32>, 1024>
+}
+
+struct bevy_pbr__2mesh_view_types_ClusterOffsetsAndCounts {
+    data: array<vec4<u32>, 1024>
+}
+
+struct bevy_pbr__2mesh_view_types_ClusterableObject {
+    light_custom_data: vec4<f32>,
+    color_inverse_square_range: vec4<f32>,
+    position_radius: vec4<f32>,
+    flags: u32,
+    shadow_depth_bias: f32,
+    shadow_normal_bias: f32,
+    spot_light_tan_angle: f32,
+    soft_shadow_size: f32,
+    shadow_map_near_z: f32,
+    texture_index: u32,
+    pad: f32
+}
+
+struct bevy_pbr__2mesh_view_types_ClusterableObjects {
+    data: array<bevy_pbr__2mesh_view_types_ClusterableObject, 204>
+}
+
+struct bevy_pbr__2mesh_view_types_DirectionalCascade {
+    clip_from_world: mat4x4<f32>,
+    texel_size: f32,
+    far_bound: f32
+}
+
+struct bevy_pbr__2mesh_view_types_DirectionalLight {
+    cascades: array<bevy_pbr__2mesh_view_types_DirectionalCascade, 10>,
+    color: vec4<f32>,
+    direction_to_light: vec3<f32>,
+    flags: u32,
+    soft_shadow_size: f32,
+    shadow_depth_bias: f32,
+    shadow_normal_bias: f32,
+    num_cascades: u32,
+    cascades_overlap_proportion: f32,
+    depth_texture_base_index: u32,
+    skip: u32
+}
+
+struct bevy_pbr__2mesh_view_types_Lights {
+    directional_lights: array<bevy_pbr__2mesh_view_types_DirectionalLight, 10>,
+    ambient_color: vec4<f32>,
+    cluster_dimensions: vec4<u32>,
+    cluster_factors: vec4<f32>,
+    n_directional_lights: u32,
+    spot_light_shadowmap_offset: i32,
+    environment_map_smallest_specular_mip_level: u32,
+    environment_map_intensity: f32
+}
+
+struct bevy_pbr_lighting_DerivedLightingInput {
+    H: vec3<f32>,
+    NdotL: f32,
+    NdotH: f32,
+    LdotH: f32
+}
+
+struct bevy_pbr_lighting_LayerLightingInput {
+    N: vec3<f32>,
+    R: vec3<f32>,
+    NdotV: f32,
+    perceptual_roughness: f32,
+    roughness: f32
+}
+
+struct bevy_pbr_lighting_LightingInput {
+    layers: array<bevy_pbr_lighting_LayerLightingInput, 1>,
+    P: vec3<f32>,
+    V: vec3<f32>,
+    diffuse_color: vec3<f32>,
+    F0_: vec3<f32>,
+    F_ab: vec2<f32>
+}
+
+struct bevy_render_globals_Globals {
+    time: f32,
+    delta_time: f32,
+    frame_count: u32
+}
+
+struct bevy_render_view_ColorGrading {
+    balance: mat3x3<f32>,
+    saturation: vec3<f32>,
+    contrast: vec3<f32>,
+    gamma: vec3<f32>,
+    gain: vec3<f32>,
+    lift: vec3<f32>,
+    midtone_range: vec2<f32>,
+    exposure: f32,
+    hue: f32,
+    post_saturation: f32
+}
+
+struct bevy_render_view_View {
+    clip_from_world: mat4x4<f32>,
+    unjittered_clip_from_world: mat4x4<f32>,
+    world_from_clip: mat4x4<f32>,
+    world_from_view: mat4x4<f32>,
+    view_from_world: mat4x4<f32>,
+    clip_from_view: mat4x4<f32>,
+    view_from_clip: mat4x4<f32>,
+    world_position: vec3<f32>,
+    exposure: f32,
+    viewport: vec4<f32>,
+    frustum: array<vec4<f32>, 6>,
+    color_grading: bevy_render_view_ColorGrading,
+    mip_bias: f32,
+    frame_count: u32
+}
+
+fn bevy__1core_pipeline_tonemapping__1tone_mapping(in: vec4<f32>, in_color_grading: bevy_render_view_ColorGrading) -> vec4<f32> {
+    var color: vec3<f32> = max(in.rgb, vec3(0.0, 0.0, 0.0));
+    var color_grading: bevy_render_view_ColorGrading = in_color_grading;
+    color = color * bevy_render_maths_powsafe(vec3(2f, 2f, 2f), color_grading.exposure);
+    color = bevy__1core_pipeline_tonemapping_saturation(color, color_grading.post_saturation);
+    return vec4(color, in.a);
+}
+
+fn bevy__1core_pipeline_tonemapping__1tonemapping_luminance(v: vec3<f32>) -> f32 {
+    return dot(v, vec3(0.2126f, 0.7152f, 0.0722f));
+}
+
+fn bevy__1core_pipeline_tonemapping_saturation(color: vec3<f32>, saturationAmount: f32) -> vec3<f32> {
+    let luma: f32 = bevy__1core_pipeline_tonemapping__1tonemapping_luminance(color);
+    return mix(vec3(luma), color, vec3(saturationAmount));
+}
+
+fn bevy_pbr__1clustered_forward__2cluster_debug_visualization(input_color: vec4<f32>, view_z: f32, is_orthographic: bool, clusterable_object_index_ranges: bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges, cluster_index: u32) -> vec4<f32> {
+    var output_color: vec4<f32> = input_color;
+    return output_color;
+}
+
+fn bevy_pbr__1clustered_forward__2fragment_cluster_index(frag_coord: vec2<f32>, view_z: f32, is_orthographic: bool) -> u32 {
+    let xy: vec2<u32> = vec2<u32>(floor((frag_coord - bevy_pbr__2mesh_view_bindings_view.viewport.xy) * bevy_pbr__2mesh_view_bindings_lights.cluster_factors.xy));
+    let z_slice: u32 = bevy_pbr__1clustered_forward__4view_z_to_z_slice(view_z, is_orthographic);
+    return min((xy.y * bevy_pbr__2mesh_view_bindings_lights.cluster_dimensions.x + xy.x) * bevy_pbr__2mesh_view_bindings_lights.cluster_dimensions.z + z_slice, bevy_pbr__2mesh_view_bindings_lights.cluster_dimensions.w - 1u);
+}
+
+fn bevy_pbr__1clustered_forward__3get_clusterable_object_id(index: u32) -> u32 {
+    {
+        let indices: u32 = bevy_pbr__2mesh_view_bindings__3clusterable_object_index_lists.data[index >> 4u][(index >> 2u) & 3u];
+        return (indices >> (8u * (index & 3u))) & 255u;
+    }
+}
+
+fn bevy_pbr__1clustered_forward__4unpack_clusterable_object_index_ranges(cluster_index: u32) -> bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges {
+    {
+        let raw_offset_and_counts: u32 = bevy_pbr__2mesh_view_bindings__3cluster_offsets_and_counts.data[cluster_index >> 2u][cluster_index & 3u];
+        let offset_and_counts: vec3<u32> = vec3<u32>((raw_offset_and_counts >> 18u) & 16383u, (raw_offset_and_counts >> 9u) & 511u, raw_offset_and_counts & 511u);
+        let offset_a: u32 = offset_and_counts.x;
+        let offset_b: u32 = offset_a + offset_and_counts.y;
+        let offset_c: u32 = offset_b + offset_and_counts.z;
+        return bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges(offset_a, offset_b, offset_c, offset_c, offset_c, offset_c);
+    }
+}
+
+fn bevy_pbr__1clustered_forward__4view_z_to_z_slice(view_z: f32, is_orthographic: bool) -> u32 {
+    var z_slice: u32 = 0u;
+    if is_orthographic {
+        z_slice = u32(floor((view_z - bevy_pbr__2mesh_view_bindings_lights.cluster_factors.z) * bevy_pbr__2mesh_view_bindings_lights.cluster_factors.w));
+    }
+    else {
+        z_slice = u32(log(-view_z) * bevy_pbr__2mesh_view_bindings_lights.cluster_factors.z - bevy_pbr__2mesh_view_bindings_lights.cluster_factors.w + 1.0);
+    }
+    return min(z_slice, bevy_pbr__2mesh_view_bindings_lights.cluster_dimensions.z - 1u);
+}
+
+fn bevy_pbr__1pbr_functions__1calculate_F0(base_color: vec3<f32>, metallic: f32, reflectance: vec3<f32>) -> vec3<f32> {
+    return 0.16 * reflectance * reflectance * (1.0 - metallic) + base_color * metallic;
+}
+
+fn bevy_pbr__1pbr_functions__1calculate_view(world_position: vec4<f32>, is_orthographic: bool) -> vec3<f32> {
+    var V: vec3<f32>;
+    if is_orthographic {
+        V = normalize(vec3<f32>(bevy_pbr__2mesh_view_bindings_view.clip_from_world[0].z, bevy_pbr__2mesh_view_bindings_view.clip_from_world[1].z, bevy_pbr__2mesh_view_bindings_view.clip_from_world[2].z));
+    }
+    else {
+        V = normalize(bevy_pbr__2mesh_view_bindings_view.world_position.xyz - world_position.xyz);
+    }
+    return V;
+}
+
+fn bevy_pbr__1pbr_functions__2apply_pbr_lighting(in: bevy_pbr__1pbr_types_PbrInput) -> vec4<f32> {
+    var output_color: vec4<f32> = in.material.base_color;
+    let emissive: vec4<f32> = in.material.emissive;
+    let metallic: f32 = in.material.metallic;
+    let perceptual_roughness: f32 = in.material.perceptual_roughness;
+    let roughness: f32 = bevy_pbr_lighting_perceptualRoughnessToRoughness(perceptual_roughness);
+    let ior: f32 = in.material.ior;
+    let thickness: f32 = in.material.thickness;
+    let reflectance: vec3<f32> = in.material.reflectance;
+    let diffuse_transmission: f32 = in.material.diffuse_transmission;
+    let specular_transmission: f32 = in.material.specular_transmission;
+    let specular_transmissive_color: vec3<f32> = specular_transmission * in.material.base_color.rgb;
+    let diffuse_occlusion: vec3<f32> = in.diffuse_occlusion;
+    let specular_occlusion: f32 = in.specular_occlusion;
+    let NdotV: f32 = max(dot(in.N, in.V), 0.0001);
+    let R: vec3<f32> = reflect(-in.V, in.N);
+    let diffuse_color: vec3<f32> = bevy_pbr__1pbr_functions__2calculate_diffuse_color(output_color.rgb, metallic, specular_transmission, diffuse_transmission);
+    let diffuse_transmissive_color: vec3<f32> = output_color.rgb * (1.0 - metallic) * (1.0 - specular_transmission) * diffuse_transmission;
+    let diffuse_transmissive_lobe_world_position: vec4<f32> = in.world_position - vec4<f32>(in.world_normal, 0.0) * thickness;
+    let F0: vec3<f32> = bevy_pbr__1pbr_functions__1calculate_F0(output_color.rgb, metallic, reflectance);
+    let F_ab: vec2<f32> = bevy_pbr_lighting__1F_AB(perceptual_roughness, NdotV);
+    var direct_light: vec3<f32> = vec3(0f, 0f, 0f);
+    var transmitted_light: vec3<f32> = vec3(0f, 0f, 0f);
+    var lighting_input: bevy_pbr_lighting_LightingInput;
+    lighting_input.layers[0u].NdotV = NdotV;
+    lighting_input.layers[0u].N = in.N;
+    lighting_input.layers[0u].R = R;
+    lighting_input.layers[0u].perceptual_roughness = perceptual_roughness;
+    lighting_input.layers[0u].roughness = roughness;
+    lighting_input.P = in.world_position.xyz;
+    lighting_input.V = in.V;
+    lighting_input.diffuse_color = diffuse_color;
+    lighting_input.F0_ = F0;
+    lighting_input.F_ab = F_ab;
+    let view_z: f32 = dot(vec4<f32>(bevy_pbr__2mesh_view_bindings_view.view_from_world[0].z, bevy_pbr__2mesh_view_bindings_view.view_from_world[1].z, bevy_pbr__2mesh_view_bindings_view.view_from_world[2].z, bevy_pbr__2mesh_view_bindings_view.view_from_world[3].z), in.world_position);
+    let cluster_index: u32 = bevy_pbr__1clustered_forward__2fragment_cluster_index(in.frag_coord.xy, view_z, in.is_orthographic);
+    var clusterable_object_index_ranges: bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges = bevy_pbr__1clustered_forward__4unpack_clusterable_object_index_ranges(cluster_index);
+    for (var i: u32 = clusterable_object_index_ranges.first_point_light_index_offset; i < clusterable_object_index_ranges.first_spot_light_index_offset; i = i + 1u) {
+        let light_id: u32 = bevy_pbr__1clustered_forward__3get_clusterable_object_id(i);
+        let enable_diffuse: bool = true;
+        var shadow: f32 = 1.0;
+        if ((in.flags & 536870912u) != 0u && (bevy_pbr__2mesh_view_bindings__1clusterable_objects.data[light_id].flags & 1u) != 0u) {
+            shadow = bevy_pbr_shadows__2fetch_point_shadow(light_id, in.world_position, in.world_normal);
+        }
+        let light_contrib: vec3<f32> = bevy_pbr_lighting__1point_light(light_id, &lighting_input, enable_diffuse);
+        direct_light += light_contrib * shadow;
+    }
+    for (var i: u32 = clusterable_object_index_ranges.first_spot_light_index_offset; i < clusterable_object_index_ranges.first_reflection_probe_index_offset; i = i + 1u) {
+        let light_id: u32 = bevy_pbr__1clustered_forward__3get_clusterable_object_id(i);
+        let enable_diffuse: bool = true;
+        var shadow: f32 = 1.0;
+        if ((in.flags & 536870912u) != 0u && (bevy_pbr__2mesh_view_bindings__1clusterable_objects.data[light_id].flags & 1u) != 0u) {
+            shadow = bevy_pbr_shadows__2fetch_spot_shadow(light_id, in.world_position, in.world_normal, bevy_pbr__2mesh_view_bindings__1clusterable_objects.data[light_id].shadow_map_near_z);
+        }
+        let light_contrib: vec3<f32> = bevy_pbr_lighting__1spot_light(light_id, &lighting_input, enable_diffuse);
+        direct_light += light_contrib * shadow;
+    }
+    let n_directional_lights: u32 = bevy_pbr__2mesh_view_bindings_lights.n_directional_lights;
+    for (var i: u32 = 0u; i < n_directional_lights; i = i + 1u) {
+        let light: ptr<uniform, bevy_pbr__2mesh_view_types_DirectionalLight> = &bevy_pbr__2mesh_view_bindings_lights.directional_lights[i];
+        if (*light).skip != 0u {
+            continue;
+        }
+        let enable_diffuse: bool = true;
+        var shadow: f32 = 1.0;
+        if ((in.flags & 536870912u) != 0u && (bevy_pbr__2mesh_view_bindings_lights.directional_lights[i].flags & 1u) != 0u) {
+            shadow = bevy_pbr_shadows__2fetch_directional_shadow(i, in.world_position, in.world_normal, view_z);
+        }
+        var light_contrib: vec3<f32> = bevy_pbr_lighting__1directional_light(i, &lighting_input, enable_diffuse);
+        direct_light += light_contrib * shadow;
+    }
+    var indirect_light: vec3<f32> = vec3(0f, 0f, 0f);
+    var found_diffuse_indirect: bool = false;
+    indirect_light += bevy_pbr_ambient__1ambient_light(in.world_position, in.N, in.V, NdotV, diffuse_color, F0, perceptual_roughness, diffuse_occlusion);
+    var specular_transmitted_environment_light: vec3<f32> = vec3(0f, 0f, 0f);
+    var emissive_light: vec3<f32> = emissive.rgb * output_color.a;
+    emissive_light = emissive_light * mix(1.0, bevy_pbr__2mesh_view_bindings_view.exposure, emissive.a);
+    output_color = vec4<f32>((bevy_pbr__2mesh_view_bindings_view.exposure * (transmitted_light + direct_light + indirect_light)) + emissive_light, output_color.a);
+    output_color = bevy_pbr__1clustered_forward__2cluster_debug_visualization(output_color, view_z, in.is_orthographic, clusterable_object_index_ranges, cluster_index);
+    return output_color;
+}
+
+fn bevy_pbr__1pbr_functions__2calculate_diffuse_color(base_color: vec3<f32>, metallic: f32, specular_transmission: f32, diffuse_transmission: f32) -> vec3<f32> {
+    return base_color * (1.0 - metallic) * (1.0 - specular_transmission) * (1.0 - diffuse_transmission);
+}
+
+fn bevy_pbr__1pbr_functions__2prepare_world_normal(world_normal: vec3<f32>, double_sided: bool, is_front: bool) -> vec3<f32> {
+    var output: vec3<f32> = world_normal;
+    output = (f32(!double_sided || is_front) * 2.0 - 1.0) * output;
+    return output;
+}
+
+fn bevy_pbr__1pbr_types__2pbr_input_new() -> bevy_pbr__1pbr_types_PbrInput {
+    var pbr_input: bevy_pbr__1pbr_types_PbrInput;
+    pbr_input.material = bevy_pbr__1pbr_types_StandardMaterial(vec4(1f, 1f, 1f, 1f), vec4(0f, 0f, 0f, 1f), vec4(1f, 1f, 1f, 1f), mat3x3(1f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f), vec3(0.5f, 0.5f, 0.5f), 0.5f, 0f, 0f, 0f, 0f, 1.5f, 1f, 0f, 0f, 0f, vec2(0f, 0f), 0u, 0.5f, 0.1f, 16f, 0f, 5u, 1u);
+    pbr_input.diffuse_occlusion = vec3(1f, 1f, 1f);
+    pbr_input.specular_occlusion = 1.0;
+    pbr_input.frag_coord = vec4(0f, 0f, 0f, 1f);
+    pbr_input.world_position = vec4(0f, 0f, 0f, 1f);
+    pbr_input.world_normal = vec3(0f, 0f, 1f);
+    pbr_input.is_orthographic = false;
+    pbr_input.N = vec3(0f, 0f, 1f);
+    pbr_input.V = vec3(1f, 0f, 0f);
+    pbr_input.clearcoat_N = vec3(0f, 0f, 0f);
+    pbr_input.anisotropy_T = vec3(0f, 0f, 0f);
+    pbr_input.anisotropy_B = vec3(0f, 0f, 0f);
+    pbr_input.lightmap_light = vec3(0f, 0f, 0f);
+    pbr_input.flags = 0u;
+    return pbr_input;
+}
+
+fn bevy_pbr__1pbr_types__2standard_material_new() -> bevy_pbr__1pbr_types_StandardMaterial {
+    var material: bevy_pbr__1pbr_types_StandardMaterial;
+    material.base_color = vec4(1f, 1f, 1f, 1f);
+    material.emissive = vec4(0f, 0f, 0f, 1f);
+    material.perceptual_roughness = 0.5;
+    material.metallic = 0.0;
+    material.reflectance = vec3(0.5f, 0.5f, 0.5f);
+    material.diffuse_transmission = 0.0;
+    material.specular_transmission = 0.0;
+    material.thickness = 0.0;
+    material.ior = 1.5;
+    material.attenuation_distance = 1.0;
+    material.attenuation_color = vec4(1f, 1f, 1f, 1f);
+    material.clearcoat = 0.0;
+    material.clearcoat_perceptual_roughness = 0.0;
+    material.flags = 0u;
+    material.alpha_cutoff = 0.5;
+    material.parallax_depth_scale = 0.1;
+    material.max_parallax_layer_count = 16.0;
+    material.max_relief_mapping_search_steps = 5u;
+    material.deferred_lighting_pass_id = 1u;
+    material.uv_transform = mat3x3(1f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f);
+    return material;
+}
+
+fn bevy_pbr__1shadow_sampling__2random_rotation_matrix(scale: vec2<f32>, temporal: bool) -> mat2x2<f32> {
+    let random_angle: f32 = 6.2831855f * bevy_pbr_utils__2interleaved_gradient_noise(scale, select(1u, bevy_pbr__2mesh_view_bindings_globals.frame_count, temporal));
+    let m: vec2<f32> = vec2(sin(random_angle), cos(random_angle));
+    return mat2x2(m.y, -m.x, m.x, m.y);
+}
+
+fn bevy_pbr__1shadow_sampling__2sample_shadow_cubemap(light_local: vec3<f32>, distance_to_light: f32, depth: f32, light_id: u32) -> f32 {
+    return 0f;
+}
+
+fn bevy_pbr__1shadow_sampling__2sample_shadow_map(light_local: vec2<f32>, depth: f32, array_index: i32, texel_size: f32) -> f32 {
+    return 0f;
+}
+
+fn bevy_pbr__1shadow_sampling__3sample_shadow_cubemap_hardware(light_local: vec3<f32>, depth: f32, light_id: u32) -> f32 {
+    return textureSampleCompareLevel(bevy_pbr__2mesh_view_bindings__2point_shadow_textures, bevy_pbr__2mesh_view_bindings__4point_shadow_textures_comparison_sampler, light_local, i32(light_id), depth);
+}
+
+fn bevy_pbr__1shadow_sampling__3sample_shadow_cubemap_jittered(light_local: vec3<f32>, depth: f32, scale: f32, distance_to_light: f32, light_id: u32, temporal: bool) -> f32 {
+    var up: vec3<f32> = vec3(0.0, 1.0, 0.0);
+    if (dot(up, normalize(light_local)) > 0.99) {
+        up = vec3(1.0, 0.0, 0.0);
+    }
+    let basis: mat3x3<f32> = bevy_render_maths_orthonormalize(light_local, up) * scale * distance_to_light;
+    let rotation_matrix: mat2x2<f32> = bevy_pbr__1shadow_sampling__2random_rotation_matrix(vec2(1f, 1f), temporal);
+    let sample_offset0: vec2<f32> = rotation_matrix * vec2(-0.7071f, 0.7071f) * 0.5f;
+    let sample_offset1: vec2<f32> = rotation_matrix * vec2(-0f, -0.875f) * 0.5f;
+    let sample_offset2: vec2<f32> = rotation_matrix * vec2(0.5303f, 0.5303f) * 0.5f;
+    let sample_offset3: vec2<f32> = rotation_matrix * vec2(-0.625f, -0f) * 0.5f;
+    let sample_offset4: vec2<f32> = rotation_matrix * vec2(0.3536f, -0.3536f) * 0.5f;
+    let sample_offset5: vec2<f32> = rotation_matrix * vec2(-0f, 0.375f) * 0.5f;
+    let sample_offset6: vec2<f32> = rotation_matrix * vec2(-0.1768f, -0.1768f) * 0.5f;
+    let sample_offset7: vec2<f32> = rotation_matrix * vec2(0.125f, 0f) * 0.5f;
+    var sum: f32 = 0.0;
+    sum += bevy_pbr__1shadow_sampling__4sample_shadow_cubemap_at_offset(sample_offset0, 0.125f, basis[0], basis[1], light_local, depth, light_id);
+    sum += bevy_pbr__1shadow_sampling__4sample_shadow_cubemap_at_offset(sample_offset1, 0.125f, basis[0], basis[1], light_local, depth, light_id);
+    sum += bevy_pbr__1shadow_sampling__4sample_shadow_cubemap_at_offset(sample_offset2, 0.125f, basis[0], basis[1], light_local, depth, light_id);
+    sum += bevy_pbr__1shadow_sampling__4sample_shadow_cubemap_at_offset(sample_offset3, 0.125f, basis[0], basis[1], light_local, depth, light_id);
+    sum += bevy_pbr__1shadow_sampling__4sample_shadow_cubemap_at_offset(sample_offset4, 0.125f, basis[0], basis[1], light_local, depth, light_id);
+    sum += bevy_pbr__1shadow_sampling__4sample_shadow_cubemap_at_offset(sample_offset5, 0.125f, basis[0], basis[1], light_local, depth, light_id);
+    sum += bevy_pbr__1shadow_sampling__4sample_shadow_cubemap_at_offset(sample_offset6, 0.125f, basis[0], basis[1], light_local, depth, light_id);
+    sum += bevy_pbr__1shadow_sampling__4sample_shadow_cubemap_at_offset(sample_offset7, 0.125f, basis[0], basis[1], light_local, depth, light_id);
+    return sum;
+}
+
+fn bevy_pbr__1shadow_sampling__3sample_shadow_cubemap_pcss(light_local: vec3<f32>, distance_to_light: f32, depth: f32, light_id: u32, light_size: f32) -> f32 {
+    let z_blocker: f32 = bevy_pbr__1shadow_sampling__5search_for_blockers_in_shadow_cubemap(light_local, depth, light_size, distance_to_light, light_id);
+    let blur_size: f32 = max((z_blocker - depth) * light_size / depth, 0.5);
+    return bevy_pbr__1shadow_sampling__3sample_shadow_cubemap_jittered(light_local, depth, 0.003f * blur_size, distance_to_light, light_id, false);
+}
+
+fn bevy_pbr__1shadow_sampling__3sample_shadow_map_hardware(light_local: vec2<f32>, depth: f32, array_index: i32) -> f32 {
+    return textureSampleCompareLevel(bevy_pbr__2mesh_view_bindings__2directional_shadow_textures, bevy_pbr__2mesh_view_bindings__4directional_shadow_textures_comparison_sampler, light_local, array_index, depth);
+}
+
+fn bevy_pbr__1shadow_sampling__3sample_shadow_map_pcss(light_local: vec2<f32>, depth: f32, array_index: i32, texel_size: f32, light_size: f32) -> f32 {
+    let z_blocker: f32 = bevy_pbr__1shadow_sampling__5search_for_blockers_in_shadow_map(light_local, depth, array_index, texel_size, light_size);
+    let blur_size: f32 = max((z_blocker - depth) * light_size / depth, 0.5);
+    return bevy_pbr__1shadow_sampling__4sample_shadow_map_jimenez_fourteen(light_local, depth, array_index, texel_size, blur_size, false);
+}
+
+fn bevy_pbr__1shadow_sampling__4sample_shadow_cubemap_at_offset(position: vec2<f32>, coeff: f32, x_basis: vec3<f32>, y_basis: vec3<f32>, light_local: vec3<f32>, depth: f32, light_id: u32) -> f32 {
+    return bevy_pbr__1shadow_sampling__3sample_shadow_cubemap_hardware(light_local + position.x * x_basis + position.y * y_basis, depth, light_id) * coeff;
+}
+
+fn bevy_pbr__1shadow_sampling__4sample_shadow_map_jimenez_fourteen(light_local: vec2<f32>, depth: f32, array_index: i32, texel_size: f32, blur_size: f32, temporal: bool) -> f32 {
+    let shadow_map_size: vec2<f32> = vec2<f32>(textureDimensions(bevy_pbr__2mesh_view_bindings__2directional_shadow_textures));
+    let rotation_matrix: mat2x2<f32> = bevy_pbr__1shadow_sampling__2random_rotation_matrix(light_local * shadow_map_size, temporal);
+    let uv_offset_scale: vec2<f32> = bevy_pbr__1shadow_sampling__5calculate_uv_offset_scale_jimenez_fourteen(texel_size, blur_size);
+    let sample_offset0: vec2<f32> = (rotation_matrix * vec2(-0.7071f, 0.7071f)) * uv_offset_scale;
+    let sample_offset1: vec2<f32> = (rotation_matrix * vec2(-0f, -0.875f)) * uv_offset_scale;
+    let sample_offset2: vec2<f32> = (rotation_matrix * vec2(0.5303f, 0.5303f)) * uv_offset_scale;
+    let sample_offset3: vec2<f32> = (rotation_matrix * vec2(-0.625f, -0f)) * uv_offset_scale;
+    let sample_offset4: vec2<f32> = (rotation_matrix * vec2(0.3536f, -0.3536f)) * uv_offset_scale;
+    let sample_offset5: vec2<f32> = (rotation_matrix * vec2(-0f, 0.375f)) * uv_offset_scale;
+    let sample_offset6: vec2<f32> = (rotation_matrix * vec2(-0.1768f, -0.1768f)) * uv_offset_scale;
+    let sample_offset7: vec2<f32> = (rotation_matrix * vec2(0.125f, 0f)) * uv_offset_scale;
+    var sum: f32 = 0.0;
+    sum += bevy_pbr__1shadow_sampling__3sample_shadow_map_hardware(light_local + sample_offset0, depth, array_index);
+    sum += bevy_pbr__1shadow_sampling__3sample_shadow_map_hardware(light_local + sample_offset1, depth, array_index);
+    sum += bevy_pbr__1shadow_sampling__3sample_shadow_map_hardware(light_local + sample_offset2, depth, array_index);
+    sum += bevy_pbr__1shadow_sampling__3sample_shadow_map_hardware(light_local + sample_offset3, depth, array_index);
+    sum += bevy_pbr__1shadow_sampling__3sample_shadow_map_hardware(light_local + sample_offset4, depth, array_index);
+    sum += bevy_pbr__1shadow_sampling__3sample_shadow_map_hardware(light_local + sample_offset5, depth, array_index);
+    sum += bevy_pbr__1shadow_sampling__3sample_shadow_map_hardware(light_local + sample_offset6, depth, array_index);
+    sum += bevy_pbr__1shadow_sampling__3sample_shadow_map_hardware(light_local + sample_offset7, depth, array_index);
+    return sum / 8.0;
+}
+
+fn bevy_pbr__1shadow_sampling__5calculate_uv_offset_scale_jimenez_fourteen(texel_size: f32, blur_size: f32) -> vec2<f32> {
+    let shadow_map_size: vec2<f32> = vec2<f32>(textureDimensions(bevy_pbr__2mesh_view_bindings__2directional_shadow_textures));
+    let f: f32 = bevy_pbr__1shadow_sampling_map(0.00390625f, 0.022949219f, 0.015f, 0.035f, texel_size);
+    return f * blur_size / (texel_size * shadow_map_size);
+}
+
+fn bevy_pbr__1shadow_sampling__5search_for_blockers_in_shadow_cubemap(light_local: vec3<f32>, depth: f32, scale: f32, distance_to_light: f32, light_id: u32) -> f32 {
+    var up: vec3<f32> = vec3(0.0, 1.0, 0.0);
+    if (dot(up, normalize(light_local)) > 0.99) {
+        up = vec3(1.0, 0.0, 0.0);
+    }
+    let basis: mat3x3<f32> = bevy_render_maths_orthonormalize(light_local, up) * scale * distance_to_light;
+    var sum: vec2<f32> = vec2(0.0, 0.0);
+    sum += bevy_pbr__1shadow_sampling__7search_for_blockers_in_shadow_cubemap_at_offset(vec2(0.125f, -0.375f), basis[0], basis[1], light_local, depth, light_id);
+    sum += bevy_pbr__1shadow_sampling__7search_for_blockers_in_shadow_cubemap_at_offset(vec2(-0.125f, 0.375f), basis[0], basis[1], light_local, depth, light_id);
+    sum += bevy_pbr__1shadow_sampling__7search_for_blockers_in_shadow_cubemap_at_offset(vec2(0.625f, 0.125f), basis[0], basis[1], light_local, depth, light_id);
+    sum += bevy_pbr__1shadow_sampling__7search_for_blockers_in_shadow_cubemap_at_offset(vec2(-0.375f, -0.625f), basis[0], basis[1], light_local, depth, light_id);
+    sum += bevy_pbr__1shadow_sampling__7search_for_blockers_in_shadow_cubemap_at_offset(vec2(-0.625f, 0.625f), basis[0], basis[1], light_local, depth, light_id);
+    sum += bevy_pbr__1shadow_sampling__7search_for_blockers_in_shadow_cubemap_at_offset(vec2(-0.875f, -0.125f), basis[0], basis[1], light_local, depth, light_id);
+    sum += bevy_pbr__1shadow_sampling__7search_for_blockers_in_shadow_cubemap_at_offset(vec2(0.375f, 0.875f), basis[0], basis[1], light_local, depth, light_id);
+    sum += bevy_pbr__1shadow_sampling__7search_for_blockers_in_shadow_cubemap_at_offset(vec2(0.875f, -0.875f), basis[0], basis[1], light_local, depth, light_id);
+    if (sum.y == 0.0) {
+        return 0f;
+    }
+    return sum.x / sum.y;
+}
+
+fn bevy_pbr__1shadow_sampling__5search_for_blockers_in_shadow_map(light_local: vec2<f32>, depth: f32, array_index: i32, texel_size: f32, search_size: f32) -> f32 {
+    let shadow_map_size: vec2<f32> = vec2<f32>(textureDimensions(bevy_pbr__2mesh_view_bindings__2directional_shadow_textures));
+    let uv_offset_scale: vec2<f32> = search_size / (texel_size * shadow_map_size);
+    let offset0: vec2<f32> = vec2(0.125f, -0.375f) * uv_offset_scale;
+    let offset1: vec2<f32> = vec2(-0.125f, 0.375f) * uv_offset_scale;
+    let offset2: vec2<f32> = vec2(0.625f, 0.125f) * uv_offset_scale;
+    let offset3: vec2<f32> = vec2(-0.375f, -0.625f) * uv_offset_scale;
+    let offset4: vec2<f32> = vec2(-0.625f, 0.625f) * uv_offset_scale;
+    let offset5: vec2<f32> = vec2(-0.875f, -0.125f) * uv_offset_scale;
+    let offset6: vec2<f32> = vec2(0.375f, 0.875f) * uv_offset_scale;
+    let offset7: vec2<f32> = vec2(0.875f, -0.875f) * uv_offset_scale;
+    var sum: vec2<f32> = vec2(0.0, 0.0);
+    sum += bevy_pbr__1shadow_sampling__6search_for_blockers_in_shadow_map_hardware(light_local + offset0, depth, array_index);
+    sum += bevy_pbr__1shadow_sampling__6search_for_blockers_in_shadow_map_hardware(light_local + offset1, depth, array_index);
+    sum += bevy_pbr__1shadow_sampling__6search_for_blockers_in_shadow_map_hardware(light_local + offset2, depth, array_index);
+    sum += bevy_pbr__1shadow_sampling__6search_for_blockers_in_shadow_map_hardware(light_local + offset3, depth, array_index);
+    sum += bevy_pbr__1shadow_sampling__6search_for_blockers_in_shadow_map_hardware(light_local + offset4, depth, array_index);
+    sum += bevy_pbr__1shadow_sampling__6search_for_blockers_in_shadow_map_hardware(light_local + offset5, depth, array_index);
+    sum += bevy_pbr__1shadow_sampling__6search_for_blockers_in_shadow_map_hardware(light_local + offset6, depth, array_index);
+    sum += bevy_pbr__1shadow_sampling__6search_for_blockers_in_shadow_map_hardware(light_local + offset7, depth, array_index);
+    if (sum.y == 0.0) {
+        return 0f;
+    }
+    return sum.x / sum.y;
+}
+
+fn bevy_pbr__1shadow_sampling__6search_for_blockers_in_shadow_cubemap_hardware(light_local: vec3<f32>, depth: f32, light_id: u32) -> vec2<f32> {
+    return vec2(0f, 0f);
+}
+
+fn bevy_pbr__1shadow_sampling__6search_for_blockers_in_shadow_map_hardware(light_local: vec2<f32>, depth: f32, array_index: i32) -> vec2<f32> {
+    return vec2(0f, 0f);
+}
+
+fn bevy_pbr__1shadow_sampling__7search_for_blockers_in_shadow_cubemap_at_offset(position: vec2<f32>, x_basis: vec3<f32>, y_basis: vec3<f32>, light_local: vec3<f32>, depth: f32, light_id: u32) -> vec2<f32> {
+    return bevy_pbr__1shadow_sampling__6search_for_blockers_in_shadow_cubemap_hardware(light_local + position.x * x_basis + position.y * y_basis, depth, light_id);
+}
+
+fn bevy_pbr__1shadow_sampling_map(min1: f32, max1: f32, min2: f32, max2: f32, value: f32) -> f32 {
+    return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+}
+
+fn bevy_pbr_ambient__1ambient_light(world_position: vec4<f32>, world_normal: vec3<f32>, V: vec3<f32>, NdotV: f32, diffuse_color: vec3<f32>, specular_color: vec3<f32>, perceptual_roughness: f32, occlusion: vec3<f32>) -> vec3<f32> {
+    let diffuse_ambient: vec3<f32> = bevy_pbr_lighting_EnvBRDFApprox(diffuse_color, bevy_pbr_lighting__1F_AB(1f, NdotV));
+    let specular_ambient: vec3<f32> = bevy_pbr_lighting_EnvBRDFApprox(specular_color, bevy_pbr_lighting__1F_AB(perceptual_roughness, NdotV));
+    let specular_occlusion: f32 = saturate(dot(specular_color, vec3(16.5, 16.5, 16.5)));
+    return (diffuse_ambient + specular_ambient * specular_occlusion) * bevy_pbr__2mesh_view_bindings_lights.ambient_color.rgb * occlusion;
+}
+
+fn bevy_pbr_lighting_EnvBRDFApprox(F0: vec3<f32>, F_ab: vec2<f32>) -> vec3<f32> {
+    return F0 * F_ab.x + F_ab.y;
+}
+
+fn bevy_pbr_lighting__1D_GGX(roughness: f32, NdotH: f32, h: vec3<f32>) -> f32 {
+    let oneMinusNdotHSquared: f32 = 1.0 - NdotH * NdotH;
+    let a: f32 = NdotH * roughness;
+    let k: f32 = roughness / (oneMinusNdotHSquared + a * a);
+    let d: f32 = k * k * 0.31830987f;
+    return d;
+}
+
+fn bevy_pbr_lighting__1F_AB(perceptual_roughness: f32, NdotV: f32) -> vec2<f32> {
+    let c0: vec4<f32> = vec4(-1f, -0.0275f, -0.572f, 0.022f);
+    let c1: vec4<f32> = vec4(1f, 0.0425f, 1.04f, -0.04f);
+    let r: vec4<f32> = perceptual_roughness * c0 + c1;
+    let a004: f32 = min(r.x * r.x, exp2(-9.28 * NdotV)) * r.x + r.y;
+    return vec2(-1.04f, 1.04f) * a004 + r.zw;
+}
+
+fn bevy_pbr_lighting__1F_Schlick(f0: f32, f90: f32, VdotH: f32) -> f32 {
+    return f0 + (f90 - f0) * pow(1.0 - VdotH, 5.0);
+}
+
+fn bevy_pbr_lighting__1Fd_Burley(input: ptr<function, bevy_pbr_lighting_LightingInput>, derived_input: ptr<function, bevy_pbr_lighting_DerivedLightingInput>) -> f32 {
+    let roughness: f32 = (*input).layers[0u].roughness;
+    let NdotV: f32 = (*input).layers[0u].NdotV;
+    let NdotL: f32 = (*derived_input).NdotL;
+    let LdotH: f32 = (*derived_input).LdotH;
+    let f90: f32 = 0.5 + 2.0 * roughness * LdotH * LdotH;
+    let lightScatter: f32 = bevy_pbr_lighting__1F_Schlick(1f, f90, NdotL);
+    let viewScatter: f32 = bevy_pbr_lighting__1F_Schlick(1f, f90, NdotV);
+    return lightScatter * viewScatter * 0.31830987f;
+}
+
+fn bevy_pbr_lighting__1V_SmithGGXCorrelated(roughness: f32, NdotV: f32, NdotL: f32) -> f32 {
+    let a2: f32 = roughness * roughness;
+    let lambdaV: f32 = NdotL * sqrt((NdotV - a2 * NdotV) * NdotV + a2);
+    let lambdaL: f32 = NdotV * sqrt((NdotL - a2 * NdotL) * NdotL + a2);
+    let v: f32 = 0.5 / (lambdaV + lambdaL);
+    return v;
+}
+
+fn bevy_pbr_lighting__1directional_light(light_id: u32, input: ptr<function, bevy_pbr_lighting_LightingInput>, enable_diffuse: bool) -> vec3<f32> {
+    let diffuse_color: vec3<f32> = (*input).diffuse_color;
+    let NdotV: f32 = (*input).layers[0u].NdotV;
+    let N: vec3<f32> = (*input).layers[0u].N;
+    let V: vec3<f32> = (*input).V;
+    let roughness: f32 = (*input).layers[0u].roughness;
+    let light: ptr<uniform, bevy_pbr__2mesh_view_types_DirectionalLight> = &bevy_pbr__2mesh_view_bindings_lights.directional_lights[light_id];
+    let L: vec3<f32> = (*light).direction_to_light.xyz;
+    var derived_input: bevy_pbr_lighting_DerivedLightingInput = bevy_pbr_lighting__2derive_lighting_input(N, V, L);
+    var diffuse: vec3<f32> = vec3(0.0, 0.0, 0.0);
+    if (enable_diffuse) {
+        diffuse = diffuse_color * bevy_pbr_lighting__1Fd_Burley(input, &derived_input);
+    }
+    let specular_light: vec3<f32> = bevy_pbr_lighting_specular(input, &derived_input, 1f);
+    var color: vec3<f32>;
+    color = (diffuse + specular_light) * derived_input.NdotL;
+    return color * (*light).color.rgb;
+}
+
+fn bevy_pbr_lighting__1point_light(light_id: u32, input: ptr<function, bevy_pbr_lighting_LightingInput>, enable_diffuse: bool) -> vec3<f32> {
+    let diffuse_color: vec3<f32> = (*input).diffuse_color;
+    let P: vec3<f32> = (*input).P;
+    let N: vec3<f32> = (*input).layers[0u].N;
+    let V: vec3<f32> = (*input).V;
+    let light: ptr<uniform, bevy_pbr__2mesh_view_types_ClusterableObject> = &bevy_pbr__2mesh_view_bindings__1clusterable_objects.data[light_id];
+    let light_to_frag: vec3<f32> = (*light).position_radius.xyz - P;
+    let L: vec3<f32> = normalize(light_to_frag);
+    let distance_square: f32 = dot(light_to_frag, light_to_frag);
+    let rangeAttenuation: f32 = bevy_pbr_lighting_getDistanceAttenuation(distance_square, (*light).color_inverse_square_range.w);
+    let specular_L_intensity: vec4<f32> = bevy_pbr_lighting__6compute_specular_layer_values_for_point_light(input, 0u, V, light_to_frag, (*light).position_radius.w);
+    var specular_derived_input: bevy_pbr_lighting_DerivedLightingInput = bevy_pbr_lighting__2derive_lighting_input(N, V, specular_L_intensity.xyz);
+    let specular_intensity: f32 = specular_L_intensity.w;
+    let specular_light: vec3<f32> = bevy_pbr_lighting_specular(input, &specular_derived_input, specular_intensity);
+    var derived_input: bevy_pbr_lighting_DerivedLightingInput = bevy_pbr_lighting__2derive_lighting_input(N, V, L);
+    var diffuse: vec3<f32> = vec3(0.0, 0.0, 0.0);
+    if (enable_diffuse) {
+        diffuse = diffuse_color * bevy_pbr_lighting__1Fd_Burley(input, &derived_input);
+    }
+    var color: vec3<f32>;
+    color = diffuse + specular_light;
+    return color * (*light).color_inverse_square_range.rgb * (rangeAttenuation * derived_input.NdotL);
+}
+
+fn bevy_pbr_lighting__1specular_multiscatter(input: ptr<function, bevy_pbr_lighting_LightingInput>, D: f32, V: f32, F: vec3<f32>, specular_intensity: f32) -> vec3<f32> {
+    let F0: vec3<f32> = (*input).F0_;
+    let F_ab: vec2<f32> = (*input).F_ab;
+    var Fr: vec3<f32> = (specular_intensity * D * V) * F;
+    Fr *= 1.0 + F0 * (1.0 / F_ab.x - 1.0);
+    return Fr;
+}
+
+fn bevy_pbr_lighting__1spot_light(light_id: u32, input: ptr<function, bevy_pbr_lighting_LightingInput>, enable_diffuse: bool) -> vec3<f32> {
+    let point_light: vec3<f32> = bevy_pbr_lighting__1point_light(light_id, input, enable_diffuse);
+    let light: ptr<uniform, bevy_pbr__2mesh_view_types_ClusterableObject> = &bevy_pbr__2mesh_view_bindings__1clusterable_objects.data[light_id];
+    var spot_dir: vec3<f32> = vec3<f32>((*light).light_custom_data.x, 0.0, (*light).light_custom_data.y);
+    spot_dir.y = sqrt(max(0.0, 1.0 - spot_dir.x * spot_dir.x - spot_dir.z * spot_dir.z));
+    if ((*light).flags & 2u) != 0u {
+        spot_dir.y = -spot_dir.y;
+    }
+    let light_to_frag: vec3<f32> = (*light).position_radius.xyz - (*input).P.xyz;
+    let cd: f32 = dot(-spot_dir, normalize(light_to_frag));
+    let attenuation: f32 = saturate(cd * (*light).light_custom_data.z + (*light).light_custom_data.w);
+    let spot_attenuation: f32 = attenuation * attenuation;
+    return point_light * spot_attenuation;
+}
+
+fn bevy_pbr_lighting__2F_Schlick_vec(f0: vec3<f32>, f90: f32, VdotH: f32) -> vec3<f32> {
+    return f0 + (f90 - f0) * pow(1.0 - VdotH, 5.0);
+}
+
+fn bevy_pbr_lighting__2derive_lighting_input(N: vec3<f32>, V: vec3<f32>, L: vec3<f32>) -> bevy_pbr_lighting_DerivedLightingInput {
+    var input: bevy_pbr_lighting_DerivedLightingInput;
+    var H: vec3<f32> = normalize(L + V);
+    input.H = H;
+    input.NdotL = saturate(dot(N, L));
+    input.NdotH = saturate(dot(N, H));
+    input.LdotH = saturate(dot(L, H));
+    return input;
+}
+
+fn bevy_pbr_lighting__6compute_specular_layer_values_for_point_light(input: ptr<function, bevy_pbr_lighting_LightingInput>, layer: u32, V: vec3<f32>, light_to_frag: vec3<f32>, light_position_radius: f32) -> vec4<f32> {
+    let R: vec3<f32> = (*input).layers[layer].R;
+    let a: f32 = (*input).layers[layer].roughness;
+    let centerToRay: vec3<f32> = dot(light_to_frag, R) * R - light_to_frag;
+    let closestPoint: vec3<f32> = light_to_frag + centerToRay * saturate(light_position_radius * inverseSqrt(dot(centerToRay, centerToRay)));
+    let LspecLengthInverse: f32 = inverseSqrt(dot(closestPoint, closestPoint));
+    let normalizationFactor: f32 = a / saturate(a + (light_position_radius * 0.5 * LspecLengthInverse));
+    let intensity: f32 = normalizationFactor * normalizationFactor;
+    let L: vec3<f32> = closestPoint * LspecLengthInverse;
+    return vec4(L, intensity);
+}
+
+fn bevy_pbr_lighting_fresnel(f0: vec3<f32>, LdotH: f32) -> vec3<f32> {
+    let f90: f32 = saturate(dot(f0, vec3(16.5f, 16.5f, 16.5f)));
+    return bevy_pbr_lighting__2F_Schlick_vec(f0, f90, LdotH);
+}
+
+fn bevy_pbr_lighting_getDistanceAttenuation(distanceSquare: f32, inverseRangeSquared: f32) -> f32 {
+    let factor: f32 = distanceSquare * inverseRangeSquared;
+    let smoothFactor: f32 = saturate(1.0 - factor * factor);
+    let attenuation: f32 = smoothFactor * smoothFactor;
+    return attenuation * 1.0 / max(distanceSquare, 0.0001);
+}
+
+fn bevy_pbr_lighting_perceptualRoughnessToRoughness(perceptualRoughness: f32) -> f32 {
+    let clampedPerceptualRoughness: f32 = clamp(perceptualRoughness, 0.089, 1.0);
+    return clampedPerceptualRoughness * clampedPerceptualRoughness;
+}
+
+fn bevy_pbr_lighting_specular(input: ptr<function, bevy_pbr_lighting_LightingInput>, derived_input: ptr<function, bevy_pbr_lighting_DerivedLightingInput>, specular_intensity: f32) -> vec3<f32> {
+    let roughness: f32 = (*input).layers[0u].roughness;
+    let NdotV: f32 = (*input).layers[0u].NdotV;
+    let F0: vec3<f32> = (*input).F0_;
+    let H: vec3<f32> = (*derived_input).H;
+    let NdotL: f32 = (*derived_input).NdotL;
+    let NdotH: f32 = (*derived_input).NdotH;
+    let LdotH: f32 = (*derived_input).LdotH;
+    let D: f32 = bevy_pbr_lighting__1D_GGX(roughness, NdotH, H);
+    let V: f32 = bevy_pbr_lighting__1V_SmithGGXCorrelated(roughness, NdotV, NdotL);
+    let F: vec3<f32> = bevy_pbr_lighting_fresnel(F0, LdotH);
+    let Fr: vec3<f32> = bevy_pbr_lighting__1specular_multiscatter(input, D, V, F, specular_intensity);
+    return Fr;
+}
+
+fn bevy_pbr_shadows__2fetch_directional_shadow(light_id: u32, frag_position: vec4<f32>, surface_normal: vec3<f32>, view_z: f32) -> f32 {
+    let light: ptr<uniform, bevy_pbr__2mesh_view_types_DirectionalLight> = &bevy_pbr__2mesh_view_bindings_lights.directional_lights[light_id];
+    let cascade_index: u32 = bevy_pbr_shadows__2get_cascade_index(light_id, view_z);
+    if (cascade_index >= (*light).num_cascades) {
+        return 1f;
+    }
+    var shadow: f32 = bevy_pbr_shadows__2sample_directional_cascade(light_id, cascade_index, frag_position, surface_normal);
+    let next_cascade_index: u32 = cascade_index + 1u;
+    if (next_cascade_index < (*light).num_cascades) {
+        let this_far_bound: f32 = (*light).cascades[cascade_index].far_bound;
+        let next_near_bound: f32 = (1.0 - (*light).cascades_overlap_proportion) * this_far_bound;
+        if (-view_z >= next_near_bound) {
+            let next_shadow: f32 = bevy_pbr_shadows__2sample_directional_cascade(light_id, next_cascade_index, frag_position, surface_normal);
+            shadow = mix(shadow, next_shadow, (-view_z - next_near_bound) / (this_far_bound - next_near_bound));
+        }
+    }
+    return shadow;
+}
+
+fn bevy_pbr_shadows__2fetch_point_shadow(light_id: u32, frag_position: vec4<f32>, surface_normal: vec3<f32>) -> f32 {
+    let light: ptr<uniform, bevy_pbr__2mesh_view_types_ClusterableObject> = &bevy_pbr__2mesh_view_bindings__1clusterable_objects.data[light_id];
+    let surface_to_light: vec3<f32> = (*light).position_radius.xyz - frag_position.xyz;
+    let surface_to_light_abs: vec3<f32> = abs(surface_to_light);
+    let distance_to_light: f32 = max(surface_to_light_abs.x, max(surface_to_light_abs.y, surface_to_light_abs.z));
+    let normal_offset: vec3<f32> = (*light).shadow_normal_bias * distance_to_light * surface_normal.xyz;
+    let depth_offset: vec3<f32> = (*light).shadow_depth_bias * normalize(surface_to_light.xyz);
+    let offset_position: vec3<f32> = frag_position.xyz + normal_offset + depth_offset;
+    let frag_ls: vec3<f32> = offset_position.xyz - (*light).position_radius.xyz;
+    let abs_position_ls: vec3<f32> = abs(frag_ls);
+    let major_axis_magnitude: f32 = max(abs_position_ls.x, max(abs_position_ls.y, abs_position_ls.z));
+    let zw: vec2<f32> = -major_axis_magnitude * (*light).light_custom_data.xy + (*light).light_custom_data.zw;
+    let depth: f32 = zw.x / zw.y;
+    if ((*light).soft_shadow_size > 0.0) {
+        return bevy_pbr__1shadow_sampling__3sample_shadow_cubemap_pcss(frag_ls * vec3(1f, 1f, -1f), distance_to_light, depth, light_id, (*light).soft_shadow_size);
+    }
+    return bevy_pbr__1shadow_sampling__2sample_shadow_cubemap(frag_ls * vec3(1f, 1f, -1f), distance_to_light, depth, light_id);
+}
+
+fn bevy_pbr_shadows__2fetch_spot_shadow(light_id: u32, frag_position: vec4<f32>, surface_normal: vec3<f32>, near_z: f32) -> f32 {
+    let light: ptr<uniform, bevy_pbr__2mesh_view_types_ClusterableObject> = &bevy_pbr__2mesh_view_bindings__1clusterable_objects.data[light_id];
+    let surface_to_light: vec3<f32> = (*light).position_radius.xyz - frag_position.xyz;
+    var spot_dir: vec3<f32> = vec3<f32>((*light).light_custom_data.x, 0.0, (*light).light_custom_data.y);
+    spot_dir.y = sqrt(max(0.0, 1.0 - spot_dir.x * spot_dir.x - spot_dir.z * spot_dir.z));
+    if (((*light).flags & 2u) != 0u) {
+        spot_dir.y = -spot_dir.y;
+    }
+    let fwd: vec3<f32> = -spot_dir;
+    let distance_to_light: f32 = dot(fwd, surface_to_light);
+    let offset_position: vec3<f32> = -surface_to_light + ((*light).shadow_depth_bias * normalize(surface_to_light)) + (surface_normal.xyz * (*light).shadow_normal_bias) * distance_to_light;
+    var sign: f32 = -1.0;
+    if (fwd.z >= 0.0) {
+        sign = 1.0;
+    }
+    let a: f32 = -1.0 / (fwd.z + sign);
+    let b: f32 = fwd.x * fwd.y * a;
+    let up_dir: vec3<f32> = vec3<f32>(1.0 + sign * fwd.x * fwd.x * a, sign * b, -sign * fwd.x);
+    let right_dir: vec3<f32> = vec3<f32>(-b, -sign - fwd.y * fwd.y * a, fwd.y);
+    let light_inv_rot: mat3x3<f32> = mat3x3<f32>(right_dir, up_dir, fwd);
+    let projected_position: vec3<f32> = offset_position * light_inv_rot;
+    let f_div_minus_z: f32 = 1.0 / ((*light).spot_light_tan_angle * -projected_position.z);
+    let shadow_xy_ndc: vec2<f32> = projected_position.xy * f_div_minus_z;
+    let shadow_uv: vec2<f32> = shadow_xy_ndc * vec2(0.5f, -0.5f) + vec2(0.5f, 0.5f);
+    let depth: f32 = near_z / -projected_position.z;
+    let array_index: i32 = i32(light_id) + bevy_pbr__2mesh_view_bindings_lights.spot_light_shadowmap_offset;
+    if ((*light).soft_shadow_size > 0.0) {
+        return bevy_pbr__1shadow_sampling__3sample_shadow_map_pcss(shadow_uv, depth, array_index, 0.013427734f, (*light).soft_shadow_size);
+    }
+    return bevy_pbr__1shadow_sampling__2sample_shadow_map(shadow_uv, depth, array_index, 0.013427734f);
+}
+
+fn bevy_pbr_shadows__2get_cascade_index(light_id: u32, view_z: f32) -> u32 {
+    let light: ptr<uniform, bevy_pbr__2mesh_view_types_DirectionalLight> = &bevy_pbr__2mesh_view_bindings_lights.directional_lights[light_id];
+    for (var i: u32 = 0u; i < (*light).num_cascades; i = i + 1u) {
+        if (-view_z < (*light).cascades[i].far_bound) {
+            return i;
+        }
+    }
+    return (*light).num_cascades;
+}
+
+fn bevy_pbr_shadows__2sample_directional_cascade(light_id: u32, cascade_index: u32, frag_position: vec4<f32>, surface_normal: vec3<f32>) -> f32 {
+    let light: ptr<uniform, bevy_pbr__2mesh_view_types_DirectionalLight> = &bevy_pbr__2mesh_view_bindings_lights.directional_lights[light_id];
+    let cascade: ptr<uniform, bevy_pbr__2mesh_view_types_DirectionalCascade> = &(*light).cascades[cascade_index];
+    let normal_offset: vec3<f32> = (*light).shadow_normal_bias * (*cascade).texel_size * surface_normal.xyz;
+    let depth_offset: vec3<f32> = (*light).shadow_depth_bias * (*light).direction_to_light.xyz;
+    let offset_position: vec4<f32> = vec4<f32>(frag_position.xyz + normal_offset + depth_offset, frag_position.w);
+    let light_local: vec4<f32> = bevy_pbr_shadows__4world_to_directional_light_local(light_id, cascade_index, offset_position);
+    if (light_local.w == 0.0) {
+        return 1f;
+    }
+    let array_index: i32 = i32((*light).depth_texture_base_index + cascade_index);
+    let texel_size: f32 = (*cascade).texel_size;
+    if ((*light).soft_shadow_size > 0.0) {
+        return bevy_pbr__1shadow_sampling__3sample_shadow_map_pcss(light_local.xy, light_local.z, array_index, texel_size, (*light).soft_shadow_size);
+    }
+    return bevy_pbr__1shadow_sampling__2sample_shadow_map(light_local.xy, light_local.z, array_index, texel_size);
+}
+
+fn bevy_pbr_shadows__4world_to_directional_light_local(light_id: u32, cascade_index: u32, offset_position: vec4<f32>) -> vec4<f32> {
+    let light: ptr<uniform, bevy_pbr__2mesh_view_types_DirectionalLight> = &bevy_pbr__2mesh_view_bindings_lights.directional_lights[light_id];
+    let cascade: ptr<uniform, bevy_pbr__2mesh_view_types_DirectionalCascade> = &(*light).cascades[cascade_index];
+    let offset_position_clip: vec4<f32> = (*cascade).clip_from_world * offset_position;
+    if (offset_position_clip.w <= 0.0) {
+        return vec4(0f, 0f, 0f, 0f);
+    }
+    let offset_position_ndc: vec3<f32> = offset_position_clip.xyz / offset_position_clip.w;
+    if (any(offset_position_ndc.xy < vec2(-1f, -1f)) || offset_position_ndc.z < 0.0 || any(offset_position_ndc > vec3(1f, 1f, 1f))) {
+        return vec4(0f, 0f, 0f, 0f);
+    }
+    let flip_correction: vec2<f32> = vec2(0.5f, -0.5f);
+    let light_local: vec2<f32> = offset_position_ndc.xy * flip_correction + vec2(0.5f, 0.5f);
+    let depth: f32 = offset_position_ndc.z;
+    return vec4(light_local, depth, 1.0);
+}
+
+fn bevy_pbr_utils__2interleaved_gradient_noise(pixel_coordinates: vec2<f32>, frame: u32) -> f32 {
+    let xy: vec2<f32> = pixel_coordinates + 5.588238 * f32(frame % 64u);
+    return fract(52.9829189 * fract(0.06711056 * xy.x + 0.00583715 * xy.y));
+}
+
+fn bevy_render_maths_orthonormalize(z_unnormalized: vec3<f32>, up: vec3<f32>) -> mat3x3<f32> {
+    let z_basis: vec3<f32> = normalize(z_unnormalized);
+    let x_basis: vec3<f32> = normalize(cross(z_basis, up));
+    let y_basis: vec3<f32> = cross(z_basis, x_basis);
+    return mat3x3(x_basis, y_basis, z_basis);
+}
+
+fn bevy_render_maths_powsafe(color: vec3<f32>, power: f32) -> vec3<f32> {
+    return pow(abs(color), vec3(power)) * sign(color);
+}
+
+@fragment
+fn fragment(@builtin(front_facing) is_front: bool, mesh: bevy_pbr__1forward_io_VertexOutput) -> @location(0) vec4<f32> {
+    let layer: i32 = i32(mesh.world_position.x) & 3;
+    var pbr_input: bevy_pbr__1pbr_types_PbrInput = bevy_pbr__1pbr_types_PbrInput(bevy_pbr__1pbr_types_StandardMaterial(vec4(1f, 1f, 1f, 1f), vec4(0f, 0f, 0f, 1f), vec4(1f, 1f, 1f, 1f), mat3x3(1f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f), vec3(0.5f, 0.5f, 0.5f), 0.5f, 0f, 0f, 0f, 0f, 1.5f, 1f, 0f, 0f, 0f, vec2(0f, 0f), 0u, 0.5f, 0.1f, 16f, 0f, 5u, 1u), vec3(1f, 1f, 1f), 1f, vec4(0f, 0f, 0f, 1f), vec4(0f, 0f, 0f, 1f), vec3(0f, 0f, 1f), vec3(0f, 0f, 1f), vec3(1f, 0f, 0f), vec3(0f, 0f, 0f), vec3(0f, 0f, 0f), 0f, vec3(0f, 0f, 0f), vec3(0f, 0f, 0f), false, 0u);
+    pbr_input.material.base_color = textureSample(my_array_texture, my_array_texture_sampler, mesh.uv, layer);
+    let double_sided: bool = (pbr_input.material.flags & 16u) != 0u;
+    pbr_input.frag_coord = mesh.position;
+    pbr_input.world_position = mesh.world_position;
+    pbr_input.world_normal = bevy_pbr__1pbr_functions__2prepare_world_normal(mesh.world_normal, double_sided, is_front);
+    pbr_input.is_orthographic = bevy_pbr__2mesh_view_bindings_view.clip_from_view[3].w == 1.0;
+    pbr_input.N = normalize(pbr_input.world_normal);
+    pbr_input.V = bevy_pbr__1pbr_functions__1calculate_view(mesh.world_position, pbr_input.is_orthographic);
+    return bevy__1core_pipeline_tonemapping__1tone_mapping(bevy_pbr__1pbr_functions__2apply_pbr_lighting(pbr_input), bevy_pbr__2mesh_view_bindings_view.color_grading);
+}

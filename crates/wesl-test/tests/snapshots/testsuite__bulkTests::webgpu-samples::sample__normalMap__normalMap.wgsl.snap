@@ -1,0 +1,140 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(1) @binding(1)
+var albedoTexture: texture_2d<f32>;
+
+@group(1) @binding(3)
+var depthTexture: texture_2d<f32>;
+
+@group(0) @binding(1)
+var<uniform> mapInfo: MapInfo;
+
+@group(1) @binding(2)
+var normalTexture: texture_2d<f32>;
+
+@group(0) @binding(0)
+var<uniform> spaceTransform: SpaceTransforms;
+
+@group(1) @binding(0)
+var textureSampler: sampler;
+
+struct MapInfo {
+    lightPosVS: vec3<f32>,
+    mode: u32,
+    lightIntensity: f32,
+    depthScale: f32,
+    depthLayers: f32
+}
+
+struct SpaceTransforms {
+    worldViewProjMatrix: mat4x4<f32>,
+    worldViewMatrix: mat4x4<f32>
+}
+
+struct VertexInput {
+    @location(0)
+    position: vec4<f32>,
+    @location(1)
+    normal: vec3<f32>,
+    @location(2)
+    uv: vec2<f32>,
+    @location(3)
+    vert_tan: vec3<f32>,
+    @location(4)
+    vert_bitan: vec3<f32>
+}
+
+struct VertexOutput {
+    @builtin(position)
+    posCS: vec4<f32>,
+    @location(0)
+    posVS: vec3<f32>,
+    @location(1)
+    tangentVS: vec3<f32>,
+    @location(2)
+    bitangentVS: vec3<f32>,
+    @location(3)
+    normalVS: vec3<f32>,
+    @location(5)
+    uv: vec2<f32>
+}
+
+@fragment
+fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
+    let tangentToView: mat3x3<f32> = mat3x3<f32>(input.tangentVS, input.bitangentVS, input.normalVS);
+    let viewToTangent: mat3x3<f32> = transpose(tangentToView);
+    let viewDirTS: vec3<f32> = normalize(viewToTangent * input.posVS);
+    var uv: vec2<f32>;
+    switch (mapInfo.mode) {
+        case 4 {
+            uv = parallaxScale(input.uv, viewDirTS);
+            break;
+        }
+        case 5 {
+            uv = parallaxSteep(input.uv, viewDirTS);
+            break;
+        }
+        case default {
+            uv = input.uv;
+            break;
+        }
+    }
+    let albedoSample: vec4<f32> = textureSample(albedoTexture, textureSampler, uv);
+    let normalSample: vec4<f32> = textureSample(normalTexture, textureSampler, uv);
+    switch (mapInfo.mode) {
+        case 0 {
+            return albedoSample;
+        }
+        case 1 {
+            return normalSample;
+        }
+        case 2 {
+            return textureSample(depthTexture, textureSampler, input.uv);
+        }
+        case default {
+            let normalTS: vec3<f32> = normalSample.xyz * 2 - 1;
+            let normalVS: vec3<f32> = normalize(tangentToView * normalTS);
+            let fragToLightVS: vec3<f32> = mapInfo.lightPosVS - input.posVS;
+            let lightSqrDist: f32 = dot(fragToLightVS, fragToLightVS);
+            let lightDirVS: vec3<f32> = fragToLightVS * inverseSqrt(lightSqrDist);
+            let diffuseLight: f32 = mapInfo.lightIntensity * max(dot(lightDirVS, normalVS), 0) / lightSqrDist;
+            let diffuse: vec3<f32> = albedoSample.rgb * diffuseLight;
+            return vec4<f32>(diffuse, 1.0);
+        }
+    }
+}
+
+fn parallaxScale(uv: vec2<f32>, viewDirTS: vec3<f32>) -> vec2<f32> {
+    let depthSample: f32 = textureSample(depthTexture, textureSampler, uv).r;
+    return uv + viewDirTS.xy * (depthSample * mapInfo.depthScale) / -viewDirTS.z;
+}
+
+fn parallaxSteep(startUV: vec2<f32>, viewDirTS: vec3<f32>) -> vec2<f32> {
+    let ddx: vec2<f32> = dpdx(startUV);
+    let ddy: vec2<f32> = dpdy(startUV);
+    let uvDelta: vec2<f32> = viewDirTS.xy * mapInfo.depthScale / (-viewDirTS.z * mapInfo.depthLayers);
+    let depthDelta: f32 = 1.0 / f32(mapInfo.depthLayers);
+    let posDelta: vec3<f32> = vec3(uvDelta, depthDelta);
+    var pos: vec3<f32> = vec3(startUV, 0);
+    for (var i: i32 = 0; i < 32; i++) {
+        if (pos.z >= textureSampleGrad(depthTexture, textureSampler, pos.xy, ddx, ddy).r) {
+            break;
+        }
+        pos += posDelta;
+    }
+    return pos.xy;
+}
+
+@vertex
+fn vertexMain(input: VertexInput) -> VertexOutput {
+    var output: VertexOutput;
+    output.posCS = spaceTransform.worldViewProjMatrix * input.position;
+    output.posVS = (spaceTransform.worldViewMatrix * input.position).xyz;
+    output.tangentVS = (spaceTransform.worldViewMatrix * vec4(input.vert_tan, 0)).xyz;
+    output.bitangentVS = (spaceTransform.worldViewMatrix * vec4(input.vert_bitan, 0)).xyz;
+    output.normalVS = (spaceTransform.worldViewMatrix * vec4(input.normal, 0)).xyz;
+    output.uv = input.uv;
+    return output;
+}

@@ -1,0 +1,16 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(4)
+var point_shadow_textures: texture_depth_cube_array;
+
+@group(0) @binding(5)
+var point_shadow_textures_sampler: sampler_comparison;
+
+@fragment
+fn fragment() -> @location(0) vec4<f32> {
+    let frag_ls: vec3<f32> = vec3(1f, 1f, 2f);
+    let a: f32 = textureSampleCompare(point_shadow_textures, point_shadow_textures_sampler, frag_ls, 1i, 1.0);
+    return vec4<f32>(a, 1.0, 1.0, 1.0);
+}

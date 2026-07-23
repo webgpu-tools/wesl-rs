@@ -1,0 +1,35 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@binding(0) @group(0)
+var<uniform> uniforms: Uniforms;
+
+struct Uniforms {
+    modelViewProjectionMatrix: mat4x4<f32>
+}
+
+struct VertexOutput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0) @interpolate(flat, either)
+    instance: u32
+}
+
+@fragment
+fn main_fs(@location(0) @interpolate(flat, either) instance: u32) -> @location(0) vec4<f32> {
+    return vec4(array(vec3(1f, 0f, 0f), vec3(0f, 1f, 0f), vec3(0f, 0f, 1f), vec3(1f, 0f, 1f), vec3(1f, 1f, 0f), vec3(0f, 1f, 1f))[instance % 6u], 1.0);
+}
+
+@vertex
+fn main_vs(@location(0) position: vec4<f32>, @builtin(instance_index) instance: u32) -> VertexOutput {
+    var output: VertexOutput;
+    let row: u32 = instance / 2u;
+    let col: u32 = instance % 2u;
+    let xOffset: f32 = -46.875 + 62.5 * f32(col) + f32(row % 2u != 0u) * 31.25;
+    let zOffset: f32 = -44.875 + f32(row) * 31.25;
+    let offsetPos: vec4<f32> = vec4(position.x + xOffset, position.y, position.z + zOffset, position.w);
+    output.position = uniforms.modelViewProjectionMatrix * offsetPos;
+    output.instance = instance;
+    return output;
+}

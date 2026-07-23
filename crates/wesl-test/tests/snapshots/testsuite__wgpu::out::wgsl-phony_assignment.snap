@@ -1,0 +1,20 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(0)
+var<uniform> binding: f32;
+
+fn five() -> i32 {
+    return 5i;
+}
+
+@compute @workgroup_size(1, 1, 1)
+fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+    let phony: f32 = binding;
+    let phony_1: f32 = binding;
+    let _e6: i32 = 5i;
+    let _e7: i32 = 5i;
+    let phony_2: f32 = binding;
+    return;
+}

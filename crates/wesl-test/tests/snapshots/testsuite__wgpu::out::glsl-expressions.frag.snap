@@ -1,0 +1,37 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+var<private> global: f32;
+
+var<private> o_color: vec4<f32>;
+
+struct FragmentOutput {
+    @location(0)
+    o_color: vec4<f32>
+}
+
+@fragment
+fn main() -> FragmentOutput {
+    main_1();
+    let _e1: vec4<f32> = o_color;
+    return FragmentOutput(_e1);
+}
+
+fn main_1() {
+    var local_6: f32;
+    let _e2: f32 = global;
+    local_6 = _e2;
+    privatePointer((&local_6));
+    let _e4: f32 = local_6;
+    global = _e4;
+    o_color.x = 1f;
+    o_color.y = 1f;
+    o_color.z = 1f;
+    o_color.w = 1f;
+    return;
+}
+
+fn privatePointer(a_19: ptr<function, f32>) {
+    return;
+}

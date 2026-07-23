@@ -1,0 +1,56 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@fragment
+fn main() {
+    let f: f32 = 1.0;
+    let v: vec4<f32> = vec4(0f, 0f, 0f, 0f);
+    let a: f32 = degrees(f);
+    let b: f32 = radians(f);
+    let c: vec4<f32> = degrees(v);
+    let d: vec4<f32> = radians(v);
+    let e: vec4<f32> = saturate(v);
+    let g: vec4<f32> = refract(v, v, f);
+    let sign_a: i32 = -1;
+    let sign_b: vec4<i32> = vec4(-1, -1, -1, -1);
+    let sign_c: f32 = -1.0;
+    let sign_d: vec4<f32> = vec4(-1.0, -1.0, -1.0, -1.0);
+    let const_dot: i32 = 0i;
+    let first_leading_bit_abs: u32 = firstLeadingBit(0u);
+    let flb_a: i32 = firstLeadingBit(-1);
+    let flb_b: vec2<i32> = firstLeadingBit(vec2(-1, -1));
+    let flb_c: vec2<u32> = firstLeadingBit(vec2(1u, 1u));
+    let ftb_a: i32 = firstTrailingBit(-1);
+    let ftb_b: u32 = firstTrailingBit(1u);
+    let ftb_c: vec2<i32> = firstTrailingBit(vec2(-1, -1));
+    let ftb_d: vec2<u32> = firstTrailingBit(vec2(1u, 1u));
+    let ctz_a: u32 = 32u;
+    let ctz_b: i32 = 64;
+    let ctz_c: u32 = 0u;
+    let ctz_d: i32 = 0;
+    let ctz_e: vec2<u32> = vec2(32u, 32u);
+    let ctz_f: vec2<i32> = vec2(64, 64);
+    let ctz_g: vec2<u32> = vec2(0u, 0u);
+    let ctz_h: vec2<i32> = vec2(0, 0);
+    let clz_a: i32 = 0;
+    let clz_b: u32 = 31u;
+    let clz_c: vec2<i32> = vec2(0, 0);
+    let clz_d: vec2<u32> = vec2(31u, 31u);
+    let lde_a: f32 = 4.0;
+    let lde_b: vec2<f32> = vec2(8.0, 32.0);
+    let modf_a = modf(1.5);
+    let modf_b: f32 = modf(1.5).fract;
+    let modf_c: f32 = modf(1.5).whole;
+    let modf_d = modf(vec2(1.5, 1.5));
+    let modf_e: f32 = modf(vec4(1.5, 1.5, 1.5, 1.5)).whole.x;
+    let modf_f: f32 = modf(vec2(1.5, 1.5)).fract.y;
+    let frexp_a = frexp(1.5);
+    let frexp_b: f32 = 0.75;
+    let frexp_c: i32 = 1;
+    let frexp_d: i32 = 1;
+    let quantizeToF16_a: f32 = quantizeToF16(1.0);
+    let quantizeToF16_b: vec2<f32> = quantizeToF16(vec2(1.0, 1.0));
+    let quantizeToF16_c: vec3<f32> = quantizeToF16(vec3(1.0, 1.0, 1.0));
+    let quantizeToF16_d: vec4<f32> = quantizeToF16(vec4(1.0, 1.0, 1.0, 1.0));
+}

@@ -1,0 +1,37 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(0)
+var<storage, read_write> arr_i32: array<atomic<i32>, 128>;
+
+@group(0) @binding(1)
+var<storage, read_write> arr_u32: array<atomic<u32>, 128>;
+
+@compute @workgroup_size(1)
+fn test_atomic_compare_exchange_i32() {
+    for (var i: u32 = 0u; i < 128u; i++) {
+        var old: i32 = atomicLoad(&arr_i32[i]);
+        var exchanged: bool = false;
+        while (!exchanged) {
+            let new_: i32 = bitcast<i32>(bitcast<f32>(old) + 1.0);
+            let result = atomicCompareExchangeWeak(&arr_i32[i], old, new_);
+            old = result.old_value;
+            exchanged = result.exchanged;
+        }
+    }
+}
+
+@compute @workgroup_size(1)
+fn test_atomic_compare_exchange_u32() {
+    for (var i: u32 = 0u; i < 128u; i++) {
+        var old: u32 = atomicLoad(&arr_u32[i]);
+        var exchanged: bool = false;
+        while (!exchanged) {
+            let new_: u32 = bitcast<u32>(bitcast<f32>(old) + 1.0);
+            let result = atomicCompareExchangeWeak(&arr_u32[i], old, new_);
+            old = result.old_value;
+            exchanged = result.exchanged;
+        }
+    }
+}

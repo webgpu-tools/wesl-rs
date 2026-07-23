@@ -1,0 +1,28 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(2) @binding(0)
+var<uniform> material: LineMaterial;
+
+struct LineMaterial {
+    color: vec4<f32>
+}
+
+struct bevy_pbr__1forward_io_VertexOutput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    world_position: vec4<f32>,
+    @location(1)
+    world_normal: vec3<f32>,
+    @location(2)
+    uv: vec2<f32>,
+    @location(6) @interpolate(flat)
+    instance_index: u32
+}
+
+@fragment
+fn fragment(mesh: bevy_pbr__1forward_io_VertexOutput) -> @location(0) vec4<f32> {
+    return material.color;
+}

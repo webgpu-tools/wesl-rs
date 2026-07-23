@@ -1,0 +1,9 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@fragment
+fn fs_main() -> @location(0) vec4<f32> {
+    var Pass: vec4<f32> = vec4(1.0, 1.0, 1.0, 1.0);
+    return Pass;
+}

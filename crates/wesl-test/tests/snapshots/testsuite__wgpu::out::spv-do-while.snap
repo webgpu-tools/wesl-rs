@@ -1,0 +1,26 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+fn fb1_(cond: ptr<function, bool>) {
+    loop {
+        continue;
+        continuing {
+            let _e1: bool = (*cond);
+            break if !(_e1);
+        }
+    }
+    return;
+}
+
+@fragment
+fn main() {
+    main_1();
+}
+
+fn main_1() {
+    var param: bool;
+    param = false;
+    fb1_((&param));
+    return;
+}

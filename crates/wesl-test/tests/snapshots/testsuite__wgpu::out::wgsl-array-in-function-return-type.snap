@@ -1,0 +1,20 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@fragment
+fn main() -> @location(0) vec4<f32> {
+    let _e0: array<array<f32, 2>, 3> = array(array(1f, 2f), array(1f, 2f), array(1f, 2f));
+    return vec4<f32>(_e0[0][0], _e0[0][1], 0f, 1f);
+}
+
+fn ret_array() -> array<f32, 2> {
+    return array(1f, 2f);
+}
+
+fn ret_array_array() -> array<array<f32, 2>, 3> {
+    let _e0: array<f32, 2> = array(1f, 2f);
+    let _e1: array<f32, 2> = array(1f, 2f);
+    let _e2: array<f32, 2> = array(1f, 2f);
+    return array<array<f32, 2>, 3>(_e0, _e1, _e2);
+}

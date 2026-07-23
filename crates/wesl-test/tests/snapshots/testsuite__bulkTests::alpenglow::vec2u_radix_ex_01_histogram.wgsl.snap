@@ -1,0 +1,75 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+var<workgroup> histogram_scratch: array<atomic<u32>, 256>;
+
+@group(0) @binding(0)
+var<storage, read> input: array<vec2<u32>, 131072>;
+
+@group(0) @binding(1)
+var<storage, read_write> output: array<u32, 131072>;
+
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_invocation_id) local_id: vec3<u32>, @builtin(workgroup_id) workgroup_id: vec3<u32>) {
+    {
+        {
+            {
+                let coalesced_local_index: u32 = 0u + local_id.x;
+                let coalesced_data_index: u32 = workgroup_id.x * 256u + coalesced_local_index;
+                if (coalesced_data_index < 131045u) {
+                    atomicAdd(&histogram_scratch[((input[coalesced_data_index].y >> 0u) & 255u)], 1u);
+                }
+            }
+            {
+                let coalesced_local_index: u32 = 64u + local_id.x;
+                let coalesced_data_index: u32 = workgroup_id.x * 256u + coalesced_local_index;
+                if (coalesced_data_index < 131045u) {
+                    atomicAdd(&histogram_scratch[((input[coalesced_data_index].y >> 0u) & 255u)], 1u);
+                }
+            }
+            {
+                let coalesced_local_index: u32 = 128u + local_id.x;
+                let coalesced_data_index: u32 = workgroup_id.x * 256u + coalesced_local_index;
+                if (coalesced_data_index < 131045u) {
+                    atomicAdd(&histogram_scratch[((input[coalesced_data_index].y >> 0u) & 255u)], 1u);
+                }
+            }
+            {
+                let coalesced_local_index: u32 = 192u + local_id.x;
+                let coalesced_data_index: u32 = workgroup_id.x * 256u + coalesced_local_index;
+                if (coalesced_data_index < 131045u) {
+                    atomicAdd(&histogram_scratch[((input[coalesced_data_index].y >> 0u) & 255u)], 1u);
+                }
+            }
+        }
+        let num_valid_workgroups: u32 = 512u;
+        if (workgroup_id.x < num_valid_workgroups) {
+            workgroupBarrier();
+            {
+                let local_index: u32 = 0u + local_id.x;
+                if (local_index < 256u) {
+                    output[local_index * num_valid_workgroups + workgroup_id.x] = atomicLoad(&histogram_scratch[local_index]);
+                }
+            }
+            {
+                let local_index: u32 = 64u + local_id.x;
+                if (local_index < 256u) {
+                    output[local_index * num_valid_workgroups + workgroup_id.x] = atomicLoad(&histogram_scratch[local_index]);
+                }
+            }
+            {
+                let local_index: u32 = 128u + local_id.x;
+                if (local_index < 256u) {
+                    output[local_index * num_valid_workgroups + workgroup_id.x] = atomicLoad(&histogram_scratch[local_index]);
+                }
+            }
+            {
+                let local_index: u32 = 192u + local_id.x;
+                if (local_index < 256u) {
+                    output[local_index * num_valid_workgroups + workgroup_id.x] = atomicLoad(&histogram_scratch[local_index]);
+                }
+            }
+        }
+    }
+}

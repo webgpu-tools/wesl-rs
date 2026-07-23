@@ -230,29 +230,29 @@ impl Compiler<()> {
             None
         };
 
-        let base_path = if let Some(cfg) = &toml_cfg {
+        let pkg_root_dir = if let Some(cfg) = &toml_cfg {
             path.parent().unwrap(/* SAFETY: cannot fail if `file_name` succeeds */).join(&cfg.package.root)
         } else {
             path.to_path_buf()
         };
 
-        let module_path = if base_path.is_file() {
+        let main_path = if pkg_root_dir.is_file() {
             ModulePath::new_root()
         } else {
             // TODO: is this correct?
             ModulePath::new(PathOrigin::Absolute, vec!["package".to_string()])
         };
 
-        self.compile_module(base_path, &module_path)
+        self.compile_module(pkg_root_dir, &main_path)
     }
 
     /// Compile a WESL shader to WGSL.
     pub fn compile_module(
         &self,
-        base_path: impl AsRef<Path>,
-        module_path: &ModulePath,
+        pkg_root_dir: impl AsRef<Path>,
+        main_path: &ModulePath,
     ) -> Result<CompileResult, Error> {
-        let mut resolver = StandardResolver::new(base_path.as_ref().with_extension(""));
+        let mut resolver = StandardResolver::new(pkg_root_dir);
         let mangler = Box::<dyn Mangler>::from(self.options.mangler);
 
         for (name, value) in self.options.constants.iter() {
@@ -263,10 +263,10 @@ impl Compiler<()> {
             resolver.add_package(package);
         }
 
-        let sourcemapper = SourceMapper::new(module_path.clone(), &resolver, &mangler);
+        let sourcemapper = SourceMapper::new(main_path.clone(), &resolver, &mangler);
 
         let mut pass =
-            CompilationPass::new(&module_path, &self.options, &sourcemapper, &sourcemapper);
+            CompilationPass::new(&main_path, &self.options, &sourcemapper, &sourcemapper);
 
         let res = CompilerDriver::compile(&mut pass);
         let sourcemap = sourcemapper.finish();

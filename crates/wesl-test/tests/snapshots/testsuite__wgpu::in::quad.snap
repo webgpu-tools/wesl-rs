@@ -1,0 +1,36 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(1)
+var u_sampler: sampler;
+
+@group(0) @binding(0)
+var u_texture: texture_2d<f32>;
+
+struct VertexOutput {
+    @location(0)
+    uv: vec2<f32>,
+    @builtin(position)
+    position: vec4<f32>
+}
+
+@fragment
+fn frag_main(@location(0) uv: vec2<f32>) -> @location(0) vec4<f32> {
+    let color: vec4<f32> = textureSample(u_texture, u_sampler, uv);
+    if color.a == 0.0 {
+        discard;
+    }
+    let premultiplied: vec4<f32> = color.a * color;
+    return premultiplied;
+}
+
+@fragment
+fn fs_extra() -> @location(0) vec4<f32> {
+    return vec4(0f, 0.5f, 0f, 0.5f);
+}
+
+@vertex
+fn vert_main(@location(0) pos: vec2<f32>, @location(1) uv: vec2<f32>) -> VertexOutput {
+    return VertexOutput(uv, vec4<f32>(1.2f * pos, 0.0, 1.0));
+}

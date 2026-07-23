@@ -1,0 +1,166 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(0)
+var<storage, read_write> bar: Bar;
+
+@group(0) @binding(1)
+var<uniform> baz: Baz;
+
+@group(0) @binding(3)
+var<uniform> nested_mat_cx2: MatCx2InArray;
+
+@group(0) @binding(2)
+var<storage, read_write> qux: vec2<i32>;
+
+struct AlignedWrapper {
+    @align(8)
+    value: i32
+}
+
+struct AssignToMember {
+    x: u32
+}
+
+struct Bar {
+    _matrix: mat4x3<f32>,
+    matrix_array: array<mat2x2<f32>, 2>,
+    atom: atomic<i32>,
+    atom_arr: array<atomic<i32>, 10>,
+    arr: array<vec2<u32>, 2>,
+    data: array<AlignedWrapper>
+}
+
+struct Baz {
+    m: mat3x2<f32>
+}
+
+struct MatCx2InArray {
+    am: array<mat4x2<f32>, 2>
+}
+
+fn assign_array_through_ptr_fn(foo: ptr<function, array<vec4<f32>, 2>>) {
+    *foo = array(vec4(1f, 1f, 1f, 1f), vec4(2f, 2f, 2f, 2f));
+}
+
+@compute @workgroup_size(1)
+fn assign_through_ptr() {
+    var val: u32 = 33u;
+    assign_through_ptr_fn(&val);
+    var arr: array<vec4<f32>, 2> = array(vec4(6f, 6f, 6f, 6f), vec4(7f, 7f, 7f, 7f));
+    assign_array_through_ptr_fn(&arr);
+}
+
+fn assign_through_ptr_fn(p: ptr<function, u32>) {
+    *p = 42u;
+}
+
+fn assign_to_arg_ptr_array_element(p: ptr<function, array<u32, 4>>) {
+    (*p)[1] = 10u;
+}
+
+fn assign_to_arg_ptr_member(p: ptr<function, AssignToMember>) {
+    (*p).x = 10u;
+}
+
+@compute @workgroup_size(1)
+fn assign_to_ptr_components() {
+    var s1: AssignToMember;
+    assign_to_arg_ptr_member(&s1);
+    fetch_arg_ptr_member(&s1);
+    var a1: array<u32, 4>;
+    assign_to_arg_ptr_array_element(&a1);
+    fetch_arg_ptr_array_element(&a1);
+}
+
+fn fetch_arg_ptr_array_element(p: ptr<function, array<u32, 4>>) -> u32 {
+    return (*p)[1];
+}
+
+fn fetch_arg_ptr_member(p: ptr<function, AssignToMember>) -> u32 {
+    return (*p).x;
+}
+
+@fragment
+fn foo_frag() -> @location(0) vec4<f32> {
+    bar._matrix[1].z = 1.0;
+    bar._matrix = mat4x3(0f, 0f, 0f, 1f, 1f, 1f, 2f, 2f, 2f, 3f, 3f, 3f);
+    bar.arr = array(vec2(0u, 0u), vec2(1u, 1u));
+    bar.data[1].value = 1;
+    qux = vec2(0i, 0i);
+    return vec4(0f, 0f, 0f, 0f);
+}
+
+@vertex
+fn foo_vert(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4<f32> {
+    var foo: f32 = 0.0;
+    let baz: f32 = foo;
+    foo = 1.0;
+    test_matrix_within_struct_accesses();
+    test_matrix_within_array_within_struct_accesses();
+    let _matrix: mat4x3<f32> = bar._matrix;
+    let arr: array<vec2<u32>, 2> = bar.arr;
+    let index: u32 = 3u;
+    let b: f32 = bar._matrix[index].x;
+    let a: i32 = bar.data[arrayLength(&bar.data) - 2u].value;
+    let c: vec2<i32> = qux;
+    let data_pointer: ptr<storage, i32, read_write> = &bar.data[0].value;
+    let foo_value: f32 = read_from_private(&foo);
+    var c2: array<i32, 5> = array<i32, 5>(a, i32(b), 3, 4, 5);
+    c2[vi + 1u] = 42;
+    let value: i32 = c2[vi];
+    return vec4<f32>(_matrix * vec4<f32>(vec4<i32>(value)), 2.0);
+}
+
+fn read_from_private(foo: ptr<function, f32>) -> f32 {
+    return *foo;
+}
+
+fn test_arr_as_arg(a: array<array<f32, 10>, 5>) -> f32 {
+    return a[4][9];
+}
+
+fn test_matrix_within_array_within_struct_accesses() {
+    var idx: i32 = 1;
+    idx--;
+    let l0: array<mat4x2<f32>, 2> = nested_mat_cx2.am;
+    let l1: mat4x2<f32> = nested_mat_cx2.am[0];
+    let l2: vec2<f32> = nested_mat_cx2.am[0][0];
+    let l3: vec2<f32> = nested_mat_cx2.am[0][idx];
+    let l4: f32 = nested_mat_cx2.am[0][0][1];
+    let l5: f32 = nested_mat_cx2.am[0][0][idx];
+    let l6: f32 = nested_mat_cx2.am[0][idx][1];
+    let l7: f32 = nested_mat_cx2.am[0][idx][idx];
+    var t: MatCx2InArray = MatCx2InArray(array(mat4x2(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f), mat4x2(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f)));
+    idx++;
+    t.am = array(mat4x2(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f), mat4x2(0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f));
+    t.am[0] = mat4x2(8f, 8f, 7f, 7f, 6f, 6f, 5f, 5f);
+    t.am[0][0] = vec2(9f, 9f);
+    t.am[0][idx] = vec2(90f, 90f);
+    t.am[0][0][1] = 10.0;
+    t.am[0][0][idx] = 20.0;
+    t.am[0][idx][1] = 30.0;
+    t.am[0][idx][idx] = 40.0;
+}
+
+fn test_matrix_within_struct_accesses() {
+    var idx: i32 = 1;
+    idx--;
+    let l0: mat3x2<f32> = baz.m;
+    let l1: vec2<f32> = baz.m[0];
+    let l2: vec2<f32> = baz.m[idx];
+    let l3: f32 = baz.m[0][1];
+    let l4: f32 = baz.m[0][idx];
+    let l5: f32 = baz.m[idx][1];
+    let l6: f32 = baz.m[idx][idx];
+    var t: Baz = Baz(mat3x2(1f, 1f, 2f, 2f, 3f, 3f));
+    idx++;
+    t.m = mat3x2(6f, 6f, 5f, 5f, 4f, 4f);
+    t.m[0] = vec2(9f, 9f);
+    t.m[idx] = vec2(90f, 90f);
+    t.m[0][1] = 10.0;
+    t.m[0][idx] = 20.0;
+    t.m[idx][1] = 30.0;
+    t.m[idx][idx] = 40.0;
+}

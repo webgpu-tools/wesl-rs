@@ -1,0 +1,12 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(3)
+var<storage, read_write> counter: atomic<u32>;
+
+@compute @workgroup_size(1, 1, 1)
+fn atomicToZero() {
+    let counterValue: u32 = atomicLoad(&counter);
+    atomicSub(&counter, counterValue);
+}

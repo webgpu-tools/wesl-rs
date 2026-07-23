@@ -1,0 +1,47 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(0)
+var<storage, read_write> global: type_4;
+
+@group(0) @binding(1)
+var<storage> global_1: type_2;
+
+struct type_2 {
+    member: u32
+}
+
+struct type_4 {
+    member: atomic<u32>
+}
+
+fn function() {
+    var phi_21_: u32;
+    var phi_22_: u32;
+    phi_21_ = 0u;
+    loop {
+        let _e10: u32 = phi_21_;
+        let _e11: u32 = global_1.member;
+        let _e12: bool = (_e10 >= _e11);
+        if _e12 {
+            phi_22_ = 0u;
+        }
+        else {
+            let _e13: u32 = atomicAdd((&global.member), 1u);
+            phi_22_ = (_e10 + 1u);
+        }
+        let _e17: u32 = phi_22_;
+        continue;
+        continuing {
+            phi_21_ = _e17;
+            break if !(select(true, false, _e12));
+        }
+    }
+    return;
+}
+
+@compute @workgroup_size(32, 1, 1)
+fn stagetest_atomic_i_increment() {
+    function();
+}

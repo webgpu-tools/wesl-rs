@@ -1,0 +1,28 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(2) @binding(1)
+var base_color_sampler: sampler;
+
+@group(2) @binding(0)
+var base_color_texture: texture_cube<f32>;
+
+struct bevy_pbr__1forward_io_VertexOutput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    world_position: vec4<f32>,
+    @location(1)
+    world_normal: vec3<f32>,
+    @location(2)
+    uv: vec2<f32>,
+    @location(6) @interpolate(flat)
+    instance_index: u32
+}
+
+@fragment
+fn fragment(mesh: bevy_pbr__1forward_io_VertexOutput) -> @location(0) vec4<f32> {
+    let fragment_position_view_lh: vec3<f32> = mesh.world_position.xyz * vec3(1f, 1f, -1f);
+    return textureSample(base_color_texture, base_color_sampler, fragment_position_view_lh);
+}

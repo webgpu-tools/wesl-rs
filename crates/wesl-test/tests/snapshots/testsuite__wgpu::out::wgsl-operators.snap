@@ -1,0 +1,54 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+fn arithmetic() {
+
+}
+
+fn assignment() {
+
+}
+
+fn bit() {
+
+}
+
+fn bool_cast(x: vec3<f32>) -> vec3<f32> {
+    let y: vec3<bool> = vec3<bool>(x);
+    return vec3<f32>(y);
+}
+
+fn builtins() -> vec4<f32> {
+    let s1_: i32 = 1i;
+    let s2_: vec4<f32> = vec4(1f, 1f, 1f, 1f);
+    let s3_: vec4<f32> = vec4(1f, 1f, 1f, 1f);
+    let m1_: vec4<f32> = vec4(0.5f, 0.5f, 0.5f, 0.5f);
+    let m2_: vec4<f32> = vec4(0.1f, 0.1f, 0.1f, 0.1f);
+    let b1_: f32 = 0.000000000000000000000000000000000000000000001f;
+    let b2_: vec4<f32> = vec4(0.000000000000000000000000000000000000000000001f, 0.000000000000000000000000000000000000000000001f, 0.000000000000000000000000000000000000000000001f, 0.000000000000000000000000000000000000000000001f);
+    let v_i32_zero: vec4<i32> = vec4(0i, 0i, 0i, 0i);
+    return (((((vec4<f32>((vec4(s1_) + v_i32_zero)) + s2_) + m1_) + m2_) + vec4(b1_)) + b2_);
+}
+
+fn comparison() {
+
+}
+
+fn logical() {
+
+}
+
+@compute @workgroup_size(1, 1, 1)
+fn main(@builtin(workgroup_id) id: vec3<u32>) {
+    let _e1: vec4<f32> = vec4(2.6f, 2.6f, 2.6f, 2.6f);
+    let _e6: vec4<f32> = splat(f32(id.x), i32(id.y));
+    let _e11: vec3<f32> = vec3(1f, 1f, 1f);
+    return;
+}
+
+fn splat(m: f32, n: i32) -> vec4<f32> {
+    let a_2: vec2<f32> = (((vec2(2f, 2f) + vec2(m)) - vec2(4f, 4f)) / vec2(8f, 8f));
+    let b: vec4<i32> = (vec4(n) % vec4(2i, 2i, 2i, 2i));
+    return (a_2.xyxy + vec4<f32>(b));
+}

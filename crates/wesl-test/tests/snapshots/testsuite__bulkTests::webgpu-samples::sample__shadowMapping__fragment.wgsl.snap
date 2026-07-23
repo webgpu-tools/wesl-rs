@@ -1,0 +1,45 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+override shadowDepthTextureSize: f32 = 1024.0;
+
+@group(0) @binding(0)
+var<uniform> scene: Scene;
+
+@group(0) @binding(1)
+var shadowMap: texture_depth_2d;
+
+@group(0) @binding(2)
+var shadowSampler: sampler_comparison;
+
+struct FragmentInput {
+    @location(0)
+    shadowPos: vec3<f32>,
+    @location(1)
+    fragPos: vec3<f32>,
+    @location(2)
+    fragNorm: vec3<f32>
+}
+
+struct Scene {
+    lightViewProjMatrix: mat4x4<f32>,
+    cameraViewProjMatrix: mat4x4<f32>,
+    lightPos: vec3<f32>
+}
+
+@fragment
+fn main(input: FragmentInput) -> @location(0) vec4<f32> {
+    var visibility: f32 = 0.0;
+    let oneOverShadowDepthTextureSize: f32 = 1.0 / shadowDepthTextureSize;
+    for (var y: i32 = -1; y <= 1; y++) {
+        for (var x: i32 = -1; x <= 1; x++) {
+            let offset: vec2<f32> = vec2<f32>(vec2(x, y)) * oneOverShadowDepthTextureSize;
+            visibility += textureSampleCompare(shadowMap, shadowSampler, input.shadowPos.xy + offset, input.shadowPos.z - 0.007);
+        }
+    }
+    visibility /= 9.0;
+    let lambertFactor: f32 = max(dot(normalize(scene.lightPos - input.fragPos), normalize(input.fragNorm)), 0.0);
+    let lightingFactor: f32 = min(0.2 + visibility * lambertFactor, 1.0);
+    return vec4(lightingFactor * vec3(0.9f, 0.9f, 0.9f), 1.0);
+}

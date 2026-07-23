@@ -1,0 +1,36 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(0)
+var<uniform> uni: Uniforms;
+
+struct Uniforms {
+    matrix: mat4x4<f32>,
+    resolution: vec2<f32>,
+    size: f32
+}
+
+struct VSOutput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    texcoord: vec2<f32>
+}
+
+struct Vertex {
+    @location(0)
+    position: vec4<f32>
+}
+
+@vertex
+fn vs(vert: Vertex, @builtin(vertex_index) vNdx: u32) -> VSOutput {
+    let points: array<vec2<f32>, 6> = array(vec2(-1f, -1f), vec2(1f, -1f), vec2(-1f, 1f), vec2(-1f, 1f), vec2(1f, -1f), vec2(1f, 1f));
+    var vsOut: VSOutput;
+    let pos: vec2<f32> = points[vNdx];
+    let clipPos: vec4<f32> = uni.matrix * vert.position;
+    let pointPos: vec4<f32> = vec4<f32>(pos * uni.size / uni.resolution, 0, 0);
+    vsOut.position = clipPos + pointPos;
+    vsOut.texcoord = pos * 0.5 + 0.5;
+    return vsOut;
+}

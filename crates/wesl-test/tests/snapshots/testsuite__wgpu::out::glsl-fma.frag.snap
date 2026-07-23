@@ -1,0 +1,25 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+var<private> o_color: vec4<f32>;
+
+struct FragmentOutput {
+    @location(0)
+    o_color: vec4<f32>
+}
+
+@fragment
+fn main() -> FragmentOutput {
+    main_1();
+    let _e1: vec4<f32> = o_color;
+    return FragmentOutput(_e1);
+}
+
+fn main_1() {
+    o_color.x = 1f;
+    o_color.y = 1f;
+    o_color.z = 1f;
+    o_color.w = 1f;
+    return;
+}

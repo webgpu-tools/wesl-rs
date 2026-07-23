@@ -1,0 +1,29 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(0)
+var screen_texture: texture_2d<f32>;
+
+@group(0) @binding(2)
+var<uniform> settings: PostProcessSettings;
+
+@group(0) @binding(1)
+var texture_sampler: sampler;
+
+struct PostProcessSettings {
+    intensity: f32
+}
+
+struct bevy__1core_pipeline__2fullscreen_vertex_shader_FullscreenVertexOutput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    uv: vec2<f32>
+}
+
+@fragment
+fn fragment(in: bevy__1core_pipeline__2fullscreen_vertex_shader_FullscreenVertexOutput) -> @location(0) vec4<f32> {
+    let offset_strength: f32 = settings.intensity;
+    return vec4<f32>(textureSample(screen_texture, texture_sampler, in.uv + vec2<f32>(offset_strength, -offset_strength)).r, textureSample(screen_texture, texture_sampler, in.uv + vec2<f32>(-offset_strength, 0.0)).g, textureSample(screen_texture, texture_sampler, in.uv + vec2<f32>(0.0, offset_strength)).b, 1.0);
+}

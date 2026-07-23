@@ -36,16 +36,22 @@ pub(crate) fn apply_components(
     span: Span,
     components: Vec<Spanned<Component>>,
 ) -> Expression {
-    components.into_iter().fold(expr, |base, comp| {
-        let span = span.extend(comp.span());
-        let base = Spanned::new(base, span);
-        match comp.into_inner() {
-            Component::Named(component) => {
-                Expression::NamedComponent(NamedComponentExpression { base, component })
-            }
-            Component::Index(index) => Expression::Indexing(IndexingExpression { base, index }),
-        }
-    })
+    components
+        .into_iter()
+        .fold((expr, span), |(base, base_span), comp| {
+            let component_span = comp.span();
+            let base = Spanned::new(base, base_span);
+            let expression = match comp.into_inner() {
+                Component::Named(component) => {
+                    Expression::NamedComponent(NamedComponentExpression { base, component })
+                }
+                Component::Index(index) => {
+                    Expression::Indexing(IndexingExpression { base, index })
+                }
+            };
+            (expression, base_span.extend(component_span))
+        })
+        .0
 }
 
 impl FromStr for DeclarationKind {
@@ -359,5 +365,26 @@ pub(crate) fn parse_var_template(
             }
         }
         None => Ok(None),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use super::*;
+
+    #[test]
+    fn component_base_spans_end_before_the_component() {
+        let expression = Expression::from_str("globals.voxel_clip.count").unwrap();
+        let Expression::NamedComponent(outer) = expression else {
+            panic!("expected outer named component");
+        };
+        assert_eq!(outer.base.span(), Span::new(0..18));
+
+        let Expression::NamedComponent(inner) = outer.base.node() else {
+            panic!("expected inner named component");
+        };
+        assert_eq!(inner.base.span(), Span::new(0..7));
     }
 }

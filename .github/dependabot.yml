@@ -4,9 +4,12 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    labels:
+    groups:
+      all:
+        patterns:
+          - "*"
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
-    labels:

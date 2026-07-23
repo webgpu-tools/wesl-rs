@@ -106,7 +106,7 @@ impl TextureType {
             TextureType::Sampled3D(st) => Some(*st),
             TextureType::SampledCube(st) => Some(*st),
             TextureType::SampledCubeArray(st) => Some(*st),
-            TextureType::Multisampled2D(_) => None,
+            TextureType::Multisampled2D(st) => Some(*st),
             TextureType::DepthMultisampled2D => None,
             TextureType::External => None,
             TextureType::Storage1D(_, _) => None,
@@ -152,6 +152,7 @@ impl TextureType {
             TextureType::Multisampled2DArray(st) => *st,
         }
     }
+    /// NOTE: a `texture_depth_multisampled_2d` is *not* considered a depth texture.
     pub fn is_depth(&self) -> bool {
         matches!(
             self,
@@ -206,6 +207,15 @@ impl TextureType {
             TextureType::Multisampled2DArray(_) => true,
             _ => false,
         }
+    }
+    pub fn is_cube(&self) -> bool {
+        matches!(
+            self,
+            TextureType::SampledCube(_)
+                | TextureType::SampledCubeArray(_)
+                | TextureType::DepthCube
+                | TextureType::DepthCubeArray
+        )
     }
 }
 
@@ -269,6 +279,9 @@ pub enum Type {
     Ref(AddressSpace, Box<Type>, AccessMode),
     Texture(TextureType),
     Sampler(SamplerType),
+    /// This variant is used by wgsl-analyzer and other type-checking tools when
+    /// a type is unknown. It is not an regular WGSL type.
+    Unknown,
     #[cfg(feature = "naga-ext")]
     I64,
     #[cfg(feature = "naga-ext")]
@@ -325,6 +338,16 @@ impl Type {
         }
     }
 
+    /// Is a signed numeric type.
+    pub fn is_signed(&self) -> bool {
+        match self {
+            Type::AbstractInt | Type::AbstractFloat | Type::I32 | Type::F32 | Type::F16 => true,
+            #[cfg(feature = "naga-ext")]
+            Type::I64 | Type::F64 => true,
+            _ => false,
+        }
+    }
+
     /// Reference: <https://www.w3.org/TR/WGSL/#floating-point-types>
     pub fn is_float(&self) -> bool {
         match self {
@@ -351,7 +374,10 @@ impl Type {
     }
 
     pub fn is_concrete(&self) -> bool {
-        !self.is_abstract()
+        match self {
+            Type::Unknown => false,
+            _ => !self.is_abstract(),
+        }
     }
 
     /// Reference: <https://www.w3.org/TR/WGSL/#storable-types>
@@ -468,6 +494,7 @@ impl Ty for Type {
             Type::Ref(_, ty, _) => ty.ty(),
             Type::Texture(_) => self.clone(),
             Type::Sampler(_) => self.clone(),
+            Type::Unknown => self.clone(),
             #[cfg(feature = "naga-ext")]
             Type::I64 => self.clone(),
             #[cfg(feature = "naga-ext")]

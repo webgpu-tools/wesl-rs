@@ -904,7 +904,9 @@ impl Instance {
             | Type::Ptr(_, _, _)
             | Type::Ref(_, _, _)
             | Type::Texture(_)
-            | Type::Sampler(_) => Err(E::NotConstructible(ty.clone())),
+            | Type::Sampler(_)
+            | Type::Unknown => Err(E::NotConstructible(ty.clone())),
+
             #[cfg(feature = "naga-ext")]
             Type::I64 => Ok(LiteralInstance::I64(0).into()),
             #[cfg(feature = "naga-ext")]

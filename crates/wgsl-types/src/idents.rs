@@ -5,10 +5,12 @@
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#predeclared-types>
 pub const BUILTIN_TYPE_NAMES: &[&str] = &[
-    // abstract types cannot be spelled in user code.
+    // types that cannot be spelled in user code.
     // they are prefixed with `__`, which is not a valid WGSL identifier prefix.
     "__AbstractInt",
     "__AbstractFloat",
+    "__ref",
+    "__unknown",
     // plain types
     "bool",
     "f16",

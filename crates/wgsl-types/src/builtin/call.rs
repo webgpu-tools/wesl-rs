@@ -288,7 +288,7 @@ macro_rules! impl_call_float_unary {
 
 /// `abs()` builtin function.
 ///
-/// Reference: <https://www.w3.org/TR/WGSL/#abs-builtin>
+/// Reference: <https://www.w3.org/TR/WGSL/#abs-float-builtin>
 // TODO: use checked_abs
 pub fn abs(e: &Instance) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`abs` expects a scalar or vector of scalar argument");
@@ -421,7 +421,7 @@ pub fn ceil(e: &Instance) -> Result<Instance, E> {
 
 /// `clamp()` builtin function.
 ///
-/// Reference: <https://www.w3.org/TR/WGSL/#clamp-builtin>
+/// Reference: <https://www.w3.org/TR/WGSL/#clamp>
 pub fn clamp(e: &Instance, low: &Instance, high: &Instance) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`clamp` arguments are incompatible");
     let tys = [e.ty(), low.ty(), high.ty()];
@@ -1386,6 +1386,15 @@ pub fn atomicStore(e1: &Instance, e2: &Instance) -> Result<(), E> {
     }
 }
 
+/// `atomicAdd()` builtin function.
+///
+/// Reference: <https://www.w3.org/TR/WGSL/#atomicSub-builtin>
+pub fn atomicAdd(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
+    let initial = atomicLoad(e1)?;
+    atomicStore(e1, &initial.op_add(e2, ShaderStage::Exec)?)?;
+    Ok(initial)
+}
+
 /// `atomicSub()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicSub-builtin>
@@ -1452,17 +1461,28 @@ pub fn atomicExchange(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
 /// `atomicCompareExchangeWeak()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicCompareExchangeWeak-builtin>
-pub fn atomicCompareExchangeWeak(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
-    let initial = atomicLoad(e1)?;
-    let exchanged = if initial == *e2 {
-        false
-    } else {
-        atomicStore(e1, e2)?;
-        true
-    };
+pub fn atomicCompareExchangeWeak(
+    atomic_ptr: &Instance,
+    cmp: &Instance,
+    v: &Instance,
+) -> Result<Instance, E> {
+    let old_value = atomicLoad(atomic_ptr)?;
+
+    let ty = old_value.ty();
+    if cmp.ty() != ty {
+        return Err(E::ParamType(ty, cmp.ty()));
+    }
+    if v.ty() != ty {
+        return Err(E::ParamType(ty, v.ty()));
+    }
+
+    let exchanged = old_value == *cmp;
+    if exchanged {
+        atomicStore(atomic_ptr, v)?;
+    }
     Ok(Instance::Struct(StructInstance::new(
-        atomic_compare_exchange_struct_type(&initial.ty()),
-        vec![initial, LiteralInstance::Bool(exchanged).into()],
+        atomic_compare_exchange_struct_type(&old_value.ty()),
+        vec![old_value, LiteralInstance::Bool(exchanged).into()],
     )))
 }
 

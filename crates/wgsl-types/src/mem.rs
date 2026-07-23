@@ -169,7 +169,11 @@ impl Instance {
                 };
                 Some(AtomicInstance::new(inst).into())
             }
-            Type::Ptr(_, _, _) | Type::Ref(_, _, _) | Type::Texture(_) | Type::Sampler(_) => None,
+            Type::Ptr(_, _, _)
+            | Type::Ref(_, _, _)
+            | Type::Texture(_)
+            | Type::Sampler(_)
+            | Type::Unknown => None,
             #[cfg(feature = "naga-ext")]
             Type::RayQuery(_) | Type::AccelerationStructure(_) => None,
         }
@@ -346,7 +350,11 @@ impl Type {
                 Some(*c as u32 * align)
             }
             Type::Atomic(_) => Some(4),
-            Type::Ptr(_, _, _) | Type::Ref(_, _, _) | Type::Texture(_) | Type::Sampler(_) => None,
+            Type::Ptr(_, _, _)
+            | Type::Ref(_, _, _)
+            | Type::Texture(_)
+            | Type::Sampler(_)
+            | Type::Unknown => None,
             #[cfg(feature = "naga-ext")]
             Type::RayQuery(_) | Type::AccelerationStructure(_) => None,
         }
@@ -405,7 +413,11 @@ impl Type {
             }
             Type::Mat(_, r, ty) => Type::Vec(*r, ty.clone()).align_of(),
             Type::Atomic(_) => Some(4),
-            Type::Ptr(_, _, _) | Type::Ref(_, _, _) | Type::Texture(_) | Type::Sampler(_) => None,
+            Type::Ptr(_, _, _)
+            | Type::Ref(_, _, _)
+            | Type::Texture(_)
+            | Type::Sampler(_)
+            | Type::Unknown => None,
             #[cfg(feature = "naga-ext")]
             Type::RayQuery(_) | Type::AccelerationStructure(_) => None,
         }

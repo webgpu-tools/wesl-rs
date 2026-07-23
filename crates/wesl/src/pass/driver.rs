@@ -34,6 +34,15 @@ pub trait CompilerDriver: Sized {
     /// Get the path of the main module.
     fn main_path(&self) -> &ModulePath;
 
+    /// Get the canonical path to a module.
+    ///
+    /// Currently, this only affects package dependency unification,
+    /// e.g. if package A imports from X and package B also imports from X,
+    /// and both X are semver-compatible, then there should be a unique path to X.
+    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
+        path.clone()
+    }
+
     /// List identifiers of declarations serving as starting point for static usage analysis.
     ///
     /// Typically they are the entry points functions (`@verted`, `@fragment` and `@compute`),

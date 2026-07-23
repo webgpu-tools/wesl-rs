@@ -379,7 +379,7 @@ impl PackageModule {
         quote! {
             pub mod #mod_ident {
                 use super::StaticPackageModule;
-                pub const MODULE: StaticPackageModule = StaticPackageModule {
+                pub static MODULE: StaticPackageModule = StaticPackageModule {
                     name: #name,
                     source: #source,
                     submodules: &[#(#submodules),*]
@@ -415,13 +415,13 @@ impl Package {
         let submods = self.root.submodules.iter().map(|submod| submod.codegen());
 
         let tokens = quote! {
-            pub const PACKAGE: StaticPackage = StaticPackage {
+            pub static PACKAGE: StaticPackage = StaticPackage {
                 crate_name: #crate_name,
                 root: &MODULE,
                 dependencies: &[#(#deps),*],
             };
 
-            pub const MODULE: StaticPackageModule = StaticPackageModule {
+            pub static MODULE: StaticPackageModule = StaticPackageModule {
                 name: #root_name,
                 source: #root_source,
                 submodules: &[#(#submodules),*]

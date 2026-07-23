@@ -60,6 +60,7 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
         let mut next_to_analyze = UsedItems::new();
 
         for (path, items_to_analyze) in to_analyze.iter() {
+            let path = &driver.canonical_path(path);
             let module = match modules.iter().find(|module| module.path == *path) {
                 Some(module) => module,
                 None => {

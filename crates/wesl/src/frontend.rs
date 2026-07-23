@@ -468,6 +468,10 @@ impl CompilerDriver for CompilationPass<'_> {
         &self.main_path
     }
 
+    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
+        self.resolver.canonical_path(path)
+    }
+
     fn main_entry_points(&self, main_module: &TranslationUnit) -> Result<HashSet<Ident>, Error> {
         // keep all declarations when strip is disabled or keep_main is enabled.
         if !self.options.strip || self.options.keep_main {
@@ -535,7 +539,7 @@ impl CompilerDriver for CompilationPass<'_> {
         modules: &mut Vec<Module>,
         used_items: &UsedItems,
     ) -> Result<TranslationUnit, Error> {
-        pass::retarget_modules(modules, used_items);
+        pass::retarget_modules(modules, used_items, &self.resolver);
 
         for module in modules.iter_mut() {
             if !self.options.mangle_main && module.path == *self.main_path {

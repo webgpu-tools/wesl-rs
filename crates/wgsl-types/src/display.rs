@@ -189,6 +189,7 @@ impl Display for Type {
             Type::Ref(a_s, ty, a_m) => write!(f, "ref<{a_s}, {ty}, {a_m}>"),
             Type::Texture(texture_type) => texture_type.fmt(f),
             Type::Sampler(sampler_type) => sampler_type.fmt(f),
+            Type::Unknown => write!(f, "unknown"),
             #[cfg(feature = "naga-ext")]
             Type::I64 => write!(f, "i64"),
             #[cfg(feature = "naga-ext")]

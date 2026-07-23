@@ -13,7 +13,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 half = { version = "2.4.1", features = ["num-traits"] }
-itertools = "0.14.0"
+itertools = "0.15.0"
 num-traits = "0.2.19"
 serde = { version = "1.0.215", features = ["derive", "rc"], optional = true }
 tokrepr = { workspace = true, optional = true }

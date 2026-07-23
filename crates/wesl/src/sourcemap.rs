@@ -179,6 +179,9 @@ impl<'a> Resolver for SourceMapper<'a> {
     fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
         self.resolver.fs_path(path)
     }
+    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
+        self.resolver.canonical_path(path)
+    }
 }
 
 impl<'a> Mangler for SourceMapper<'a> {

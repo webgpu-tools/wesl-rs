@@ -804,12 +804,10 @@ pub fn exec_entrypoint(
 ) -> Result<Option<Instance>, E> {
     let fn_name = entrypoint.ident.to_string();
 
-    let is_entrypoint = entrypoint.attributes.iter().any(|attr| {
-        matches!(
-            attr.node(),
-            Attribute::Vertex | Attribute::Fragment | Attribute::Compute
-        )
-    });
+    let is_entrypoint = entrypoint
+        .attributes
+        .iter()
+        .any(|attr| attr.node().is_entry_point());
     if !is_entrypoint {
         return Err(E::NotEntrypoint(fn_name));
     }
@@ -864,6 +862,16 @@ pub fn exec_entrypoint(
                     #[cfg(feature = "naga-ext")]
                     BuiltinValue::ViewIndex => inputs.view_index.map(Instance::from),
                     BuiltinValue::ClipDistances | BuiltinValue::FragDepth => {
+                        return Err(E::OutputBuiltin(builtin));
+                    }
+                    #[cfg(feature = "naga-ext")]
+                    BuiltinValue::MeshTaskSize
+                    | BuiltinValue::Vertices
+                    | BuiltinValue::Primitives
+                    | BuiltinValue::VertexCount
+                    | BuiltinValue::PrimitiveCount
+                    | BuiltinValue::TriangleIndices
+                    | BuiltinValue::CullPrimitive => {
                         return Err(E::OutputBuiltin(builtin));
                     }
                 }
@@ -1079,6 +1087,8 @@ impl Exec for Declaration {
                         AddressSpace::Handle => todo!("handle address space"),
                         #[cfg(feature = "naga-ext")]
                         AddressSpace::Immediate => todo!("immediate address space"),
+                        #[cfg(feature = "naga-ext")]
+                        AddressSpace::TaskPayload => todo!("task_payload address space"),
                     }
                 }
             }

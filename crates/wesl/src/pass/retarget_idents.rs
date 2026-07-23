@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    SyntaxUtil,
+    Resolver, SyntaxUtil,
     idents::builtin_ident,
     pass::{Imports, Module, UsedItems, Visit, imported_item_path},
 };
@@ -394,7 +394,11 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
 /// # Panics
 ///
 /// * if an identifier has no corresponding declaration.
-pub fn retarget_modules(modules: &mut Vec<Module>, used_items: &UsedItems) {
+pub fn retarget_modules(
+    modules: &mut Vec<Module>,
+    used_items: &UsedItems,
+    resolver: &impl Resolver,
+) {
     // unfortunately I have to pass 3 module_xxx by ref here because I can't mutably borrow `ty` and immutably borrow a `Module`.
     // TODO: could we get away with using just used_items instead of other_modules?
     // in theory it contains all used identifiers, and we wouldn't have to deal with the double borrow
@@ -405,6 +409,7 @@ pub fn retarget_modules(modules: &mut Vec<Module>, used_items: &UsedItems) {
         module_imports: &Imports,
         module_idents: &HashSet<Ident>,
         other_modules: impl IntoIterator<Item = &'a Module> + Clone + 'a,
+        resolver: &impl Resolver,
     ) {
         // first the recursive call
         for ty in Visit::<TypeExpression>::visit_mut(ty) {
@@ -414,12 +419,14 @@ pub fn retarget_modules(modules: &mut Vec<Module>, used_items: &UsedItems) {
                 module_imports,
                 module_idents,
                 other_modules.clone(),
+                resolver,
             );
         }
 
-        if let Some((mut import_path, mut import_ident)) =
+        if let Some((import_path, mut import_ident)) =
             imported_item_path(ty, module_path, module_imports)
         {
+            let mut import_path = resolver.canonical_path(&import_path);
             // because of re-exports, we may have to look up the import module in a loop.
             // TODO: check that there can't be re-export cycles: A exports foo from B, B exports foo from A...
             loop {
@@ -444,7 +451,7 @@ pub fn retarget_modules(modules: &mut Vec<Module>, used_items: &UsedItems) {
                         // there is no declaration with this name, but there is a re-export.
                         // we loop again with a new path and ident to look up.
                         // TODO: check that there can't be re-export cycles: A exports foo from B, B exports foo from A...
-                        import_path = item.path.clone();
+                        import_path = resolver.canonical_path(&item.path);
                         import_ident = item.ident.clone();
                     } else {
                         debug_assert!(false, "no declaration {import_ident} in {import_path}");
@@ -467,13 +474,13 @@ pub fn retarget_modules(modules: &mut Vec<Module>, used_items: &UsedItems) {
                     } else if let Some((_, item)) = import_module
                         .imports
                         .iter()
-                        .find(|(ident, _)| *ident.name() == *ty.ident.name())
+                        .find(|(ident, _)| *ident.name() == *import_ident.name())
                         && item.public
                     {
                         // there is no declaration with this name, but there is a re-export.
                         // we loop again with a new path and ident to look up.
                         // TODO: check that there can't be re-export cycles: A exports foo from B, B exports foo from A...
-                        import_path = item.path.clone();
+                        import_path = resolver.canonical_path(&item.path);
                         import_ident = item.ident.clone();
                     } else {
                         debug_assert!(false, "no declaration {import_ident} in {import_path}");
@@ -512,6 +519,7 @@ pub fn retarget_modules(modules: &mut Vec<Module>, used_items: &UsedItems) {
                     &module.imports,
                     module_used_items,
                     other_modules.clone(),
+                    resolver,
                 );
             }
         }

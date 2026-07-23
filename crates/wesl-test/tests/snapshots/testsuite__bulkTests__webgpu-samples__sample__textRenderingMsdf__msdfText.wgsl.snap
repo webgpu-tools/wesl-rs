@@ -1,0 +1,86 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(1) @binding(0)
+var<uniform> camera: Camera;
+
+@group(0) @binding(2)
+var<storage> chars: array<Char>;
+
+@group(0) @binding(1)
+var fontSampler: sampler;
+
+@group(0) @binding(0)
+var fontTexture: texture_2d<f32>;
+
+@group(1) @binding(1)
+var<storage> text: FormattedText;
+
+struct Camera {
+    projection: mat4x4<f32>,
+    view: mat4x4<f32>
+}
+
+struct Char {
+    texOffset: vec2<f32>,
+    texExtent: vec2<f32>,
+    size: vec2<f32>,
+    offset: vec2<f32>
+}
+
+struct FormattedText {
+    transform: mat4x4<f32>,
+    color: vec4<f32>,
+    scale: f32,
+    chars: array<vec3<f32>>
+}
+
+struct VertexInput {
+    @builtin(vertex_index)
+    vertex: u32,
+    @builtin(instance_index)
+    instance: u32
+}
+
+struct VertexOutput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    texcoord: vec2<f32>
+}
+
+@fragment
+fn fragmentMain(input: VertexOutput) -> @location(0) vec4<f32> {
+    let pxRange: f32 = 4.0;
+    let sz: vec2<f32> = vec2<f32>(textureDimensions(fontTexture, 0));
+    let dx: f32 = sz.x * length(vec2<f32>(dpdxFine(input.texcoord.x), dpdyFine(input.texcoord.x)));
+    let dy: f32 = sz.y * length(vec2<f32>(dpdxFine(input.texcoord.y), dpdyFine(input.texcoord.y)));
+    let toPixels: f32 = pxRange * inverseSqrt(dx * dx + dy * dy);
+    let sigDist: f32 = sampleMsdf(input.texcoord) - 0.5;
+    let pxDist: f32 = sigDist * toPixels;
+    let edgeWidth: f32 = 0.5;
+    let alpha: f32 = smoothstep(-edgeWidth, edgeWidth, pxDist);
+    if (alpha < 0.001) {
+        discard;
+    }
+    return vec4<f32>(text.color.rgb, text.color.a * alpha);
+}
+
+fn sampleMsdf(texcoord: vec2<f32>) -> f32 {
+    let c: vec4<f32> = textureSample(fontTexture, fontSampler, texcoord);
+    return max(min(c.r, c.g), min(max(c.r, c.g), c.b));
+}
+
+@vertex
+fn vertexMain(input: VertexInput) -> VertexOutput {
+    let textElement: vec3<f32> = text.chars[input.instance];
+    let char: Char = chars[u32(textElement.z)];
+    let charPos: vec2<f32> = (array(vec2(0f, -1f), vec2(1f, -1f), vec2(0f, 0f), vec2(1f, 0f))[input.vertex] * char.size + textElement.xy + char.offset) * text.scale;
+    var output: VertexOutput;
+    output.position = camera.projection * camera.view * text.transform * vec4<f32>(charPos, 0, 1);
+    output.texcoord = array(vec2(0f, -1f), vec2(1f, -1f), vec2(0f, 0f), vec2(1f, 0f))[input.vertex] * vec2(1f, -1f);
+    output.texcoord *= char.texExtent;
+    output.texcoord += char.texOffset;
+    return output;
+}

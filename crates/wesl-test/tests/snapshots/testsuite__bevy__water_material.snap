@@ -1,0 +1,386 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(1) @binding(0)
+var<storage> bevy_pbr__1mesh_bindings_mesh: array<bevy_pbr__1mesh_types_Mesh>;
+
+@group(2) @binding(0)
+var<uniform> bevy_pbr__1pbr_bindings_material: bevy_pbr__1pbr_types_StandardMaterial;
+
+@group(0) @binding(2)
+var<uniform> bevy_pbr__1prepass_bindings__2previous_view_uniforms: bevy_pbr__1prepass_bindings_PreviousViewUniforms;
+
+@group(0) @binding(0)
+var<uniform> bevy_pbr__2mesh_view_bindings_view: bevy_render_view_View;
+
+@group(0) @binding(1)
+var<uniform> globals: bevy_render_globals_Globals;
+
+@group(2) @binding(101)
+var water_normals_sampler: sampler;
+
+@group(2) @binding(100)
+var water_normals_texture: texture_2d<f32>;
+
+@group(2) @binding(102)
+var<uniform> water_settings: WaterSettings;
+
+struct WaterSettings {
+    octave_vectors: array<vec4<f32>, 2>,
+    octave_scales: vec4<f32>,
+    octave_strengths: vec4<f32>
+}
+
+struct bevy_pbr__1mesh_types_Mesh {
+    world_from_local: mat3x4<f32>,
+    previous_world_from_local: mat3x4<f32>,
+    local_from_world_transpose_a: mat2x4<f32>,
+    local_from_world_transpose_b: f32,
+    flags: u32,
+    lightmap_uv_rect: vec2<u32>,
+    first_vertex_index: u32,
+    current_skin_index: u32,
+    material_and_lightmap_bind_group_slot: u32,
+    tag: u32,
+    pad: u32
+}
+
+struct bevy_pbr__1pbr_functions_SampleBias {
+    mip_bias: f32
+}
+
+struct bevy_pbr__1pbr_types_PbrInput {
+    material: bevy_pbr__1pbr_types_StandardMaterial,
+    diffuse_occlusion: vec3<f32>,
+    specular_occlusion: f32,
+    frag_coord: vec4<f32>,
+    world_position: vec4<f32>,
+    world_normal: vec3<f32>,
+    N: vec3<f32>,
+    V: vec3<f32>,
+    lightmap_light: vec3<f32>,
+    clearcoat_N: vec3<f32>,
+    anisotropy_strength: f32,
+    anisotropy_T: vec3<f32>,
+    anisotropy_B: vec3<f32>,
+    is_orthographic: bool,
+    flags: u32
+}
+
+struct bevy_pbr__1pbr_types_StandardMaterial {
+    base_color: vec4<f32>,
+    emissive: vec4<f32>,
+    attenuation_color: vec4<f32>,
+    uv_transform: mat3x3<f32>,
+    reflectance: vec3<f32>,
+    perceptual_roughness: f32,
+    metallic: f32,
+    diffuse_transmission: f32,
+    specular_transmission: f32,
+    thickness: f32,
+    ior: f32,
+    attenuation_distance: f32,
+    clearcoat: f32,
+    clearcoat_perceptual_roughness: f32,
+    anisotropy_strength: f32,
+    anisotropy_rotation: vec2<f32>,
+    flags: u32,
+    alpha_cutoff: f32,
+    parallax_depth_scale: f32,
+    max_parallax_layer_count: f32,
+    lightmap_exposure: f32,
+    max_relief_mapping_search_steps: u32,
+    deferred_lighting_pass_id: u32
+}
+
+struct bevy_pbr__1prepass_bindings_PreviousViewUniforms {
+    view_from_world: mat4x4<f32>,
+    clip_from_world: mat4x4<f32>,
+    clip_from_view: mat4x4<f32>
+}
+
+struct bevy_pbr__1prepass_io_FragmentOutput {
+    @location(0)
+    normal: vec4<f32>,
+    @location(1)
+    motion_vector: vec2<f32>
+}
+
+struct bevy_pbr__1prepass_io_VertexOutput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    uv: vec2<f32>,
+    @location(2)
+    world_normal: vec3<f32>,
+    @location(4)
+    world_position: vec4<f32>,
+    @location(5)
+    previous_world_position: vec4<f32>,
+    @location(7)
+    instance_index: u32
+}
+
+struct bevy_render_globals_Globals {
+    time: f32,
+    delta_time: f32,
+    frame_count: u32
+}
+
+struct bevy_render_view_ColorGrading {
+    balance: mat3x3<f32>,
+    saturation: vec3<f32>,
+    contrast: vec3<f32>,
+    gamma: vec3<f32>,
+    gain: vec3<f32>,
+    lift: vec3<f32>,
+    midtone_range: vec2<f32>,
+    exposure: f32,
+    hue: f32,
+    post_saturation: f32
+}
+
+struct bevy_render_view_View {
+    clip_from_world: mat4x4<f32>,
+    unjittered_clip_from_world: mat4x4<f32>,
+    world_from_clip: mat4x4<f32>,
+    world_from_view: mat4x4<f32>,
+    view_from_world: mat4x4<f32>,
+    clip_from_view: mat4x4<f32>,
+    view_from_clip: mat4x4<f32>,
+    world_position: vec3<f32>,
+    exposure: f32,
+    viewport: vec4<f32>,
+    frustum: array<vec4<f32>, 6>,
+    color_grading: bevy_render_view_ColorGrading,
+    mip_bias: f32,
+    frame_count: u32
+}
+
+fn bevy_pbr__1pbr_fragment__4pbr_input_from_standard_material(in: bevy_pbr__1prepass_io_VertexOutput, is_front: bool) -> bevy_pbr__1pbr_types_PbrInput {
+    let slot: u32 = bevy_pbr__1mesh_bindings_mesh[in.instance_index].material_and_lightmap_bind_group_slot & 65535u;
+    let material: bevy_pbr__1pbr_types_StandardMaterial = bevy_pbr__1pbr_bindings_material;
+    let double_sided: bool = (material.flags & 16u) != 0u;
+    var pbr_input: bevy_pbr__1pbr_types_PbrInput = bevy_pbr__1pbr_fragment__4pbr_input_from_vertex_output(in, is_front, double_sided);
+    pbr_input.material.flags = material.flags;
+    pbr_input.material.base_color *= material.base_color;
+    pbr_input.material.deferred_lighting_pass_id = material.deferred_lighting_pass_id;
+    let NdotV: f32 = max(dot(pbr_input.N, pbr_input.V), 0.0001);
+    var bias: bevy_pbr__1pbr_functions_SampleBias;
+    bias.mip_bias = bevy_pbr__2mesh_view_bindings_view.mip_bias;
+    if ((material.flags & 32u) == 0u) {
+        pbr_input.material.ior = material.ior;
+        pbr_input.material.attenuation_color = material.attenuation_color;
+        pbr_input.material.attenuation_distance = material.attenuation_distance;
+        pbr_input.material.alpha_cutoff = material.alpha_cutoff;
+        pbr_input.material.reflectance = material.reflectance;
+        pbr_input.material.emissive = material.emissive;
+        pbr_input.material.metallic = material.metallic;
+        pbr_input.material.perceptual_roughness = material.perceptual_roughness;
+        pbr_input.material.clearcoat = material.clearcoat;
+        pbr_input.material.clearcoat_perceptual_roughness = material.clearcoat_perceptual_roughness;
+        pbr_input.material.specular_transmission = material.specular_transmission;
+        pbr_input.material.thickness = material.thickness;
+        pbr_input.material.diffuse_transmission = material.diffuse_transmission;
+        pbr_input.diffuse_occlusion = vec3(1.0, 1.0, 1.0);
+        pbr_input.specular_occlusion = 1.0;
+        let roughness: f32 = bevy_pbr_lighting_perceptualRoughnessToRoughness(material.perceptual_roughness);
+        pbr_input.material.thickness *= length((transpose(bevy_pbr__1mesh_bindings_mesh[in.instance_index].world_from_local) * vec4(pbr_input.N, 0.0)).xyz);
+        {
+            pbr_input.N = normalize(pbr_input.world_normal);
+            pbr_input.clearcoat_N = pbr_input.N;
+        }
+    }
+    return pbr_input;
+}
+
+fn bevy_pbr__1pbr_fragment__4pbr_input_from_vertex_output(in: bevy_pbr__1prepass_io_VertexOutput, is_front: bool, double_sided: bool) -> bevy_pbr__1pbr_types_PbrInput {
+    var pbr_input: bevy_pbr__1pbr_types_PbrInput = bevy_pbr__1pbr_types_PbrInput(bevy_pbr__1pbr_types_StandardMaterial(vec4(1f, 1f, 1f, 1f), vec4(0f, 0f, 0f, 1f), vec4(1f, 1f, 1f, 1f), mat3x3(1f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f), vec3(0.5f, 0.5f, 0.5f), 0.5f, 0f, 0f, 0f, 0f, 1.5f, 1f, 0f, 0f, 0f, vec2(0f, 0f), 0u, 0.5f, 0.1f, 16f, 0f, 5u, 1u), vec3(1f, 1f, 1f), 1f, vec4(0f, 0f, 0f, 1f), vec4(0f, 0f, 0f, 1f), vec3(0f, 0f, 1f), vec3(0f, 0f, 1f), vec3(1f, 0f, 0f), vec3(0f, 0f, 0f), vec3(0f, 0f, 0f), 0f, vec3(0f, 0f, 0f), vec3(0f, 0f, 0f), false, 0u);
+    pbr_input.flags = bevy_pbr__1mesh_bindings_mesh[in.instance_index].flags;
+    pbr_input.is_orthographic = bevy_pbr__2mesh_view_bindings_view.clip_from_view[3].w == 1.0;
+    pbr_input.V = bevy_pbr__1pbr_functions__1calculate_view(in.world_position, pbr_input.is_orthographic);
+    pbr_input.frag_coord = in.position;
+    pbr_input.world_position = in.world_position;
+    pbr_input.world_normal = bevy_pbr__1pbr_functions__2prepare_world_normal(in.world_normal, double_sided, is_front);
+    pbr_input.N = normalize(pbr_input.world_normal);
+    return pbr_input;
+}
+
+fn bevy_pbr__1pbr_functions__1calculate_view(world_position: vec4<f32>, is_orthographic: bool) -> vec3<f32> {
+    var V: vec3<f32>;
+    if is_orthographic {
+        V = normalize(vec3<f32>(bevy_pbr__2mesh_view_bindings_view.clip_from_world[0].z, bevy_pbr__2mesh_view_bindings_view.clip_from_world[1].z, bevy_pbr__2mesh_view_bindings_view.clip_from_world[2].z));
+    }
+    else {
+        V = normalize(bevy_pbr__2mesh_view_bindings_view.world_position.xyz - world_position.xyz);
+    }
+    return V;
+}
+
+fn bevy_pbr__1pbr_functions__2calculate_diffuse_color(base_color: vec3<f32>, metallic: f32, specular_transmission: f32, diffuse_transmission: f32) -> vec3<f32> {
+    return base_color * (1.0 - metallic) * (1.0 - specular_transmission) * (1.0 - diffuse_transmission);
+}
+
+fn bevy_pbr__1pbr_functions__2prepare_world_normal(world_normal: vec3<f32>, double_sided: bool, is_front: bool) -> vec3<f32> {
+    var output: vec3<f32> = world_normal;
+    output = (f32(!double_sided || is_front) * 2.0 - 1.0) * output;
+    return output;
+}
+
+fn bevy_pbr__1pbr_types__2pbr_input_new() -> bevy_pbr__1pbr_types_PbrInput {
+    var pbr_input: bevy_pbr__1pbr_types_PbrInput;
+    pbr_input.material = bevy_pbr__1pbr_types_StandardMaterial(vec4(1f, 1f, 1f, 1f), vec4(0f, 0f, 0f, 1f), vec4(1f, 1f, 1f, 1f), mat3x3(1f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f), vec3(0.5f, 0.5f, 0.5f), 0.5f, 0f, 0f, 0f, 0f, 1.5f, 1f, 0f, 0f, 0f, vec2(0f, 0f), 0u, 0.5f, 0.1f, 16f, 0f, 5u, 1u);
+    pbr_input.diffuse_occlusion = vec3(1f, 1f, 1f);
+    pbr_input.specular_occlusion = 1.0;
+    pbr_input.frag_coord = vec4(0f, 0f, 0f, 1f);
+    pbr_input.world_position = vec4(0f, 0f, 0f, 1f);
+    pbr_input.world_normal = vec3(0f, 0f, 1f);
+    pbr_input.is_orthographic = false;
+    pbr_input.N = vec3(0f, 0f, 1f);
+    pbr_input.V = vec3(1f, 0f, 0f);
+    pbr_input.clearcoat_N = vec3(0f, 0f, 0f);
+    pbr_input.anisotropy_T = vec3(0f, 0f, 0f);
+    pbr_input.anisotropy_B = vec3(0f, 0f, 0f);
+    pbr_input.lightmap_light = vec3(0f, 0f, 0f);
+    pbr_input.flags = 0u;
+    return pbr_input;
+}
+
+fn bevy_pbr__1pbr_types__2standard_material_new() -> bevy_pbr__1pbr_types_StandardMaterial {
+    var material: bevy_pbr__1pbr_types_StandardMaterial;
+    material.base_color = vec4(1f, 1f, 1f, 1f);
+    material.emissive = vec4(0f, 0f, 0f, 1f);
+    material.perceptual_roughness = 0.5;
+    material.metallic = 0.0;
+    material.reflectance = vec3(0.5f, 0.5f, 0.5f);
+    material.diffuse_transmission = 0.0;
+    material.specular_transmission = 0.0;
+    material.thickness = 0.0;
+    material.ior = 1.5;
+    material.attenuation_distance = 1.0;
+    material.attenuation_color = vec4(1f, 1f, 1f, 1f);
+    material.clearcoat = 0.0;
+    material.clearcoat_perceptual_roughness = 0.0;
+    material.flags = 0u;
+    material.alpha_cutoff = 0.5;
+    material.parallax_depth_scale = 0.1;
+    material.max_parallax_layer_count = 16.0;
+    material.max_relief_mapping_search_steps = 5u;
+    material.deferred_lighting_pass_id = 1u;
+    material.uv_transform = mat3x3(1f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 1f);
+    return material;
+}
+
+fn bevy_pbr__2pbr_deferred_functions__1deferred_output(in: bevy_pbr__1prepass_io_VertexOutput, pbr_input: bevy_pbr__1pbr_types_PbrInput) -> bevy_pbr__1prepass_io_FragmentOutput {
+    var out: bevy_pbr__1prepass_io_FragmentOutput;
+    out.deferred = bevy_pbr__2pbr_deferred_functions__4deferred_gbuffer_from_pbr_input(pbr_input);
+    out.deferred_lighting_pass_id = pbr_input.material.deferred_lighting_pass_id;
+    out.normal = vec4(in.world_normal * 0.5 + vec3(0.5, 0.5, 0.5), 1.0);
+    out.motion_vector = bevy_pbr__2pbr_prepass_functions__2calculate_motion_vector(in.world_position, in.previous_world_position);
+    return out;
+}
+
+fn bevy_pbr__2pbr_deferred_functions__4deferred_gbuffer_from_pbr_input(in: bevy_pbr__1pbr_types_PbrInput) -> vec4<u32> {
+    let rec_709_coeffs: vec3<f32> = vec3(0.2126f, 0.7152f, 0.0722f);
+    let diffuse_occlusion: f32 = dot(in.diffuse_occlusion, rec_709_coeffs);
+    let reflectance: f32 = dot(in.material.reflectance, rec_709_coeffs);
+    var props: u32 = bevy_pbr__2pbr_deferred_types__2pack_unorm4x8_(vec4(reflectance, in.material.metallic, diffuse_occlusion, 0.0));
+    let flags: u32 = bevy_pbr__2pbr_deferred_types__5deferred_flags_from_mesh_material_flags(in.flags, in.material.flags);
+    let octahedral_normal: vec2<f32> = bevy_pbr_utils__1octahedral_encode(normalize(in.N));
+    var base_color_srgb: vec3<f32> = vec3(0.0, 0.0, 0.0);
+    var emissive: vec3<f32> = in.material.emissive.rgb;
+    if ((in.material.flags & 32u) != 0u) {
+        emissive = in.material.base_color.rgb;
+    }
+    else {
+        base_color_srgb = pow(in.material.base_color.rgb, vec3(0.45454545454545453, 0.45454545454545453, 0.45454545454545453));
+    }
+    let base_color: vec3<f32> = in.material.base_color.rgb;
+    let metallic: f32 = in.material.metallic;
+    let specular_transmission: f32 = in.material.specular_transmission;
+    let diffuse_transmission: f32 = in.material.diffuse_transmission;
+    let diffuse_color: vec3<f32> = bevy_pbr__1pbr_functions__2calculate_diffuse_color(base_color, metallic, specular_transmission, diffuse_transmission);
+    emissive += in.lightmap_light * diffuse_color * bevy_pbr__2mesh_view_bindings_view.exposure;
+    let deferred: vec4<u32> = vec4(bevy_pbr__2pbr_deferred_types__2pack_unorm4x8_(vec4(base_color_srgb, in.material.perceptual_roughness)), bevy_pbr_rgb9e5__3vec3_to_rgb9e5_(emissive), props, bevy_pbr__2pbr_deferred_types__4pack_24bit_normal_and_flags(octahedral_normal, flags));
+    return deferred;
+}
+
+fn bevy_pbr__2pbr_deferred_types__2pack_unorm4x8_(values: vec4<f32>) -> u32 {
+    let v: vec4<u32> = vec4<u32>(saturate(values) * 255.0 + 0.5);
+    return (v.w << 24u) | (v.z << 16u) | (v.y << 8u) | v.x;
+}
+
+fn bevy_pbr__2pbr_deferred_types__4pack_24bit_normal_and_flags(octahedral_normal: vec2<f32>, flags: u32) -> u32 {
+    let unorm1: u32 = u32(saturate(octahedral_normal.x) * 4095.0 + 0.5);
+    let unorm2: u32 = u32(saturate(octahedral_normal.y) * 4095.0 + 0.5);
+    return (unorm1 & 4095u) | ((unorm2 & 4095u) << 12u) | ((flags & 255u) << 24u);
+}
+
+fn bevy_pbr__2pbr_deferred_types__5deferred_flags_from_mesh_material_flags(mesh_flags: u32, mat_flags: u32) -> u32 {
+    var flags: u32 = 0u;
+    flags |= u32((mesh_flags & 536870912u) != 0u) * 4u;
+    flags |= u32((mat_flags & 256u) != 0u) * 2u;
+    flags |= u32((mat_flags & 32u) != 0u) * 1u;
+    return flags;
+}
+
+fn bevy_pbr__2pbr_prepass_functions__2calculate_motion_vector(world_position: vec4<f32>, previous_world_position: vec4<f32>) -> vec2<f32> {
+    let clip_position_t: vec4<f32> = bevy_pbr__2mesh_view_bindings_view.unjittered_clip_from_world * world_position;
+    let clip_position: vec2<f32> = clip_position_t.xy / clip_position_t.w;
+    let previous_clip_position_t: vec4<f32> = bevy_pbr__1prepass_bindings__2previous_view_uniforms.clip_from_world * previous_world_position;
+    let previous_clip_position: vec2<f32> = previous_clip_position_t.xy / previous_clip_position_t.w;
+    return (clip_position - previous_clip_position) * vec2(0.5, -0.5);
+}
+
+fn bevy_pbr_lighting_perceptualRoughnessToRoughness(perceptualRoughness: f32) -> f32 {
+    let clampedPerceptualRoughness: f32 = clamp(perceptualRoughness, 0.089, 1.0);
+    return clampedPerceptualRoughness * clampedPerceptualRoughness;
+}
+
+fn bevy_pbr_rgb9e5__2floor_log2_(x: f32) -> i32 {
+    let f: u32 = bitcast<u32>(x);
+    let biasedexponent: u32 = (f & 2139095040u) >> 23u;
+    return i32(biasedexponent) - 127;
+}
+
+fn bevy_pbr_rgb9e5__3vec3_to_rgb9e5_(rgb_in: vec3<f32>) -> u32 {
+    let rgb: vec3<f32> = clamp(rgb_in, vec3(0.0, 0.0, 0.0), vec3(65408.0, 65408.0, 65408.0));
+    let maxrgb: f32 = max(rgb.r, max(rgb.g, rgb.b));
+    var exp_shared: i32 = max(-16, bevy_pbr_rgb9e5__2floor_log2_(maxrgb)) + 1 + 15;
+    var denom: f32 = exp2(f32(exp_shared - 15 - 9));
+    let maxm: i32 = i32(floor(maxrgb / denom + 0.5));
+    if (maxm == 512) {
+        denom *= 2.0;
+        exp_shared += 1;
+    }
+    let n: vec3<u32> = vec3<u32>(floor(rgb / denom + 0.5));
+    return (u32(exp_shared) << 27u) | (n.b << 18u) | (n.g << 9u) | (n.r << 0u);
+}
+
+fn bevy_pbr_utils__1octahedral_encode(v: vec3<f32>) -> vec2<f32> {
+    var n: vec3<f32> = v / (abs(v.x) + abs(v.y) + abs(v.z));
+    let octahedral_wrap: vec2<f32> = (1.0 - abs(n.yx)) * select(vec2(-1.0, -1.0), vec2(1.0, 1.0), n.xy > vec2(0f, 0f));
+    let n_xy: vec2<f32> = select(octahedral_wrap, n.xy, n.z >= 0.0);
+    return n_xy * 0.5 + 0.5;
+}
+
+@fragment
+fn fragment(in: bevy_pbr__1prepass_io_VertexOutput, @builtin(front_facing) is_front: bool) -> bevy_pbr__1prepass_io_FragmentOutput {
+    var pbr_input: bevy_pbr__1pbr_types_PbrInput = bevy_pbr__1pbr_fragment__4pbr_input_from_standard_material(in, is_front);
+    pbr_input.N = sample_noise(in.uv, globals.time);
+    return bevy_pbr__2pbr_deferred_functions__1deferred_output(in, pbr_input);
+}
+
+fn sample_noise(uv: vec2<f32>, time: f32) -> vec3<f32> {
+    let uv0: vec2<f32> = uv * water_settings.octave_scales[0] + water_settings.octave_vectors[0].xy * time;
+    let uv1: vec2<f32> = uv * water_settings.octave_scales[1] + water_settings.octave_vectors[0].zw * time;
+    let uv2: vec2<f32> = uv * water_settings.octave_scales[2] + water_settings.octave_vectors[1].xy * time;
+    let uv3: vec2<f32> = uv * water_settings.octave_scales[3] + water_settings.octave_vectors[1].zw * time;
+    return normalize(sample_noise_octave(uv0, water_settings.octave_strengths[0]) + sample_noise_octave(uv1, water_settings.octave_strengths[1]) + sample_noise_octave(uv2, water_settings.octave_strengths[2]) + sample_noise_octave(uv3, water_settings.octave_strengths[3]));
+}
+
+fn sample_noise_octave(uv: vec2<f32>, strength: f32) -> vec3<f32> {
+    let N: vec3<f32> = textureSample(water_normals_texture, water_normals_sampler, uv).rbg * 2.0 - 1.0;
+    return normalize(mix(vec3(0.0, 1.0, 0.0), N, strength));
+}

@@ -1,0 +1,10 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@compute @workgroup_size(1, 1)
+fn main() {
+    let idx: i32 = 2;
+    _ = vec4(12i, 0i, 0i, 0i)[idx];
+    _ = 0u;
+}

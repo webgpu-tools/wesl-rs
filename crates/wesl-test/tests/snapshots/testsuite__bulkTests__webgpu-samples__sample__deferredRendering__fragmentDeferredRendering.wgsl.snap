@@ -1,0 +1,72 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(1) @binding(2)
+var<uniform> camera: Camera;
+
+@group(1) @binding(1)
+var<uniform> config: Config;
+
+@group(0) @binding(1)
+var gBufferAlbedo: texture_2d<f32>;
+
+@group(0) @binding(2)
+var gBufferDepth: texture_2d<f32>;
+
+@group(0) @binding(0)
+var gBufferNormal: texture_2d<f32>;
+
+@group(1) @binding(0)
+var<storage, read> lightsBuffer: LightsBuffer;
+
+struct Camera {
+    viewProjectionMatrix: mat4x4<f32>,
+    invViewProjectionMatrix: mat4x4<f32>
+}
+
+struct Config {
+    numLights: u32
+}
+
+struct LightData {
+    position: vec4<f32>,
+    color: vec3<f32>,
+    radius: f32
+}
+
+struct LightsBuffer {
+    lights: array<LightData>
+}
+
+@fragment
+fn main(@builtin(position) coord: vec4<f32>) -> @location(0) vec4<f32> {
+    var result: vec3<f32>;
+    let depth: f32 = textureLoad(gBufferDepth, vec2<i32>(floor(coord.xy)), 0).x;
+    if (depth >= 1.0) {
+        discard;
+    }
+    let bufferSize: vec2<u32> = textureDimensions(gBufferDepth);
+    let coordUV: vec2<f32> = coord.xy / vec2<f32>(bufferSize);
+    let position: vec3<f32> = world_from_screen_coord(coordUV, depth);
+    let normal: vec3<f32> = textureLoad(gBufferNormal, vec2<i32>(floor(coord.xy)), 0).xyz;
+    let albedo: vec3<f32> = textureLoad(gBufferAlbedo, vec2<i32>(floor(coord.xy)), 0).rgb;
+    for (var i: u32 = 0u; i < config.numLights; i++) {
+        let L: vec3<f32> = lightsBuffer.lights[i].position.xyz - position;
+        let distance: f32 = length(L);
+        if (distance > lightsBuffer.lights[i].radius) {
+            continue;
+        }
+        let lambert: f32 = max(dot(normal, normalize(L)), 0.0);
+        result += vec3<f32>(lambert * pow(1.0 - distance / lightsBuffer.lights[i].radius, 2.0) * lightsBuffer.lights[i].color * albedo);
+    }
+    result += vec3(0.2, 0.2, 0.2);
+    return vec4(result, 1.0);
+}
+
+fn world_from_screen_coord(coord: vec2<f32>, depth_sample: f32) -> vec3<f32> {
+    let posClip: vec4<f32> = vec4(coord.x * 2.0 - 1.0, (1.0 - coord.y) * 2.0 - 1.0, depth_sample, 1.0);
+    let posWorldW: vec4<f32> = camera.invViewProjectionMatrix * posClip;
+    let posWorld: vec3<f32> = posWorldW.xyz / posWorldW.www;
+    return posWorld;
+}

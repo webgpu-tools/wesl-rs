@@ -1,0 +1,31 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(0)
+var tex: texture_2d<f32>;
+
+struct Varying {
+    @builtin(position)
+    pos: vec4<f32>,
+    @location(0)
+    texelCoord: vec2<f32>,
+    @location(1)
+    mipLevel: f32
+}
+
+@fragment
+fn fmain(vary: Varying) -> @location(0) vec4<f32> {
+    return textureLoad(tex, vec2<u32>(vary.texelCoord), u32(vary.mipLevel));
+}
+
+@vertex
+fn vmain(@builtin(instance_index) instance_index: u32, @builtin(vertex_index) vertex_index: u32) -> Varying {
+    var square: array<vec2<f32>, 6> = array(vec2(0f, 0f), vec2(0f, 1f), vec2(1f, 0f), vec2(1f, 0f), vec2(0f, 1f), vec2(1f, 1f));
+    let uv: vec2<f32> = square[vertex_index];
+    let pos: vec4<f32> = vec4(uv * 2 - vec2(1, 1), 0.0, 1.0);
+    let mipLevel: u32 = instance_index;
+    let mipSize: f32 = f32(1 << (4 - mipLevel));
+    let texelCoord: vec2<f32> = uv * mipSize;
+    return Varying(pos, texelCoord, f32(mipLevel));
+}

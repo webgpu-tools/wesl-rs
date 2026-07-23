@@ -1,0 +1,13 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(1) @binding(0)
+var depthTexture: texture_2d<f32>;
+
+@fragment
+fn main(@builtin(position) coord: vec4<f32>, @location(0) clipPos: vec4<f32>) -> @location(0) vec4<f32> {
+    let depthValue: f32 = textureLoad(depthTexture, vec2<i32>(floor(coord.xy)), 0).x;
+    let v: f32 = abs(clipPos.z / clipPos.w - depthValue) * 2000000.0;
+    return vec4<f32>(v, v, v, 1.0);
+}

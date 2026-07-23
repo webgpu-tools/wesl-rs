@@ -1,0 +1,10 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@compute @workgroup_size(1, 1, 1)
+fn main() {
+    let phony: i32 = 0i;
+    let phony_1: u32 = 0u;
+    return;
+}

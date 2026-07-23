@@ -1,0 +1,57 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(0)
+var acc_struct: acceleration_structure;
+
+@group(0) @binding(1)
+var<storage, read_write> output: Output;
+
+struct Output {
+    visible: u32,
+    normal: vec3<f32>
+}
+
+fn get_torus_normal(world_point: vec3<f32>, intersection: RayIntersection) -> vec3<f32> {
+    let local_point: vec3<f32> = intersection.world_to_object * vec4<f32>(world_point, 1.0);
+    let point_on_guiding_line: vec2<f32> = normalize(local_point.xy) * 2.4;
+    let world_point_on_guiding_line: vec3<f32> = intersection.object_to_world * vec4<f32>(point_on_guiding_line, 0.0, 1.0);
+    return normalize(world_point - world_point_on_guiding_line);
+}
+
+@compute @workgroup_size(1)
+fn main() {
+    let pos: vec3<f32> = vec3(0f, 0f, 0f);
+    let dir: vec3<f32> = vec3(0f, 1f, 0f);
+    let intersection: RayIntersection = query_loop(pos, dir, acc_struct);
+    output.visible = u32(intersection.kind == 0);
+    output.normal = get_torus_normal(dir * intersection.t, intersection);
+}
+
+@compute @workgroup_size(1)
+fn main_candidate() {
+    let pos: vec3<f32> = vec3(0f, 0f, 0f);
+    let dir: vec3<f32> = vec3(0f, 1f, 0f);
+    var rq: ray_query;
+    rayQueryInitialize(&rq, acc_struct, RayDesc(4, 255u, 0.1, 100.0, pos, dir));
+    let intersection: RayIntersection = rayQueryGetCandidateIntersection(&rq);
+    if (intersection.kind == 3) {
+        rayQueryGenerateIntersection(&rq, 10.0);
+    }
+    else if (intersection.kind == 1) {
+        rayQueryConfirmIntersection(&rq);
+    }
+    else {
+        rayQueryTerminate(&rq);
+    }
+}
+
+fn query_loop(pos: vec3<f32>, dir: vec3<f32>, acs: acceleration_structure) -> RayIntersection {
+    var rq: ray_query;
+    rayQueryInitialize(&rq, acs, RayDesc(4, 255u, 0.1, 100.0, pos, dir));
+    while (rayQueryProceed(&rq)) {
+    
+    }
+    return rayQueryGetCommittedIntersection(&rq);
+}

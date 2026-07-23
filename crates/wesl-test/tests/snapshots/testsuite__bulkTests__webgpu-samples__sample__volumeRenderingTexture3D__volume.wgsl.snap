@@ -1,0 +1,50 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(1)
+var mySampler: sampler;
+
+@group(0) @binding(2)
+var myTexture: texture_3d<f32>;
+
+@group(0) @binding(0)
+var<uniform> uniforms: Uniforms;
+
+struct Uniforms {
+    inverseModelViewProjectionMatrix: mat4x4<f32>
+}
+
+struct VertexOutput {
+    @builtin(position)
+    Position: vec4<f32>,
+    @location(0)
+    near: vec3<f32>,
+    @location(1)
+    step: vec3<f32>
+}
+
+@fragment
+fn fragment_main(@location(0) near: vec3<f32>, @location(1) step: vec3<f32>) -> @location(0) vec4<f32> {
+    var rayPos: vec3<f32> = near;
+    var result: f32 = 0.0;
+    for (var i: u32 = 0u; i < 64u; i++) {
+        let texCoord: vec3<f32> = (rayPos.xyz + 1.0) * 0.5;
+        let sample: f32 = textureSample(myTexture, mySampler, texCoord).r * 4.0 / 64f;
+        let intersects: bool = all(rayPos.xyz < vec3(1f, 1f, 1f)) && all(rayPos.xyz > vec3(-1f, -1f, -1f));
+        result += select(0.0, (1.0 - result) * sample, intersects && result < 1.0);
+        rayPos += step;
+    }
+    return vec4<f32>(vec3<f32>(result), 1.0);
+}
+
+@vertex
+fn vertex_main(@builtin(vertex_index) VertexIndex: u32) -> VertexOutput {
+    var pos: array<vec2<f32>, 3> = array(vec2(-1f, 3f), vec2(-1f, -1f), vec2(3f, -1f));
+    var xy: vec2<f32> = pos[VertexIndex];
+    var near: vec4<f32> = uniforms.inverseModelViewProjectionMatrix * vec4<f32>(xy, 0.0, 1);
+    var far: vec4<f32> = uniforms.inverseModelViewProjectionMatrix * vec4<f32>(xy, 1, 1);
+    near /= near.w;
+    far /= far.w;
+    return VertexOutput(vec4<f32>(xy, 0.0, 1.0), near.xyz, (far.xyz - near.xyz) / 64f);
+}

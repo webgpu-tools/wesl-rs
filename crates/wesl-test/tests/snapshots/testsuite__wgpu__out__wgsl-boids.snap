@@ -1,0 +1,151 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(0)
+var<uniform> params: SimParams;
+
+@group(0) @binding(2)
+var<storage, read_write> particlesDst: Particles;
+
+@group(0) @binding(1)
+var<storage> particlesSrc: Particles;
+
+struct Particle {
+    pos: vec2<f32>,
+    vel: vec2<f32>
+}
+
+struct Particles {
+    particles: array<Particle>
+}
+
+struct SimParams {
+    deltaT: f32,
+    rule1Distance: f32,
+    rule2Distance: f32,
+    rule3Distance: f32,
+    rule1Scale: f32,
+    rule2Scale: f32,
+    rule3Scale: f32
+}
+
+@compute @workgroup_size(64, 1, 1)
+fn main(@builtin(global_invocation_id) global_invocation_id: vec3<u32>) {
+    var vPos: vec2<f32>;
+    var vVel: vec2<f32>;
+    var cMass: vec2<f32> = vec2(0f, 0f);
+    var cVel: vec2<f32> = vec2(0f, 0f);
+    var colVel: vec2<f32> = vec2(0f, 0f);
+    var cMassCount: i32 = 0i;
+    var cVelCount: i32 = 0i;
+    var pos: vec2<f32>;
+    var vel: vec2<f32>;
+    var i: u32 = 0u;
+    let index: u32 = global_invocation_id.x;
+    if (index >= 1500u) {
+        return;
+    }
+    let _e8: vec2<f32> = particlesSrc.particles[index].pos;
+    vPos = _e8;
+    let _e14: vec2<f32> = particlesSrc.particles[index].vel;
+    vVel = _e14;
+    loop {
+        let _e36: u32 = i;
+        if (_e36 >= 1500u) {
+            break;
+        }
+        let _e39: u32 = i;
+        if (_e39 == index) {
+            continue;
+        }
+        let _e43: u32 = i;
+        let _e46: vec2<f32> = particlesSrc.particles[_e43].pos;
+        pos = _e46;
+        let _e49: u32 = i;
+        let _e52: vec2<f32> = particlesSrc.particles[_e49].vel;
+        vel = _e52;
+        let _e53: vec2<f32> = pos;
+        let _e54: vec2<f32> = vPos;
+        let _e58: f32 = params.rule1Distance;
+        if (distance(_e53, _e54) < _e58) {
+            let _e60: vec2<f32> = cMass;
+            let _e61: vec2<f32> = pos;
+            cMass = (_e60 + _e61);
+            let _e63: i32 = cMassCount;
+            cMassCount = (_e63 + 1i);
+        }
+        let _e66: vec2<f32> = pos;
+        let _e67: vec2<f32> = vPos;
+        let _e71: f32 = params.rule2Distance;
+        if (distance(_e66, _e67) < _e71) {
+            let _e73: vec2<f32> = colVel;
+            let _e74: vec2<f32> = pos;
+            let _e75: vec2<f32> = vPos;
+            colVel = (_e73 - (_e74 - _e75));
+        }
+        let _e78: vec2<f32> = pos;
+        let _e79: vec2<f32> = vPos;
+        let _e83: f32 = params.rule3Distance;
+        if (distance(_e78, _e79) < _e83) {
+            let _e85: vec2<f32> = cVel;
+            let _e86: vec2<f32> = vel;
+            cVel = (_e85 + _e86);
+            let _e88: i32 = cVelCount;
+            cVelCount = (_e88 + 1i);
+        }
+        continuing {
+            let _e91: u32 = i;
+            i = (_e91 + 1u);
+        }
+    }
+    let _e94: i32 = cMassCount;
+    if (_e94 > 0i) {
+        let _e97: vec2<f32> = cMass;
+        let _e98: i32 = cMassCount;
+        let _e102: vec2<f32> = vPos;
+        cMass = ((_e97 / vec2(f32(_e98))) - _e102);
+    }
+    let _e104: i32 = cVelCount;
+    if (_e104 > 0i) {
+        let _e107: vec2<f32> = cVel;
+        let _e108: i32 = cVelCount;
+        cVel = (_e107 / vec2(f32(_e108)));
+    }
+    let _e112: vec2<f32> = vVel;
+    let _e113: vec2<f32> = cMass;
+    let _e116: f32 = params.rule1Scale;
+    let _e119: vec2<f32> = colVel;
+    let _e122: f32 = params.rule2Scale;
+    let _e125: vec2<f32> = cVel;
+    let _e128: f32 = params.rule3Scale;
+    vVel = (((_e112 + (_e113 * _e116)) + (_e119 * _e122)) + (_e125 * _e128));
+    let _e131: vec2<f32> = vVel;
+    let _e133: vec2<f32> = vVel;
+    vVel = (normalize(_e131) * clamp(length(_e133), 0f, 0.1f));
+    let _e139: vec2<f32> = vPos;
+    let _e140: vec2<f32> = vVel;
+    let _e143: f32 = params.deltaT;
+    vPos = (_e139 + (_e140 * _e143));
+    let _e147: f32 = vPos.x;
+    if (_e147 < -1f) {
+        vPos.x = 1f;
+    }
+    let _e153: f32 = vPos.x;
+    if (_e153 > 1f) {
+        vPos.x = -1f;
+    }
+    let _e159: f32 = vPos.y;
+    if (_e159 < -1f) {
+        vPos.y = 1f;
+    }
+    let _e165: f32 = vPos.y;
+    if (_e165 > 1f) {
+        vPos.y = -1f;
+    }
+    let _e174: vec2<f32> = vPos;
+    particlesDst.particles[index].pos = _e174;
+    let _e179: vec2<f32> = vVel;
+    particlesDst.particles[index].vel = _e179;
+    return;
+}

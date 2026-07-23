@@ -1,0 +1,60 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(1) @binding(4)
+var<uniform> border_color: vec4<f32>;
+
+@group(1) @binding(0)
+var<uniform> color: vec4<f32>;
+
+@group(1) @binding(3)
+var material_color_sampler: sampler;
+
+@group(1) @binding(2)
+var material_color_texture: texture_2d<f32>;
+
+@group(1) @binding(1)
+var<uniform> slider: vec4<f32>;
+
+struct bevy_ui__2ui_vertex_output_UiVertexOutput {
+    @location(0)
+    uv: vec2<f32>,
+    @location(1)
+    border_widths: vec4<f32>,
+    @location(2)
+    border_radius: vec4<f32>,
+    @location(3) @interpolate(flat)
+    size: vec2<f32>,
+    @builtin(position)
+    position: vec4<f32>
+}
+
+@fragment
+fn fragment(in: bevy_ui__2ui_vertex_output_UiVertexOutput) -> @location(0) vec4<f32> {
+    let output_color: vec4<f32> = textureSample(material_color_texture, material_color_sampler, in.uv) * color;
+    let half_size: vec2<f32> = 0.5 * in.size;
+    let p: vec2<f32> = in.uv * in.size - half_size;
+    let b: vec2<f32> = vec2(select(in.border_widths.x, in.border_widths.z, 0.0 < p.x), select(in.border_widths.y, in.border_widths.w, 0.0 < p.y));
+    let rs: vec2<f32> = select(in.border_radius.xy, in.border_radius.wz, 0.0 < p.y);
+    let radius: f32 = select(rs.x, rs.y, 0.0 < p.x);
+    let d: vec2<f32> = half_size - abs(p);
+    if d.x < b.x || d.y < b.y {
+        let rs: vec2<f32> = select(in.border_radius.xy, in.border_radius.wz, 0.0 < p.y);
+        let radius: f32 = select(rs.x, rs.y, 0.0 < p.x);
+        let q: vec2<f32> = radius - d;
+        if radius < min(max(q.x, q.y), 0.0) + length(vec2(max(q.x, 0.0), max(q.y, 0.0))) {
+            return vec4(0f, 0f, 0f, 0f);
+        }
+        else {
+            return border_color;
+        }
+    }
+    if in.uv.x < slider.x {
+        let output_color: vec4<f32> = textureSample(material_color_texture, material_color_sampler, in.uv) * color;
+        return output_color;
+    }
+    else {
+        return vec4(0f, 0f, 0f, 0f);
+    }
+}

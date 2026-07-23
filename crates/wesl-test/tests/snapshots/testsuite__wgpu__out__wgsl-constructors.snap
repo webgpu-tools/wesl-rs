@@ -1,0 +1,24 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+struct Foo {
+    a: vec4<f32>,
+    b: i32
+}
+
+@compute @workgroup_size(1, 1, 1)
+fn main() {
+    var foo: Foo;
+    foo = Foo(vec4(1f, 1f, 1f, 1f), 1i);
+    let m0_: mat2x2<f32> = mat2x2(1f, 0f, 0f, 1f);
+    let m1_: mat4x4<f32> = mat4x4(1f, 0f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 0f, 1f);
+    let zvc8_: vec2<u32> = vec2(0u, 0u);
+    let zvc9_: vec2<f32> = vec2(0f, 0f);
+    let cit0_: vec2<u32> = vec2(0u, 0u);
+    let cit1_: mat2x2<f32> = mat2x2(0f, 0f, 0f, 0f);
+    let cit2_: array<i32, 4> = array(0i, 1i, 2i, 3i);
+    let ic4_: vec2<u32> = vec2(0u, 0u);
+    let ic5_: mat2x3<f32> = mat2x3(0f, 0f, 0f, 0f, 0f, 0f);
+    return;
+}

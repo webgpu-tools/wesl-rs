@@ -1,0 +1,30 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(2) @binding(1)
+var nearest_sampler: sampler;
+
+@group(2) @binding(0)
+var textures: binding_array<texture_2d<f32>>;
+
+struct bevy_pbr__1forward_io_VertexOutput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    world_position: vec4<f32>,
+    @location(1)
+    world_normal: vec3<f32>,
+    @location(2)
+    uv: vec2<f32>,
+    @location(6) @interpolate(flat)
+    instance_index: u32
+}
+
+@fragment
+fn fragment(mesh: bevy_pbr__1forward_io_VertexOutput) -> @location(0) vec4<f32> {
+    let coords: vec2<u32> = clamp(vec2<u32>(mesh.uv * 4.0), vec2(0u, 0u), vec2(3u, 3u));
+    let index: u32 = coords.y * 4u + coords.x;
+    let inner_uv: vec2<f32> = fract(mesh.uv * 4.0);
+    return textureSample(textures[index], nearest_sampler, inner_uv);
+}

@@ -1,0 +1,116 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(1)
+var<storage, read_write> storage_atomic_arr: array<atomic<i64>, 2>;
+
+@group(0) @binding(0)
+var<storage, read_write> storage_atomic_scalar: atomic<u64>;
+
+@group(0) @binding(2)
+var<storage, read_write> storage_struct: Struct;
+
+var<workgroup> workgroup_atomic_arr: array<atomic<i64>, 2>;
+
+var<workgroup> workgroup_atomic_scalar: atomic<u64>;
+
+var<workgroup> workgroup_struct: Struct;
+
+struct Struct {
+    atomic_scalar: atomic<u64>,
+    atomic_arr: array<atomic<i64>, 2>
+}
+
+@compute @workgroup_size(2, 1, 1)
+fn cs_main(@builtin(local_invocation_id) id: vec3<u32>) {
+    atomicStore((&storage_atomic_scalar), 1lu);
+    atomicStore((&storage_atomic_arr[1]), 1li);
+    atomicStore((&storage_struct.atomic_scalar), 1lu);
+    atomicStore((&storage_struct.atomic_arr[1]), 1li);
+    atomicStore((&workgroup_atomic_scalar), 1lu);
+    atomicStore((&workgroup_atomic_arr[1]), 1li);
+    atomicStore((&workgroup_struct.atomic_scalar), 1lu);
+    atomicStore((&workgroup_struct.atomic_arr[1]), 1li);
+    workgroupBarrier();
+    let l0_: u64 = atomicLoad((&storage_atomic_scalar));
+    let l1_: i64 = atomicLoad((&storage_atomic_arr[1]));
+    let l2_: u64 = atomicLoad((&storage_struct.atomic_scalar));
+    let l3_: i64 = atomicLoad((&storage_struct.atomic_arr[1]));
+    let l4_: u64 = atomicLoad((&workgroup_atomic_scalar));
+    let l5_: i64 = atomicLoad((&workgroup_atomic_arr[1]));
+    let l6_: u64 = atomicLoad((&workgroup_struct.atomic_scalar));
+    let l7_: i64 = atomicLoad((&workgroup_struct.atomic_arr[1]));
+    workgroupBarrier();
+    let _e51: u64 = atomicAdd((&storage_atomic_scalar), 1lu);
+    let _e55: i64 = atomicAdd((&storage_atomic_arr[1]), 1li);
+    let _e59: u64 = atomicAdd((&storage_struct.atomic_scalar), 1lu);
+    let _e64: i64 = atomicAdd((&storage_struct.atomic_arr[1]), 1li);
+    let _e67: u64 = atomicAdd((&workgroup_atomic_scalar), 1lu);
+    let _e71: i64 = atomicAdd((&workgroup_atomic_arr[1]), 1li);
+    let _e75: u64 = atomicAdd((&workgroup_struct.atomic_scalar), 1lu);
+    let _e80: i64 = atomicAdd((&workgroup_struct.atomic_arr[1]), 1li);
+    workgroupBarrier();
+    let _e83: u64 = atomicSub((&storage_atomic_scalar), 1lu);
+    let _e87: i64 = atomicSub((&storage_atomic_arr[1]), 1li);
+    let _e91: u64 = atomicSub((&storage_struct.atomic_scalar), 1lu);
+    let _e96: i64 = atomicSub((&storage_struct.atomic_arr[1]), 1li);
+    let _e99: u64 = atomicSub((&workgroup_atomic_scalar), 1lu);
+    let _e103: i64 = atomicSub((&workgroup_atomic_arr[1]), 1li);
+    let _e107: u64 = atomicSub((&workgroup_struct.atomic_scalar), 1lu);
+    let _e112: i64 = atomicSub((&workgroup_struct.atomic_arr[1]), 1li);
+    workgroupBarrier();
+    atomicMax((&storage_atomic_scalar), 1lu);
+    atomicMax((&storage_atomic_arr[1]), 1li);
+    atomicMax((&storage_struct.atomic_scalar), 1lu);
+    atomicMax((&storage_struct.atomic_arr[1]), 1li);
+    atomicMax((&workgroup_atomic_scalar), 1lu);
+    atomicMax((&workgroup_atomic_arr[1]), 1li);
+    atomicMax((&workgroup_struct.atomic_scalar), 1lu);
+    atomicMax((&workgroup_struct.atomic_arr[1]), 1li);
+    workgroupBarrier();
+    atomicMin((&storage_atomic_scalar), 1lu);
+    atomicMin((&storage_atomic_arr[1]), 1li);
+    atomicMin((&storage_struct.atomic_scalar), 1lu);
+    atomicMin((&storage_struct.atomic_arr[1]), 1li);
+    atomicMin((&workgroup_atomic_scalar), 1lu);
+    atomicMin((&workgroup_atomic_arr[1]), 1li);
+    atomicMin((&workgroup_struct.atomic_scalar), 1lu);
+    atomicMin((&workgroup_struct.atomic_arr[1]), 1li);
+    workgroupBarrier();
+    let _e163: u64 = atomicAnd((&storage_atomic_scalar), 1lu);
+    let _e167: i64 = atomicAnd((&storage_atomic_arr[1]), 1li);
+    let _e171: u64 = atomicAnd((&storage_struct.atomic_scalar), 1lu);
+    let _e176: i64 = atomicAnd((&storage_struct.atomic_arr[1]), 1li);
+    let _e179: u64 = atomicAnd((&workgroup_atomic_scalar), 1lu);
+    let _e183: i64 = atomicAnd((&workgroup_atomic_arr[1]), 1li);
+    let _e187: u64 = atomicAnd((&workgroup_struct.atomic_scalar), 1lu);
+    let _e192: i64 = atomicAnd((&workgroup_struct.atomic_arr[1]), 1li);
+    workgroupBarrier();
+    let _e195: u64 = atomicOr((&storage_atomic_scalar), 1lu);
+    let _e199: i64 = atomicOr((&storage_atomic_arr[1]), 1li);
+    let _e203: u64 = atomicOr((&storage_struct.atomic_scalar), 1lu);
+    let _e208: i64 = atomicOr((&storage_struct.atomic_arr[1]), 1li);
+    let _e211: u64 = atomicOr((&workgroup_atomic_scalar), 1lu);
+    let _e215: i64 = atomicOr((&workgroup_atomic_arr[1]), 1li);
+    let _e219: u64 = atomicOr((&workgroup_struct.atomic_scalar), 1lu);
+    let _e224: i64 = atomicOr((&workgroup_struct.atomic_arr[1]), 1li);
+    workgroupBarrier();
+    let _e227: u64 = atomicXor((&storage_atomic_scalar), 1lu);
+    let _e231: i64 = atomicXor((&storage_atomic_arr[1]), 1li);
+    let _e235: u64 = atomicXor((&storage_struct.atomic_scalar), 1lu);
+    let _e240: i64 = atomicXor((&storage_struct.atomic_arr[1]), 1li);
+    let _e243: u64 = atomicXor((&workgroup_atomic_scalar), 1lu);
+    let _e247: i64 = atomicXor((&workgroup_atomic_arr[1]), 1li);
+    let _e251: u64 = atomicXor((&workgroup_struct.atomic_scalar), 1lu);
+    let _e256: i64 = atomicXor((&workgroup_struct.atomic_arr[1]), 1li);
+    let _e259: u64 = atomicExchange((&storage_atomic_scalar), 1lu);
+    let _e263: i64 = atomicExchange((&storage_atomic_arr[1]), 1li);
+    let _e267: u64 = atomicExchange((&storage_struct.atomic_scalar), 1lu);
+    let _e272: i64 = atomicExchange((&storage_struct.atomic_arr[1]), 1li);
+    let _e275: u64 = atomicExchange((&workgroup_atomic_scalar), 1lu);
+    let _e279: i64 = atomicExchange((&workgroup_atomic_arr[1]), 1li);
+    let _e283: u64 = atomicExchange((&workgroup_struct.atomic_scalar), 1lu);
+    let _e288: i64 = atomicExchange((&workgroup_struct.atomic_arr[1]), 1li);
+    return;
+}

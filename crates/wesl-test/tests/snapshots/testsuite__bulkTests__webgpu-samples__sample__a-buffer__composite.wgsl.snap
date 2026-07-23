@@ -1,0 +1,77 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@binding(1) @group(0)
+var<storage, read_write> heads: Heads;
+
+@binding(2) @group(0)
+var<storage, read_write> linkedList: LinkedList;
+
+@binding(3) @group(0)
+var<uniform> sliceInfo: SliceInfo;
+
+@binding(0) @group(0)
+var<uniform> uniforms: Uniforms;
+
+struct Heads {
+    numFragments: u32,
+    data: array<u32>
+}
+
+struct LinkedList {
+    data: array<LinkedListElement>
+}
+
+struct LinkedListElement {
+    color: vec4<f32>,
+    depth: f32,
+    next: u32
+}
+
+struct SliceInfo {
+    sliceStartY: i32
+}
+
+struct Uniforms {
+    modelViewProjectionMatrix: mat4x4<f32>,
+    maxStorableFragments: u32,
+    targetWidth: u32
+}
+
+@fragment
+fn main_fs(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
+    let fragCoords: vec2<i32> = vec2<i32>(position.xy);
+    let headsIndex: u32 = u32(fragCoords.y - sliceInfo.sliceStartY) * uniforms.targetWidth + u32(fragCoords.x);
+    var layers: array<LinkedListElement, 12>;
+    var numLayers: u32 = 0u;
+    var elementIndex: u32 = heads.data[headsIndex];
+    while elementIndex != 4294967295u && numLayers < 12u {
+        layers[numLayers] = linkedList.data[elementIndex];
+        numLayers++;
+        elementIndex = linkedList.data[elementIndex].next;
+    }
+    if numLayers == 0u {
+        discard;
+    }
+    for (var i: u32 = 1u; i < numLayers; i++) {
+        let toInsert: LinkedListElement = layers[i];
+        var j: u32 = i;
+        while j > 0u && toInsert.depth > layers[j - 1u].depth {
+            layers[j] = layers[j - 1u];
+            j--;
+        }
+        layers[j] = toInsert;
+    }
+    var color: vec4<f32> = vec4(layers[0].color.a * layers[0].color.rgb, layers[0].color.a);
+    for (var i: u32 = 1u; i < numLayers; i++) {
+        let mixed: vec3<f32> = mix(color.rgb, layers[i].color.rgb, layers[i].color.aaa);
+        color = vec4(mixed, color.a);
+    }
+    return color;
+}
+
+@vertex
+fn main_vs(@builtin(vertex_index) vertIndex: u32) -> @builtin(position) vec4<f32> {
+    return vec4(array(vec2(-1f, -1f), vec2(1f, -1f), vec2(1f, 1f), vec2(-1f, -1f), vec2(1f, 1f), vec2(-1f, 1f))[vertIndex], 0.0, 1.0);
+}

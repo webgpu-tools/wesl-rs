@@ -1,0 +1,15 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@fragment
+fn main() {
+    let a: vec2<f32> = test_fma();
+}
+
+fn test_fma() -> vec2<f32> {
+    let a: vec2<f32> = vec2(2f, 2f);
+    let b: vec2<f32> = vec2(0.5f, 0.5f);
+    let c: vec2<f32> = vec2(0.5f, 0.5f);
+    return fma(a, b, c);
+}

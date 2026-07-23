@@ -1,0 +1,40 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+fn compose_of_constant() {
+
+}
+
+fn compose_of_splat() {
+
+}
+
+fn compose_three_deep() {
+
+}
+
+fn index_of_compose() {
+
+}
+
+@compute @workgroup_size(2, 3, 1)
+fn main() {
+    return;
+}
+
+fn non_constant_initializers() {
+
+}
+
+fn splat_of_constant() {
+
+}
+
+fn swizzle_of_compose() {
+
+}
+
+fn test_local_const() {
+
+}

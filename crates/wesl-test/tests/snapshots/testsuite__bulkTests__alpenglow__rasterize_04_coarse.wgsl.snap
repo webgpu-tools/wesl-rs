@@ -1,0 +1,304 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(5)
+var<storage, read_write> addresses: array<atomic<u32>>;
+
+var<workgroup> base_indices: vec2<u32>;
+
+@group(0) @binding(2)
+var<storage, read> coarse_edges: array<LinearEdge>;
+
+var<workgroup> coarse_face: TwoPassCoarseRenderableFace;
+
+@group(0) @binding(1)
+var<storage, read> coarse_renderable_faces: array<TwoPassCoarseRenderableFace>;
+
+@group(0) @binding(0)
+var<uniform> config: TwoPassConfig;
+
+@group(0) @binding(4)
+var<storage, read_write> fine_edges: array<LinearEdge>;
+
+@group(0) @binding(3)
+var<storage, read_write> fine_renderable_faces: array<TwoPassFineRenderableFace>;
+
+var<workgroup> scratch_data: array<vec2<u32>, 256>;
+
+@group(0) @binding(6)
+var<storage, read> tile_addresses: array<u32>;
+
+struct LinearEdge {
+    startPoint: vec2<f32>,
+    endPoint: vec2<f32>
+}
+
+struct MD_ClipResult {
+    p0: vec2<f32>,
+    p1: vec2<f32>,
+    clipped: bool
+}
+
+struct TwoPassCoarseRenderableFace {
+    bits: u32,
+    edges_index: u32,
+    num_edges: u32,
+    clip_counts: u32,
+    tile_index: u32
+}
+
+struct TwoPassConfig {
+    raster_width: u32,
+    raster_height: u32,
+    tile_width: u32,
+    tile_height: u32,
+    bin_width: u32,
+    bin_height: u32,
+    tile_size: u32,
+    bin_size: u32,
+    filter_type: u32,
+    filter_scale: f32,
+    raster_color_space: u32
+}
+
+struct TwoPassFineRenderableFace {
+    bits: u32,
+    edges_index: u32,
+    num_edges: u32,
+    clip_counts: u32,
+    next_address: u32
+}
+
+struct bounds_clip_edge_Result {
+    edges: array<LinearEdge, 3>,
+    count: u32
+}
+
+fn bounds_clip_edge(edge: LinearEdge, minX: f32, minY: f32, maxX: f32, maxY: f32, centerX: f32, centerY: f32) -> bounds_clip_edge_Result {
+    var edges: array<LinearEdge, 3>;
+    var count: u32 = 0u;
+    let startPoint: vec2<f32> = edge.startPoint;
+    let endPoint: vec2<f32> = edge.endPoint;
+    let clipResult: MD_ClipResult = matthes_drakopoulos_clip(startPoint, endPoint, minX, minY, maxX, maxY);
+    let clippedStartPoint: vec2<f32> = clipResult.p0;
+    let clippedEndPoint: vec2<f32> = clipResult.p1;
+    let clipped: bool = clipResult.clipped;
+    let startXLess: bool = startPoint.x < centerX;
+    let startYLess: bool = startPoint.y < centerY;
+    let endXLess: bool = endPoint.x < centerX;
+    let endYLess: bool = endPoint.y < centerY;
+    let needsStartCorner: bool = !clipped || !all(startPoint == clippedStartPoint);
+    let needsEndCorner: bool = !clipped || !all(endPoint == clippedEndPoint);
+    let startCorner: vec2<f32> = vec2(select(maxX, minX, startXLess), select(maxY, minY, startYLess));
+    let endCorner: vec2<f32> = vec2(select(maxX, minX, endXLess), select(maxY, minY, endYLess));
+    if (clipped) {
+        if (needsStartCorner && !all(startCorner == clippedStartPoint)) {
+            edges[count] = LinearEdge(startCorner, clippedStartPoint);
+            count++;
+        }
+        if (!all(clippedStartPoint == clippedEndPoint)) {
+            edges[count] = LinearEdge(clippedStartPoint, clippedEndPoint);
+            count++;
+        }
+        if (needsEndCorner && !all(endCorner == clippedEndPoint)) {
+            edges[count] = LinearEdge(clippedEndPoint, endCorner);
+            count++;
+        }
+    }
+    else {
+        if (startXLess != endXLess && startYLess != endYLess) {
+            let y: f32 = startPoint.y + (endPoint.y - startPoint.y) * (centerX - startPoint.x) / (endPoint.x - startPoint.x);
+            let startSame: bool = startXLess == startYLess;
+            let yGreater: bool = y > centerY;
+            let middlePoint: vec2<f32> = vec2(select(maxX, minX, startSame == yGreater), select(minY, maxY, yGreater));
+            edges[0u] = LinearEdge(startCorner, middlePoint);
+            edges[1u] = LinearEdge(middlePoint, endCorner);
+            count = 2u;
+        }
+        else if (!all(startCorner == endCorner)) {
+            edges[0u] = LinearEdge(startCorner, endCorner);
+            count = 1u;
+        }
+    }
+    return bounds_clip_edge_Result(edges, count);
+}
+
+fn is_edge_clipped_count(p0: vec2<f32>, p1: vec2<f32>, min: vec2<f32>, max: vec2<f32>) -> bool {
+    return all((p0 == min) | (p0 == max)) && all((p1 == min) | (p1 == max)) && (p0.x == p1.x) != (p0.y == p1.y);
+}
+
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_invocation_id) local_id: vec3<u32>, @builtin(workgroup_id) workgroup_id: vec3<u32>) {
+    if (workgroup_id.x >= tile_addresses[0u]) {
+        return;
+    }
+    if (local_id.x == 0u) {
+        coarse_face = coarse_renderable_faces[workgroup_id.x];
+    }
+    workgroupBarrier();
+    let tile_index_xy: vec2<u32> = vec2(coarse_face.tile_index % config.tile_width, coarse_face.tile_index / config.tile_width);
+    let tile_xy: vec2<u32> = tile_index_xy * vec2(config.tile_size);
+    let relative_bin_xy: vec2<u32> = vec2(local_id.x % 16u, local_id.x / 16u);
+    let filter_expansion: f32 = select(select(2f, 1f, config.filter_type == 1u), 0.5f, config.filter_type == 0u) * config.filter_scale - 0.5f;
+    let min: vec2<f32> = vec2<f32>(tile_xy + vec2(config.bin_size) * relative_bin_xy) - vec2(filter_expansion);
+    let max: vec2<f32> = vec2<f32>(tile_xy + vec2(config.bin_size) * (vec2(1u, 1u) + relative_bin_xy)) + vec2(filter_expansion);
+    var area: f32;
+    var num_clipped_edges: u32 = 0u;
+    var clipped_clip_counts: vec4<i32> = unpack4xI8(coarse_face.clip_counts);
+    let max_area: f32 = (max.x - min.x) * (max.y - min.y);
+    let is_source_full_area: bool = (coarse_face.bits & 2147483648u) != 0u;
+    if (is_source_full_area) {
+        area = max_area;
+    }
+    else {
+        let source_clip_counts: vec4<f32> = vec4<f32>(clipped_clip_counts);
+        area = 2f * (max.y - min.y) * (source_clip_counts.x * min.x + source_clip_counts.z * max.x);
+        for (var edge_offset: u32 = 0u; edge_offset < coarse_face.num_edges; edge_offset++) {
+            let linear_edge: LinearEdge = coarse_edges[coarse_face.edges_index + edge_offset];
+            let bounds_centroid: vec2<f32> = 0.5f * (min + max);
+            let result: bounds_clip_edge_Result = bounds_clip_edge(linear_edge, min.x, min.y, max.x, max.y, bounds_centroid.x, bounds_centroid.y);
+            for (var i: u32 = 0u; i < result.count; i++) {
+                let edge: LinearEdge = result.edges[i];
+                let p0: vec2<f32> = edge.startPoint;
+                let p1: vec2<f32> = edge.endPoint;
+                area += (p1.x + p0.x) * (p1.y - p0.y);
+                if (is_edge_clipped_count(p0, p1, min, max)) {
+                    let count_delta: i32 = select(-1i, 1i, p0.x + p0.y < p1.x + p1.y);
+                    let index: u32 = select(select(3u, 1u, p0.y == min.y), select(2u, 0u, p0.x == min.x), p0.x == p1.x);
+                    clipped_clip_counts[index] += count_delta;
+                }
+                else {
+                    num_clipped_edges += 1u;
+                }
+            }
+        }
+        area *= 0.5f;
+    }
+    let is_full_area: bool = is_source_full_area || area + 0.0002f >= max_area;
+    let needs_write_face: bool = area > 0.0002f && (num_clipped_edges > 0u || clipped_clip_counts[0u] != 0i || clipped_clip_counts[1u] != 0i || clipped_clip_counts[2u] != 0i || clipped_clip_counts[3u] != 0i);
+    let needs_write_edges: bool = needs_write_face && !is_full_area;
+    let required_edge_count: u32 = select(0u, num_clipped_edges, needs_write_edges);
+    let required_face_count: u32 = select(0u, 1u, needs_write_face);
+    var offsets: vec2<u32> = vec2(required_edge_count, required_face_count);
+    scratch_data[local_id.x] = offsets;
+    workgroupBarrier();
+    if (local_id.x >= 1u) {
+        offsets = (scratch_data[local_id.x - 1u] + offsets);
+    }
+    workgroupBarrier();
+    scratch_data[local_id.x] = offsets;
+    workgroupBarrier();
+    if (local_id.x >= 2u) {
+        offsets = (scratch_data[local_id.x - 2u] + offsets);
+    }
+    workgroupBarrier();
+    scratch_data[local_id.x] = offsets;
+    workgroupBarrier();
+    if (local_id.x >= 4u) {
+        offsets = (scratch_data[local_id.x - 4u] + offsets);
+    }
+    workgroupBarrier();
+    scratch_data[local_id.x] = offsets;
+    workgroupBarrier();
+    if (local_id.x >= 8u) {
+        offsets = (scratch_data[local_id.x - 8u] + offsets);
+    }
+    workgroupBarrier();
+    scratch_data[local_id.x] = offsets;
+    workgroupBarrier();
+    if (local_id.x >= 16u) {
+        offsets = (scratch_data[local_id.x - 16u] + offsets);
+    }
+    workgroupBarrier();
+    scratch_data[local_id.x] = offsets;
+    workgroupBarrier();
+    if (local_id.x >= 32u) {
+        offsets = (scratch_data[local_id.x - 32u] + offsets);
+    }
+    workgroupBarrier();
+    scratch_data[local_id.x] = offsets;
+    workgroupBarrier();
+    if (local_id.x >= 64u) {
+        offsets = (scratch_data[local_id.x - 64u] + offsets);
+    }
+    workgroupBarrier();
+    scratch_data[local_id.x] = offsets;
+    workgroupBarrier();
+    if (local_id.x >= 128u) {
+        offsets = (scratch_data[local_id.x - 128u] + offsets);
+    }
+    if (local_id.x == 255u) {
+        base_indices = vec2(atomicAdd(&addresses[1u], offsets.x), atomicAdd(&addresses[0u], offsets.y));
+    }
+    workgroupBarrier();
+    let edges_index: u32 = base_indices.x + offsets.x - required_edge_count;
+    let face_index: u32 = base_indices.y + offsets.y - required_face_count;
+    if (!needs_write_face) {
+        return;
+    }
+    let bin_index: u32 = local_id.x + (coarse_face.tile_index << 8u);
+    let previous_address: u32 = atomicExchange(&addresses[bin_index + 2u], face_index);
+    fine_renderable_faces[face_index] = TwoPassFineRenderableFace(coarse_face.bits | select(0u, 2147483648u, is_full_area), edges_index, required_edge_count, pack4xI8(clipped_clip_counts), previous_address);
+    if (!needs_write_edges) {
+        return;
+    }
+    var edge_index: u32 = edges_index;
+    for (var edge_offset: u32 = 0u; edge_offset < coarse_face.num_edges; edge_offset++) {
+        let linear_edge: LinearEdge = coarse_edges[coarse_face.edges_index + edge_offset];
+        let bounds_centroid: vec2<f32> = 0.5f * (min + max);
+        let result: bounds_clip_edge_Result = bounds_clip_edge(linear_edge, min.x, min.y, max.x, max.y, bounds_centroid.x, bounds_centroid.y);
+        for (var i: u32 = 0u; i < result.count; i++) {
+            let edge: LinearEdge = result.edges[i];
+            if (!is_edge_clipped_count(edge.startPoint, edge.endPoint, min, max)) {
+                fine_edges[edge_index] = edge;
+                edge_index += 1u;
+            }
+        }
+    }
+}
+
+fn matthes_drakopoulos_clip(p0: vec2<f32>, p1: vec2<f32>, minX: f32, minY: f32, maxX: f32, maxY: f32) -> MD_ClipResult {
+    if (!(p0.x < minX && p1.x < minX) && !(p0.x > maxX && p1.x > maxX) && !(p0.y < minY && p1.y < minY) && !(p0.y > maxY && p1.y > maxY)) {
+        var x0: f32 = p0.x;
+        var y0: f32 = p0.y;
+        var x1: f32 = p1.x;
+        var y1: f32 = p1.y;
+        if (x0 < minX) {
+            x0 = minX;
+            y0 = (p1.y - p0.y) * (minX - p0.x) / (p1.x - p0.x) + p0.y;
+        }
+        else if (x0 > maxX) {
+            x0 = maxX;
+            y0 = (p1.y - p0.y) * (maxX - p0.x) / (p1.x - p0.x) + p0.y;
+        }
+        if (y0 < minY) {
+            y0 = minY;
+            x0 = (p1.x - p0.x) * (minY - p0.y) / (p1.y - p0.y) + p0.x;
+        }
+        else if (y0 > maxY) {
+            y0 = maxY;
+            x0 = (p1.x - p0.x) * (maxY - p0.y) / (p1.y - p0.y) + p0.x;
+        }
+        if (x1 < minX) {
+            x1 = minX;
+            y1 = (p1.y - p0.y) * (minX - p0.x) / (p1.x - p0.x) + p0.y;
+        }
+        else if (x1 > maxX) {
+            x1 = maxX;
+            y1 = (p1.y - p0.y) * (maxX - p0.x) / (p1.x - p0.x) + p0.y;
+        }
+        if (y1 < minY) {
+            y1 = minY;
+            x1 = (p1.x - p0.x) * (minY - p0.y) / (p1.y - p0.y) + p0.x;
+        }
+        else if (y1 > maxY) {
+            y1 = maxY;
+            x1 = (p1.x - p0.x) * (maxY - p0.y) / (p1.y - p0.y) + p0.x;
+        }
+        if (!(x0 < minX && x1 < minX) && !(x0 > maxX && x1 > maxX)) {
+            return MD_ClipResult(vec2(x0, y0), vec2(x1, y1), true);
+        }
+    }
+    return MD_ClipResult(p0, p1, false);
+}

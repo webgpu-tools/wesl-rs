@@ -1,0 +1,116 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(1)
+var<storage, read_write> storage_atomic_arr: array<atomic<i32>, 2>;
+
+@group(0) @binding(0)
+var<storage, read_write> storage_atomic_scalar: atomic<u32>;
+
+@group(0) @binding(2)
+var<storage, read_write> storage_struct: Struct;
+
+var<workgroup> workgroup_atomic_arr: array<atomic<i32>, 2>;
+
+var<workgroup> workgroup_atomic_scalar: atomic<u32>;
+
+var<workgroup> workgroup_struct: Struct;
+
+struct Struct {
+    atomic_scalar: atomic<u32>,
+    atomic_arr: array<atomic<i32>, 2>
+}
+
+@compute @workgroup_size(2, 1, 1)
+fn cs_main(@builtin(local_invocation_id) id: vec3<u32>) {
+    atomicStore((&storage_atomic_scalar), 1u);
+    atomicStore((&storage_atomic_arr[1]), 1i);
+    atomicStore((&storage_struct.atomic_scalar), 1u);
+    atomicStore((&storage_struct.atomic_arr[1]), 1i);
+    atomicStore((&workgroup_atomic_scalar), 1u);
+    atomicStore((&workgroup_atomic_arr[1]), 1i);
+    atomicStore((&workgroup_struct.atomic_scalar), 1u);
+    atomicStore((&workgroup_struct.atomic_arr[1]), 1i);
+    workgroupBarrier();
+    let l0_: u32 = atomicLoad((&storage_atomic_scalar));
+    let l1_: i32 = atomicLoad((&storage_atomic_arr[1]));
+    let l2_: u32 = atomicLoad((&storage_struct.atomic_scalar));
+    let l3_: i32 = atomicLoad((&storage_struct.atomic_arr[1]));
+    let l4_: u32 = atomicLoad((&workgroup_atomic_scalar));
+    let l5_: i32 = atomicLoad((&workgroup_atomic_arr[1]));
+    let l6_: u32 = atomicLoad((&workgroup_struct.atomic_scalar));
+    let l7_: i32 = atomicLoad((&workgroup_struct.atomic_arr[1]));
+    workgroupBarrier();
+    let _e51: u32 = atomicAdd((&storage_atomic_scalar), 1u);
+    let _e55: i32 = atomicAdd((&storage_atomic_arr[1]), 1i);
+    let _e59: u32 = atomicAdd((&storage_struct.atomic_scalar), 1u);
+    let _e64: i32 = atomicAdd((&storage_struct.atomic_arr[1]), 1i);
+    let _e67: u32 = atomicAdd((&workgroup_atomic_scalar), 1u);
+    let _e71: i32 = atomicAdd((&workgroup_atomic_arr[1]), 1i);
+    let _e75: u32 = atomicAdd((&workgroup_struct.atomic_scalar), 1u);
+    let _e80: i32 = atomicAdd((&workgroup_struct.atomic_arr[1]), 1i);
+    workgroupBarrier();
+    let _e83: u32 = atomicSub((&storage_atomic_scalar), 1u);
+    let _e87: i32 = atomicSub((&storage_atomic_arr[1]), 1i);
+    let _e91: u32 = atomicSub((&storage_struct.atomic_scalar), 1u);
+    let _e96: i32 = atomicSub((&storage_struct.atomic_arr[1]), 1i);
+    let _e99: u32 = atomicSub((&workgroup_atomic_scalar), 1u);
+    let _e103: i32 = atomicSub((&workgroup_atomic_arr[1]), 1i);
+    let _e107: u32 = atomicSub((&workgroup_struct.atomic_scalar), 1u);
+    let _e112: i32 = atomicSub((&workgroup_struct.atomic_arr[1]), 1i);
+    workgroupBarrier();
+    let _e115: u32 = atomicMax((&storage_atomic_scalar), 1u);
+    let _e119: i32 = atomicMax((&storage_atomic_arr[1]), 1i);
+    let _e123: u32 = atomicMax((&storage_struct.atomic_scalar), 1u);
+    let _e128: i32 = atomicMax((&storage_struct.atomic_arr[1]), 1i);
+    let _e131: u32 = atomicMax((&workgroup_atomic_scalar), 1u);
+    let _e135: i32 = atomicMax((&workgroup_atomic_arr[1]), 1i);
+    let _e139: u32 = atomicMax((&workgroup_struct.atomic_scalar), 1u);
+    let _e144: i32 = atomicMax((&workgroup_struct.atomic_arr[1]), 1i);
+    workgroupBarrier();
+    let _e147: u32 = atomicMin((&storage_atomic_scalar), 1u);
+    let _e151: i32 = atomicMin((&storage_atomic_arr[1]), 1i);
+    let _e155: u32 = atomicMin((&storage_struct.atomic_scalar), 1u);
+    let _e160: i32 = atomicMin((&storage_struct.atomic_arr[1]), 1i);
+    let _e163: u32 = atomicMin((&workgroup_atomic_scalar), 1u);
+    let _e167: i32 = atomicMin((&workgroup_atomic_arr[1]), 1i);
+    let _e171: u32 = atomicMin((&workgroup_struct.atomic_scalar), 1u);
+    let _e176: i32 = atomicMin((&workgroup_struct.atomic_arr[1]), 1i);
+    workgroupBarrier();
+    let _e179: u32 = atomicAnd((&storage_atomic_scalar), 1u);
+    let _e183: i32 = atomicAnd((&storage_atomic_arr[1]), 1i);
+    let _e187: u32 = atomicAnd((&storage_struct.atomic_scalar), 1u);
+    let _e192: i32 = atomicAnd((&storage_struct.atomic_arr[1]), 1i);
+    let _e195: u32 = atomicAnd((&workgroup_atomic_scalar), 1u);
+    let _e199: i32 = atomicAnd((&workgroup_atomic_arr[1]), 1i);
+    let _e203: u32 = atomicAnd((&workgroup_struct.atomic_scalar), 1u);
+    let _e208: i32 = atomicAnd((&workgroup_struct.atomic_arr[1]), 1i);
+    workgroupBarrier();
+    let _e211: u32 = atomicOr((&storage_atomic_scalar), 1u);
+    let _e215: i32 = atomicOr((&storage_atomic_arr[1]), 1i);
+    let _e219: u32 = atomicOr((&storage_struct.atomic_scalar), 1u);
+    let _e224: i32 = atomicOr((&storage_struct.atomic_arr[1]), 1i);
+    let _e227: u32 = atomicOr((&workgroup_atomic_scalar), 1u);
+    let _e231: i32 = atomicOr((&workgroup_atomic_arr[1]), 1i);
+    let _e235: u32 = atomicOr((&workgroup_struct.atomic_scalar), 1u);
+    let _e240: i32 = atomicOr((&workgroup_struct.atomic_arr[1]), 1i);
+    workgroupBarrier();
+    let _e243: u32 = atomicXor((&storage_atomic_scalar), 1u);
+    let _e247: i32 = atomicXor((&storage_atomic_arr[1]), 1i);
+    let _e251: u32 = atomicXor((&storage_struct.atomic_scalar), 1u);
+    let _e256: i32 = atomicXor((&storage_struct.atomic_arr[1]), 1i);
+    let _e259: u32 = atomicXor((&workgroup_atomic_scalar), 1u);
+    let _e263: i32 = atomicXor((&workgroup_atomic_arr[1]), 1i);
+    let _e267: u32 = atomicXor((&workgroup_struct.atomic_scalar), 1u);
+    let _e272: i32 = atomicXor((&workgroup_struct.atomic_arr[1]), 1i);
+    let _e275: u32 = atomicExchange((&storage_atomic_scalar), 1u);
+    let _e279: i32 = atomicExchange((&storage_atomic_arr[1]), 1i);
+    let _e283: u32 = atomicExchange((&storage_struct.atomic_scalar), 1u);
+    let _e288: i32 = atomicExchange((&storage_struct.atomic_arr[1]), 1i);
+    let _e291: u32 = atomicExchange((&workgroup_atomic_scalar), 1u);
+    let _e295: i32 = atomicExchange((&workgroup_atomic_arr[1]), 1i);
+    let _e299: u32 = atomicExchange((&workgroup_struct.atomic_scalar), 1u);
+    let _e304: i32 = atomicExchange((&workgroup_struct.atomic_arr[1]), 1i);
+    return;
+}

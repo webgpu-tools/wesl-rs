@@ -1,0 +1,343 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+var<workgroup> bits_scratch: array<u32, 64>;
+
+@group(0) @binding(1)
+var<storage, read> histogram_offsets: array<u32, 131072>;
+
+@group(0) @binding(0)
+var<storage, read> input: array<vec2<u32>, 131072>;
+
+var<workgroup> local_histogram_offsets: array<u32, 256>;
+
+@group(0) @binding(2)
+var<storage, read_write> output: array<vec2<u32>, 131072>;
+
+var<workgroup> start_indices: array<u32, 256>;
+
+var<workgroup> value_scratch: array<vec2<u32>, 256>;
+
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_invocation_id) local_id: vec3<u32>, @builtin(workgroup_id) workgroup_id: vec3<u32>) {
+    let num_valid_workgroups: u32 = 512u;
+    if (workgroup_id.x < num_valid_workgroups) {
+        {
+            let base_striped_index: u32 = workgroup_id.x * 256u + local_id.x;
+            {
+                let striped_index: u32 = base_striped_index + 0u;
+                if (striped_index < 131045u) {
+                    var lm_val: vec2<u32>;
+                    lm_val = input[striped_index];
+                    value_scratch[striped_index - workgroup_id.x * 256u] = lm_val;
+                }
+            }
+            {
+                let striped_index: u32 = base_striped_index + 64u;
+                if (striped_index < 131045u) {
+                    var lm_val: vec2<u32>;
+                    lm_val = input[striped_index];
+                    value_scratch[striped_index - workgroup_id.x * 256u] = lm_val;
+                }
+            }
+            {
+                let striped_index: u32 = base_striped_index + 128u;
+                if (striped_index < 131045u) {
+                    var lm_val: vec2<u32>;
+                    lm_val = input[striped_index];
+                    value_scratch[striped_index - workgroup_id.x * 256u] = lm_val;
+                }
+            }
+            {
+                let striped_index: u32 = base_striped_index + 192u;
+                if (striped_index < 131045u) {
+                    var lm_val: vec2<u32>;
+                    lm_val = input[striped_index];
+                    value_scratch[striped_index - workgroup_id.x * 256u] = lm_val;
+                }
+            }
+        }
+        {
+            let local_index: u32 = 0u + local_id.x;
+            if (local_index < 256u) {
+                local_histogram_offsets[local_index] = histogram_offsets[local_index * num_valid_workgroups + workgroup_id.x];
+            }
+        }
+        {
+            let local_index: u32 = 64u + local_id.x;
+            if (local_index < 256u) {
+                local_histogram_offsets[local_index] = histogram_offsets[local_index * num_valid_workgroups + workgroup_id.x];
+            }
+        }
+        {
+            let local_index: u32 = 128u + local_id.x;
+            if (local_index < 256u) {
+                local_histogram_offsets[local_index] = histogram_offsets[local_index * num_valid_workgroups + workgroup_id.x];
+            }
+        }
+        {
+            let local_index: u32 = 192u + local_id.x;
+            if (local_index < 256u) {
+                local_histogram_offsets[local_index] = histogram_offsets[local_index * num_valid_workgroups + workgroup_id.x];
+            }
+        }
+        workgroupBarrier();
+        let reduced_length: u32 = 131045u - workgroup_id.x * 256u;
+        for (var srs_i: u32 = 0u; srs_i < 8u; srs_i += 2u) {
+            {
+                var tb_bits_vector: u32 = 0u;
+                if (4u * local_id.x + 0u < reduced_length) {
+                    let tb_value: vec2<u32> = value_scratch[4u * local_id.x + 0u];
+                    let tb_bits: u32 = (((((tb_value.y >> 0u) & 255u)) >> srs_i) & 3u);
+                    tb_bits_vector += 1u << (((tb_bits) % 4u) * 8u);
+                }
+                if (4u * local_id.x + 1u < reduced_length) {
+                    let tb_value: vec2<u32> = value_scratch[4u * local_id.x + 1u];
+                    let tb_bits: u32 = (((((tb_value.y >> 0u) & 255u)) >> srs_i) & 3u);
+                    tb_bits_vector += 1u << (((tb_bits) % 4u) * 8u);
+                }
+                if (4u * local_id.x + 2u < reduced_length) {
+                    let tb_value: vec2<u32> = value_scratch[4u * local_id.x + 2u];
+                    let tb_bits: u32 = (((((tb_value.y >> 0u) & 255u)) >> srs_i) & 3u);
+                    tb_bits_vector += 1u << (((tb_bits) % 4u) * 8u);
+                }
+                if (4u * local_id.x + 3u < reduced_length) {
+                    let tb_value: vec2<u32> = value_scratch[4u * local_id.x + 3u];
+                    let tb_bits: u32 = (((((tb_value.y >> 0u) & 255u)) >> srs_i) & 3u);
+                    tb_bits_vector += 1u << (((tb_bits) % 4u) * 8u);
+                }
+                bits_scratch[local_id.x] = tb_bits_vector;
+                workgroupBarrier();
+                if (local_id.x >= 1u) {
+                    tb_bits_vector = (bits_scratch[local_id.x - 1u] + tb_bits_vector);
+                }
+                workgroupBarrier();
+                bits_scratch[local_id.x] = tb_bits_vector;
+                workgroupBarrier();
+                if (local_id.x >= 2u) {
+                    tb_bits_vector = (bits_scratch[local_id.x - 2u] + tb_bits_vector);
+                }
+                workgroupBarrier();
+                bits_scratch[local_id.x] = tb_bits_vector;
+                workgroupBarrier();
+                if (local_id.x >= 4u) {
+                    tb_bits_vector = (bits_scratch[local_id.x - 4u] + tb_bits_vector);
+                }
+                workgroupBarrier();
+                bits_scratch[local_id.x] = tb_bits_vector;
+                workgroupBarrier();
+                if (local_id.x >= 8u) {
+                    tb_bits_vector = (bits_scratch[local_id.x - 8u] + tb_bits_vector);
+                }
+                workgroupBarrier();
+                bits_scratch[local_id.x] = tb_bits_vector;
+                workgroupBarrier();
+                if (local_id.x >= 16u) {
+                    tb_bits_vector = (bits_scratch[local_id.x - 16u] + tb_bits_vector);
+                }
+                workgroupBarrier();
+                bits_scratch[local_id.x] = tb_bits_vector;
+                workgroupBarrier();
+                if (local_id.x >= 32u) {
+                    tb_bits_vector = (bits_scratch[local_id.x - 32u] + tb_bits_vector);
+                }
+                workgroupBarrier();
+                bits_scratch[local_id.x] = tb_bits_vector;
+                workgroupBarrier();
+                tb_bits_vector = select(0u, bits_scratch[local_id.x - 1u], local_id.x > 0u);
+                var tb_offsets: u32 = bits_scratch[63u];
+                var bitty_value: u32 = 0u;
+                var bitty_next_value: u32 = 0u;
+                bitty_next_value += tb_offsets & 255u;
+                tb_offsets = (tb_offsets & 4294967040u) | bitty_value;
+                bitty_value = bitty_next_value;
+                bitty_next_value += (tb_offsets >> 8u) & 255u;
+                tb_offsets = (tb_offsets & 4294902015u) | ((bitty_value) << 8u);
+                bitty_value = bitty_next_value;
+                bitty_next_value += (tb_offsets >> 16u) & 255u;
+                tb_offsets = (tb_offsets & 4278255615u) | ((bitty_value) << 16u);
+                bitty_value = bitty_next_value;
+                tb_offsets = (tb_offsets & 16777215u) | ((bitty_value) << 24u);
+                var tb_values: array<vec2<u32>, 4>;
+                tb_values[0u] = value_scratch[4u * local_id.x + 0u];
+                tb_values[1u] = value_scratch[4u * local_id.x + 1u];
+                tb_values[2u] = value_scratch[4u * local_id.x + 2u];
+                tb_values[3u] = value_scratch[4u * local_id.x + 3u];
+                workgroupBarrier();
+                if (4u * local_id.x + 0u < reduced_length) {
+                    let tb_value: vec2<u32> = tb_values[0u];
+                    let tb_bits: u32 = (((((tb_value.y >> 0u) & 255u)) >> srs_i) & 3u);
+                    value_scratch[((tb_offsets >> (((tb_bits) % 4u) * 8u)) & 255u) + ((tb_bits_vector >> (((tb_bits) % 4u) * 8u)) & 255u)] = tb_value;
+                    tb_bits_vector += 1u << (((tb_bits) % 4u) * 8u);
+                }
+                if (4u * local_id.x + 1u < reduced_length) {
+                    let tb_value: vec2<u32> = tb_values[1u];
+                    let tb_bits: u32 = (((((tb_value.y >> 0u) & 255u)) >> srs_i) & 3u);
+                    value_scratch[((tb_offsets >> (((tb_bits) % 4u) * 8u)) & 255u) + ((tb_bits_vector >> (((tb_bits) % 4u) * 8u)) & 255u)] = tb_value;
+                    tb_bits_vector += 1u << (((tb_bits) % 4u) * 8u);
+                }
+                if (4u * local_id.x + 2u < reduced_length) {
+                    let tb_value: vec2<u32> = tb_values[2u];
+                    let tb_bits: u32 = (((((tb_value.y >> 0u) & 255u)) >> srs_i) & 3u);
+                    value_scratch[((tb_offsets >> (((tb_bits) % 4u) * 8u)) & 255u) + ((tb_bits_vector >> (((tb_bits) % 4u) * 8u)) & 255u)] = tb_value;
+                    tb_bits_vector += 1u << (((tb_bits) % 4u) * 8u);
+                }
+                if (4u * local_id.x + 3u < reduced_length) {
+                    let tb_value: vec2<u32> = tb_values[3u];
+                    let tb_bits: u32 = (((((tb_value.y >> 0u) & 255u)) >> srs_i) & 3u);
+                    value_scratch[((tb_offsets >> (((tb_bits) % 4u) * 8u)) & 255u) + ((tb_bits_vector >> (((tb_bits) % 4u) * 8u)) & 255u)] = tb_value;
+                    tb_bits_vector += 1u << (((tb_bits) % 4u) * 8u);
+                }
+                workgroupBarrier();
+            }
+        }
+        {
+            let local_index: u32 = 0u + local_id.x;
+            if (local_index < reduced_length) {
+                var head_value: u32 = 0u;
+                if (local_index > 0u && ((value_scratch[local_index].y >> 0u) & 255u) != ((value_scratch[local_index - 1u].y >> 0u) & 255u)) {
+                    head_value = local_index;
+                }
+                start_indices[local_index] = head_value;
+            }
+        }
+        {
+            let local_index: u32 = 64u + local_id.x;
+            if (local_index < reduced_length) {
+                var head_value: u32 = 0u;
+                if (local_index > 0u && ((value_scratch[local_index].y >> 0u) & 255u) != ((value_scratch[local_index - 1u].y >> 0u) & 255u)) {
+                    head_value = local_index;
+                }
+                start_indices[local_index] = head_value;
+            }
+        }
+        {
+            let local_index: u32 = 128u + local_id.x;
+            if (local_index < reduced_length) {
+                var head_value: u32 = 0u;
+                if (local_index > 0u && ((value_scratch[local_index].y >> 0u) & 255u) != ((value_scratch[local_index - 1u].y >> 0u) & 255u)) {
+                    head_value = local_index;
+                }
+                start_indices[local_index] = head_value;
+            }
+        }
+        {
+            let local_index: u32 = 192u + local_id.x;
+            if (local_index < reduced_length) {
+                var head_value: u32 = 0u;
+                if (local_index > 0u && ((value_scratch[local_index].y >> 0u) & 255u) != ((value_scratch[local_index - 1u].y >> 0u) & 255u)) {
+                    head_value = local_index;
+                }
+                start_indices[local_index] = head_value;
+            }
+        }
+        workgroupBarrier();
+        var value: u32 = start_indices[local_id.x * 4u];
+        {
+            value = max(value, start_indices[local_id.x * 4u + 1u]);
+            start_indices[local_id.x * 4u + 1u] = value;
+        }
+        {
+            value = max(value, start_indices[local_id.x * 4u + 2u]);
+            start_indices[local_id.x * 4u + 2u] = value;
+        }
+        {
+            value = max(value, start_indices[local_id.x * 4u + 3u]);
+            start_indices[local_id.x * 4u + 3u] = value;
+        }
+        workgroupBarrier();
+        if (local_id.x >= 1u) {
+            value = max(start_indices[(local_id.x - 1u) * 4u + 3u], value);
+        }
+        workgroupBarrier();
+        start_indices[(local_id.x) * 4u + 3u] = value;
+        workgroupBarrier();
+        if (local_id.x >= 2u) {
+            value = max(start_indices[(local_id.x - 2u) * 4u + 3u], value);
+        }
+        workgroupBarrier();
+        start_indices[(local_id.x) * 4u + 3u] = value;
+        workgroupBarrier();
+        if (local_id.x >= 4u) {
+            value = max(start_indices[(local_id.x - 4u) * 4u + 3u], value);
+        }
+        workgroupBarrier();
+        start_indices[(local_id.x) * 4u + 3u] = value;
+        workgroupBarrier();
+        if (local_id.x >= 8u) {
+            value = max(start_indices[(local_id.x - 8u) * 4u + 3u], value);
+        }
+        workgroupBarrier();
+        start_indices[(local_id.x) * 4u + 3u] = value;
+        workgroupBarrier();
+        if (local_id.x >= 16u) {
+            value = max(start_indices[(local_id.x - 16u) * 4u + 3u], value);
+        }
+        workgroupBarrier();
+        start_indices[(local_id.x) * 4u + 3u] = value;
+        workgroupBarrier();
+        if (local_id.x >= 32u) {
+            value = max(start_indices[(local_id.x - 32u) * 4u + 3u], value);
+        }
+        workgroupBarrier();
+        start_indices[(local_id.x) * 4u + 3u] = value;
+        workgroupBarrier();
+        var added_value: u32 = select(0u, start_indices[local_id.x * 4u - 1u], local_id.x > 0);
+        {
+            let index: u32 = local_id.x * 4u + 0u;
+            var current_value: u32;
+            current_value = max(added_value, start_indices[index]);
+            start_indices[index] = current_value;
+        }
+        {
+            let index: u32 = local_id.x * 4u + 1u;
+            var current_value: u32;
+            current_value = max(added_value, start_indices[index]);
+            start_indices[index] = current_value;
+        }
+        {
+            let index: u32 = local_id.x * 4u + 2u;
+            var current_value: u32;
+            current_value = max(added_value, start_indices[index]);
+            start_indices[index] = current_value;
+        }
+        workgroupBarrier();
+        {
+            let local_index: u32 = 0u + local_id.x;
+            if (local_index < reduced_length) {
+                let local_offset: u32 = local_index - start_indices[local_index];
+                let value: vec2<u32> = value_scratch[local_index];
+                let offset: u32 = local_histogram_offsets[((value.y >> 0u) & 255u)] + local_offset;
+                output[offset] = value;
+            }
+        }
+        {
+            let local_index: u32 = 64u + local_id.x;
+            if (local_index < reduced_length) {
+                let local_offset: u32 = local_index - start_indices[local_index];
+                let value: vec2<u32> = value_scratch[local_index];
+                let offset: u32 = local_histogram_offsets[((value.y >> 0u) & 255u)] + local_offset;
+                output[offset] = value;
+            }
+        }
+        {
+            let local_index: u32 = 128u + local_id.x;
+            if (local_index < reduced_length) {
+                let local_offset: u32 = local_index - start_indices[local_index];
+                let value: vec2<u32> = value_scratch[local_index];
+                let offset: u32 = local_histogram_offsets[((value.y >> 0u) & 255u)] + local_offset;
+                output[offset] = value;
+            }
+        }
+        {
+            let local_index: u32 = 192u + local_id.x;
+            if (local_index < reduced_length) {
+                let local_offset: u32 = local_index - start_indices[local_index];
+                let value: vec2<u32> = value_scratch[local_index];
+                let offset: u32 = local_histogram_offsets[((value.y >> 0u) & 255u)] + local_offset;
+                output[offset] = value;
+            }
+        }
+    }
+}

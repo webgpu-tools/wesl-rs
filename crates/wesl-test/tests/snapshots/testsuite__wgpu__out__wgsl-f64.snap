@@ -1,0 +1,17 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+fn f(x: f64) -> f64 {
+    var z: f64;
+    var w: f64 = -1lf;
+    let y: f64 = 430lf;
+    z = (y + 5lf);
+    return (((x + y) + 2lf) + 5lf);
+}
+
+@compute @workgroup_size(1, 1, 1)
+fn main() {
+    let _e1: f64 = f(6lf);
+    return;
+}

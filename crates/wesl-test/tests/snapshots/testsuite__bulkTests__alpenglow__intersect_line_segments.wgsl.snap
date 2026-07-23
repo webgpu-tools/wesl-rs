@@ -1,0 +1,401 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(0)
+var<storage, read> input: array<i32, 56>;
+
+@group(0) @binding(1)
+var<storage, read_write> output: array<u32, 224>;
+
+struct IntersectionPoint {
+    t0: vec4<u32>,
+    t1: vec4<u32>,
+    px: vec4<u32>,
+    py: vec4<u32>
+}
+
+struct LineSegmentIntersection {
+    num_points: u32,
+    p0: IntersectionPoint,
+    p1: IntersectionPoint
+}
+
+fn abs_i64(a: vec2<u32>) -> vec2<u32> {
+    return select(a, add_u64_u64(~(a), vec2(1u, 0u)), (((a).y >> 31u) == 1u));
+}
+
+fn add_u32_u32_to_u64(a: u32, b: u32) -> vec2<u32> {
+    let sum: u32 = a + b;
+    return vec2(sum, select(0u, 1u, sum < a));
+}
+
+fn add_u64_u64(a: vec2<u32>, b: vec2<u32>) -> vec2<u32> {
+    return add_u32_u32_to_u64(a.x, b.x) + vec2(0u, add_u32_u32_to_u64(a.y, b.y).x);
+}
+
+fn cmp_i64_i64(a: vec2<u32>, b: vec2<u32>) -> i32 {
+    let diff: vec2<u32> = add_u64_u64(a, add_u64_u64(~(b), vec2(1u, 0u)));
+    if (is_zero_u64(diff)) {
+        return 0i;
+    }
+    else {
+        return select(1i, -1i, (((diff).y >> 31u) == 1u));
+    }
+}
+
+fn cmp_u64_u64(a: vec2<u32>, b: vec2<u32>) -> i32 {
+    if (a.y < b.y) {
+        return -1i;
+    }
+    else if (a.y > b.y) {
+        return 1i;
+    }
+    else {
+        if (a.x < b.x) {
+            return -1i;
+        }
+        else if (a.x > b.x) {
+            return 1i;
+        }
+        else {
+            return 0i;
+        }
+    }
+}
+
+fn div_u64_u64(a: vec2<u32>, b: vec2<u32>) -> vec4<u32> {
+    if (is_zero_u64(a)) {
+        return vec4(0u, 0u, 0u, 0u);
+    }
+    else if (is_zero_u64(b)) {
+        return vec4(0u, 0u, 0u, 0u);
+    }
+    var result: vec2<u32> = vec2(0u, 0u);
+    var remainder: vec2<u32> = a;
+    let high_bit: u32 = min(first_leading_bit_u64(a), first_leading_bit_u64(b));
+    var count: u32 = 63u - high_bit;
+    var divisor: vec2<u32> = left_shift_u64(b, count);
+    while (!is_zero_u64(remainder)) {
+        if (cmp_u64_u64(remainder, divisor) >= 0i) {
+            remainder = add_u64_u64(remainder, add_u64_u64(~(divisor), vec2(1u, 0u)));
+            result = result | left_shift_u64(vec2(1u, 0u), count);
+        }
+        if (count == 0u) {
+            break;
+        }
+        divisor = right_shift_u64(divisor, 1u);
+        count -= 1u;
+    }
+    return vec4(result, remainder);
+}
+
+fn equals_cross_mul_q128(a: vec4<u32>, b: vec4<u32>) -> bool {
+    return is_zero_u64(add_u64_u64(mul_i64_i64(a.xy, b.zw), add_u64_u64(~(mul_i64_i64(a.zw, b.xy)), vec2(1u, 0u))));
+}
+
+fn first_leading_bit_u64(a: vec2<u32>) -> u32 {
+    if (a.y != 0u) {
+        return firstLeadingBit(a.y) + 32u;
+    }
+    else {
+        return firstLeadingBit(a.x);
+    }
+}
+
+fn first_trailing_bit_u64(a: vec2<u32>) -> u32 {
+    if (a.x != 0u) {
+        return firstTrailingBit(a.x);
+    }
+    else {
+        return firstTrailingBit(a.y) + 32u;
+    }
+}
+
+fn gcd_u64_u64(a: vec2<u32>, b: vec2<u32>) -> vec2<u32> {
+    if (is_zero_u64(a)) {
+        return b;
+    }
+    else if (is_zero_u64(b)) {
+        return a;
+    }
+    let gcd_two: u32 = first_trailing_bit_u64(a | b);
+    var u: vec2<u32> = right_shift_u64(a, gcd_two);
+    var v: vec2<u32> = right_shift_u64(b, gcd_two);
+    while (u.x != v.x || u.y != v.y) {
+        if (cmp_u64_u64(u, v) == -1i) {
+            let t: vec2<u32> = u;
+            u = v;
+            v = t;
+        }
+        u = add_u64_u64(u, add_u64_u64(~(v), vec2(1u, 0u)));
+        u = right_shift_u64(u, first_trailing_bit_u64(u));
+    }
+    return left_shift_u64(u, gcd_two);
+}
+
+fn i32_to_i64(x: i32) -> vec2<u32> {
+    return vec2<u32>(u32(x), select(0u, 4294967295u, x < 0i));
+}
+
+fn i64_to_q128(numerator: vec2<u32>, denominator: vec2<u32>) -> vec4<u32> {
+    if ((((denominator).y >> 31u) == 1u)) {
+        return vec4(add_u64_u64(~(numerator), vec2(1u, 0u)), add_u64_u64(~(denominator), vec2(1u, 0u)));
+    }
+    else {
+        return vec4(numerator, denominator);
+    }
+}
+
+fn intersect_line_segments(p0: vec2<i32>, p1: vec2<i32>, p2: vec2<i32>, p3: vec2<i32>) -> LineSegmentIntersection {
+    let p0x: vec2<u32> = i32_to_i64(p0.x);
+    let p0y: vec2<u32> = i32_to_i64(p0.y);
+    let p1x: vec2<u32> = i32_to_i64(p1.x);
+    let p1y: vec2<u32> = i32_to_i64(p1.y);
+    let p2x: vec2<u32> = i32_to_i64(p2.x);
+    let p2y: vec2<u32> = i32_to_i64(p2.y);
+    let p3x: vec2<u32> = i32_to_i64(p3.x);
+    let p3y: vec2<u32> = i32_to_i64(p3.y);
+    let d0x: vec2<u32> = add_u64_u64(p1x, add_u64_u64(~(p0x), vec2(1u, 0u)));
+    let d0y: vec2<u32> = add_u64_u64(p1y, add_u64_u64(~(p0y), vec2(1u, 0u)));
+    let d1x: vec2<u32> = add_u64_u64(p3x, add_u64_u64(~(p2x), vec2(1u, 0u)));
+    let d1y: vec2<u32> = add_u64_u64(p3y, add_u64_u64(~(p2y), vec2(1u, 0u)));
+    let cdx: vec2<u32> = add_u64_u64(p2x, add_u64_u64(~(p0x), vec2(1u, 0u)));
+    let cdy: vec2<u32> = add_u64_u64(p2y, add_u64_u64(~(p0y), vec2(1u, 0u)));
+    let denominator: vec2<u32> = add_u64_u64(mul_i64_i64(d0x, d1y), add_u64_u64(~(mul_i64_i64(d0y, d1x)), vec2(1u, 0u)));
+    if (is_zero_u64(denominator)) {
+        var a: vec4<u32>;
+        var b: vec4<u32>;
+        let d1x_zero: bool = is_zero_u64(d1x);
+        let d1y_zero: bool = is_zero_u64(d1y);
+        if (d1x_zero && d1y_zero) {
+            return LineSegmentIntersection(0u, IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)), IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)));
+        }
+        else if (d1x_zero) {
+            if (p0.x != p2.x) {
+                return LineSegmentIntersection(0u, IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)), IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)));
+            }
+            a = i64_to_q128(d0y, d1y);
+            b = i64_to_q128(add_u64_u64(~(cdy), vec2(1u, 0u)), d1y);
+        }
+        else if (d1y_zero) {
+            if (p0.y != p2.y) {
+                return LineSegmentIntersection(0u, IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)), IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)));
+            }
+            a = i64_to_q128(d0x, d1x);
+            b = i64_to_q128(add_u64_u64(~(cdx), vec2(1u, 0u)), d1x);
+        }
+        else {
+            if (is_zero_u64(d0x) && is_zero_u64(d0y)) {
+                return LineSegmentIntersection(0u, IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)), IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)));
+            }
+            let ax: vec4<u32> = i64_to_q128(d0x, d1x);
+            let ay: vec4<u32> = i64_to_q128(d0y, d1y);
+            if (!equals_cross_mul_q128(ax, ay)) {
+                return LineSegmentIntersection(0u, IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)), IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)));
+            }
+            let bx: vec4<u32> = i64_to_q128(add_u64_u64(~(cdx), vec2(1u, 0u)), d1x);
+            let by: vec4<u32> = i64_to_q128(add_u64_u64(~(cdy), vec2(1u, 0u)), d1y);
+            if (!equals_cross_mul_q128(bx, by)) {
+                return LineSegmentIntersection(0u, IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)), IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)));
+            }
+            if (is_zero_q128(ax)) {
+                a = ay;
+                b = by;
+            }
+            else {
+                a = ax;
+                b = bx;
+            }
+        }
+        var points: u32 = 0u;
+        var results: array<IntersectionPoint, 2> = array(IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)), IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)));
+        let case1t1: vec4<u32> = b;
+        if (ratio_test_q128(case1t1) == 2i) {
+            let p: IntersectionPoint = IntersectionPoint(vec4(0u, 0u, 1u, 0u), reduce_q128(case1t1), vec4(p0x, 1u, 0u), vec4(p0y, 1u, 0u));
+            results[points] = p;
+            points += 1u;
+        }
+        let case2t1: vec4<u32> = vec4(add_u64_u64(a.xy, b.xy), a.zw);
+        if (ratio_test_q128(case2t1) == 2i) {
+            let p: IntersectionPoint = IntersectionPoint(vec4(1u, 0u, 1u, 0u), reduce_q128(case2t1), vec4(p1x, 1u, 0u), vec4(p1y, 1u, 0u));
+            results[points] = p;
+            points += 1u;
+        }
+        let case3t0: vec4<u32> = i64_to_q128(add_u64_u64(~(b.xy), vec2(1u, 0u)), a.xy);
+        if (ratio_test_q128(case3t0) == 2i) {
+            let p: IntersectionPoint = IntersectionPoint(reduce_q128(case3t0), vec4(0u, 0u, 1u, 0u), vec4(p2x, 1u, 0u), vec4(p2y, 1u, 0u));
+            results[points] = p;
+            points += 1u;
+        }
+        let case4t0: vec4<u32> = i64_to_q128(add_u64_u64(a.zw, add_u64_u64(~(b.xy), vec2(1u, 0u))), a.xy);
+        if (ratio_test_q128(case4t0) == 2i) {
+            let p: IntersectionPoint = IntersectionPoint(reduce_q128(case4t0), vec4(1u, 0u, 1u, 0u), vec4(p3x, 1u, 0u), vec4(p3y, 1u, 0u));
+            results[points] = p;
+            points += 1u;
+        }
+        return LineSegmentIntersection(points, results[0], results[1]);
+    }
+    else {
+        let t_numerator: vec2<u32> = add_u64_u64(mul_i64_i64(cdx, d1y), add_u64_u64(~(mul_i64_i64(cdy, d1x)), vec2(1u, 0u)));
+        let u_numerator: vec2<u32> = add_u64_u64(mul_i64_i64(cdx, d0y), add_u64_u64(~(mul_i64_i64(cdy, d0x)), vec2(1u, 0u)));
+        let t_raw: vec4<u32> = i64_to_q128(t_numerator, denominator);
+        let u_raw: vec4<u32> = i64_to_q128(u_numerator, denominator);
+        let t_cmp: i32 = ratio_test_q128(t_raw);
+        let u_cmp: i32 = ratio_test_q128(u_raw);
+        if (t_cmp <= 0i || u_cmp <= 0i) {
+            return LineSegmentIntersection(0u, IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)), IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)));
+        }
+        else if (t_cmp == 1i && u_cmp == 1i) {
+            return LineSegmentIntersection(0u, IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)), IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)));
+        }
+        else {
+            let x_numerator: vec2<u32> = add_u64_u64(mul_i64_i64(denominator, p0x), mul_i64_i64(t_numerator, d0x));
+            let y_numerator: vec2<u32> = add_u64_u64(mul_i64_i64(denominator, p0y), mul_i64_i64(t_numerator, d0y));
+            let x_raw: vec4<u32> = i64_to_q128(x_numerator, denominator);
+            let y_raw: vec4<u32> = i64_to_q128(y_numerator, denominator);
+            let x: vec4<u32> = reduce_q128(x_raw);
+            let y: vec4<u32> = reduce_q128(y_raw);
+            let t: vec4<u32> = reduce_q128(t_raw);
+            let u: vec4<u32> = reduce_q128(u_raw);
+            return LineSegmentIntersection(1u, IntersectionPoint(t, u, x, y), IntersectionPoint(vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u), vec4(0u, 0u, 0u, 0u)));
+        }
+    }
+}
+
+fn is_zero_q128(a: vec4<u32>) -> bool {
+    return a.x == 0u && a.y == 0u;
+}
+
+fn is_zero_u64(a: vec2<u32>) -> bool {
+    return a.x == 0u && a.y == 0u;
+}
+
+fn left_shift_u64(a: vec2<u32>, b: u32) -> vec2<u32> {
+    if (b == 0u) {
+        return a;
+    }
+    else if (b < 32u) {
+        return vec2(a.x << b, (a.y << b) | (a.x >> (32u - b)));
+    }
+    else {
+        return vec2(0u, a.x << (b - 32u));
+    }
+}
+
+@compute @workgroup_size(1)
+fn main(@builtin(global_invocation_id) id: vec3<u32>) {
+    let i: u32 = id.x;
+    let in: u32 = i * 8u;
+    let out: u32 = i * 32u;
+    let p0: vec2<i32> = vec2(input[in + 0u], input[in + 1u]);
+    let p1: vec2<i32> = vec2(input[in + 2u], input[in + 3u]);
+    let p2: vec2<i32> = vec2(input[in + 4u], input[in + 5u]);
+    let p3: vec2<i32> = vec2(input[in + 6u], input[in + 7u]);
+    let c: LineSegmentIntersection = intersect_line_segments(p0, p1, p2, p3);
+    output[out + 0u] = c.p0.t0.x;
+    output[out + 1u] = c.p0.t0.y;
+    output[out + 2u] = c.p0.t0.z;
+    output[out + 3u] = c.p0.t0.w;
+    output[out + 4u] = c.p0.t1.x;
+    output[out + 5u] = c.p0.t1.y;
+    output[out + 6u] = c.p0.t1.z;
+    output[out + 7u] = c.p0.t1.w;
+    output[out + 8u] = c.p0.px.x;
+    output[out + 9u] = c.p0.px.y;
+    output[out + 10u] = c.p0.px.z;
+    output[out + 11u] = c.p0.px.w;
+    output[out + 12u] = c.p0.py.x;
+    output[out + 13u] = c.p0.py.y;
+    output[out + 14u] = c.p0.py.z;
+    output[out + 15u] = c.p0.py.w;
+    output[out + 16u] = c.p1.t0.x;
+    output[out + 17u] = c.p1.t0.y;
+    output[out + 18u] = c.p1.t0.z;
+    output[out + 19u] = c.p1.t0.w;
+    output[out + 20u] = c.p1.t1.x;
+    output[out + 21u] = c.p1.t1.y;
+    output[out + 22u] = c.p1.t1.z;
+    output[out + 23u] = c.p1.t1.w;
+    output[out + 24u] = c.p1.px.x;
+    output[out + 25u] = c.p1.px.y;
+    output[out + 26u] = c.p1.px.z;
+    output[out + 27u] = c.p1.px.w;
+    output[out + 28u] = c.p1.py.x;
+    output[out + 29u] = c.p1.py.y;
+    output[out + 30u] = c.p1.py.z;
+    output[out + 31u] = c.p1.py.w;
+}
+
+fn mul_i64_i64(a: vec2<u32>, b: vec2<u32>) -> vec2<u32> {
+    var result: vec2<u32> = mul_u64_u64(abs_i64(a), abs_i64(b));
+    result.y &= 2147483647u;
+    if ((((a).y >> 31u) == 1u) != (((b).y >> 31u) == 1u)) {
+        return add_u64_u64(~(result), vec2(1u, 0u));
+    }
+    else {
+        return result;
+    }
+}
+
+fn mul_u32_u32_to_u64(a: u32, b: u32) -> vec2<u32> {
+    let a_low: u32 = a & 65535u;
+    let a_high: u32 = a >> 16u;
+    let b_low: u32 = b & 65535u;
+    let b_high: u32 = b >> 16u;
+    let c_low: u32 = a_low * b_low;
+    let c_mid: u32 = a_low * b_high + a_high * b_low;
+    let c_high: u32 = a_high * b_high;
+    let low: vec2<u32> = add_u32_u32_to_u64(c_low, c_mid << 16u);
+    let high: vec2<u32> = vec2(0u, (c_mid >> 16u) + c_high);
+    return low + high;
+}
+
+fn mul_u64_u64(a: vec2<u32>, b: vec2<u32>) -> vec2<u32> {
+    let low: vec2<u32> = mul_u32_u32_to_u64(a.x, b.x);
+    let mid0: vec2<u32> = vec2(0u, mul_u32_u32_to_u64(a.x, b.y).x);
+    let mid1: vec2<u32> = vec2(0u, mul_u32_u32_to_u64(a.y, b.x).x);
+    return add_u64_u64(add_u64_u64(low, mid0), mid1);
+}
+
+fn ratio_test_q128(q: vec4<u32>) -> i32 {
+    return cmp_i64_i64(q.xy, vec2(0u, 0u)) + cmp_i64_i64(q.zw, q.xy);
+}
+
+fn reduce_q128(a: vec4<u32>) -> vec4<u32> {
+    let numerator: vec2<u32> = a.xy;
+    let denominator: vec2<u32> = a.zw;
+    if (numerator.x == 0u && numerator.y == 0u) {
+        return vec4(0u, 0u, 1u, 0u);
+    }
+    else if (denominator.x == 1 && denominator.y == 0u) {
+        return a;
+    }
+    let abs_numerator: vec2<u32> = abs_i64(numerator);
+    let gcd: vec2<u32> = gcd_u64_u64(abs_numerator, denominator);
+    if (gcd.x == 1u && gcd.y == 0u) {
+        return a;
+    }
+    else {
+        let reduced_numerator: vec2<u32> = div_u64_u64(abs_numerator, gcd).xy;
+        let reduced_denominator: vec2<u32> = div_u64_u64(denominator, gcd).xy;
+        if ((((numerator).y >> 31u) == 1u)) {
+            return vec4(add_u64_u64(~(reduced_numerator), vec2(1u, 0u)), reduced_denominator);
+        }
+        else {
+            return vec4(reduced_numerator, reduced_denominator);
+        }
+    }
+}
+
+fn right_shift_u64(a: vec2<u32>, b: u32) -> vec2<u32> {
+    if (b == 0u) {
+        return a;
+    }
+    else if (b < 32u) {
+        return vec2((a.x >> b) | (a.y << (32u - b)), a.y >> b);
+    }
+    else {
+        return vec2(a.y >> (b - 32u), 0u);
+    }
+}

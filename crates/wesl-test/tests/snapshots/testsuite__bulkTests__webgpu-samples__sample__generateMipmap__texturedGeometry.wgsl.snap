@@ -1,0 +1,83 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(1)
+var s: sampler;
+
+@group(0) @binding(2)
+var t_2d: texture_2d<f32>;
+
+@group(0) @binding(2)
+var t_2d_array: texture_2d_array<f32>;
+
+@group(0) @binding(2)
+var t_cube: texture_cube<f32>;
+
+@group(0) @binding(2)
+var t_cube_array: texture_cube_array<f32>;
+
+@group(0) @binding(0)
+var<uniform> uni: Uniforms;
+
+struct Uniforms {
+    matrix: mat4x4<f32>
+}
+
+struct VSInput {
+    @location(0)
+    position: vec4<f32>,
+    @location(1)
+    texcoord: vec3<f32>,
+    @builtin(instance_index)
+    iNdx: u32
+}
+
+struct VSOutputFSInput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    texcoord: vec3<f32>,
+    @location(1) @interpolate(flat, either)
+    instanceNdx: u32
+}
+
+@fragment
+fn fs_2d(f: VSOutputFSInput) -> @location(0) vec4<f32> {
+    return textureSample(t_2d, s, f.texcoord.xy);
+}
+
+@fragment
+fn fs_2d_array(f: VSOutputFSInput) -> @location(0) vec4<f32> {
+    return textureSample(t_2d_array, s, f.texcoord.xy, f.instanceNdx % textureNumLayers(t_2d_array));
+}
+
+@fragment
+fn fs_cube(f: VSOutputFSInput) -> @location(0) vec4<f32> {
+    return textureSample(t_cube, s, f.texcoord);
+}
+
+@fragment
+fn fs_cube_array(f: VSOutputFSInput) -> @location(0) vec4<f32> {
+    return textureSample(t_cube_array, s, f.texcoord, f.instanceNdx % textureNumLayers(t_cube_array));
+}
+
+@vertex
+fn vs_2d(v: VSInput) -> VSOutputFSInput {
+    return VSOutputFSInput(uni.matrix * v.position, v.texcoord, v.iNdx);
+}
+
+@vertex
+fn vs_2d_array(v: VSInput) -> VSOutputFSInput {
+    return VSOutputFSInput(uni.matrix * v.position, v.texcoord, v.iNdx);
+}
+
+@vertex
+fn vs_cube(v: VSInput) -> VSOutputFSInput {
+    return VSOutputFSInput(uni.matrix * v.position, v.position.xyz, v.iNdx);
+}
+
+@vertex
+fn vs_cube_array(v: VSInput) -> VSOutputFSInput {
+    return VSOutputFSInput(uni.matrix * v.position, v.position.xyz, v.iNdx);
+}

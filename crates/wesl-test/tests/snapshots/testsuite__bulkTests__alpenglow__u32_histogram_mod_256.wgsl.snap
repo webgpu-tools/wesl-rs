@@ -1,0 +1,98 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+var<workgroup> histogram_scratch: array<atomic<u32>, 256>;
+
+@group(0) @binding(0)
+var<storage, read> mhist_input: array<u32, 2000>;
+
+@group(0) @binding(1)
+var<storage, read_write> mhist_output: array<atomic<u32>, 256>;
+
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>, @builtin(local_invocation_id) local_id: vec3<u32>, @builtin(workgroup_id) workgroup_id: vec3<u32>) {
+    {
+        {
+            let coalesced_local_index: u32 = 0u + local_id.x;
+            let coalesced_data_index: u32 = workgroup_id.x * 512u + coalesced_local_index;
+            if (coalesced_data_index < 2000u) {
+                atomicAdd(&histogram_scratch[(mhist_input[coalesced_data_index] % 256u)], 1u);
+            }
+        }
+        {
+            let coalesced_local_index: u32 = 64u + local_id.x;
+            let coalesced_data_index: u32 = workgroup_id.x * 512u + coalesced_local_index;
+            if (coalesced_data_index < 2000u) {
+                atomicAdd(&histogram_scratch[(mhist_input[coalesced_data_index] % 256u)], 1u);
+            }
+        }
+        {
+            let coalesced_local_index: u32 = 128u + local_id.x;
+            let coalesced_data_index: u32 = workgroup_id.x * 512u + coalesced_local_index;
+            if (coalesced_data_index < 2000u) {
+                atomicAdd(&histogram_scratch[(mhist_input[coalesced_data_index] % 256u)], 1u);
+            }
+        }
+        {
+            let coalesced_local_index: u32 = 192u + local_id.x;
+            let coalesced_data_index: u32 = workgroup_id.x * 512u + coalesced_local_index;
+            if (coalesced_data_index < 2000u) {
+                atomicAdd(&histogram_scratch[(mhist_input[coalesced_data_index] % 256u)], 1u);
+            }
+        }
+        {
+            let coalesced_local_index: u32 = 256u + local_id.x;
+            let coalesced_data_index: u32 = workgroup_id.x * 512u + coalesced_local_index;
+            if (coalesced_data_index < 2000u) {
+                atomicAdd(&histogram_scratch[(mhist_input[coalesced_data_index] % 256u)], 1u);
+            }
+        }
+        {
+            let coalesced_local_index: u32 = 320u + local_id.x;
+            let coalesced_data_index: u32 = workgroup_id.x * 512u + coalesced_local_index;
+            if (coalesced_data_index < 2000u) {
+                atomicAdd(&histogram_scratch[(mhist_input[coalesced_data_index] % 256u)], 1u);
+            }
+        }
+        {
+            let coalesced_local_index: u32 = 384u + local_id.x;
+            let coalesced_data_index: u32 = workgroup_id.x * 512u + coalesced_local_index;
+            if (coalesced_data_index < 2000u) {
+                atomicAdd(&histogram_scratch[(mhist_input[coalesced_data_index] % 256u)], 1u);
+            }
+        }
+        {
+            let coalesced_local_index: u32 = 448u + local_id.x;
+            let coalesced_data_index: u32 = workgroup_id.x * 512u + coalesced_local_index;
+            if (coalesced_data_index < 2000u) {
+                atomicAdd(&histogram_scratch[(mhist_input[coalesced_data_index] % 256u)], 1u);
+            }
+        }
+    }
+    workgroupBarrier();
+    {
+        let mhist_index: u32 = 0u + local_id.x;
+        if (mhist_index < 256u) {
+            atomicAdd(&mhist_output[mhist_index], atomicLoad(&histogram_scratch[mhist_index]));
+        }
+    }
+    {
+        let mhist_index: u32 = 64u + local_id.x;
+        if (mhist_index < 256u) {
+            atomicAdd(&mhist_output[mhist_index], atomicLoad(&histogram_scratch[mhist_index]));
+        }
+    }
+    {
+        let mhist_index: u32 = 128u + local_id.x;
+        if (mhist_index < 256u) {
+            atomicAdd(&mhist_output[mhist_index], atomicLoad(&histogram_scratch[mhist_index]));
+        }
+    }
+    {
+        let mhist_index: u32 = 192u + local_id.x;
+        if (mhist_index < 256u) {
+            atomicAdd(&mhist_output[mhist_index], atomicLoad(&histogram_scratch[mhist_index]));
+        }
+    }
+}

@@ -1,0 +1,58 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(0)
+var ourSampler: sampler;
+
+@group(0) @binding(1)
+var ourTexture2d: texture_2d<f32>;
+
+@group(0) @binding(1)
+var ourTexture2dArray: texture_2d_array<f32>;
+
+@group(0) @binding(1)
+var ourTextureCube: texture_cube<f32>;
+
+@group(0) @binding(1)
+var ourTextureCubeArray: texture_cube_array<f32>;
+
+struct VSOutput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    texcoord: vec2<f32>,
+    @location(1) @interpolate(flat, either)
+    baseArrayLayer: u32
+}
+
+@fragment
+fn fs2d(fsInput: VSOutput) -> @location(0) vec4<f32> {
+    return textureSample(ourTexture2d, ourSampler, fsInput.texcoord);
+}
+
+@fragment
+fn fs2darray(fsInput: VSOutput) -> @location(0) vec4<f32> {
+    return textureSample(ourTexture2dArray, ourSampler, fsInput.texcoord, fsInput.baseArrayLayer);
+}
+
+@fragment
+fn fscube(fsInput: VSOutput) -> @location(0) vec4<f32> {
+    return textureSample(ourTextureCube, ourSampler, array(mat3x3(0f, 0f, -2f, 0f, -2f, 0f, 1f, 1f, 1f), mat3x3(0f, 0f, 2f, 0f, -2f, 0f, -1f, 1f, -1f), mat3x3(2f, 0f, 0f, 0f, 0f, 2f, -1f, 1f, -1f), mat3x3(2f, 0f, 0f, 0f, 0f, -2f, -1f, -1f, 1f), mat3x3(2f, 0f, 0f, 0f, -2f, 0f, -1f, 1f, 1f), mat3x3(-2f, 0f, 0f, 0f, -2f, 0f, 1f, 1f, -1f))[fsInput.baseArrayLayer] * vec3<f32>(fract(fsInput.texcoord), 1));
+}
+
+@fragment
+fn fscubearray(fsInput: VSOutput) -> @location(0) vec4<f32> {
+    return textureSample(ourTextureCubeArray, ourSampler, array(mat3x3(0f, 0f, -2f, 0f, -2f, 0f, 1f, 1f, 1f), mat3x3(0f, 0f, 2f, 0f, -2f, 0f, -1f, 1f, -1f), mat3x3(2f, 0f, 0f, 0f, 0f, 2f, -1f, 1f, -1f), mat3x3(2f, 0f, 0f, 0f, 0f, -2f, -1f, -1f, 1f), mat3x3(2f, 0f, 0f, 0f, -2f, 0f, -1f, 1f, 1f), mat3x3(-2f, 0f, 0f, 0f, -2f, 0f, 1f, 1f, -1f))[fsInput.baseArrayLayer] * vec3<f32>(fract(fsInput.texcoord), 1), fsInput.baseArrayLayer);
+}
+
+@vertex
+fn vs(@builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) baseArrayLayer: u32) -> VSOutput {
+    var pos: array<vec2<f32>, 3> = array(vec2(-1f, -1f), vec2(-1f, 3f), vec2(3f, -1f));
+    var vsOutput: VSOutput;
+    let xy: vec2<f32> = pos[vertexIndex];
+    vsOutput.position = vec4<f32>(xy, 0.0, 1.0);
+    vsOutput.texcoord = xy * vec2(0.5f, -0.5f) + vec2(0.5f, 0.5f);
+    vsOutput.baseArrayLayer = baseArrayLayer;
+    return vsOutput;
+}

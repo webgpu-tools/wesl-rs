@@ -1,0 +1,13 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@fragment
+fn fs(@builtin(position) @invariant position: vec4<f32>) {
+
+}
+
+@vertex
+fn vs() -> @builtin(position) @invariant vec4<f32> {
+    return vec4(0f, 0f, 0f, 0f);
+}

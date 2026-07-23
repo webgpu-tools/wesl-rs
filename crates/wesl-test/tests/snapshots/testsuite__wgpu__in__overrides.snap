@@ -1,0 +1,26 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+override depth: f32;
+
+@id(1300)
+override gain: f32;
+
+@id(0)
+override has_point_light: bool = true;
+
+override height: f32 = 2 * depth;
+
+var<private> gain_x_10: f32 = gain * 10.0;
+
+var<private> store_override: f32;
+
+@compute @workgroup_size(1)
+fn main() {
+    var t: f32 = height * 5;
+    let a: bool = !has_point_light;
+    var x: bool = a;
+    var gain_x_100: f32 = gain_x_10 * 10.0;
+    store_override = gain;
+}

@@ -1,0 +1,37 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+struct Structure {
+    @builtin(num_subgroups)
+    num_subgroups: u32,
+    @builtin(subgroup_size)
+    subgroup_size: u32
+}
+
+@compute @workgroup_size(1, 1, 1)
+fn main(sizes: Structure, @builtin(subgroup_id) subgroup_id: u32, @builtin(subgroup_invocation_id) subgroup_invocation_id: u32) {
+    subgroupBarrier();
+    let _e7: vec4<u32> = subgroupBallot(((subgroup_invocation_id & 1u) == 1u));
+    let _e8: vec4<u32> = subgroupBallot();
+    let _e11: bool = subgroupAll((subgroup_invocation_id != 0u));
+    let _e14: bool = subgroupAny((subgroup_invocation_id == 0u));
+    let _e15: u32 = subgroupAdd(subgroup_invocation_id);
+    let _e16: u32 = subgroupMul(subgroup_invocation_id);
+    let _e17: u32 = subgroupMin(subgroup_invocation_id);
+    let _e18: u32 = subgroupMax(subgroup_invocation_id);
+    let _e19: u32 = subgroupAnd(subgroup_invocation_id);
+    let _e20: u32 = subgroupOr(subgroup_invocation_id);
+    let _e21: u32 = subgroupXor(subgroup_invocation_id);
+    let _e22: u32 = subgroupExclusiveAdd(subgroup_invocation_id);
+    let _e23: u32 = subgroupExclusiveMul(subgroup_invocation_id);
+    let _e24: u32 = subgroupInclusiveAdd(subgroup_invocation_id);
+    let _e25: u32 = subgroupInclusiveMul(subgroup_invocation_id);
+    let _e26: u32 = subgroupBroadcastFirst(subgroup_invocation_id);
+    let _e28: u32 = subgroupBroadcast(subgroup_invocation_id, 4u);
+    let _e33: u32 = subgroupShuffle(subgroup_invocation_id, ((sizes.subgroup_size - 1u) - subgroup_invocation_id));
+    let _e35: u32 = subgroupShuffleDown(subgroup_invocation_id, 1u);
+    let _e37: u32 = subgroupShuffleUp(subgroup_invocation_id, 1u);
+    let _e41: u32 = subgroupShuffleXor(subgroup_invocation_id, (sizes.subgroup_size - 1u));
+    return;
+}

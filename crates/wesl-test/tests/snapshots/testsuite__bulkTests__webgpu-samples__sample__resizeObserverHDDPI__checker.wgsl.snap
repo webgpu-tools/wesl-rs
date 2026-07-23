@@ -1,0 +1,24 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(0)
+var<uniform> uni: Uniforms;
+
+struct Uniforms {
+    color0: vec4<f32>,
+    color1: vec4<f32>,
+    size: u32
+}
+
+@fragment
+fn fs(@builtin(position) position: vec4<f32>) -> @location(0) vec4<f32> {
+    let grid: vec2<u32> = vec2<u32>(position.xy) / uni.size;
+    let checker: bool = (grid.x + grid.y) % 2 == 1;
+    return select(uni.color0, uni.color1, checker);
+}
+
+@vertex
+fn vs(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4<f32> {
+    return vec4<f32>(array(vec2(-1f, -1f), vec2(3f, -1f), vec2(-1f, 3f))[vertexIndex], 0.0, 1.0);
+}

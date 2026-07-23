@@ -1,0 +1,54 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+@group(0) @binding(1)
+var<uniform> sharedUni: SharedUniforms;
+
+@group(0) @binding(0)
+var<uniform> uni: Uniforms;
+
+struct MyVSInput {
+    @location(0)
+    position: vec4<f32>,
+    @location(1)
+    normal: vec3<f32>,
+    @location(2)
+    texcoord: vec2<f32>
+}
+
+struct MyVSOutput {
+    @builtin(position)
+    position: vec4<f32>,
+    @location(0)
+    normal: vec3<f32>,
+    @location(1)
+    texcoord: vec2<f32>
+}
+
+struct SharedUniforms {
+    viewProjection: mat4x4<f32>,
+    lightDirection: vec3<f32>
+}
+
+struct Uniforms {
+    world: mat4x4<f32>,
+    color: vec4<f32>
+}
+
+@fragment
+fn myFSMain(v: MyVSOutput) -> @location(0) vec4<f32> {
+    let diffuseColor: vec4<f32> = uni.color;
+    let a_normal: vec3<f32> = normalize(v.normal);
+    let l: f32 = dot(a_normal, sharedUni.lightDirection) * 0.5 + 0.5;
+    return vec4<f32>(diffuseColor.rgb * l, diffuseColor.a);
+}
+
+@vertex
+fn myVSMain(v: MyVSInput) -> MyVSOutput {
+    var vsOut: MyVSOutput;
+    vsOut.position = sharedUni.viewProjection * uni.world * v.position;
+    vsOut.normal = (uni.world * vec4<f32>(v.normal, 0.0)).xyz;
+    vsOut.texcoord = v.texcoord;
+    return vsOut;
+}

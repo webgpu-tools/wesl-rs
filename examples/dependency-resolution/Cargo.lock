@@ -861,7 +861,7 @@ dependencies = [
 
 [[package]]
 name = "wesl"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "annotate-snippets",
  "derive_more",
@@ -882,7 +882,7 @@ dependencies = [
 
 [[package]]
 name = "wesl-macros"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "itertools",
  "proc-macro2",
@@ -892,7 +892,7 @@ dependencies = [
 
 [[package]]
 name = "wesl-quote"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "itertools",
  "proc-macro-error2",
@@ -905,7 +905,7 @@ dependencies = [
 
 [[package]]
 name = "wgsl-parse"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "annotate-snippets",
  "derive_more",
@@ -921,7 +921,7 @@ dependencies = [
 
 [[package]]
 name = "wgsl-types"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "half",
  "itertools",

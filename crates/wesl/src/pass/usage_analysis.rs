@@ -31,9 +31,9 @@ impl std::fmt::Display for UsedItems {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use itertools::Itertools;
         for (path, items) in self.iter() {
-            write!(
+            writeln!(
                 f,
-                "{path} -> {}\n",
+                "{path} -> {}",
                 items.iter().map(ToString::to_string).format(", ")
             )?;
         }
@@ -82,8 +82,8 @@ impl UsedItems {
     /// Returns true if inserted.
     pub fn insert_ident(&mut self, path: ModulePath, ident: Ident) -> bool {
         let entry = self.used_items.entry(path.clone()).or_default();
-        let inserted = entry.insert(ident);
-        inserted
+
+        entry.insert(ident)
     }
 
     /// Returns true if deleted.
@@ -181,7 +181,7 @@ fn decl_usage_analysis(
         // if this ident refers an imported item, we add it to the list of used items.
         if let Some((import_path, import_ident)) =
             imported_item_path(ty_expr, &module.path, &module.imports)
-            && !already_used.contains_name(&import_path, &**ty_expr.ident.name())
+            && !already_used.contains_name(&import_path, &ty_expr.ident.name())
         {
             to_analyze.insert_ident(import_path, import_ident);
         }

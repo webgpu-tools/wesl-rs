@@ -74,6 +74,7 @@ pub(crate) const RESERVED_MOD_NAMES: &[&str] = &[
 ///
 /// ```no_run
 /// // in build.rs
+/// # #[allow(clippy::needless_doctest_main)]
 /// fn main() {
 /// #  #[cfg(feature = "package")]
 ///    wesl::package::PackageBuilder::new("my_package")
@@ -314,7 +315,7 @@ impl PackageBuilder {
         let dir = toml_path.parent().unwrap(/* SAFETY: toml_path is a file, must have a parent. */);
 
         let config = WeslToml::from_file(&toml_path)?;
-        let result = toml_cfg::scan_from_config(&self.name, &dir, &config)?;
+        let result = toml_cfg::scan_from_config(&self.name, dir, &config)?;
 
         for warning in &result.warnings {
             println!("cargo::warning={warning}");

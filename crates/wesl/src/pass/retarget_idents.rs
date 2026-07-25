@@ -394,11 +394,7 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
 /// # Panics
 ///
 /// * if an identifier has no corresponding declaration.
-pub fn retarget_modules(
-    modules: &mut Vec<Module>,
-    used_items: &UsedItems,
-    resolver: &impl Resolver,
-) {
+pub fn retarget_modules(modules: &mut [Module], used_items: &UsedItems, resolver: &impl Resolver) {
     // unfortunately I have to pass 3 module_xxx by ref here because I can't mutably borrow `ty` and immutably borrow a `Module`.
     // TODO: could we get away with using just used_items instead of other_modules?
     // in theory it contains all used identifiers, and we wouldn't have to deal with the double borrow
@@ -466,7 +462,7 @@ pub fn retarget_modules(
                         debug_assert!(false, "no importable module {import_path}");
                         return;
                     };
-                    if let Some(ident) = import_module.syntax.decl_ident(&**import_ident.name()) {
+                    if let Some(ident) = import_module.syntax.decl_ident(&import_ident.name()) {
                         // we found a declaration with the right name.
                         ty.path = None;
                         ty.ident = ident;

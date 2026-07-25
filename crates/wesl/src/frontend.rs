@@ -256,7 +256,7 @@ impl Compiler<()> {
         let mangler = Box::<dyn Mangler>::from(self.options.mangler);
 
         for (name, value) in self.options.constants.iter() {
-            resolver.add_constant(name.clone(), value.clone());
+            resolver.add_constant(name.clone(), *value);
         }
 
         for package in self.options.dependencies.iter() {
@@ -266,7 +266,7 @@ impl Compiler<()> {
         if self.options.sourcemap {
             let sourcemapper = SourceMapper::new(main_path.clone(), &resolver, &mangler);
             let mut pass =
-                CompilationPass::new(&main_path, &self.options, &sourcemapper, &sourcemapper);
+                CompilationPass::new(main_path, &self.options, &sourcemapper, &sourcemapper);
             let res = CompilerDriver::compile(&mut pass);
             let sourcemap = sourcemapper.finish();
             let res = res.map_err(|e| Diagnostic::from(e).with_sourcemap(&sourcemap))?;
@@ -277,7 +277,7 @@ impl Compiler<()> {
                 used_items: res.used_items,
             })
         } else {
-            let mut pass = CompilationPass::new(&main_path, &self.options, &resolver, &mangler);
+            let mut pass = CompilationPass::new(main_path, &self.options, &resolver, &mangler);
             let res = CompilerDriver::compile(&mut pass)?;
             Ok(CompileResult {
                 syntax: res.syntax,
@@ -322,12 +322,12 @@ impl<R: Resolver> Compiler<R> {
         // TODO: rework implementations of fs_path to be more fault tolerant?
         // or add a function root_dir?
         let relative_path = if let Some(root) = self.resolver.fs_path(&ModulePath::new_root()) {
-            let abs_path = std::path::absolute(path).map_err(|e| ResolveError::Io(e))?;
-            let abs_root = std::path::absolute(root).map_err(|e| ResolveError::Io(e))?;
+            let abs_path = std::path::absolute(path).map_err(ResolveError::Io)?;
+            let abs_root = std::path::absolute(root).map_err(ResolveError::Io)?;
             let abs_root = abs_root.parent().unwrap_or(Path::new(""));
             abs_path
                 .strip_prefix(abs_root)
-                .unwrap_or(&path)
+                .unwrap_or(path)
                 .to_path_buf()
         } else {
             Path::new(".").join(path)
@@ -465,7 +465,7 @@ impl<'a> CompilationPass<'a> {
 
 impl CompilerDriver for CompilationPass<'_> {
     fn main_path(&self) -> &ModulePath {
-        &self.main_path
+        self.main_path
     }
 
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {

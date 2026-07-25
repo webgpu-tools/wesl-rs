@@ -105,9 +105,9 @@ pub fn imported_item_path(
                 Some((import_path, ty_expr.ident.clone()))
             }
         }
-    } else if let Some(item) = imports.get(&ty_expr.ident) {
-        Some((item.path.clone(), item.ident.clone()))
     } else {
-        None
+        imports
+            .get(&ty_expr.ident)
+            .map(|item| (item.path.clone(), item.ident.clone()))
     }
 }

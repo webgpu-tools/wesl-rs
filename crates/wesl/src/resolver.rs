@@ -150,9 +150,9 @@ impl FileResolver {
         if fs_path.exists() {
             Ok(fs_path)
         } else {
-            fs_path.set_extension("wgsl");
-            if fs_path.exists() {
-                Ok(fs_path)
+            let wgsl_fs_path = fs_path.with_extension("wgsl");
+            if wgsl_fs_path.exists() {
+                Ok(wgsl_fs_path)
             } else {
                 Err(E::FileNotFound(fs_path, "physical file".to_string()))
             }

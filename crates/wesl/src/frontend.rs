@@ -342,7 +342,7 @@ impl<R: Resolver> Compiler<R> {
 
     /// Compile a WESL shader to WGSL.
     ///
-    /// `main_path` is the main module path, which exposes entry points, bindings and overrrides.
+    /// `main_path` is the main module path, which exposes entry points, bindings and overrides.
     ///
     /// The package root directory depends on the [`Resolver`] implementation.
     pub fn compile_module(&self, main_path: &ModulePath) -> Result<CompileResult, Error> {

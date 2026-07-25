@@ -1,0 +1,30 @@
+---
+source: crates/wesl/tests/frontend.rs
+expression: result.syntax.to_string()
+---
+const a_VERSION = 16;
+
+const b_VERSION = 16;
+
+const import_2_a_c_VERSION = 17;
+
+const import_2_a_d_VERSION = 16;
+
+const import_2_b_d_VERSION = 32;
+
+const_assert a_VERSION == 16;
+
+const_assert b_VERSION == 16;
+
+const_assert import_2_a_c_VERSION == 17;
+
+const_assert import_2_a_c_VERSION == 17;
+
+const_assert import_2_a_d_VERSION == 16;
+
+const_assert import_2_b_d_VERSION == 32;
+
+@fragment
+fn main() {
+
+}

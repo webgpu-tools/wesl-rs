@@ -38,7 +38,7 @@ impl Display for TranslationUnit {
         #[cfg(feature = "imports")]
         if !self.imports.is_empty() {
             for import in &self.imports {
-                writeln!(f, "import {import}\n")?;
+                writeln!(f, "{import}\n")?;
             }
         }
         if !self.global_directives.is_empty() {
@@ -65,11 +65,12 @@ impl Display for ImportStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         #[cfg(feature = "attributes")]
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
-        if let Some(path) = &self.path {
-            write!(f, "{path}::")?;
-        }
         let content = &self.content;
-        write!(f, "{content};")
+        if let Some(path) = &self.path {
+            write!(f, "import {path}::{content};")
+        } else {
+            write!(f, "import {content};")
+        }
     }
 }
 

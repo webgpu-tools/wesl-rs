@@ -2094,12 +2094,12 @@ pub fn atomicCompareExchangeWeak(e1: &Type, e2: &Type, e3: &Type) -> Result<Type
     let Type::Ptr(a_s, ptr_ty, a_m) = e1 else {
         return Err(E::Builtin(
             "`atomicCompareExchangeWeak` expects a pointer to atomic argument",
-        ))
+        ));
     };
     let Type::Atomic(ty) = &**ptr_ty else {
         return Err(E::Builtin(
             "`atomicCompareExchangeWeak` expects a pointer to atomic argument",
-        ))
+        ));
     };
     if *a_s != AddressSpace::Storage && *a_s != AddressSpace::Workgroup {
         Err(E::Builtin(

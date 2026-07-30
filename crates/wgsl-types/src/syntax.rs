@@ -26,7 +26,6 @@ pub enum AddressSpace {
     Uniform,
     Storage,
     Handle, // the handle address space cannot be spelled in WGSL.
-    #[cfg(feature = "naga-ext")]
     Immediate,
     #[cfg(feature = "naga-ext")]
     TaskPayload,
@@ -41,7 +40,6 @@ impl AddressSpace {
             AddressSpace::Uniform => AccessMode::Read,
             AddressSpace::Storage => AccessMode::Read,
             AddressSpace::Handle => AccessMode::Read,
-            #[cfg(feature = "naga-ext")]
             AddressSpace::Immediate => AccessMode::Read,
             #[cfg(feature = "naga-ext")]
             AddressSpace::TaskPayload => AccessMode::ReadWrite,
@@ -564,7 +562,6 @@ impl FromStr for AddressSpace {
             "workgroup" => Ok(Self::Workgroup),
             "uniform" => Ok(Self::Uniform),
             "storage" => Ok(Self::Storage),
-            #[cfg(feature = "naga-ext")]
             "immediate" => Ok(Self::Immediate),
             #[cfg(feature = "naga-ext")]
             "task_payload" => Ok(Self::TaskPayload),
@@ -810,7 +807,6 @@ impl Display for AddressSpace {
             Self::Uniform => write!(f, "uniform"),
             Self::Storage => write!(f, "storage"),
             Self::Handle => write!(f, "handle"),
-            #[cfg(feature = "naga-ext")]
             Self::Immediate => write!(f, "immediate"),
             #[cfg(feature = "naga-ext")]
             Self::TaskPayload => write!(f, "task_payload"),

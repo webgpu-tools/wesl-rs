@@ -142,7 +142,6 @@ impl BuiltinIdent for AddressSpace {
             Self::Uniform => builtin_ident("uniform"),
             Self::Storage => builtin_ident("storage"),
             Self::Handle => None,
-            #[cfg(feature = "naga-ext")]
             Self::Immediate => builtin_ident("immediate"),
             #[cfg(feature = "naga-ext")]
             Self::TaskPayload => builtin_ident("task_payload"),

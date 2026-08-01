@@ -133,7 +133,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           submodules: "true"
-      - uses: tombi-toml/setup-tombi@v1
+      - uses: tombi-toml/setup-tombi@v1.2.4
       - name: Lint TOML files
         run: tombi lint
       - name: Check formatting of TOML files

@@ -651,6 +651,7 @@ impl SyntaxNode for GlobalDeclaration {
             GlobalDeclaration::Struct(decl) => Some(decl.ident.clone()),
             GlobalDeclaration::Function(decl) => Some(decl.ident.clone()),
             GlobalDeclaration::ConstAssert(_) => None,
+            GlobalDeclaration::Compound(_) => None,
         }
     }
 
@@ -661,6 +662,7 @@ impl SyntaxNode for GlobalDeclaration {
         GlobalDeclaration::Struct,
         GlobalDeclaration::Function,
         GlobalDeclaration::ConstAssert,
+        GlobalDeclaration::Compound,
     }
 }
 

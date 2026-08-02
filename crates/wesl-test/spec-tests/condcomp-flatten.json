@@ -1,19 +1,42 @@
 [
-    {
-        "name": "allow-global-compound-declarations",
-        "weslSrc": {
-          "./main.wgsl": "fn f() {} @if(true) { const_assert true; fn foo() {} struct bar { x: u32 } }"
-        },
-        "expectedWgsl": "fn f() {} const_assert true; fn foo() {} struct bar { x: u32 }",
-        "underscoreWgsl": "fn f() {} const_assert true; fn foo() {} struct bar { x: u32 }"
-    },
-    {
-        "name": "compound-decl-shadow",
-        "weslSrc": {
-          "./main.wgsl": "{ const foo: u32 = 0; } const foo: u32 = 1;"
-        },
-        "expectedWgsl": "const foo: u32 = 1;",
-        "underscoreWgsl": "const foo: u32 = 1;"
-    }
+	{
+		"name": "module-compound",
+		"weslSrc": {
+			"./main.wgsl": "fn f() {} @if(true) { const_assert true; fn foo() {} struct bar { x: u32 } }"
+		},
+		"expectedWgsl": "fn f() {} const_assert true; fn foo() {} struct bar { x: u32 }",
+		"underscoreWgsl": "fn f() {} const_assert true; fn foo() {} struct bar { x: u32 }"
+	},
+	{
+		"name": "module-compound-nested",
+		"weslSrc": {
+			"./main.wgsl": "@if(true) { fn foo() {} { @if(true) fn bar() {} } @if(true) { fn baz() {} } }"
+		},
+		"expectedWgsl": "fn foo() {} fn baz() {}",
+		"underscoreWgsl": "fn foo() {} fn baz() {}"
+	},
+	{
+		"name": "module-compound-shadow",
+		"weslSrc": {
+			"./main.wgsl": "{ const foo: u32 = 0; } const foo: u32 = 1;"
+		},
+		"expectedWgsl": "const foo: u32 = 1;",
+		"underscoreWgsl": "const foo: u32 = 1;"
+	},
+	{
+		"name": "function-compound",
+		"weslSrc": {
+			"./main.wgsl": "fn foo() { @if(true) { var x = 0; } x++; }"
+		},
+		"expectedWgsl": "fn foo() { var x = 0; x++; }",
+		"underscoreWgsl": "fn foo() { var x = 0; x++; }"
+	},
+	{
+		"name": "function-compound-nested",
+		"weslSrc": {
+			"./main.wgsl": "fn foo() { @if(true) { var x = 0; { @if(true) x++; } @if(true) { x--; } } }"
+		},
+		"expectedWgsl": "fn foo() { var x = 0; { x++; } x--; }",
+		"underscoreWgsl": "fn foo() { var x = 0; { x++; } x--; }"
+	}
 ]
-

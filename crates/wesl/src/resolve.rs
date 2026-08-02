@@ -1,6 +1,7 @@
 use crate::{Diagnostic, Error};
 
 use itertools::Itertools;
+use wesl_core::CodegenPkg;
 use wgsl_parse::syntax::{ModulePath, PathOrigin, TranslationUnit};
 use wgsl_types::inst::LiteralInstance;
 
@@ -379,28 +380,6 @@ impl Resolver for Router {
     }
 }
 
-/// The type holding the source code of external packages.
-///
-/// You typically don't implement this, instead it is generated for you by [`crate::PkgBuilder`].
-/// Crates containing shader packages export `const` instances of this type, which you can
-/// then import and [add to your resolver][StandardResolver::add_package].
-#[derive(Debug, PartialEq, Eq)]
-pub struct CodegenPkg {
-    pub crate_name: &'static str,
-    pub root: &'static CodegenModule,
-    pub dependencies: &'static [&'static CodegenPkg],
-}
-
-/// The type holding the source code of modules in external packages.
-///
-/// See [`CodegenPkg`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct CodegenModule {
-    pub name: &'static str,
-    pub source: &'static str,
-    pub submodules: &'static [&'static CodegenModule],
-}
-
 /// A resolver that only resolves module paths that refer to modules in external packages.
 ///
 /// Register external packages with [`Self::add_package`].
@@ -655,6 +634,8 @@ pub fn emit_rerun_if_changed(modules: &[ModulePath], resolver: &impl Resolver) {
 
 #[cfg(test)]
 mod test {
+    use wesl_core::CodegenModule;
+
     use super::*;
 
     #[test]

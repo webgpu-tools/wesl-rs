@@ -40,6 +40,7 @@ serde = {
 }  # dep for feature 'package'
 thiserror = "2.0.11"
 toml = { version = "1.1", optional = true }  # dep for feature 'package'
+wesl-core = { workspace = true }
 wesl-macros = { workspace = true, features = ["query"] }
 wesl-quote = { workspace = true, optional = true }  # dep for feature 'eval'
 wgsl-parse = { workspace = true, features = ["wesl"] }

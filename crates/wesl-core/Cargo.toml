@@ -1,0 +1,15 @@
+[package]
+name = "wesl-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "WESL core types for packages"
+repository.workspace = true
+license.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lints]
+workspace = true

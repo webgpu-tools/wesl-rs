@@ -383,17 +383,20 @@ fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) 
             while let Some(node) = stmts.get_mut(i) {
                 eval_if_attr(node, &mut prev, feats)?;
                 if let Statement::Compound(stmt) = &**node
-                    && prev.is_true
+                    && prev.is_true && !prev.removed
                 {
                     // replace the compound statements with its contents
                     // TODO: other compound statement attributes are lost. validation has no opportunity to check them.
                     // COMBAK: this clone is unnecessary and probably inefficient.
                     let body = stmt.statements.clone();
+                    let n = body.len();
                     stmts.splice(i..i + 1, body);
+                    i += n;
                 } else if prev.removed {
                     stmts.remove(i);
+                } else {
+                    i += 1;
                 }
-                i += 1;
             }
         }
 
@@ -426,17 +429,20 @@ pub fn run(wesl: &mut TranslationUnit, features: &Features) -> Result<(), E> {
         while let Some(node) = wesl.global_declarations.get_mut(i) {
             eval_if_attr(node, &mut prev, features)?;
             if let GlobalDeclaration::Compound(stmt) = &**node
-                && prev.is_true
+                && prev.is_true && !prev.removed
             {
                 // replace the compound statements with its contents
                 // TODO: other compound statement attributes are lost. validation has no opportunity to check them.
                 // COMBAK: this clone is unnecessary and probably inefficient.
                 let body = stmt.body.clone();
+                let n = body.len();
                 wesl.global_declarations.splice(i..i + 1, body);
+                i += n;
             } else if prev.removed {
                 wesl.global_declarations.remove(i);
+            } else {
+                i += 1;
             }
-            i += 1;
         }
     }
 

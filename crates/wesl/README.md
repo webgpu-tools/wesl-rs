@@ -33,7 +33,7 @@ Add this crate to your build dependencies in `Cargo.toml`:
 
 ```toml
 [build-dependencies]
-wesl = "0.1"
+wesl = "0.4"
 ```
 
 Create the `build.rs` file with the following content:

@@ -5,11 +5,11 @@ use std::{
 
 use crate::{
     Diagnostic, Error, ModulePath, SyntaxUtil,
-    resolve::CodegenPkg,
     validate::validate_wesl,
     wesl_toml::{self, ScanTomlError, WeslToml},
 };
 use quote::{format_ident, quote};
+use wesl_core::CodegenPkg;
 use wgsl_parse::{
     lexer::{Lexer, Token},
     syntax::TranslationUnit,

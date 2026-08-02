@@ -366,13 +366,43 @@ fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) 
         };
         Ok(())
     }
+
     fn rec(stats: &mut Vec<StatementNode>, feats: &Features) -> Result<PrevEval, E> {
-        let prev = eval_if_attrs(stats, feats)?;
+        let mut prev = PrevEval {
+            has_if: false,
+            is_true: false,
+            removed: false,
+        };
+
+        // If an `@if` decorates a compound statement, the statement gets flattened.
+        // This is the same code as in eval_if_attrs, except it flattens the compound when it evaluates to true.
+        {
+            let mut i = 0;
+
+            // remove the nodes for which the attr evaluate to false.
+            while let Some(node) = stats.get_mut(i) {
+                eval_if_attr(node, &mut prev, feats)?;
+                if let Statement::Compound(stmt) = &**node
+                    && prev.is_true
+                {
+                    // replace the compound statements with its contents
+                    // TODO: other compound statement attributes are lost. validation has no opportunity to check them.
+                    // COMBAK: this clone is unnecessary and probably inefficient.
+                    let body = stmt.statements.clone();
+                    stats.splice(i..i + 1, body);
+                } else if prev.removed {
+                    stats.remove(i);
+                }
+                i += 1;
+            }
+        }
+
         for stmt in stats {
             rec_one(stmt, feats)?;
         }
         Ok(prev)
     }
+
     rec(statements, features).map(|_| ())
 }
 

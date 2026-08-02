@@ -321,7 +321,7 @@ fn eval_if_attrs(nodes: &mut Vec<impl SyntaxNode>, features: &Features) -> Resul
 }
 
 fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) -> Result<(), E> {
-    fn rec_one(stmt: &mut StatementNode, feats: &Features) -> Result<(), E> {
+    fn rec_eval_inside_stmt(stmt: &mut StatementNode, feats: &Features) -> Result<(), E> {
         match stmt.node_mut() {
             Statement::Compound(stmt) => {
                 rec(&mut stmt.statements, feats)?;
@@ -352,10 +352,10 @@ fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) 
             }
             Statement::For(stmt) => {
                 if let Some(init) = &mut stmt.initializer {
-                    rec_one(&mut *init, feats)?
+                    rec_eval_inside_stmt(&mut *init, feats)?
                 }
                 if let Some(updt) = &mut stmt.update {
-                    rec_one(&mut *updt, feats)?
+                    rec_eval_inside_stmt(&mut *updt, feats)?
                 }
                 rec(&mut stmt.body.statements, feats)?;
             }
@@ -383,26 +383,26 @@ fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) 
             while let Some(node) = stmts.get_mut(i) {
                 eval_if_attr(node, &mut prev, feats)?;
                 if let Statement::Compound(stmt) = &**node
-                    && prev.is_true && !prev.removed
+                    && prev.is_true
+                    && !prev.removed
                 {
                     // replace the compound statements with its contents
                     // TODO: other compound statement attributes are lost. validation has no opportunity to check them.
                     // COMBAK: this clone is unnecessary and probably inefficient.
-                    let body = stmt.statements.clone();
+                    let mut body = stmt.statements.clone();
+                    rec(&mut body, feats)?;
                     let n = body.len();
                     stmts.splice(i..i + 1, body);
                     i += n;
                 } else if prev.removed {
                     stmts.remove(i);
                 } else {
+                    rec_eval_inside_stmt(node, feats)?;
                     i += 1;
                 }
             }
         }
 
-        for stmt in stmts {
-            rec_one(stmt, feats)?;
-        }
         Ok(prev)
     }
 
@@ -416,7 +416,10 @@ pub fn run(wesl: &mut TranslationUnit, features: &Features) -> Result<(), E> {
 
     // If an `@if` decorates a compound global declaration, it gets flattened.
     // This is the same code as in eval_if_attrs, except it flattens the compound when it evaluates to true.
-    {
+    fn eval_flatten_compound(
+        decls: &mut Vec<GlobalDeclarationNode>,
+        features: &Features,
+    ) -> Result<(), E> {
         let mut prev = PrevEval {
             has_if: false,
             is_true: false,
@@ -426,25 +429,31 @@ pub fn run(wesl: &mut TranslationUnit, features: &Features) -> Result<(), E> {
         let mut i = 0;
 
         // remove the nodes for which the attr evaluate to false.
-        while let Some(node) = wesl.global_declarations.get_mut(i) {
+        while let Some(node) = decls.get_mut(i) {
             eval_if_attr(node, &mut prev, features)?;
             if let GlobalDeclaration::Compound(stmt) = &**node
-                && prev.is_true && !prev.removed
+                && prev.is_true
+                && !prev.removed
             {
                 // replace the compound statements with its contents
                 // TODO: other compound statement attributes are lost. validation has no opportunity to check them.
                 // COMBAK: this clone is unnecessary and probably inefficient.
-                let body = stmt.body.clone();
+                let mut body = stmt.body.clone();
+                eval_flatten_compound(&mut body, features)?;
                 let n = body.len();
-                wesl.global_declarations.splice(i..i + 1, body);
+                decls.splice(i..i + 1, body);
                 i += n;
             } else if prev.removed {
-                wesl.global_declarations.remove(i);
+                decls.remove(i);
             } else {
                 i += 1;
             }
         }
+
+        Ok(())
     }
+
+    eval_flatten_compound(&mut wesl.global_declarations, features)?;
 
     for decl in &mut wesl.global_declarations {
         if let GlobalDeclaration::Struct(decl) = decl.node_mut() {

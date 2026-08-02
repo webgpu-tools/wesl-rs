@@ -1,6 +1,6 @@
 [
     {
-        "name": "strip-unused-declaration",
+        "name": "strip-import-unused-declaration",
         "weslSrc": {
             "./main.wgsl": "import package::m1::foo; fn main() { foo(); }",
             "./m1.wgsl": "fn foo() { } fn bar() { }"
@@ -9,7 +9,16 @@
         "underscoreWgsl": "fn main() { package_m1_foo(); } fn package_m1_foo() { }"
     },
     {
-        "name": "strip-unused-module",
+        "name": "strip-import-const-asserts-if-module-unused",
+        "weslSrc": {
+            "./main.wgsl": "import package::m1::unused; fn main() { }",
+            "./m1.wgsl": "const_assert true; fn foo() { } fn unused() { }"
+        },
+        "expectedWgsl": "fn main() { }",
+        "underscoreWgsl": "fn main() { }"
+    },
+    {
+        "name": "strip-deep-import-unused-module",
         "weslSrc": {
             "./main.wgsl": "import package::m1::foo; fn main() { foo(); }",
             "./m1.wgsl": "import package::m2::bar; fn foo() { } fn unused() { bar(); }",
@@ -19,12 +28,29 @@
         "underscoreWgsl": "fn main() { package_m1_foo(); } fn package_m1_foo() { }"
     },
     {
-        "name": "keep-const-asserts",
+        "name": "keep-import-const-asserts-if-module-used",
         "weslSrc": {
             "./main.wgsl": "import package::m1::foo; fn main() { foo(); }",
             "./m1.wgsl": "const_assert true; fn foo() { } fn bar() { }"
         },
-        "expectedWgsl": "fn main() { foo(); } fn foo() { }",
+        "expectedWgsl": "fn main() { foo(); } const_assert true; fn foo() { }",
+        "underscoreWgsl": "fn main() { package_m1_foo(); } const_assert true; fn package_m1_foo() { }"
+    },
+    {
+        "name": "strip-compound-decl",
+        "weslSrc": {
+            "./main.wgsl": "{ fn foo() {} } fn main() { }"
+        },
+        "expectedWgsl": "fn main() { }",
+        "underscoreWgsl": "fn main() { }"
+    },
+    {
+        "name": "keep-used-compound-decl",
+        "weslSrc": {
+            "./main.wgsl": "import package::m1::foo; fn main() { foo(); }",
+            "./m1.wgsl": "@if (true) { const_assert true; fn foo() {} fn bar() {} }"
+        },
+        "expectedWgsl": "fn main() { foo(); } const_assert true; fn foo() { }",
         "underscoreWgsl": "fn main() { package_m1_foo(); } const_assert true; fn package_m1_foo() { }"
     }
 ]

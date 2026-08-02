@@ -1,11 +1,19 @@
 [
     {
         "name": "allow-global-compound-declarations",
-        "desc": "allow module-scope compound declarations",
-        "kind": "syntax",
-        "syntax": "declaration",
-        "code": "fn f() {} @if(true) { const_assert true; fn foo() {} struct bar { x: u32 } }",
-        "expect": "pass"
+        "weslSrc": {
+          "./main.wgsl": "fn f() {} @if(true) { const_assert true; fn foo() {} struct bar { x: u32 } }"
+        },
+        "expectedWgsl": "fn f() {} const_assert true; fn foo() {} struct bar { x: u32 }",
+        "underscoreWgsl": "fn f() {} const_assert true; fn foo() {} struct bar { x: u32 }"
+    },
+    {
+        "name": "compound-decl-shadow",
+        "weslSrc": {
+          "./main.wgsl": "{ const foo: u32 = 0; } const foo: u32 = 1;"
+        },
+        "expectedWgsl": "const foo: u32 = 1;",
+        "underscoreWgsl": "const foo: u32 = 1;"
     }
 ]
 

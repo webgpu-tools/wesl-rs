@@ -57,7 +57,6 @@ fn main() {
         "spec-tests/imports.json",
         "spec-tests/circular.json",
         "spec-tests/types.json",
-        "spec-tests/condcomp-flatten.json",
     ];
     for path in spec_tests {
         tests.extend({
@@ -100,6 +99,7 @@ fn main() {
         "wesl-testsuite/src/test-cases-json/importCases.json",
         "wesl-testsuite/src/test-cases-json/conditionalTranslationCases.json",
         "spec-tests/dead-code.json",
+        "spec-tests/condcomp-flatten.json",
     ];
     for path in testsuite_tests {
         tests.extend({

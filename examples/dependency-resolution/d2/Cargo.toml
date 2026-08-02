@@ -4,7 +4,7 @@ version = "0.2.0"
 edition = "2024"
 
 [dependencies]
-wesl = { path = "../../../crates/wesl", features = ["package"] }
+wesl-core = { path = "../../../crates/wesl-core" }
 
 [build-dependencies]
 wesl = { path = "../../../crates/wesl", features = ["package"] }

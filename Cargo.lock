@@ -940,6 +940,7 @@ name = "random_wgsl"
 version = "0.4.1"
 dependencies = [
  "wesl",
+ "wesl-core",
 ]
 
 [[package]]

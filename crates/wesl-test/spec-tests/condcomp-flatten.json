@@ -1,0 +1,11 @@
+[
+    {
+        "name": "allow-global-compound-declarations",
+        "desc": "allow module-scope compound declarations",
+        "kind": "syntax",
+        "syntax": "declaration",
+        "code": "fn f() {} @if(true) { const_assert true; fn foo() {} struct bar { x: u32 } }",
+        "expect": "pass"
+    }
+]
+

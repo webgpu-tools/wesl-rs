@@ -57,6 +57,7 @@ fn main() {
         "spec-tests/imports.json",
         "spec-tests/circular.json",
         "spec-tests/types.json",
+        "spec-tests/condcomp-flatten.json",
     ];
     for path in spec_tests {
         tests.extend({
@@ -466,14 +467,24 @@ pub fn bevy_case(path: PathBuf) -> Result<(), libtest_mimic::Failed> {
 fn sort_decls(wgsl: &mut TranslationUnit) {
     use std::cmp::Ordering;
     type Decl = GlobalDeclaration;
-    wgsl.global_declarations
-        .sort_unstable_by(|a, b| match (a.node(), b.node()) {
+
+    fn sort_fn(a: &GlobalDeclaration, b: &GlobalDeclaration) -> Ordering {
+        match (a, b) {
             (Decl::Void, Decl::Void) => Ordering::Equal,
             (Decl::Void, Decl::Declaration(_)) => Ordering::Less,
             (Decl::Void, Decl::Struct(_)) => Ordering::Less,
             (Decl::Void, Decl::TypeAlias(_)) => Ordering::Less,
             (Decl::Void, Decl::ConstAssert(_)) => Ordering::Less,
             (Decl::Void, Decl::Function(_)) => Ordering::Less,
+            (Decl::Void, Decl::Compound(_)) => Ordering::Less,
+
+            (Decl::Compound(_), Decl::Void) => Ordering::Greater,
+            (Decl::Compound(_), Decl::Declaration(_)) => Ordering::Greater,
+            (Decl::Compound(_), Decl::Struct(_)) => Ordering::Greater,
+            (Decl::Compound(_), Decl::TypeAlias(_)) => Ordering::Greater,
+            (Decl::Compound(_), Decl::ConstAssert(_)) => Ordering::Greater,
+            (Decl::Compound(_), Decl::Function(_)) => Ordering::Greater,
+            (Decl::Compound(_), Decl::Compound(_)) => Ordering::Equal,
 
             (Decl::Declaration(_), Decl::Void) => Ordering::Greater,
             (Decl::Declaration(d1), Decl::Declaration(d2)) => d1.ident.name().cmp(&d2.ident.name()),
@@ -481,6 +492,7 @@ fn sort_decls(wgsl: &mut TranslationUnit) {
             (Decl::Declaration(_), Decl::TypeAlias(_)) => Ordering::Less,
             (Decl::Declaration(_), Decl::ConstAssert(_)) => Ordering::Less,
             (Decl::Declaration(_), Decl::Function(_)) => Ordering::Less,
+            (Decl::Declaration(_), Decl::Compound(_)) => Ordering::Less,
 
             (Decl::Struct(_), Decl::Void) => Ordering::Greater,
             (Decl::Struct(_), Decl::Declaration(_)) => Ordering::Greater,
@@ -488,6 +500,7 @@ fn sort_decls(wgsl: &mut TranslationUnit) {
             (Decl::Struct(_), Decl::TypeAlias(_)) => Ordering::Less,
             (Decl::Struct(_), Decl::ConstAssert(_)) => Ordering::Less,
             (Decl::Struct(_), Decl::Function(_)) => Ordering::Less,
+            (Decl::Struct(_), Decl::Compound(_)) => Ordering::Less,
 
             (Decl::TypeAlias(_), Decl::Void) => Ordering::Greater,
             (Decl::TypeAlias(_), Decl::Declaration(_)) => Ordering::Greater,
@@ -495,6 +508,7 @@ fn sort_decls(wgsl: &mut TranslationUnit) {
             (Decl::TypeAlias(d1), Decl::TypeAlias(d2)) => d1.ident.name().cmp(&d2.ident.name()),
             (Decl::TypeAlias(_), Decl::ConstAssert(_)) => Ordering::Less,
             (Decl::TypeAlias(_), Decl::Function(_)) => Ordering::Less,
+            (Decl::TypeAlias(_), Decl::Compound(_)) => Ordering::Less,
 
             (Decl::ConstAssert(_), Decl::Void) => Ordering::Greater,
             (Decl::ConstAssert(_), Decl::Declaration(_)) => Ordering::Greater,
@@ -502,6 +516,7 @@ fn sort_decls(wgsl: &mut TranslationUnit) {
             (Decl::ConstAssert(_), Decl::TypeAlias(_)) => Ordering::Greater,
             (Decl::ConstAssert(_), Decl::ConstAssert(_)) => Ordering::Equal,
             (Decl::ConstAssert(_), Decl::Function(_)) => Ordering::Less,
+            (Decl::ConstAssert(_), Decl::Compound(_)) => Ordering::Less,
 
             (Decl::Function(_), Decl::Void) => Ordering::Greater,
             (Decl::Function(_), Decl::Declaration(_)) => Ordering::Greater,
@@ -509,5 +524,10 @@ fn sort_decls(wgsl: &mut TranslationUnit) {
             (Decl::Function(_), Decl::TypeAlias(_)) => Ordering::Greater,
             (Decl::Function(_), Decl::ConstAssert(_)) => Ordering::Greater,
             (Decl::Function(d1), Decl::Function(d2)) => d1.ident.name().cmp(&d2.ident.name()),
-        });
+            (Decl::Function(_), Decl::Compound(_)) => Ordering::Less,
+        }
+    }
+
+    wgsl.global_declarations
+        .sort_unstable_by(|a, b| sort_fn(a.node(), b.node()));
 }

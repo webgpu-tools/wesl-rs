@@ -367,7 +367,7 @@ fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) 
         Ok(())
     }
 
-    fn rec(stats: &mut Vec<StatementNode>, feats: &Features) -> Result<PrevEval, E> {
+    fn rec(stmts: &mut Vec<StatementNode>, feats: &Features) -> Result<PrevEval, E> {
         let mut prev = PrevEval {
             has_if: false,
             is_true: false,
@@ -380,7 +380,7 @@ fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) 
             let mut i = 0;
 
             // remove the nodes for which the attr evaluate to false.
-            while let Some(node) = stats.get_mut(i) {
+            while let Some(node) = stmts.get_mut(i) {
                 eval_if_attr(node, &mut prev, feats)?;
                 if let Statement::Compound(stmt) = &**node
                     && prev.is_true
@@ -389,15 +389,15 @@ fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) 
                     // TODO: other compound statement attributes are lost. validation has no opportunity to check them.
                     // COMBAK: this clone is unnecessary and probably inefficient.
                     let body = stmt.statements.clone();
-                    stats.splice(i..i + 1, body);
+                    stmts.splice(i..i + 1, body);
                 } else if prev.removed {
-                    stats.remove(i);
+                    stmts.remove(i);
                 }
                 i += 1;
             }
         }
 
-        for stmt in stats {
+        for stmt in stmts {
             rec_one(stmt, feats)?;
         }
         Ok(prev)
@@ -410,7 +410,35 @@ pub fn run(wesl: &mut TranslationUnit, features: &Features) -> Result<(), E> {
     wesl.remove_voids();
     eval_if_attrs(&mut wesl.imports, features)?;
     eval_if_attrs(&mut wesl.global_directives, features)?;
-    eval_if_attrs(&mut wesl.global_declarations, features)?;
+
+    // If an `@if` decorates a compound global declaration, it gets flattened.
+    // This is the same code as in eval_if_attrs, except it flattens the compound when it evaluates to true.
+    {
+        let mut prev = PrevEval {
+            has_if: false,
+            is_true: false,
+            removed: false,
+        };
+
+        let mut i = 0;
+
+        // remove the nodes for which the attr evaluate to false.
+        while let Some(node) = wesl.global_declarations.get_mut(i) {
+            eval_if_attr(node, &mut prev, features)?;
+            if let GlobalDeclaration::Compound(stmt) = &**node
+                && prev.is_true
+            {
+                // replace the compound statements with its contents
+                // TODO: other compound statement attributes are lost. validation has no opportunity to check them.
+                // COMBAK: this clone is unnecessary and probably inefficient.
+                let body = stmt.body.clone();
+                wesl.global_declarations.splice(i..i + 1, body);
+            } else if prev.removed {
+                wesl.global_declarations.remove(i);
+            }
+            i += 1;
+        }
+    }
 
     for decl in &mut wesl.global_declarations {
         if let GlobalDeclaration::Struct(decl) = decl.node_mut() {

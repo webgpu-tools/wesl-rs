@@ -389,6 +389,14 @@ impl Attribute {
             _ => false,
         }
     }
+
+    #[cfg(feature = "condcomp")]
+    pub fn is_condcomp(&self) -> bool {
+        matches!(
+            self,
+            Attribute::If(_) | Attribute::Elif(_) | Attribute::Else
+        )
+    }
 }
 
 pub type AttributeNode = Spanned<Attribute>;

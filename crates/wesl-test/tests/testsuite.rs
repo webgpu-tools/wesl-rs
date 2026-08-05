@@ -135,7 +135,7 @@ fn main() {
                 .map(|v| v.iter().map(|v| base_dir.join(v)).collect())
                 .unwrap_or_else(|| {
                     std::fs::read_dir(&bulk_case.base_dir)
-                        .unwrap_or_else(|_| panic!("missing dir `{}`", &bulk_case.base_dir))
+                        .unwrap_or_else(|_| panic!("missing dir `{}`", bulk_case.base_dir))
                         .filter_map(|e| e.ok())
                         .filter(|e| e.path().extension() == Some(OsStr::new("wgsl")))
                         .map(|v| v.path())

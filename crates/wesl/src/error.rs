@@ -587,13 +587,13 @@ impl<E: std::error::Error> Diagnostic<E> {
         renderer.render(&[group])
     }
 
-    pub fn fmt_plain(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt_plain(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let renderer = annotate_snippets::Renderer::plain();
         let rendered = self.fmt_snippet(&renderer);
         write!(f, "{rendered}")
     }
 
-    pub fn fmt_colored(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt_colored(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let renderer = annotate_snippets::Renderer::styled();
         let rendered = self.fmt_snippet(&renderer);
         write!(f, "{rendered}")
@@ -604,25 +604,25 @@ impl<E: std::error::Error> std::error::Error for Diagnostic<E> {}
 
 impl<E: std::error::Error> Display for Diagnostic<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.fmt_plain(f)
+        if anstream::stdout().is_terminal() {
+            self.fmt_colored(f)
+        } else {
+            self.fmt_plain(f)
+        }
     }
 }
 
-/// Wrapper type that provides a colored output.
+/// Wrapper type that provides forces a colored/non-colored output.
 #[derive(Debug)]
-pub struct ColoredDiagnostic<'a, E>(&'a Diagnostic<E>);
+pub struct ColoredDiagnostic<'a, E>(&'a Diagnostic<E>, bool);
 
 impl<E> Diagnostic<E> {
-    /// A [`std::fmt::Display`] adapter to get a colored output when printing to stdout or stderr.
-    pub fn colored(&self) -> ColoredDiagnostic<'_, E> {
-        ColoredDiagnostic(self)
-    }
-}
-
-impl<E> ColoredDiagnostic<'_, E> {
-    /// Revert to a non-colored diagnostic.
-    pub fn plain(&self) -> &Diagnostic<E> {
-        self.0
+    /// A [`std::fmt::Display`] adapter to get a colored output (with ANSI codes).
+    ///
+    /// Diagnostics auto-detect if colors are supported using `anstream`.
+    /// With this adapter, you can force a colored or non-colored output.
+    pub fn colored(&self, colored: bool) -> ColoredDiagnostic<'_, E> {
+        ColoredDiagnostic(self, colored)
     }
 }
 
@@ -640,6 +640,10 @@ impl<E: std::error::Error> std::error::Error for ColoredDiagnostic<'_, E> {}
 
 impl<E: std::error::Error> std::fmt::Display for ColoredDiagnostic<'_, E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt_colored(f)
+        if self.1 {
+            self.0.fmt_colored(f)
+        } else {
+            self.0.fmt_plain(f)
+        }
     }
 }

@@ -683,7 +683,7 @@ fn run(cli: Cli) -> Result<(), CliError> {
                 .scan_root(args.dir)
                 .expect("failed to scan WESL files")
                 .validate()
-                .inspect_err(|e| eprintln!("{}", e.diagnostic().colored()))
+                .inspect_err(|e| eprintln!("{e}"))
                 .unwrap()
                 .codegen();
             println!("{code}");

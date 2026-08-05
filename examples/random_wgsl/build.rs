@@ -3,7 +3,7 @@ fn main() {
         .scan_root("src/shaders")
         .expect("failed to scan WESL files")
         .validate()
-        .inspect_err(|e| eprintln!("{}", e.diagnostic().colored()))
+        .inspect_err(|e| eprintln!("{e}"))
         .unwrap()
         .build_artifact()
         .expect("failed to build artifact")

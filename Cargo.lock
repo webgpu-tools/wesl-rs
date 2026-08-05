@@ -1516,6 +1516,7 @@ name = "wesl"
 version = "0.4.1"
 dependencies = [
  "annotate-snippets",
+ "anstream",
  "derive_more",
  "glob",
  "half",

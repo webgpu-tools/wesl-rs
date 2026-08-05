@@ -46,7 +46,7 @@ pub enum Error {
 /// A diagnostic is a wrapper around an error with extra contextual metadata: the source,
 /// the declaration name, the span, ...
 #[derive(Clone, Debug)]
-pub struct Diagnostic<E: std::error::Error> {
+pub struct Diagnostic<E> {
     pub error: Box<E>,
     pub detail: Box<Detail>,
 }
@@ -542,10 +542,8 @@ impl Diagnostic<Error> {
     }
 }
 
-impl<E: std::error::Error> std::error::Error for Diagnostic<E> {}
-
-impl<E: std::error::Error> Display for Diagnostic<E> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<E: std::error::Error> Diagnostic<E> {
+    fn fmt_snippet(&self, renderer: &annotate_snippets::Renderer) -> String {
         use annotate_snippets::*;
         let msg = format!("{}", self.error);
         let title = Level::ERROR.primary_title(&msg);
@@ -586,8 +584,55 @@ impl<E: std::error::Error> Display for Diagnostic<E> {
         }
         let group = group.element(Level::NOTE.message(&note));
 
-        let renderer = Renderer::styled();
-        let rendered = renderer.render(&[group]);
+        renderer.render(&[group])
+    }
+
+    pub fn fmt_plain(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let renderer = annotate_snippets::Renderer::plain();
+        let rendered = self.fmt_snippet(&renderer);
         write!(f, "{rendered}")
+    }
+
+    pub fn fmt_colored(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let renderer = annotate_snippets::Renderer::styled();
+        let rendered = self.fmt_snippet(&renderer);
+        write!(f, "{rendered}")
+    }
+}
+
+impl<E: std::error::Error> std::error::Error for Diagnostic<E> {}
+
+impl<E: std::error::Error> Display for Diagnostic<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.fmt_plain(f)
+    }
+}
+
+/// Wrapper type that provides a colored output.
+#[derive(Debug)]
+pub struct ColoredDiagnostic<'a, E>(&'a Diagnostic<E>);
+
+impl<E> Diagnostic<E> {
+    /// A [`std::fmt::Display`] adapter to get a colored output when printing to stdout or stderr.
+    pub fn colored(&self) -> ColoredDiagnostic<'_, E> {
+        ColoredDiagnostic(self)
+    }
+}
+
+impl Error {
+    /// Convert this error to a [`Diagnostic`].
+    ///
+    /// Diagnostics provide better-looking error messages.
+    /// Use [`Diagnostic::colored`] to get a colored output similar to Rust's compiler errors.
+    pub fn diagnostic(&self) -> Diagnostic<Error> {
+        Diagnostic::from(self.clone())
+    }
+}
+
+impl<E: std::error::Error> std::error::Error for ColoredDiagnostic<'_, E> {}
+
+impl<E: std::error::Error> std::fmt::Display for ColoredDiagnostic<'_, E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt_colored(f)
     }
 }

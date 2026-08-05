@@ -19,7 +19,7 @@ let compiler = Wesl::new("src/shaders");
 // compile a WESL file to a WGSL string
 let wgsl_str = compiler
     .compile(&"package::main".parse().unwrap())
-    .inspect_err(|e| eprintln!("WESL error: {e}")) // pretty errors with `display()`
+    .inspect_err(|e| eprintln!("WESL error: {}", e.diagnostic().colored())) // pretty colored errors
     .unwrap()
     .to_string();
 ```

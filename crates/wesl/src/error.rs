@@ -619,6 +619,13 @@ impl<E> Diagnostic<E> {
     }
 }
 
+impl<E> ColoredDiagnostic<'_, E> {
+    /// Revert to a non-colored diagnostic.
+    pub fn plain(&self) -> &Diagnostic<E> {
+        self.0
+    }
+}
+
 impl Error {
     /// Convert this error to a [`Diagnostic`].
     ///

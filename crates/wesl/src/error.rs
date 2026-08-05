@@ -543,7 +543,7 @@ impl Diagnostic<Error> {
 }
 
 impl<E: std::error::Error> Diagnostic<E> {
-    fn fmt_snippet(&self, renderer: &annotate_snippets::Renderer) -> String {
+    fn render_snippet(&self, renderer: &annotate_snippets::Renderer) -> String {
         use annotate_snippets::*;
         let msg = format!("{}", self.error);
         let title = Level::ERROR.primary_title(&msg);
@@ -587,16 +587,14 @@ impl<E: std::error::Error> Diagnostic<E> {
         renderer.render(&[group])
     }
 
-    fn fmt_plain(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    pub fn render_plain(&self) -> String {
         let renderer = annotate_snippets::Renderer::plain();
-        let rendered = self.fmt_snippet(&renderer);
-        write!(f, "{rendered}")
+        self.render_snippet(&renderer)
     }
 
-    fn fmt_colored(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    pub fn render_colored(&self) -> String {
         let renderer = annotate_snippets::Renderer::styled();
-        let rendered = self.fmt_snippet(&renderer);
-        write!(f, "{rendered}")
+        self.render_snippet(&renderer)
     }
 }
 
@@ -604,10 +602,15 @@ impl<E: std::error::Error> std::error::Error for Diagnostic<E> {}
 
 impl<E: std::error::Error> Display for Diagnostic<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if anstream::stdout().is_terminal() {
-            self.fmt_colored(f)
+        // AutoStream::choice may return `AlwaysAnsi`, `Always` or `Never`.
+        // It never returns `Auto`.
+        // It checks terminal capabilities as well as env vars:
+        // `NO_COLOR`, `CLICOLOR`, `CLICOLOR_FORCE` and `CI`.
+        let choice = anstream::AutoStream::choice(&std::io::stdout());
+        if choice == anstream::ColorChoice::Always || choice == anstream::ColorChoice::AlwaysAnsi {
+            write!(f, "{}", self.render_colored())
         } else {
-            self.fmt_plain(f)
+            write!(f, "{}", self.render_plain())
         }
     }
 }
@@ -641,9 +644,9 @@ impl<E: std::error::Error> std::error::Error for ColoredDiagnostic<'_, E> {}
 impl<E: std::error::Error> std::fmt::Display for ColoredDiagnostic<'_, E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.1 {
-            self.0.fmt_colored(f)
+            write!(f, "{}", self.0.render_colored())
         } else {
-            self.0.fmt_plain(f)
+            write!(f, "{}", self.0.render_plain())
         }
     }
 }

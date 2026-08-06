@@ -1036,7 +1036,7 @@ impl Display for AssignmentOperator {
 impl Display for ConservativeDepth {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::GreaterEqual => write!(f, "Greater_equal"),
+            Self::GreaterEqual => write!(f, "greater_equal"),
             Self::LessEqual => write!(f, "less_equal"),
             Self::Unchanged => write!(f, "unchanged"),
         }

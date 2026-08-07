@@ -286,21 +286,17 @@ fn bevy_pbr__1clustered_forward__2fragment_cluster_index(frag_coord: vec2<f32>, 
 }
 
 fn bevy_pbr__1clustered_forward__3get_clusterable_object_id(index: u32) -> u32 {
-    {
-        let indices: u32 = bevy_pbr__2mesh_view_bindings__3clusterable_object_index_lists.data[index >> 4u][(index >> 2u) & 3u];
-        return (indices >> (8u * (index & 3u))) & 255u;
-    }
+    let indices: u32 = bevy_pbr__2mesh_view_bindings__3clusterable_object_index_lists.data[index >> 4u][(index >> 2u) & 3u];
+    return (indices >> (8u * (index & 3u))) & 255u;
 }
 
 fn bevy_pbr__1clustered_forward__4unpack_clusterable_object_index_ranges(cluster_index: u32) -> bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges {
-    {
-        let raw_offset_and_counts: u32 = bevy_pbr__2mesh_view_bindings__3cluster_offsets_and_counts.data[cluster_index >> 2u][cluster_index & 3u];
-        let offset_and_counts: vec3<u32> = vec3<u32>((raw_offset_and_counts >> 18u) & 16383u, (raw_offset_and_counts >> 9u) & 511u, raw_offset_and_counts & 511u);
-        let offset_a: u32 = offset_and_counts.x;
-        let offset_b: u32 = offset_a + offset_and_counts.y;
-        let offset_c: u32 = offset_b + offset_and_counts.z;
-        return bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges(offset_a, offset_b, offset_c, offset_c, offset_c, offset_c);
-    }
+    let raw_offset_and_counts: u32 = bevy_pbr__2mesh_view_bindings__3cluster_offsets_and_counts.data[cluster_index >> 2u][cluster_index & 3u];
+    let offset_and_counts: vec3<u32> = vec3<u32>((raw_offset_and_counts >> 18u) & 16383u, (raw_offset_and_counts >> 9u) & 511u, raw_offset_and_counts & 511u);
+    let offset_a: u32 = offset_and_counts.x;
+    let offset_b: u32 = offset_a + offset_and_counts.y;
+    let offset_c: u32 = offset_b + offset_and_counts.z;
+    return bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges(offset_a, offset_b, offset_c, offset_c, offset_c, offset_c);
 }
 
 fn bevy_pbr__1clustered_forward__4view_z_to_z_slice(view_z: f32, is_orthographic: bool) -> u32 {
@@ -343,10 +339,8 @@ fn bevy_pbr__1pbr_fragment__4pbr_input_from_standard_material(in: bevy_pbr__1for
         pbr_input.specular_occlusion = 1.0;
         let roughness: f32 = bevy_pbr_lighting_perceptualRoughnessToRoughness(material.perceptual_roughness);
         pbr_input.material.thickness *= length((transpose(bevy_pbr__1mesh_bindings_mesh[in.instance_index].world_from_local) * vec4(pbr_input.N, 0.0)).xyz);
-        {
-            pbr_input.N = normalize(pbr_input.world_normal);
-            pbr_input.clearcoat_N = pbr_input.N;
-        }
+        pbr_input.N = normalize(pbr_input.world_normal);
+        pbr_input.clearcoat_N = pbr_input.N;
     }
     return pbr_input;
 }

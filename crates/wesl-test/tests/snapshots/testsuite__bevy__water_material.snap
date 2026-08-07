@@ -187,10 +187,8 @@ fn bevy_pbr__1pbr_fragment__4pbr_input_from_standard_material(in: bevy_pbr__1pre
         pbr_input.specular_occlusion = 1.0;
         let roughness: f32 = bevy_pbr_lighting_perceptualRoughnessToRoughness(material.perceptual_roughness);
         pbr_input.material.thickness *= length((transpose(bevy_pbr__1mesh_bindings_mesh[in.instance_index].world_from_local) * vec4(pbr_input.N, 0.0)).xyz);
-        {
-            pbr_input.N = normalize(pbr_input.world_normal);
-            pbr_input.clearcoat_N = pbr_input.N;
-        }
+        pbr_input.N = normalize(pbr_input.world_normal);
+        pbr_input.clearcoat_N = pbr_input.N;
     }
     return pbr_input;
 }

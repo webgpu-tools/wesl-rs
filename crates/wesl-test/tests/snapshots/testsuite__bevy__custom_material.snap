@@ -27,11 +27,9 @@ fn package_util__2make_polka_dots(pos: vec2<f32>, time: f32) -> vec4<f32> {
     let dist_from_center: f32 = distance(cell, vec2(0.5f, 0.5f));
     let is_even: f32 = (floor(scaled_pos.x) + floor(scaled_pos.y)) % 2.0;
     var dot_color: vec3<f32> = vec3(0f, 0f, 0f);
-    {
-        let color1: vec3<f32> = vec3(1f, 0.4f, 0.8f);
-        let color2: vec3<f32> = vec3(0.6f, 0.2f, 1f);
-        dot_color = mix(color1, color2, is_even);
-    }
+    let color1: vec3<f32> = vec3(1f, 0.4f, 0.8f);
+    let color2: vec3<f32> = vec3(0.6f, 0.2f, 1f);
+    dot_color = mix(color1, color2, is_even);
     let is_dot: f32 = step(dist_from_center, 0.3);
     return vec4<f32>(dot_color * is_dot, is_dot);
 }

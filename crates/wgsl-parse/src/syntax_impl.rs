@@ -24,12 +24,20 @@ impl TranslationUnit {
         type Decl = GlobalDeclaration;
         self.global_declarations
             .sort_unstable_by(|a, b| match (a.node(), b.node()) {
+                #[cfg(feature = "condcomp")]
+                (Decl::Compound(_), Decl::Compound(_)) => Equal,
+                #[cfg(feature = "condcomp")]
+                (Decl::Compound(_), _) => Less,
+                #[cfg(feature = "condcomp")]
+                (_, Decl::Compound(_)) => Greater,
+
                 (Decl::Void, Decl::Void) => Equal,
                 (Decl::Void, Decl::Declaration(_)) => Less,
                 (Decl::Void, Decl::Struct(_)) => Less,
                 (Decl::Void, Decl::TypeAlias(_)) => Less,
                 (Decl::Void, Decl::ConstAssert(_)) => Less,
                 (Decl::Void, Decl::Function(_)) => Less,
+
                 (Decl::Declaration(_), Decl::Void) => Greater,
                 (Decl::Declaration(d1), Decl::Declaration(d2)) => {
                     // sort in this order: const < override < let < var

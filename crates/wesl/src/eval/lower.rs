@@ -590,6 +590,7 @@ impl Lower for TranslationUnit {
                 GlobalDeclaration::Struct(decl) => decl.lower(ctx),
                 GlobalDeclaration::Function(decl) => decl.lower(ctx),
                 GlobalDeclaration::ConstAssert(_) => Ok(()), // handled by TranslationUnit::exec()
+                GlobalDeclaration::Compound(_) => Ok(()),    // is a no-op
             }
             .inspect_err(|_| {
                 if let Some(ident) = decl.ident() {
@@ -604,6 +605,7 @@ impl Lower for TranslationUnit {
             GlobalDeclaration::Struct(_) => true,
             GlobalDeclaration::Function(_) => true,
             GlobalDeclaration::ConstAssert(_) => false,
+            GlobalDeclaration::Compound(_) => false,
         });
         Ok(())
     }

@@ -1,0 +1,234 @@
+[
+	{
+		"name": "module-compound-if-true",
+		"weslSrc": {
+			"./main.wgsl": "fn f() {} @if(true) { const_assert true; fn foo() {} struct bar { x: u32 } }"
+		},
+		"expectedWgsl": "fn f() {} const_assert true; fn foo() {} struct bar { x: u32 }",
+		"underscoreWgsl": "fn f() {} const_assert true; fn foo() {} struct bar { x: u32 }"
+	},
+	{
+		"name": "module-compound-if-false",
+		"weslSrc": {
+			"./main.wgsl": "fn f() {} @if(false) { const_assert true; fn foo() {} struct bar { x: u32 } }"
+		},
+		"expectedWgsl": "fn f() {}",
+		"underscoreWgsl": "fn f() {}"
+	},
+	{
+		"name": "module-compound-if-false-compound-elif-true",
+		"weslSrc": {
+			"./main.wgsl": "@if(false) { const foo: u32 = 0; } @elif(true) { const bar: u32 = 0; }"
+		},
+		"expectedWgsl": "const bar: u32 = 0;",
+		"underscoreWgsl": "const bar: u32 = 0;"
+	},
+	{
+		"name": "module-compound-if-true-compound-elif-true",
+		"weslSrc": {
+			"./main.wgsl": "@if(true) { const foo: u32 = 0; } @elif(true) { const bar: u32 = 0; }"
+		},
+		"expectedWgsl": "const foo: u32 = 0;",
+		"underscoreWgsl": "const foo: u32 = 0;"
+	},
+	{
+		"name": "module-if-false-compound-elif-true",
+		"weslSrc": {
+			"./main.wgsl": "@if(false) const foo: u32 = 0; @elif(true) { const bar: u32 = 0; }"
+		},
+		"expectedWgsl": "const bar: u32 = 0;",
+		"underscoreWgsl": "const bar: u32 = 0;"
+	},
+	{
+		"name": "module-if-true-compound-elif-true",
+		"weslSrc": {
+			"./main.wgsl": "@if(true) const foo: u32 = 0; @elif(true) { const bar: u32 = 0; }"
+		},
+		"expectedWgsl": "const foo: u32 = 0;",
+		"underscoreWgsl": "const foo: u32 = 0;"
+	},
+	{
+		"name": "module-compound-else-hit",
+		"weslSrc": {
+			"./main.wgsl": "@if(false) { const foo: u32 = 0; } @elif(false) { const bar: u32 = 0; } @else { const baz: u32 = 0; }"
+		},
+		"expectedWgsl": "const baz: u32 = 0;",
+		"underscoreWgsl": "const baz: u32 = 0;"
+	},
+	{
+		"name": "module-compound-else-skipped",
+		"weslSrc": {
+			"./main.wgsl": "@if(false) { const foo: u32 = 0; } @elif(true) { const bar: u32 = 0; } @else { const baz: u32 = 0; }"
+		},
+		"expectedWgsl": "const bar: u32 = 0;",
+		"underscoreWgsl": "const bar: u32 = 0;"
+	},
+	{
+		"name": "module-compound-noop",
+		"weslSrc": {
+			"./main.wgsl": "{ fn foo() {} }"
+		},
+		"expectedWgsl": "",
+		"underscoreWgsl": ""
+	},
+	{
+		"name": "module-compound-nested-noop",
+		"weslSrc": {
+			"./main.wgsl": "@if (true) { fn foo() {} { @if(true) fn bar() {} } }"
+		},
+		"expectedWgsl": "fn foo() {}",
+		"underscoreWgsl": "fn foo() {}"
+	},
+	{
+		"name": "module-compound-nested-if",
+		"weslSrc": {
+			"./main.wgsl": "@if(true) { fn foo() {} @if(true) { fn bar() {} } }"
+		},
+		"expectedWgsl": "fn foo() {} fn bar() {}",
+		"underscoreWgsl": "fn foo() {} fn bar() {}"
+	},
+	{
+		"name": "module-compound-nested-elif-hit",
+		"weslSrc": {
+			"./main.wgsl": "@if(true) { @if(false) const foo: u32 = 0; @elif(true) { const bar: u32 = 0; } } @else { const baz: u32 = 0; }"
+		},
+		"expectedWgsl": "const bar: u32 = 0;",
+		"underscoreWgsl": "const bar: u32 = 0;"
+	},
+	{
+		"name": "module-compound-nested-elif-skipped",
+		"weslSrc": {
+			"./main.wgsl": "@if(true) { @if(true) const foo: u32 = 0; @elif(true) { const bar: u32 = 0; } } @else { const baz: u32 = 0; }"
+		},
+		"expectedWgsl": "const foo: u32 = 0;",
+		"underscoreWgsl": "const foo: u32 = 0;"
+	},
+	{
+		"name": "module-compound-nested-else-hit",
+		"weslSrc": {
+			"./main.wgsl": "@if(true) { @if(false) const foo: u32 = 0; @else { const bar: u32 = 0; } } @else { const baz: u32 = 0; }"
+		},
+		"expectedWgsl": "const bar: u32 = 0;",
+		"underscoreWgsl": "const bar: u32 = 0;"
+	},
+	{
+		"name": "module-compound-nested-else-skipped",
+		"weslSrc": {
+			"./main.wgsl": "@if(true) { @if(true) const foo: u32 = 0; @else { const bar: u32 = 0; } } @else { const baz: u32 = 0; }"
+		},
+		"expectedWgsl": "const foo: u32 = 0;",
+		"underscoreWgsl": "const foo: u32 = 0;"
+	},
+	{
+		"name": "module-compound-shadow",
+		"weslSrc": {
+			"./main.wgsl": "{ const foo: u32 = 0; } const foo: u32 = 1;"
+		},
+		"expectedWgsl": "const foo: u32 = 1;",
+		"underscoreWgsl": "const foo: u32 = 1;"
+	},
+	{
+		"name": "function-compound-if-true",
+		"weslSrc": {
+			"./main.wgsl": "fn f() { @if(true) { const_assert true; const x: u32 = 0; } }"
+		},
+		"expectedWgsl": "fn f() { const_assert true; const x: u32 = 0; }",
+		"underscoreWgsl": "fn f() { const_assert true; const x: u32 = 0; }"
+	},
+	{
+		"name": "function-compound-if-false",
+		"weslSrc": {
+			"./main.wgsl": "fn f() { @if(false) { const_assert true; const x: u32 = 0; } }"
+		},
+		"expectedWgsl": "fn f() {}",
+		"underscoreWgsl": "fn f() {}"
+	},
+	{
+		"name": "function-compound-if-false-compound-elif-true",
+		"weslSrc": {
+			"./main.wgsl": "fn f() { @if(false) { const foo: u32 = 0; } @elif(true) { const bar: u32 = 0; } }"
+		},
+		"expectedWgsl": "fn f() { const bar: u32 = 0; }",
+		"underscoreWgsl": "fn f() { const bar: u32 = 0; }"
+	},
+	{
+		"name": "function-compound-if-true-compound-elif-true",
+		"weslSrc": {
+			"./main.wgsl": "fn f() { @if(true) { const foo: u32 = 0; } @elif(true) { const bar: u32 = 0; } }"
+		},
+		"expectedWgsl": "fn f() { const foo: u32 = 0; }",
+		"underscoreWgsl": "fn f() { const foo: u32 = 0; }"
+	},
+	{
+		"name": "function-if-false-compound-elif-true",
+		"weslSrc": {
+			"./main.wgsl": "fn f() { @if(false) const foo: u32 = 0; @elif(true) { const bar: u32 = 0; } }"
+		},
+		"expectedWgsl": "fn f() { const bar: u32 = 0; }",
+		"underscoreWgsl": "fn f() { const bar: u32 = 0; }"
+	},
+	{
+		"name": "function-if-true-compound-elif-true",
+		"weslSrc": {
+			"./main.wgsl": "fn f() { @if(true) const foo: u32 = 0; @elif(true) { const bar: u32 = 0; } }"
+		},
+		"expectedWgsl": "fn f() { const foo: u32 = 0; }",
+		"underscoreWgsl": "fn f() { const foo: u32 = 0; }"
+	},
+	{
+		"name": "function-compound-else-hit",
+		"weslSrc": {
+			"./main.wgsl": "fn f() { @if(false) { const foo: u32 = 0; } @elif(false) { const bar: u32 = 0; } @else { const baz: u32 = 0; } }"
+		},
+		"expectedWgsl": "fn f() { const baz: u32 = 0; }",
+		"underscoreWgsl": "fn f() { const baz: u32 = 0; }"
+	},
+	{
+		"name": "function-compound-else-skipped",
+		"weslSrc": {
+			"./main.wgsl": "fn f() { @if(false) { const foo: u32 = 0; } @elif(true) { const bar: u32 = 0; } @else { const baz: u32 = 0; } }"
+		},
+		"expectedWgsl": "fn f() { const bar: u32 = 0; }",
+		"underscoreWgsl": "fn f() { const bar: u32 = 0; }"
+	},
+	{
+		"name": "function-compound-nested-if",
+		"weslSrc": {
+			"./main.wgsl": "fn f() { @if(true) { const foo: u32 = 0; @if(true) { const bar: u32 = 0; } } }"
+		},
+		"expectedWgsl": "fn f() { const foo: u32 = 0; const bar: u32 = 0; }",
+		"underscoreWgsl": "fn f() { const foo: u32 = 0; const bar: u32 = 0; }"
+	},
+	{
+		"name": "function-compound-nested-elif-hit",
+		"weslSrc": {
+			"./main.wgsl": "fn f() { @if(true) { @if(false) const foo: u32 = 0; @elif(true) { const bar: u32 = 0; } } @else { const baz: u32 = 0; } }"
+		},
+		"expectedWgsl": "fn f() { const bar: u32 = 0; }",
+		"underscoreWgsl": "fn f() { const bar: u32 = 0; }"
+	},
+	{
+		"name": "function-compound-nested-elif-skipped",
+		"weslSrc": {
+			"./main.wgsl": "fn f() { @if(true) { @if(true) const foo: u32 = 0; @elif(true) { const bar: u32 = 0; } } @else { const baz: u32 = 0; } }"
+		},
+		"expectedWgsl": "fn f() { const foo: u32 = 0; }",
+		"underscoreWgsl": "fn f() { const foo: u32 = 0; }"
+	},
+	{
+		"name": "function-compound-nested-else-hit",
+		"weslSrc": {
+			"./main.wgsl": "fn f() { @if(true) { @if(false) const foo: u32 = 0; @else { const bar: u32 = 0; } } @else { const baz: u32 = 0; } }"
+		},
+		"expectedWgsl": "fn f() { const bar: u32 = 0; }",
+		"underscoreWgsl": "fn f() { const bar: u32 = 0; }"
+	},
+	{
+		"name": "function-compound-nested-else-skipped",
+		"weslSrc": {
+			"./main.wgsl": "fn f() { @if(true) { @if(true) const foo: u32 = 0; @else { const bar: u32 = 0; } } @else { const baz: u32 = 0; } }"
+		},
+		"expectedWgsl": "fn f() { const foo: u32 = 0; }",
+		"underscoreWgsl": "fn f() { const foo: u32 = 0; }"
+	}
+]

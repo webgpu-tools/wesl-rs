@@ -174,8 +174,9 @@ pub const BUILTIN_ENUMERANT_NAMES: &[&str] = &[
     "workgroup",
     "uniform",
     "storage",
-    #[cfg(feature = "naga-ext")]
     "immediate",
+    #[cfg(feature = "naga-ext")]
+    "task_payload",
     // : texel format
     "rgba8unorm",
     "rgba8snorm",

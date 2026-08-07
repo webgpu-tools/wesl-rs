@@ -22,7 +22,7 @@ let compiler = Compiler::default();
 #
 let compile_result = compiler
     .compile("path/to/shader.wesl")
-    .inspect_err(|e| eprintln!("{e}")) // pretty-print errors
+    .inspect_err(|e| eprintln!("WESL error: {e}")) // pretty-print error diagnostics
     .expect("compilation error");
 let wgsl_string = compile_result.syntax.to_string();
 #

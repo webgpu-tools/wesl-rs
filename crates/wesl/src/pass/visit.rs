@@ -397,7 +397,8 @@ impl_visit! { GlobalDeclaration => ExpressionNode,
         },
         GlobalDeclaration::Function.{
             body.statements.[].(x => visit::<Statement, ExpressionNode>(x)),
-        }
+        },
+        GlobalDeclaration::Compound.body.[].(x => visit::<GlobalDeclaration, ExpressionNode>(x)),
     }
 }
 
@@ -439,6 +440,10 @@ impl_visit! { GlobalDeclaration => Attributes,
             body.{ attributes, statements.[].(x => visit::<Statement, Attributes>(x)) }
         },
         GlobalDeclaration::ConstAssert.attributes,
+        GlobalDeclaration::Compound.{
+            attributes,
+            body.[].(x => visit::<GlobalDeclaration, Attributes>(x))
+        }
     }
 }
 
@@ -454,7 +459,11 @@ impl_visit! { GlobalDeclaration => TypeExpression,
         GlobalDeclaration::TypeAlias.(x => visit::<TypeAlias, TypeExpression>(x)),
         GlobalDeclaration::Struct.(x => visit::<Struct, TypeExpression>(x)),
         GlobalDeclaration::Function.(x => visit::<Function, TypeExpression>(x)),
-        GlobalDeclaration::ConstAssert.(x => visit::<ConstAssert, TypeExpression>(x))
+        GlobalDeclaration::ConstAssert.(x => visit::<ConstAssert, TypeExpression>(x)),
+        GlobalDeclaration::Compound.{
+            attributes.[].(x => visit::<Attribute, TypeExpression>(x)),
+            body.[].(x => visit::<GlobalDeclaration, TypeExpression>(x))
+        }
     }
 }
 

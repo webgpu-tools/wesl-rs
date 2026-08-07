@@ -149,14 +149,12 @@ fn bevy_pbr__1clustered_forward__2fragment_cluster_index(frag_coord: vec2<f32>, 
 }
 
 fn bevy_pbr__1clustered_forward__4unpack_clusterable_object_index_ranges(cluster_index: u32) -> bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges {
-    {
-        let raw_offset_and_counts: u32 = bevy_pbr__2mesh_view_bindings__3cluster_offsets_and_counts.data[cluster_index >> 2u][cluster_index & 3u];
-        let offset_and_counts: vec3<u32> = vec3<u32>((raw_offset_and_counts >> 18u) & 16383u, (raw_offset_and_counts >> 9u) & 511u, raw_offset_and_counts & 511u);
-        let offset_a: u32 = offset_and_counts.x;
-        let offset_b: u32 = offset_a + offset_and_counts.y;
-        let offset_c: u32 = offset_b + offset_and_counts.z;
-        return bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges(offset_a, offset_b, offset_c, offset_c, offset_c, offset_c);
-    }
+    let raw_offset_and_counts: u32 = bevy_pbr__2mesh_view_bindings__3cluster_offsets_and_counts.data[cluster_index >> 2u][cluster_index & 3u];
+    let offset_and_counts: vec3<u32> = vec3<u32>((raw_offset_and_counts >> 18u) & 16383u, (raw_offset_and_counts >> 9u) & 511u, raw_offset_and_counts & 511u);
+    let offset_a: u32 = offset_and_counts.x;
+    let offset_b: u32 = offset_a + offset_and_counts.y;
+    let offset_c: u32 = offset_b + offset_and_counts.z;
+    return bevy_pbr__1clustered_forward_ClusterableObjectIndexRanges(offset_a, offset_b, offset_c, offset_c, offset_c, offset_c);
 }
 
 fn bevy_pbr__1clustered_forward__4view_z_to_z_slice(view_z: f32, is_orthographic: bool) -> u32 {

@@ -168,6 +168,8 @@ impl Display for GlobalDeclaration {
             GlobalDeclaration::Struct(print) => write!(f, "{print}"),
             GlobalDeclaration::Function(print) => write!(f, "{print}"),
             GlobalDeclaration::ConstAssert(print) => write!(f, "{print}"),
+            #[cfg(feature = "condcomp")]
+            GlobalDeclaration::Compound(print) => write!(f, "{print}"),
         }
     }
 }
@@ -264,6 +266,15 @@ impl Display for ConstAssert {
         write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let expr = &self.expression;
         write!(f, "const_assert {expr};",)
+    }
+}
+
+#[cfg(feature = "condcomp")]
+impl Display for CompoundGlobalDeclaration {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", fmt_attrs(&self.attributes, false))?;
+        let stmts = Indent(self.body.iter().format("\n"));
+        write!(f, "{{\n{stmts}\n}}")
     }
 }
 

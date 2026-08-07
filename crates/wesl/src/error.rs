@@ -105,9 +105,6 @@ pub enum Error {
     CondCompError(#[from] CondCompError),
     #[error("{0}")]
     TomlError(#[from] TomlError),
-    // #[cfg(feature = "generics")]
-    // #[error("{0}")]
-    // GenericsError(#[from] GenericsError),
     #[cfg(feature = "eval")]
     #[error("{0}")]
     EvalError(#[from] EvalError),
@@ -178,12 +175,11 @@ impl From<CondCompError> for Diagnostic<Error> {
     }
 }
 
-// #[cfg(feature = "generics")]
-// impl From<GenericsError> for Diagnostic<Error> {
-//     fn from(error: GenericsError) -> Self {
-//         Self::new(error.into())
-//     }
-// }
+impl From<TomlError> for Diagnostic<Error> {
+    fn from(error: TomlError) -> Self {
+        Self::new(error.into())
+    }
+}
 
 #[cfg(feature = "eval")]
 impl From<EvalError> for Diagnostic<Error> {
@@ -196,15 +192,20 @@ impl From<Error> for Diagnostic<Error> {
     fn from(error: Error) -> Self {
         match error {
             Error::ParseError(e) => e.into(),
-            // Error::ResolveError(e) => e.into(),
-            // Error::ImportError(e) => e.into(),
+            Error::ResolveError(e) => e.into(),
+            Error::ImportError(e) => e.into(),
             Error::Error(e) => e,
-            error => Self::new(error),
+            Error::ValidateError(e) => e.into(),
+            Error::CondCompError(e) => e.into(),
+            Error::TomlError(e) => e.into(),
+            #[cfg(feature = "eval")]
+            Error::EvalError(e) => e.into(),
+            Error::Custom(_) => Self::new(error),
         }
     }
 }
 
-impl<E: std::error::Error> Diagnostic<E> {
+impl<E> Diagnostic<E> {
     /// Create an empty diagnostic from an error. No metadata is attached.
     fn new(error: E) -> Diagnostic<E> {
         Self {
@@ -717,8 +718,8 @@ impl Error {
     ///
     /// Diagnostics provide better-looking error messages.
     /// Use [`Diagnostic::colored`] to get a colored output similar to Rust's compiler errors.
-    pub fn diagnostic(&self) -> Diagnostic<Error> {
-        Diagnostic::from(self.clone())
+    pub fn diagnostic(self) -> Diagnostic<Error> {
+        Diagnostic::from(self)
     }
 }
 

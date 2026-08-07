@@ -327,6 +327,7 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
             GlobalDeclaration::Struct(decl) => Some(&mut decl.ident),
             GlobalDeclaration::Function(decl) => Some(&mut decl.ident),
             GlobalDeclaration::ConstAssert(_) => None,
+            GlobalDeclaration::Compound(_) => None,
         };
 
         if let Some(ident) = ident {
@@ -381,6 +382,13 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
             }
             GlobalDeclaration::ConstAssert(d) => {
                 Visit::<TypeExpression>::visit_mut(d).for_each(|ty| retarget_ty(ty, &scope))
+            }
+            GlobalDeclaration::Compound(d) => {
+                query_mut!(d.{
+                    attributes.[].(x => x.visit_mut()),
+                    body.[].(x => Visit::<TypeExpression>::visit_mut(&mut **x)),
+                })
+                .for_each(|ty| retarget_ty(ty, &scope));
             }
         }
     }

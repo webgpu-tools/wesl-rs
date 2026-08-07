@@ -13,6 +13,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 annotate-snippets = "0.12.4"
+anstream = "1.0.0"
 derive_more = {
   version = "2.0.1",
   features = [

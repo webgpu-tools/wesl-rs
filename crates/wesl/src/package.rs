@@ -78,7 +78,7 @@ pub(crate) const RESERVED_MOD_NAMES: &[&str] = &[
 ///        .expect("failed to scan WESL files")
 ///        // validation is optional
 ///        .validate()
-///        .map_err(|e| eprintln!("{e}"))
+///        .inspect_err(|e| eprintln!("{e}"))
 ///        .expect("validation error")
 ///        // write "my_package.rs" in OUT_DIR
 ///        .build_artifact()

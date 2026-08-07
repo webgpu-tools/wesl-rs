@@ -227,6 +227,8 @@ GlobalDecl: GlobalDeclaration = {
     <StructDecl>               => GlobalDeclaration::Struct(<>),
     <FunctionDecl>             => GlobalDeclaration::Function(<>),
     <ConstAssertStatement> ";" => GlobalDeclaration::ConstAssert(<>),
+    #[cfg(feature = "condcomp")]
+    <CompoundGlobalDecl> => GlobalDeclaration::Compound(<>),
 };
 
 GlobalDeclarationNode: GlobalDeclarationNode = Spanned<GlobalDecl>;
@@ -1203,6 +1205,13 @@ ParamList: Vec<FormalParameter> = {
 Param: FormalParameter = {
     <attributes: AttributeNode*> <ident: Ident> ":" <ty: TypeSpecifier> => FormalParameter {
         attributes, ident, ty
+    },
+};
+
+#[cfg(feature = "condcomp")]
+CompoundGlobalDecl: CompoundGlobalDeclaration = {
+    <attributes: AttributeNode*> "{" <body: GlobalDeclarationNode*> "}" => CompoundGlobalDeclaration {
+        attributes, body
     },
 };
 

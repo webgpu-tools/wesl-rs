@@ -346,6 +346,7 @@ impl SyntaxUtil for TranslationUnit {
                 GlobalDeclaration::Struct(decl) => Some(&mut decl.ident),
                 GlobalDeclaration::Function(decl) => Some(&mut decl.ident),
                 GlobalDeclaration::ConstAssert(_) => None,
+                GlobalDeclaration::Compound(_) => None,
             };
 
             if let Some(ident) = ident {
@@ -400,6 +401,13 @@ impl SyntaxUtil for TranslationUnit {
                 }
                 GlobalDeclaration::ConstAssert(d) => {
                     Visit::<TypeExpression>::visit_mut(d).for_each(|ty| retarget_ty(ty, &scope))
+                }
+                GlobalDeclaration::Compound(c) => {
+                    query_mut!(c.{
+                        attributes.[].(x => x.visit_mut()),
+                        body.[].(x => Visit::<TypeExpression>::visit_mut(&mut **x)),
+                    })
+                    .for_each(|ty| retarget_ty(ty, &scope));
                 }
             }
         }

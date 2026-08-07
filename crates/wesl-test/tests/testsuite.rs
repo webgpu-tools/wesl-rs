@@ -111,6 +111,7 @@ fn main() {
         "wesl-testsuite/src/test-cases-json/importCases.json",
         "wesl-testsuite/src/test-cases-json/conditionalTranslationCases.json",
         "spec-tests/dead-code.json",
+        "spec-tests/condcomp-flatten.json",
     ];
     for path in testsuite_tests {
         tests.extend({
@@ -119,9 +120,11 @@ fn main() {
                 serde_json::from_str(&file).expect("failed to parse json file");
             json.into_iter().map(|case| {
                 let name = format!("testsuite__{}__{}", test_name(path), case.name);
+                let ignored = case.name == "@else with package function reference"; // TODO: update this test in the testsuite, it does not flatten @if
                 libtest_mimic::Trial::test(name, move || {
                     testsuite_case(&case).inspect_err(|_| eprint_wgsl_test(&case))
                 })
+                .with_ignored_flag(ignored)
             })
         });
     }

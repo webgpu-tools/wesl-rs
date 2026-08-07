@@ -202,6 +202,8 @@ pub enum GlobalDeclaration {
     Struct(Struct),
     Function(Function),
     ConstAssert(ConstAssert),
+    #[cfg(feature = "condcomp")]
+    Compound(CompoundGlobalDeclaration),
 }
 
 pub type GlobalDeclarationNode = Spanned<GlobalDeclaration>;
@@ -286,6 +288,15 @@ pub struct ConstAssert {
     #[cfg(feature = "attributes")]
     pub attributes: Attributes,
     pub expression: ExpressionNode,
+}
+
+#[cfg(feature = "condcomp")]
+#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
+pub struct CompoundGlobalDeclaration {
+    pub attributes: Attributes,
+    pub body: Vec<GlobalDeclarationNode>,
 }
 
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
@@ -377,6 +388,14 @@ impl Attribute {
             Attribute::Task | Attribute::Mesh(_) => true,
             _ => false,
         }
+    }
+
+    #[cfg(feature = "condcomp")]
+    pub fn is_condcomp(&self) -> bool {
+        matches!(
+            self,
+            Attribute::If(_) | Attribute::Elif(_) | Attribute::Else
+        )
     }
 }
 

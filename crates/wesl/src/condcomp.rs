@@ -183,11 +183,17 @@ fn get_single_attr(attrs: &mut [AttributeNode]) -> Result<Option<&mut AttributeN
     }
 }
 
+/// Conditional state of a syntax node.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct PrevEval {
-    has_if: bool,
-    is_true: bool,
-    removed: bool,
+struct NodeEval {
+    /// Whether the syntax node has an if, elif or else attribute.
+    has_condcomp: bool,
+    /// Whether the node evaluates to false and is removed.
+    /// e.g. `@if(false)` or `@if(true) ... @else`
+    is_false: bool,
+    /// Whether this node, or a previous node in the if/elif chain, evaluates to true.
+    /// All following elif/else nodes in the chain therefore evaluate to false.
+    chain_has_true: bool,
 }
 
 /// * ensure there is at most one if/elif/else node.
@@ -197,7 +203,7 @@ struct PrevEval {
 /// * turn elifs into elses when it evaluates to true.
 fn eval_if_attr(
     node: &mut impl SyntaxNode,
-    prev: &mut PrevEval,
+    prev: &mut NodeEval,
     features: &Features,
 ) -> Result<(), E> {
     let span = node.span();
@@ -212,62 +218,61 @@ fn eval_if_attr(
 
 fn eval_if_attr_impl(
     node: &mut impl SyntaxNode,
-    prev: &mut PrevEval,
+    prev: &mut NodeEval,
     features: &Features,
 ) -> Result<(), E> {
     let attr = get_single_attr(node.attributes_mut())?;
     if let Some(attr) = attr {
-        let mut has_if = false;
+        prev.has_condcomp = attr.is_condcomp();
         if let Attribute::If(expr) = attr.node_mut() {
             **expr = eval_attr(expr, features)?;
-            has_if = true;
-            prev.is_true = false;
+            // a new `if` starts a new if/elif/else chain
+            prev.chain_has_true = false;
         } else if let Attribute::Elif(expr) = attr.node_mut() {
-            if !prev.has_if {
+            if !prev.has_condcomp {
                 return Err(CondCompError::NoPrecedingIf.into());
             } else {
                 **expr = eval_attr(expr, features)?;
-                has_if = true;
             }
         } else if let Attribute::Else = attr.node()
-            && !prev.has_if
+            && !prev.has_condcomp
         {
             return Err(CondCompError::NoPrecedingIf.into());
         }
-        prev.has_if = has_if;
     } else {
-        prev.has_if = false;
+        prev.has_condcomp = false;
     }
 
-    let mut remove_node = false;
-    let mut remove_attr = false;
-    let mut is_true = false;
+    let mut is_false = false;
+
     node.retain_attributes_mut(|attr| {
+        let mut remove_attr = false;
         if let Attribute::If(expr) = attr {
             if **expr == EXPR_TRUE {
-                remove_attr = true; // if(true) => remove the attribute
-                is_true = true;
+                remove_attr = true;
+                prev.chain_has_true = true;
             } else if **expr == EXPR_FALSE {
-                remove_node = true; // if(false) => remove the node
+                is_false = true;
             }
         } else if let Attribute::Elif(expr) = attr {
-            if prev.is_true || **expr == EXPR_FALSE {
-                remove_node = true;
+            if prev.chain_has_true || **expr == EXPR_FALSE {
+                is_false = true; // a previous node was chosen, delete the whole node
             } else if **expr == EXPR_TRUE {
-                is_true = true;
-                if prev.removed {
-                    remove_attr = true;
+                if prev.is_false {
+                    remove_attr = true; // the previous node is false and is deleted, so elif(true) can be removed
                 } else {
-                    *attr = Attribute::Else;
+                    *attr = Attribute::Else; // the previous node is undecided, but elif(true) can become else.
                 }
-            } else if prev.removed {
-                *attr = Attribute::If(expr.clone()); // previous node was deleted, make this an if
+                prev.chain_has_true = true;
+            } else if prev.is_false {
+                *attr = Attribute::If(expr.clone()); // the previous node is false and is deleted, elif becomes if
             }
         } else if let Attribute::Else = attr {
-            if prev.is_true {
-                remove_node = true; // previous node was chosen, delete the whole node
-            } else if prev.removed {
-                remove_attr = true; // previous node was deleted, delete this attribute
+            if prev.chain_has_true {
+                is_false = true; // a previous node was chosen, delete the whole node
+            } else if prev.is_false {
+                remove_attr = true; // the previous node was deleted, delete this attribute
+                prev.chain_has_true = true;
             }
         } else {
             // we keep non-condcomp attributes
@@ -277,30 +282,29 @@ fn eval_if_attr_impl(
         !remove_attr
     });
 
-    prev.is_true = is_true || prev.is_true;
-    prev.removed = remove_node;
+    prev.is_false = is_false;
     Ok(())
 }
 
 fn eval_opt_attr(
     opt_node: &mut Option<impl SyntaxNode>,
-    prev: &mut PrevEval,
+    prev: &mut NodeEval,
     features: &Features,
 ) -> Result<(), E> {
     if let Some(node) = opt_node {
         eval_if_attr(node, prev, features)?;
-        if prev.removed {
+        if prev.chain_has_true && !prev.is_false {
             *opt_node = None;
         }
     }
     Ok(())
 }
 
-fn eval_if_attrs(nodes: &mut Vec<impl SyntaxNode>, features: &Features) -> Result<PrevEval, E> {
-    let mut prev = PrevEval {
-        has_if: false,
-        is_true: false,
-        removed: false,
+fn eval_if_attrs(nodes: &mut Vec<impl SyntaxNode>, features: &Features) -> Result<NodeEval, E> {
+    let mut prev = NodeEval {
+        has_condcomp: false,
+        chain_has_true: false,
+        is_false: false,
     };
     let mut err = None;
 
@@ -310,7 +314,7 @@ fn eval_if_attrs(nodes: &mut Vec<impl SyntaxNode>, features: &Features) -> Resul
         if let (Err(e), None) = (res, &err) {
             err = Some(e);
         }
-        !prev.removed // keep the node if attr is unresolved or true.
+        !prev.is_false
     });
 
     if let Some(e) = err {
@@ -321,7 +325,7 @@ fn eval_if_attrs(nodes: &mut Vec<impl SyntaxNode>, features: &Features) -> Resul
 }
 
 fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) -> Result<(), E> {
-    fn rec_one(stmt: &mut StatementNode, feats: &Features) -> Result<(), E> {
+    fn rec_eval_inside_stmt(stmt: &mut StatementNode, feats: &Features) -> Result<(), E> {
         match stmt.node_mut() {
             Statement::Compound(stmt) => {
                 rec(&mut stmt.statements, feats)?;
@@ -352,10 +356,10 @@ fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) 
             }
             Statement::For(stmt) => {
                 if let Some(init) = &mut stmt.initializer {
-                    rec_one(&mut *init, feats)?
+                    rec_eval_inside_stmt(&mut *init, feats)?
                 }
                 if let Some(updt) = &mut stmt.update {
-                    rec_one(&mut *updt, feats)?
+                    rec_eval_inside_stmt(&mut *updt, feats)?
                 }
                 rec(&mut stmt.body.statements, feats)?;
             }
@@ -366,13 +370,46 @@ fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) 
         };
         Ok(())
     }
-    fn rec(stats: &mut Vec<StatementNode>, feats: &Features) -> Result<PrevEval, E> {
-        let prev = eval_if_attrs(stats, feats)?;
-        for stmt in stats {
-            rec_one(stmt, feats)?;
+
+    fn rec(stmts: &mut Vec<StatementNode>, feats: &Features) -> Result<NodeEval, E> {
+        let mut prev = NodeEval {
+            has_condcomp: false,
+            chain_has_true: false,
+            is_false: false,
+        };
+
+        // If an `@if` decorates a compound statement, the statement gets flattened.
+        // This is the same code as in eval_if_attrs, except it flattens the compound when it evaluates to true.
+        {
+            let mut i = 0;
+
+            // remove the nodes for which the attr evaluate to false.
+            while let Some(node) = stmts.get_mut(i) {
+                eval_if_attr(node, &mut prev, feats)?;
+                if let Statement::Compound(stmt) = &**node
+                    && prev.has_condcomp
+                    && !prev.is_false
+                {
+                    // replace the compound statements with its contents
+                    // TODO: other compound statement attributes are lost. validation has no opportunity to check them.
+                    // COMBAK: this clone is unnecessary and probably inefficient.
+                    let mut body = stmt.statements.clone();
+                    rec(&mut body, feats)?;
+                    let n = body.len();
+                    stmts.splice(i..i + 1, body);
+                    i += n;
+                } else if prev.is_false {
+                    stmts.remove(i);
+                } else {
+                    rec_eval_inside_stmt(node, feats)?;
+                    i += 1;
+                }
+            }
         }
+
         Ok(prev)
     }
+
     rec(statements, features).map(|_| ())
 }
 
@@ -380,7 +417,47 @@ pub fn run(wesl: &mut TranslationUnit, features: &Features) -> Result<(), E> {
     wesl.remove_voids();
     eval_if_attrs(&mut wesl.imports, features)?;
     eval_if_attrs(&mut wesl.global_directives, features)?;
-    eval_if_attrs(&mut wesl.global_declarations, features)?;
+
+    // If an `@if` decorates a compound global declaration, it gets flattened.
+    // This is the same code as in eval_if_attrs, except it flattens the compound when it evaluates to true.
+    fn eval_flatten_compound(
+        decls: &mut Vec<GlobalDeclarationNode>,
+        features: &Features,
+    ) -> Result<(), E> {
+        let mut prev = NodeEval {
+            has_condcomp: false,
+            chain_has_true: false,
+            is_false: false,
+        };
+
+        let mut i = 0;
+
+        // remove the nodes for which the attr evaluate to false.
+        while let Some(node) = decls.get_mut(i) {
+            eval_if_attr(node, &mut prev, features)?;
+            if let GlobalDeclaration::Compound(stmt) = &**node
+                && prev.has_condcomp
+                && !prev.is_false
+            {
+                // replace the compound statements with its contents
+                // TODO: other compound statement attributes are lost. validation has no opportunity to check them.
+                // COMBAK: this clone is unnecessary and probably inefficient.
+                let mut body = stmt.body.clone();
+                eval_flatten_compound(&mut body, features)?;
+                let n = body.len();
+                decls.splice(i..i + 1, body);
+                i += n;
+            } else if prev.is_false {
+                decls.remove(i);
+            } else {
+                i += 1;
+            }
+        }
+
+        Ok(())
+    }
+
+    eval_flatten_compound(&mut wesl.global_declarations, features)?;
 
     for decl in &mut wesl.global_declarations {
         if let GlobalDeclaration::Struct(decl) = decl.node_mut() {

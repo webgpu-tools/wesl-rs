@@ -46,7 +46,7 @@ pub enum Error {
 /// A diagnostic is a wrapper around an error with extra contextual metadata: the source,
 /// the declaration name, the span, ...
 #[derive(Clone, Debug)]
-pub struct Diagnostic<E: std::error::Error> {
+pub struct Diagnostic<E> {
     pub error: Box<E>,
     pub detail: Box<Detail>,
 }
@@ -542,10 +542,8 @@ impl Diagnostic<Error> {
     }
 }
 
-impl<E: std::error::Error> std::error::Error for Diagnostic<E> {}
-
-impl<E: std::error::Error> Display for Diagnostic<E> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<E: std::error::Error> Diagnostic<E> {
+    fn render_snippet(&self, renderer: &annotate_snippets::Renderer) -> String {
         use annotate_snippets::*;
         let msg = format!("{}", self.error);
         let title = Level::ERROR.primary_title(&msg);
@@ -586,8 +584,69 @@ impl<E: std::error::Error> Display for Diagnostic<E> {
         }
         let group = group.element(Level::NOTE.message(&note));
 
-        let renderer = Renderer::styled();
-        let rendered = renderer.render(&[group]);
-        write!(f, "{rendered}")
+        renderer.render(&[group])
+    }
+
+    pub fn render_plain(&self) -> String {
+        let renderer = annotate_snippets::Renderer::plain();
+        self.render_snippet(&renderer)
+    }
+
+    pub fn render_colored(&self) -> String {
+        let renderer = annotate_snippets::Renderer::styled();
+        self.render_snippet(&renderer)
+    }
+}
+
+impl<E: std::error::Error> std::error::Error for Diagnostic<E> {}
+
+impl<E: std::error::Error> Display for Diagnostic<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // AutoStream::choice may return `AlwaysAnsi`, `Always` or `Never`.
+        // It never returns `Auto`.
+        // It checks terminal capabilities as well as env vars:
+        // `NO_COLOR`, `CLICOLOR`, `CLICOLOR_FORCE` and `CI`.
+        let choice = anstream::AutoStream::choice(&std::io::stdout());
+        if choice == anstream::ColorChoice::Always || choice == anstream::ColorChoice::AlwaysAnsi {
+            write!(f, "{}", self.render_colored())
+        } else {
+            write!(f, "{}", self.render_plain())
+        }
+    }
+}
+
+/// Wrapper type that provides forces a colored/non-colored output.
+#[derive(Debug)]
+pub struct ColoredDiagnostic<'a, E>(&'a Diagnostic<E>, bool);
+
+impl<E> Diagnostic<E> {
+    /// A [`std::fmt::Display`] adapter to get a colored output (with ANSI codes).
+    ///
+    /// Diagnostics auto-detect if colors are supported using `anstream`.
+    /// With this adapter, you can force a colored or non-colored output.
+    pub fn colored(&self, colored: bool) -> ColoredDiagnostic<'_, E> {
+        ColoredDiagnostic(self, colored)
+    }
+}
+
+impl Error {
+    /// Convert this error to a [`Diagnostic`].
+    ///
+    /// Diagnostics provide better-looking error messages.
+    /// Use [`Diagnostic::colored`] to get a colored output similar to Rust's compiler errors.
+    pub fn diagnostic(&self) -> Diagnostic<Error> {
+        Diagnostic::from(self.clone())
+    }
+}
+
+impl<E: std::error::Error> std::error::Error for ColoredDiagnostic<'_, E> {}
+
+impl<E: std::error::Error> std::fmt::Display for ColoredDiagnostic<'_, E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.1 {
+            write!(f, "{}", self.0.render_colored())
+        } else {
+            write!(f, "{}", self.0.render_plain())
+        }
     }
 }

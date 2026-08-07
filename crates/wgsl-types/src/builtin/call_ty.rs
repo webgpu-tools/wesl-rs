@@ -2091,28 +2091,38 @@ pub fn atomicExchange(e1: &Type, e2: &Type) -> Result<Type, E> {
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicCompareExchangeWeak-builtin>
 pub fn atomicCompareExchangeWeak(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
-    if let Type::Ptr(a_s, ptr_ty, a_m) = e1
-        && let Type::Atomic(ty) = &**ptr_ty
-    {
-        if *a_s != AddressSpace::Storage && *a_s != AddressSpace::Workgroup {
-            Err(E::Builtin(
-                "the address space of the atomic pointer argument must be `storage` or `workgroup`",
-            ))
-        } else if *a_m != AccessMode::ReadWrite {
-            Err(E::Builtin(
-                "the access mode of the atomic pointer argument must be `read_write`",
-            ))
-        } else if e2.is_convertible_to(ty) && e3.is_convertible_to(ty) {
-            Ok(atomic_compare_exchange_struct_type(ty).into())
-        } else {
-            Err(E::Builtin(
-                "`atomicCompareExchangeWeak` 2nd and 3rd arguments are incompatible with the atomic pointer type",
-            ))
-        }
-    } else {
-        Err(E::Builtin(
+    let Type::Ptr(a_s, ptr_ty, a_m) = e1 else {
+        return Err(E::Builtin(
             "`atomicCompareExchangeWeak` expects a pointer to atomic argument",
+        ));
+    };
+    let Type::Atomic(ty) = &**ptr_ty else {
+        return Err(E::Builtin(
+            "`atomicCompareExchangeWeak` expects a pointer to atomic argument",
+        ));
+    };
+    if *a_s != AddressSpace::Storage && *a_s != AddressSpace::Workgroup {
+        Err(E::Builtin(
+            "the address space of the atomic pointer argument must be `storage` or `workgroup`",
         ))
+    } else if *a_m != AccessMode::ReadWrite {
+        Err(E::Builtin(
+            "the access mode of the atomic pointer argument must be `read_write`",
+        ))
+    } else if !e2.is_convertible_to(ty) && !e3.is_convertible_to(ty) {
+        Err(E::Builtin(
+            "`atomicCompareExchangeWeak` 2nd and 3rd arguments are incompatible with the atomic pointer type",
+        ))
+    } else if !e2.is_convertible_to(ty) {
+        Err(E::Builtin(
+            "`atomicCompareExchangeWeak` 2nd argument is incompatible with the atomic pointer type",
+        ))
+    } else if !e3.is_convertible_to(ty) {
+        Err(E::Builtin(
+            "`atomicCompareExchangeWeak` 3rd argument is incompatible with the atomic pointer type",
+        ))
+    } else {
+        Ok(atomic_compare_exchange_struct_type(ty).into())
     }
 }
 

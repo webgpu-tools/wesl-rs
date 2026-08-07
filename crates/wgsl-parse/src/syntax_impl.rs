@@ -764,11 +764,12 @@ impl SyntaxNode for GlobalDeclaration {
             GlobalDeclaration::Struct(decl) => Some(decl.ident.clone()),
             GlobalDeclaration::Function(decl) => Some(decl.ident.clone()),
             GlobalDeclaration::ConstAssert(_) => None,
+            #[cfg(feature = "condcomp")]
             GlobalDeclaration::Compound(_) => None,
         }
     }
 
-    #[cfg(feature = "attributes")]
+    #[cfg(all(feature = "attributes", feature = "condcomp"))]
     impl_attrs_enum! {
         GlobalDeclaration::Declaration,
         GlobalDeclaration::TypeAlias,
@@ -776,6 +777,15 @@ impl SyntaxNode for GlobalDeclaration {
         GlobalDeclaration::Function,
         GlobalDeclaration::ConstAssert,
         GlobalDeclaration::Compound,
+    }
+
+    #[cfg(all(feature = "attributes", not(feature = "condcomp")))]
+    impl_attrs_enum! {
+        GlobalDeclaration::Declaration,
+        GlobalDeclaration::TypeAlias,
+        GlobalDeclaration::Struct,
+        GlobalDeclaration::Function,
+        GlobalDeclaration::ConstAssert,
     }
 }
 

@@ -4,7 +4,7 @@ fn main() {
         ..Default::default()
     })
     .compile_module("src", &"package::main".parse().unwrap())
-    .map_err(|e| eprintln!("{e}"))
+    .inspect_err(|e| eprintln!("{e}"))
     .expect("compilation error")
     .to_string();
 

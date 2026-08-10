@@ -562,22 +562,6 @@ impl CompilerDriver for CompilationPass<'_> {
     }
 }
 
-// impl AsyncCompilerDriver for CompilationPass<'_> {
-//     async fn load_module_async(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error> {
-//         let mut module = pipeline::load_module_async(path, &self.resolver).await?;
-
-//         if self.options.condcomp {
-//             pass::condcomp(&mut module, &self.options.features)?;
-//         }
-
-//         if self.options.validate {
-//             pass::validate_wesl(&module)?;
-//         }
-
-//         Ok(module)
-//     }
-// }
-
 #[test]
 fn test_send_sync() {
     fn assert_send_sync<T: Send + Sync>() {}

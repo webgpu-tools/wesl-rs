@@ -14,7 +14,7 @@ mod visit;
 
 pub use compile::{compile, compile_async, load_module, load_module_async, main_entry_points};
 pub use condcomp::{Feature, Features, condcomp};
-pub use driver::{AsyncCompilerDriver, CompileResult, CompilerDriver};
+pub use driver::{CompileResult, CompilerDriver};
 pub use import::{ImportedItem, Imports, flatten_imports, imported_item_path};
 pub use link::link;
 pub use lower::lower;

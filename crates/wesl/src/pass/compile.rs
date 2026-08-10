@@ -5,7 +5,7 @@ use wgsl_parse::syntax::{Ident, ModulePath, TranslationUnit};
 use crate::{
     SyntaxUtil,
     error::{Diagnostic, Error},
-    pass::{self, AsyncCompilerDriver, CompileResult, CompilerDriver, Module, UsedItems},
+    pass::{self, CompileResult, CompilerDriver, Module, UsedItems},
     resolver::{AsyncResolver, Resolver},
 };
 
@@ -97,7 +97,7 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
     })
 }
 
-pub async fn compile_async(driver: &mut impl AsyncCompilerDriver) -> Result<CompileResult, Error> {
+pub async fn compile_async(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error> {
     let main_path = driver.main_path().clone();
     let main_module = driver.load_module(&main_path)?;
     let main_entrypoints = driver.main_entry_points(&main_module)?;

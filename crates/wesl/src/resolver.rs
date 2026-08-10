@@ -13,7 +13,7 @@ use std::{
     borrow::Cow,
     collections::HashMap,
     fs,
-    path::{Path, PathBuf},
+    path::{self, Path, PathBuf},
 };
 
 type E = ResolveError;
@@ -33,9 +33,8 @@ pub trait Resolver {
         None
     }
     /// Get the filesystem path of the module path. Implementing this is optional.
-    /// Used by build scripts for dependency tracking.
-    fn fs_path(&self, _path: &ModulePath) -> Option<PathBuf> {
-        None
+    fn fs_path(&self, _module_path: &ModulePath) -> Result<PathBuf, ResolveError> {
+        Err(ResolveError::FilesystemNotSupported)
     }
     /// Get the canonical form of a module path.
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {
@@ -60,7 +59,7 @@ impl<T: Resolver + ?Sized> Resolver for Box<T> {
     fn display_name(&self, path: &ModulePath) -> Option<String> {
         (**self).display_name(path)
     }
-    fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
+    fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
         (**self).fs_path(path)
     }
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {
@@ -75,7 +74,7 @@ impl<T: Resolver + ?Sized> Resolver for &T {
     fn display_name(&self, path: &ModulePath) -> Option<String> {
         (**self).display_name(path)
     }
-    fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
+    fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
         (**self).fs_path(path)
     }
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {
@@ -173,8 +172,8 @@ impl Resolver for FileResolver {
             .ok()
             .map(|fs_path| fs_path.display().to_string())
     }
-    fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
-        self.file_path(path).ok()
+    fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
+        self.file_path(path)
     }
 }
 
@@ -317,8 +316,8 @@ impl Resolver for Router {
         let (resolver, path) = self.route(path).ok()?;
         resolver.display_name(&path)
     }
-    fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
-        let (resolver, path) = self.route(path).ok()?;
+    fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
+        let (resolver, path) = self.route(path)?;
         resolver.fs_path(&path)
     }
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {
@@ -565,7 +564,7 @@ impl Resolver for StandardResolver {
             self.files.display_name(path)
         }
     }
-    fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
+    fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
         if path.origin.is_package() {
             self.pkg.fs_path(path)
         } else {

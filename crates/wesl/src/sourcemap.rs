@@ -168,7 +168,7 @@ impl<'a> Resolver for SourceMapper<'a> {
             SourceMapFile {
                 source: res.clone().into(),
                 display_name: self.resolver.display_name(path),
-                path: self.resolver.fs_path(path),
+                path: self.resolver.fs_path(path).ok(),
             },
         );
         Ok(res)
@@ -176,7 +176,7 @@ impl<'a> Resolver for SourceMapper<'a> {
     fn display_name(&self, path: &ModulePath) -> Option<String> {
         self.resolver.display_name(path)
     }
-    fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
+    fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
         self.resolver.fs_path(path)
     }
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {

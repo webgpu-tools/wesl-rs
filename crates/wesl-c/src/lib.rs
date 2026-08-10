@@ -582,15 +582,22 @@ impl wesl::Resolver for CustomResolver {
         }
     }
 
-    fn fs_path(&self, path: &ModulePath) -> Option<std::path::PathBuf> {
+    fn fs_path(&self, path: &ModulePath) -> Result<std::path::PathBuf, ResolveError> {
         unsafe {
             resolver_path_to_string(
                 path,
                 |str| str.deref().into(),
-                self.options.display_name,
-                self.options.free_display_name,
+                self.options.fs_path,
+                self.options.free_fs_path,
                 self.options.userdata,
             )
+            .ok_or_else(|| {
+                if self.options.fs_path.is_none() || self.options.free_fs_path.is_none() {
+                    ResolveError::FilesystemNotSupported
+                } else {
+                    ResolveError::ModuleNotFound(path.clone(), "user-provided resolver".to_string())
+                }
+            })
         }
     }
 }

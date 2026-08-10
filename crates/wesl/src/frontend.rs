@@ -1,4 +1,11 @@
-use std::{collections::HashSet, path::Path};
+//! WESL compiler frontend.
+//!
+//! Types and functions in this module are small wrappers that make it easy to use WESL in typical scenarios, "batteries included".
+
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
 
 use wgsl_parse::{
     SyntaxNode,
@@ -202,26 +209,155 @@ impl Compiler<()> {
     }
 }
 
+/// Standalone version of [`Compiler::compile_module`].
+pub fn compile(
+    main_path: &ModulePath,
+    options: &CompileOptions,
+    resolver: &impl Resolver,
+) -> Result<CompileResult, Error> {
+    let mangler = Box::<dyn Mangler>::from(options.mangler);
+
+    if options.sourcemap {
+        let sourcemapper = SourceMapper::new(main_path.clone(), &resolver, &mangler);
+        let mut pass = CompilationPass::new(main_path, options, &sourcemapper, &sourcemapper);
+        let res = CompilerDriver::compile(&mut pass);
+        let sourcemap = sourcemapper.finish();
+        let res = res.map_err(|e| Diagnostic::from(e).with_sourcemap(&sourcemap))?;
+
+        Ok(CompileResult {
+            syntax: res.syntax,
+            sourcemap: Some(sourcemap),
+            used_items: res.used_items,
+        })
+    } else {
+        let mut pass = CompilationPass::new(main_path, options, &resolver, &mangler);
+        let res = CompilerDriver::compile(&mut pass)?;
+        Ok(CompileResult {
+            syntax: res.syntax,
+            sourcemap: None,
+            used_items: res.used_items,
+        })
+    }
+}
+
+/// Async version of [`compile`].
+pub async fn compile_async(
+    main_path: &ModulePath,
+    options: &CompileOptions,
+    resolver: &impl Resolver,
+) -> Result<CompileResult, Error> {
+    let mangler = Box::<dyn Mangler>::from(options.mangler);
+
+    if options.sourcemap {
+        let sourcemapper = SourceMapper::new(main_path.clone(), &resolver, &mangler);
+        let mut pass = CompilationPass::new(main_path, options, &sourcemapper, &sourcemapper);
+        let res = CompilerDriver::compile(&mut pass);
+        let sourcemap = sourcemapper.finish();
+        let res = res.map_err(|e| Diagnostic::from(e).with_sourcemap(&sourcemap))?;
+
+        Ok(CompileResult {
+            syntax: res.syntax,
+            sourcemap: Some(sourcemap),
+            used_items: res.used_items,
+        })
+    } else {
+        let mut pass = CompilationPass::new(main_path, options, &resolver, &mangler);
+        let res = CompilerDriver::compile_async(&mut pass).await?;
+        Ok(CompileResult {
+            syntax: res.syntax,
+            sourcemap: None,
+            used_items: res.used_items,
+        })
+    }
+}
+
+/// Get the module path for a filesystem path relative to the package root directory,
+/// with a fallback to the current working directory if the resolver doesn't support
+/// filesystem mappings.
+///
+/// # Panics
+///
+/// [`ModulePath::from_path`] can panic.
+fn main_module_path(path: &Path, resolver: &impl Resolver) -> Result<ModulePath, Error> {
+    let mut main_path = resolver.module_path(path).or_else(|e| {
+        if matches!(e, ResolveError::FilesystemNotSupported) {
+            Ok(ModulePath::from_path(Path::new(".").join(path)))
+        } else {
+            Err(e)
+        }
+    })?;
+
+    // we force the origin to be absolute if it was relative.
+    main_path.origin = PathOrigin::Absolute;
+    Ok(main_path)
+}
+
 impl Compiler<()> {
-    // TODO: implement and validate semantics described here.
+    // TODO: implement and validate wesl-toml semantics.
     /// Compile a WESL shader to WGSL.
     ///
     /// `path` defines where to look for shader files.
-    /// It can point to a `wesl.toml` file, a shader file or a directory.
+    /// It can point to a `wesl.toml` file, a directory or a shader file.
     ///
-    /// The main module is the root module if `path` points to a toml file or a directory.
-    /// Otherwise, it is the file that `path` points to.
+    /// The main module (which exposes entry points, bindings and overrides) is determined from `path`:
+    /// It is the package root module if `path` points to a toml file or a directory,
+    /// otherwise it is the file that `path` points to.
+    /// See [`Self::compile_module`] to compile a different main module.
     ///
-    /// | Path         | Pkg root dir         | Main module                |
-    /// | ------------ | -------------------- | -------------------------- |
-    /// | `wesl.toml`  | `toml.root`          | `package.wesl` in root dir |
-    /// | directory    | this directory       | `package.wesl` in root dir |
-    /// | `.wesl` file | parent dir this file | this file                  |
+    /// | Path         | Package root directory      | Main module                |
+    /// | ------------ | --------------------------- | -------------------------- |
+    /// | `wesl.toml`  | `root` field in `wesl.toml` | `package.wesl` in root dir |
+    /// | directory    | the directory               | `package.wesl` in root dir |
+    /// | `.wesl` file | the parent directory        | the file specified         |
     ///
     /// Note: `.wgsl` extensions are also supported, but `.wesl` takes priority.
     pub fn compile(&self, path: impl AsRef<Path>) -> Result<CompileResult, Error> {
-        let path = path.as_ref();
+        let (pkg_root_dir, main_path) = self.root_and_main(path.as_ref())?;
+        self.compile_module(pkg_root_dir, &main_path)
+    }
 
+    /// Variant of [`Self::compile`] with a custom main module path.
+    pub fn compile_module(
+        &self,
+        pkg_root_dir: impl AsRef<Path>,
+        main_path: &ModulePath,
+    ) -> Result<CompileResult, Error> {
+        let resolver = self.create_resolver(pkg_root_dir.as_ref());
+        compile(main_path, &self.options, &resolver)
+    }
+
+    /// Async version of [`Self::compile`].
+    pub async fn compile_async(&self, path: &Path) -> Result<CompileResult, Error> {
+        let (pkg_root_dir, main_path) = self.root_and_main(path.as_ref())?;
+        self.compile_module_async(&pkg_root_dir, &main_path).await
+    }
+
+    /// Async version of [`Self::compile_module`].
+    pub async fn compile_module_async(
+        &self,
+        pkg_root_dir: impl AsRef<Path>,
+        main_path: &ModulePath,
+    ) -> Result<CompileResult, Error> {
+        let resolver = self.create_resolver(pkg_root_dir.as_ref());
+        compile_async(main_path, &self.options, &resolver).await
+    }
+
+    fn create_resolver(&self, pkg_root_dir: &Path) -> StandardResolver {
+        let mut resolver = StandardResolver::new(pkg_root_dir);
+
+        for (name, value) in self.options.constants.iter() {
+            resolver.add_constant(name.clone(), *value);
+        }
+
+        for package in self.options.dependencies.iter() {
+            resolver.add_package(package);
+        }
+
+        resolver
+    }
+
+    // TODO: implement and validate wesl-toml semantics.
+    fn root_and_main(&self, path: &Path) -> Result<(PathBuf, ModulePath), Error> {
         let toml_cfg = if let Some(filename) = path.file_name()
             && filename == "wesl.toml"
         {
@@ -239,123 +375,65 @@ impl Compiler<()> {
         let main_path = if pkg_root_dir.is_file() {
             ModulePath::new_root()
         } else {
-            // TODO: is this correct?
             ModulePath::new(PathOrigin::Absolute, vec!["package".to_string()])
         };
 
-        self.compile_module(pkg_root_dir, &main_path)
-    }
-
-    /// Compile a WESL shader to WGSL.
-    pub fn compile_module(
-        &self,
-        pkg_root_dir: impl AsRef<Path>,
-        main_path: &ModulePath,
-    ) -> Result<CompileResult, Error> {
-        let mut resolver = StandardResolver::new(pkg_root_dir);
-        let mangler = Box::<dyn Mangler>::from(self.options.mangler);
-
-        for (name, value) in self.options.constants.iter() {
-            resolver.add_constant(name.clone(), *value);
-        }
-
-        for package in self.options.dependencies.iter() {
-            resolver.add_package(package);
-        }
-
-        if self.options.sourcemap {
-            let sourcemapper = SourceMapper::new(main_path.clone(), &resolver, &mangler);
-            let mut pass =
-                CompilationPass::new(main_path, &self.options, &sourcemapper, &sourcemapper);
-            let res = CompilerDriver::compile(&mut pass);
-            let sourcemap = sourcemapper.finish();
-            let res = res.map_err(|e| Diagnostic::from(e).with_sourcemap(&sourcemap))?;
-
-            Ok(CompileResult {
-                syntax: res.syntax,
-                sourcemap: Some(sourcemap),
-                used_items: res.used_items,
-            })
-        } else {
-            let mut pass = CompilationPass::new(main_path, &self.options, &resolver, &mangler);
-            let res = CompilerDriver::compile(&mut pass)?;
-            Ok(CompileResult {
-                syntax: res.syntax,
-                sourcemap: None,
-                used_items: res.used_items,
-            })
-        }
+        Ok((pkg_root_dir, main_path))
     }
 }
 
 impl<R: Resolver> Compiler<R> {
-    // TODO: implement and validate semantics described here.
     /// Compile a WESL shader to WGSL.
     ///
-    /// `path` defines where to look for shader files.
-    /// It can point to a `wesl.toml` file, a shader file or a directory.
+    /// The main module defaults to the package root module.
+    /// See [`Self::compile_module`] to compile a different main module.
+    pub fn compile(&self) -> Result<CompileResult, Error> {
+        compile(&ModulePath::new_root(), &self.options, &self.resolver)
+    }
+
+    /// Variant of [`Self::compile`] with a custom main module path.
+    pub fn compile_module(&self, main_path: &ModulePath) -> Result<CompileResult, Error> {
+        compile(main_path, &self.options, &self.resolver)
+    }
+
+    /// Variant of [`Self::compile`] with a custom main module path.
     ///
-    /// The main module is the root module if `path` points to a toml file or a directory.
-    /// Otherwise, it is the file that `path` points to.
-    ///
-    /// | Path         | Pkg root dir         | Main module                |
-    /// | ------------ | -------------------- | -------------------------- |
-    /// | `wesl.toml`  | `toml.root`          | `package.wesl` in root dir |
-    /// | directory    | this directory       | `package.wesl` in root dir |
-    /// | `.wesl` file | parent dir this file | this file                  |
-    ///
-    /// Note: `.wgsl` extensions are also supported, but `.wesl` takes priority.
+    /// `fs_main_path` defines the main module path according to the resolver's file system mapping implemented in [`Resolver::module_path`].
     ///
     /// # Warning
     ///
-    /// This function works best with filesystem resolvers which implement [`Resolver::fs_path`].
-    /// With `fs_path` implemented, the function makes the input file path relative to the package's root directory.
-    /// Otherwise, assumes that the package root directory is the current working directory.
+    /// This function works best with filesystem resolvers which implement [`Resolver::module_path`].
+    /// If not, this function assumes that the package root directory is the current working directory.
     ///
     /// # Panics
     ///
-    /// Can panic if  [`ModulePath::from_path`] fails.
+    /// Can panic if [`ModulePath::from_path`] fails.
     // TODO: we don't want that panic.
-    pub fn compile(&self, path: impl AsRef<Path>) -> Result<CompileResult, Error> {
-        let path = path.as_ref();
-
-        // TODO: rework implementations of fs_path to be more fault tolerant?
-        // or add a function root_dir?
-        let relative_path = if let Some(root) = self.resolver.fs_path(&ModulePath::new_root()) {
-            let abs_path = std::path::absolute(path).map_err(ResolveError::Io)?;
-            let abs_root = std::path::absolute(root).map_err(ResolveError::Io)?;
-            let abs_root = abs_root.parent().unwrap_or(Path::new(""));
-            abs_path
-                .strip_prefix(abs_root)
-                .unwrap_or(path)
-                .to_path_buf()
-        } else {
-            Path::new(".").join(path)
-        };
-
-        let mut main_path = ModulePath::from_path(relative_path);
-        // we force the origin to be absolute if it was relative.
-        main_path.origin = PathOrigin::Absolute;
-
-        self.compile_module(&main_path)
+    pub fn compile_file(&self, fs_main_path: impl AsRef<Path>) -> Result<CompileResult, Error> {
+        let main_path = main_module_path(fs_main_path.as_ref(), &self.resolver)?;
+        compile(&main_path, &self.options, &self.resolver)
     }
 
-    /// Compile a WESL shader to WGSL.
-    ///
-    /// `main_path` is the main module path, which exposes entry points, bindings and overrides.
-    ///
-    /// The package root directory depends on the [`Resolver`] implementation.
-    pub fn compile_module(&self, main_path: &ModulePath) -> Result<CompileResult, Error> {
-        let mangler = Box::<dyn Mangler>::from(self.options.mangler);
+    /// Async version of [`Self::compile`].
+    pub async fn compile_async(&self) -> Result<CompileResult, Error> {
+        compile_async(&ModulePath::new_root(), &self.options, &self.resolver).await
+    }
 
-        let mut pass = CompilationPass::new(main_path, &self.options, &self.resolver, &mangler);
-        let res = CompilerDriver::compile(&mut pass)?;
+    /// Async version of [`Self::compile_module`].
+    pub async fn compile_module_async(
+        &self,
+        main_path: &ModulePath,
+    ) -> Result<CompileResult, Error> {
+        compile_async(main_path, &self.options, &self.resolver).await
+    }
 
-        Ok(CompileResult {
-            syntax: res.syntax,
-            sourcemap: None,
-            used_items: res.used_items,
-        })
+    /// Async version of [`Self::compile_module`].
+    pub async fn compile_file_async(
+        &self,
+        fs_main_path: &impl AsRef<Path>,
+    ) -> Result<CompileResult, Error> {
+        let main_path = main_module_path(fs_main_path.as_ref(), &self.resolver)?;
+        compile_async(&main_path, &self.options, &self.resolver).await
     }
 }
 

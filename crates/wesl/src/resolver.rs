@@ -36,6 +36,10 @@ pub trait Resolver {
     fn fs_path(&self, _module_path: &ModulePath) -> Result<PathBuf, ResolveError> {
         Err(ResolveError::FilesystemNotSupported)
     }
+    /// Get the module path of the filesystem path. Implementing this is optional.
+    fn module_path(&self, _fs_path: &Path) -> Result<ModulePath, ResolveError> {
+        Err(ResolveError::FilesystemNotSupported)
+    }
     /// Get the canonical form of a module path.
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {
         path.clone()
@@ -62,6 +66,9 @@ impl<T: Resolver + ?Sized> Resolver for Box<T> {
     fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
         (**self).fs_path(path)
     }
+    fn module_path(&self, path: &Path) -> Result<ModulePath, ResolveError> {
+        (**self).module_path(path)
+    }
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {
         (**self).canonical_path(path)
     }
@@ -76,6 +83,9 @@ impl<T: Resolver + ?Sized> Resolver for &T {
     }
     fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
         (**self).fs_path(path)
+    }
+    fn module_path(&self, path: &Path) -> Result<ModulePath, ResolveError> {
+        (**self).module_path(path)
     }
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {
         (**self).canonical_path(path)
@@ -174,6 +184,16 @@ impl Resolver for FileResolver {
     }
     fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
         self.file_path(path)
+    }
+    fn module_path(&self, fs_path: &Path) -> Result<ModulePath, ResolveError> {
+        let abs_root = path::absolute(&self.pkg_root_dir).map_err(ResolveError::Io)?;
+        let abs_path = path::absolute(fs_path).map_err(ResolveError::Io)?;
+        let rel_path = abs_path
+            .strip_prefix(&abs_root)
+            .map_err(|_| ResolveError::FileEscapesRoot(abs_path.clone(), abs_root))?;
+
+        // TODO: from_path can panic, we don't want that here.
+        Ok(ModulePath::from_path(rel_path))
     }
 }
 
@@ -570,6 +590,9 @@ impl Resolver for StandardResolver {
         } else {
             self.files.fs_path(path)
         }
+    }
+    fn module_path(&self, path: &Path) -> Result<ModulePath, ResolveError> {
+        self.files.module_path(&path)
     }
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {
         // the constants module is shared for all sub-dependencies

@@ -36,6 +36,10 @@ pub enum ResolveError {
     FileNotFound(PathBuf, String),
     #[error("module not found: `{0}` ({1})")]
     ModuleNotFound(ModulePath, String),
+    #[error("the resolver does not support file system paths")]
+    FilesystemNotSupported,
+    #[error("attempt to access path `{0}`, which escapes the package root path `{1}`")]
+    FileEscapesRoot(PathBuf, PathBuf),
     #[error("{0}")]
     Error(#[from] Diagnostic<Error>),
 }
@@ -154,7 +158,9 @@ impl From<ResolveError> for Diagnostic<Error> {
         match error {
             ResolveError::Io(_)
             | ResolveError::FileNotFound(_, _)
-            | ResolveError::ModuleNotFound(_, _) => Self::new(error.into()),
+            | ResolveError::ModuleNotFound(_, _)
+            | ResolveError::FilesystemNotSupported
+            | ResolveError::FileEscapesRoot(_, _) => Self::new(error.into()),
             ResolveError::Error(e) => e,
         }
     }

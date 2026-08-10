@@ -387,7 +387,7 @@ impl<R: Resolver> Compiler<R> {
     ///
     /// The main module defaults to the package root module.
     /// See [`Self::compile_module`] to compile a different main module.
-    pub fn compile(&self) -> Result<CompileResult, Error> {
+    pub fn compile_root(&self) -> Result<CompileResult, Error> {
         compile(&ModulePath::new_root(), &self.options, &self.resolver)
     }
 
@@ -396,7 +396,7 @@ impl<R: Resolver> Compiler<R> {
         compile(main_path, &self.options, &self.resolver)
     }
 
-    /// Variant of [`Self::compile`] with a custom main module path.
+    /// Variant of [`Self::compile_root`] with a custom main module path.
     ///
     /// `fs_main_path` defines the main module path according to the resolver's file system mapping implemented in [`Resolver::module_path`].
     ///
@@ -409,13 +409,13 @@ impl<R: Resolver> Compiler<R> {
     ///
     /// Can panic if [`ModulePath::from_path`] fails.
     // TODO: we don't want that panic.
-    pub fn compile_file(&self, fs_main_path: impl AsRef<Path>) -> Result<CompileResult, Error> {
+    pub fn compile(&self, fs_main_path: impl AsRef<Path>) -> Result<CompileResult, Error> {
         let main_path = main_module_path(fs_main_path.as_ref(), &self.resolver)?;
         compile(&main_path, &self.options, &self.resolver)
     }
 
-    /// Async version of [`Self::compile`].
-    pub async fn compile_async(&self) -> Result<CompileResult, Error> {
+    /// Async version of [`Self::compile_root`].
+    pub async fn compile_root_async(&self) -> Result<CompileResult, Error> {
         compile_async(&ModulePath::new_root(), &self.options, &self.resolver).await
     }
 
@@ -427,8 +427,8 @@ impl<R: Resolver> Compiler<R> {
         compile_async(main_path, &self.options, &self.resolver).await
     }
 
-    /// Async version of [`Self::compile_module`].
-    pub async fn compile_file_async(
+    /// Async version of [`Self::compile`].
+    pub async fn compile_async(
         &self,
         fs_main_path: &impl AsRef<Path>,
     ) -> Result<CompileResult, Error> {

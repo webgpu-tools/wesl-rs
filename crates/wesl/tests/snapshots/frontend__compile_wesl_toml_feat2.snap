@@ -6,7 +6,7 @@ diagnostic (off, derivative_uniformity);
 
 const K: f32 = 2.0;
 
-const constants_PI = 3.1415;
+const constants_PI = 3.141592653589793;
 
 const constants_TRUE = true;
 

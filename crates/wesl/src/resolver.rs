@@ -592,7 +592,7 @@ impl Resolver for StandardResolver {
         }
     }
     fn module_path(&self, path: &Path) -> Result<ModulePath, ResolveError> {
-        self.files.module_path(&path)
+        self.files.module_path(path)
     }
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {
         // the constants module is shared for all sub-dependencies

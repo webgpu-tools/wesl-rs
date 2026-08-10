@@ -100,7 +100,7 @@ fn compile_wesl_toml_feat1() {
     features.default = wesl::Feature::Error;
 
     let mut constants = Constants::new();
-    constants.add_constant("PI", 3.1415);
+    constants.add_constant("PI", std::f64::consts::PI);
     constants.add_constant("TRUE", true);
 
     let mut result = Compiler::new(CompileOptions {
@@ -126,7 +126,7 @@ fn compile_wesl_toml_feat2() {
     features.default = wesl::Feature::Error;
 
     let mut constants = Constants::new();
-    constants.add_constant("PI", 3.1415);
+    constants.add_constant("PI", std::f64::consts::PI);
     constants.add_constant("TRUE", true);
 
     let mut result = Compiler::new(CompileOptions {

@@ -278,6 +278,7 @@ pub const BUILTIN_FUNCTION_NAMES: &[&str] = &[
     "determinant",
     "distance",
     "dot",
+    "dot4I8Packed",
     "dot4U8Packed",
     "exp",
     "exp2",

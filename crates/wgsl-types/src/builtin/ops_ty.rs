@@ -87,7 +87,7 @@ impl Type {
     /// Valid operands:
     /// * `-S`, S: scalar
     pub fn op_neg(&self) -> Result<Self, E> {
-        if self.is_scalar() {
+        if self.is_scalar() || matches!(self, Type::Vec(_, inner_ty) if inner_ty.is_scalar()) {
             Ok(self.clone())
         } else {
             Err(E::Unary(UnaryOperator::Negation, self.ty()))

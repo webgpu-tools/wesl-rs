@@ -1,3 +1,5 @@
+use wgsl_types::inst::LiteralInstance;
+
 use super::syntax::*;
 use crate::span::Spanned;
 
@@ -125,9 +127,9 @@ impl ModulePath {
     /// * Paths with a root (leading `/` on Unix) produce `package::` paths.
     /// * Relative paths (starting with `.` or `..`) produce `self::` or `super::` paths.
     /// * The file extension is ignored.
-    /// * The path is canonicalized and to do so it does NOT follow symlinks.
     ///
-    /// Preconditions:
+    /// # Panics
+    ///
     /// * The path must not start with a prefix, like C:\ on windows.
     /// * The path must contain at least one named component.
     /// * Named components must be valid module names.
@@ -155,12 +157,20 @@ impl ModulePath {
             None => panic!("path is empty"),
         };
 
-        let components = parts
-            .map(|part| match part {
-                Component::Normal(name) => name.to_string_lossy().to_string(),
-                _ => panic!("unexpected path component"),
-            })
-            .collect::<Vec<_>>();
+        let mut components = Vec::new();
+        for part in parts {
+            match part {
+                Component::Prefix(_) | Component::RootDir => panic!("unexpected path component"),
+                Component::CurDir => {}
+                Component::ParentDir => {
+                    components.pop().expect("path escapes its origin");
+                    // TODO: if we escape the root we should insert a `super::`
+                }
+                Component::Normal(name) => {
+                    components.push(name.to_string_lossy().to_string());
+                }
+            }
+        }
 
         Self { origin, components }
     }
@@ -530,6 +540,26 @@ impl Statement {
     }
 }
 
+impl From<LiteralExpression> for LiteralInstance {
+    fn from(lit: LiteralExpression) -> Self {
+        match lit {
+            LiteralExpression::Bool(l) => LiteralInstance::Bool(l),
+            LiteralExpression::AbstractInt(l) => LiteralInstance::AbstractInt(l),
+            LiteralExpression::AbstractFloat(l) => LiteralInstance::AbstractFloat(l),
+            LiteralExpression::I32(l) => LiteralInstance::I32(l),
+            LiteralExpression::U32(l) => LiteralInstance::U32(l),
+            LiteralExpression::F32(l) => LiteralInstance::F32(l),
+            LiteralExpression::F16(l) => LiteralInstance::F16(wgsl_types::inst::f16::from_f32(l)),
+            #[cfg(feature = "naga-ext")]
+            LiteralExpression::I64(l) => LiteralInstance::I64(l),
+            #[cfg(feature = "naga-ext")]
+            LiteralExpression::U64(l) => LiteralInstance::U64(l),
+            #[cfg(feature = "naga-ext")]
+            LiteralExpression::F64(l) => LiteralInstance::F64(l),
+        }
+    }
+}
+
 impl From<Ident> for TypeExpression {
     fn from(ident: Ident) -> Self {
         Self::new(ident)
@@ -659,6 +689,7 @@ macro_rules! impl_attrs_struct {
     };
 }
 
+#[allow(unused)]
 macro_rules! impl_attrs_enum {
     ($($variant: path),* $(,)?) => {
         fn attributes(&self) -> &[AttributeNode] {

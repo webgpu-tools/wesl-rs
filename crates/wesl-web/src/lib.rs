@@ -4,8 +4,9 @@ use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 use wesl::{
-    CompileResult, Eval, Inputs, VirtualResolver, Wesl,
-    eval::{EvalAttrs, Instance, RefInstance, Ty, ty_eval_ty},
+    CompileResult, Compiler,
+    eval::{Eval, EvalAttrs, Inputs, Instance, RefInstance, Ty, ty_eval_ty},
+    resolver::VirtualResolver,
     syntax::{self, AccessMode, AddressSpace, TranslationUnit},
 };
 
@@ -67,7 +68,7 @@ impl From<Feature> for wesl::Feature {
 pub struct CompileOptions {
     #[tsify(type = "{ [name: string]: string }")]
     pub files: HashMap<String, String>,
-    pub root: String,
+    pub main: String,
     #[serde(default)]
     pub mangler: ManglerKind,
     pub sourcemap: bool,
@@ -81,8 +82,8 @@ pub struct CompileOptions {
     pub lazy: bool,
     #[serde(default)]
     pub keep: Option<Vec<String>>,
-    pub keep_root: bool,
-    pub mangle_root: bool,
+    pub keep_main: bool,
+    pub mangle_main: bool,
     #[tsify(type = "{ [name: string]: Feature }")]
     pub features: HashMap<String, Feature>,
     #[serde(default)]
@@ -160,7 +161,7 @@ pub struct DumpOptions {
     source: String,
 }
 
-#[derive(Clone, Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 enum CliError {
     #[error("resource `@group({0}) @binding({1})` not found")]
     ResourceNotFound(u32, u32),
@@ -173,7 +174,7 @@ enum CliError {
     #[error("{0}")]
     Wesl(#[from] wesl::Error),
     #[error("{0}")]
-    Diagnostic(#[from] wesl::Diagnostic<wesl::Error>),
+    Diagnostic(#[from] wesl::error::Diagnostic),
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
@@ -194,8 +195,8 @@ pub struct Error {
 
 fn run_compile(args: CompileOptions) -> Result<CompileResult, wesl::Error> {
     let mut resolver = VirtualResolver::new();
-    let root = args.root.parse().map_err(|e| {
-        wesl::Error::Custom(format!("`{}` is not a valid module path: {e}", args.root))
+    let main_module_path = args.main.parse().map_err(|e| {
+        wesl::Error::Custom(format!("`{}` is not a valid module path: {e}", args.main))
     })?;
 
     for (path, source) in args.files {
@@ -205,41 +206,41 @@ fn run_compile(args: CompileOptions) -> Result<CompileResult, wesl::Error> {
         resolver.add_module(path, source.into());
     }
 
-    let comp = Wesl::new_barebones()
-        .set_custom_resolver(resolver)
-        .set_options(wesl::CompileOptions {
-            imports: args.imports,
-            condcomp: args.condcomp,
-            generics: args.generics,
-            strip: args.strip,
-            lower: args.lower,
-            validate: args.validate,
-            lazy: args.lazy,
-            mangle_root: args.mangle_root,
-            keep: args.keep,
-            features: wesl::Features {
-                default: args.features_default.into(),
-                flags: args
-                    .features
-                    .into_iter()
-                    .map(|(k, v)| (k, v.into()))
-                    .collect(),
-            },
-            keep_root: args.keep_root,
-        })
-        .use_sourcemap(args.sourcemap)
-        .set_mangler(args.mangler.into())
-        .compile(&root)?;
+    let comp = Compiler::new(wesl::CompileOptions {
+        imports: args.imports,
+        condcomp: args.condcomp,
+        generics: args.generics,
+        strip: args.strip,
+        lower: args.lower,
+        validate: args.validate,
+        sourcemap: args.sourcemap,
+        mangler: args.mangler.into(),
+        mangle_main: args.mangle_main,
+        keep: args.keep,
+        keep_main: args.keep_main,
+        features: wesl::Features {
+            default: args.features_default.into(),
+            flags: args
+                .features
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
+        },
+        constants: Default::default(),    // TODO
+        dependencies: Default::default(), // TODO
+    })
+    .with_resolver(resolver)
+    .compile_module(&main_module_path)?;
     Ok(comp)
 }
 
 fn parse_binding(
     b: &Binding,
-    wgsl: &TranslationUnit,
+    module: &TranslationUnit,
 ) -> Result<((u32, u32), RefInstance), CliError> {
-    let mut ctx = wesl::eval::Context::new(wgsl);
+    let mut ctx = wesl::eval::Context::new(module);
 
-    let ty_expr = wgsl
+    let ty_expr = module
         .global_declarations
         .iter()
         .find_map(|d| match d.node() {
@@ -256,7 +257,7 @@ fn parse_binding(
         .ok_or(CliError::ResourceNotFound(b.group, b.binding))?;
 
     let ty = ty_eval_ty(&ty_expr, &mut ctx).map_err(|e| {
-        wesl::Diagnostic::from(e)
+        wesl::error::Diagnostic::from(e)
             .with_ctx(&ctx)
             .with_source(ty_expr.to_string())
     })?;
@@ -291,13 +292,13 @@ fn parse_binding(
     ))
 }
 
-fn parse_override(src: &str, wgsl: &TranslationUnit) -> Result<Instance, CliError> {
-    let mut ctx = wesl::eval::Context::new(wgsl);
+fn parse_override(src: &str, module: &TranslationUnit) -> Result<Instance, CliError> {
+    let mut ctx = wesl::eval::Context::new(module);
     let expr = src
         .parse::<syntax::Expression>()
-        .map_err(|e| wesl::Diagnostic::from(e).with_source(src.to_string()))?;
+        .map_err(|e| wesl::error::Diagnostic::from(e).with_source(src.to_string()))?;
     let inst = expr.eval_value(&mut ctx).map_err(|e| {
-        wesl::Diagnostic::from(e)
+        wesl::error::Diagnostic::from(e)
             .with_ctx(&ctx)
             .with_source(src.to_string())
     })?;
@@ -330,7 +331,7 @@ pub fn init_log(level: &str) {
 
 fn wesl_err_to_diagnostic(e: wesl::Error, source: Option<String>) -> Error {
     log::debug!("[WESL] error: {e:?}");
-    let d = wesl::Diagnostic::from(e);
+    let d = wesl::error::Diagnostic::from(e);
     Error {
         source: source.or_else(|| d.detail.output.clone()),
         #[cfg(feature = "ansi-to-html")]
@@ -467,11 +468,11 @@ fn run_impl(args: Command) -> Result<RunResult, Error> {
             Ok(RunResult::Exec(resources))
         }
         Command::Dump(args) => {
-            let wesl = args
+            let module = args
                 .source
                 .parse::<syntax::TranslationUnit>()
                 .map_err(|e| wesl_err_to_diagnostic(e.into(), None))?;
-            Ok(RunResult::Dump(wesl))
+            Ok(RunResult::Dump(module))
         }
     }
 }

@@ -1,4 +1,9 @@
-use crate::{Diagnostic, Error};
+//! [`Resolver`] trait and implementations.
+
+use crate::{
+    error::{Error, ResolveError},
+    package::StaticPackage,
+};
 
 use itertools::Itertools;
 use wgsl_parse::syntax::{ModulePath, PathOrigin, TranslationUnit};
@@ -8,19 +13,8 @@ use std::{
     borrow::Cow,
     collections::HashMap,
     fs,
-    path::{Path, PathBuf},
+    path::{self, Path, PathBuf},
 };
-
-/// Error produced by module resolution.
-#[derive(Clone, Debug, thiserror::Error)]
-pub enum ResolveError {
-    #[error("file not found: `{0}` ({1})")]
-    FileNotFound(PathBuf, String),
-    #[error("module not found: `{0}` ({1})")]
-    ModuleNotFound(ModulePath, String),
-    #[error("{0}")]
-    Error(#[from] Diagnostic<Error>),
-}
 
 type E = ResolveError;
 
@@ -34,24 +28,17 @@ type E = ResolveError;
 pub trait Resolver {
     /// Try to resolve a source file identified by a module path.
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError>;
-    /// Try to resolve a source file identified by a module path.
-    fn resolve_module(&self, path: &ModulePath) -> Result<TranslationUnit, ResolveError> {
-        let source = self.resolve_source(path)?;
-        let wesl: TranslationUnit = source.parse().map_err(|e| {
-            Diagnostic::from(e)
-                .with_module_path(path.clone(), self.display_name(path))
-                .with_source(source.to_string())
-        })?;
-        Ok(wesl)
-    }
     /// Get the display name of the module path. Implementing this is optional.
     fn display_name(&self, _path: &ModulePath) -> Option<String> {
         None
     }
     /// Get the filesystem path of the module path. Implementing this is optional.
-    /// Used by build scripts for dependency tracking.
-    fn fs_path(&self, _path: &ModulePath) -> Option<PathBuf> {
-        None
+    fn fs_path(&self, _module_path: &ModulePath) -> Result<PathBuf, ResolveError> {
+        Err(ResolveError::FilesystemNotSupported)
+    }
+    /// Get the module path of the filesystem path. Implementing this is optional.
+    fn module_path(&self, _fs_path: &Path) -> Result<ModulePath, ResolveError> {
+        Err(ResolveError::FilesystemNotSupported)
     }
     /// Get the canonical form of a module path.
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {
@@ -59,36 +46,46 @@ pub trait Resolver {
     }
 }
 
+pub trait AsyncResolver: Resolver {
+    /// Async version of [`Resolver::resolve_source`].
+    fn resolve_source_async<'a>(
+        &'a self,
+        path: &ModulePath,
+    ) -> impl Future<Output = Result<Cow<'a, str>, ResolveError>> {
+        async { self.resolve_source(path) }
+    }
+}
+
 impl<T: Resolver + ?Sized> Resolver for Box<T> {
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
         (**self).resolve_source(path)
     }
-    fn resolve_module(&self, path: &ModulePath) -> Result<TranslationUnit, ResolveError> {
-        (**self).resolve_module(path)
-    }
     fn display_name(&self, path: &ModulePath) -> Option<String> {
         (**self).display_name(path)
     }
-    fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
+    fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
         (**self).fs_path(path)
+    }
+    fn module_path(&self, path: &Path) -> Result<ModulePath, ResolveError> {
+        (**self).module_path(path)
     }
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {
         (**self).canonical_path(path)
     }
 }
 
-impl<T: Resolver> Resolver for &T {
+impl<T: Resolver + ?Sized> Resolver for &T {
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
         (**self).resolve_source(path)
-    }
-    fn resolve_module(&self, path: &ModulePath) -> Result<TranslationUnit, ResolveError> {
-        (**self).resolve_module(path)
     }
     fn display_name(&self, path: &ModulePath) -> Option<String> {
         (**self).display_name(path)
     }
-    fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
+    fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
         (**self).fs_path(path)
+    }
+    fn module_path(&self, path: &Path) -> Result<ModulePath, ResolveError> {
+        (**self).module_path(path)
     }
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {
         (**self).canonical_path(path)
@@ -113,21 +110,34 @@ impl Resolver for NoResolver {
 /// A resolver that looks for files in the filesystem.
 ///
 /// It simply translates module paths to file paths. This is the intended behavior.
-#[derive(Default)]
 pub struct FileResolver {
-    base: PathBuf,
+    pkg_root_dir: PathBuf,
     extension: &'static str,
+}
+
+impl Default for FileResolver {
+    fn default() -> Self {
+        Self {
+            pkg_root_dir: "./shaders".into(),
+            extension: "wesl",
+        }
+    }
 }
 
 impl FileResolver {
     /// Create a new resolver.
     ///
-    /// `base` is the root directory which absolute paths refer to.
-    pub fn new(base: impl AsRef<Path>) -> Self {
+    /// `pkg_root_dir` is the package root directory which `package::` paths refer to.
+    pub fn new(pkg_root_dir: impl AsRef<Path>) -> Self {
         Self {
-            base: base.as_ref().to_path_buf(),
+            pkg_root_dir: pkg_root_dir.as_ref().to_path_buf(),
             extension: "wesl",
         }
+    }
+
+    /// Set the the package root directory which `package::` paths refer to.
+    pub fn set_root(&mut self, pkg_root_dir: impl AsRef<Path>) {
+        self.pkg_root_dir = pkg_root_dir.as_ref().to_path_buf();
     }
 
     /// Look for files that ends with a different extension. Default: "wesl".
@@ -143,15 +153,15 @@ impl FileResolver {
                     .to_string(),
             ));
         }
-        let mut fs_path = self.base.to_path_buf();
+        let mut fs_path = self.pkg_root_dir.to_path_buf();
         fs_path.extend(&path.components);
         fs_path.set_extension(self.extension);
         if fs_path.exists() {
             Ok(fs_path)
         } else {
-            fs_path.set_extension("wgsl");
-            if fs_path.exists() {
-                Ok(fs_path)
+            let wgsl_fs_path = fs_path.with_extension("wgsl");
+            if wgsl_fs_path.exists() {
+                Ok(wgsl_fs_path)
             } else {
                 Err(E::FileNotFound(fs_path, "physical file".to_string()))
             }
@@ -172,8 +182,18 @@ impl Resolver for FileResolver {
             .ok()
             .map(|fs_path| fs_path.display().to_string())
     }
-    fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
-        self.file_path(path).ok()
+    fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
+        self.file_path(path)
+    }
+    fn module_path(&self, fs_path: &Path) -> Result<ModulePath, ResolveError> {
+        let abs_root = path::absolute(&self.pkg_root_dir).map_err(ResolveError::Io)?;
+        let abs_path = path::absolute(fs_path).map_err(ResolveError::Io)?;
+        let rel_path = abs_path
+            .strip_prefix(&abs_root)
+            .map_err(|_| ResolveError::FileEscapesRoot(abs_path.clone(), abs_root))?;
+
+        // TODO: from_path can panic, we don't want that here.
+        Ok(ModulePath::from_path(rel_path))
     }
 }
 
@@ -234,52 +254,6 @@ impl Resolver for VirtualResolver<'_> {
 // trait alias
 pub trait ResolveFn: Fn(&mut TranslationUnit) -> Result<(), Error> {}
 impl<T: Fn(&mut TranslationUnit) -> Result<(), Error>> ResolveFn for T {}
-
-/// A WESL module preprocessor.
-///
-/// The preprocess function will be called each time the WESL compiler tries to load a
-/// module.
-pub struct Preprocessor<R: Resolver, F: ResolveFn> {
-    pub resolver: R,
-    pub preprocess: F,
-}
-
-impl<R: Resolver, F: ResolveFn> Preprocessor<R, F> {
-    /// Create a new resolver that runs the preprocessing function before each call to
-    /// [`Resolver::resolve_module`].
-    pub fn new(resolver: R, preprocess: F) -> Self {
-        Self {
-            resolver,
-            preprocess,
-        }
-    }
-}
-
-impl<R: Resolver, F: ResolveFn> Resolver for Preprocessor<R, F> {
-    fn resolve_source<'b>(&'b self, path: &ModulePath) -> Result<Cow<'b, str>, ResolveError> {
-        let res = self.resolver.resolve_source(path)?;
-        Ok(res)
-    }
-    fn resolve_module(&self, path: &ModulePath) -> Result<TranslationUnit, ResolveError> {
-        let mut wesl = self.resolver.resolve_module(path)?;
-        (self.preprocess)(&mut wesl).map_err(|e| {
-            Diagnostic::from(e)
-                .with_module_path(path.clone(), self.display_name(path))
-                .with_source(self.resolve_source(path).unwrap().to_string())
-        })?;
-        Ok(wesl)
-    }
-    fn display_name(&self, path: &ModulePath) -> Option<String> {
-        self.resolver.display_name(path)
-    }
-
-    fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
-        self.resolver.fs_path(path)
-    }
-    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
-        self.resolver.canonical_path(path)
-    }
-}
 
 /// A resolver that can dispatch imports to several sub-resolvers based on the import
 /// path prefix.
@@ -358,16 +332,12 @@ impl Resolver for Router {
         let (resolver, path) = self.route(path)?;
         resolver.resolve_source(&path)
     }
-    fn resolve_module(&self, path: &ModulePath) -> Result<TranslationUnit, ResolveError> {
-        let (resolver, path) = self.route(path)?;
-        resolver.resolve_module(&path)
-    }
     fn display_name(&self, path: &ModulePath) -> Option<String> {
         let (resolver, path) = self.route(path).ok()?;
         resolver.display_name(&path)
     }
-    fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
-        let (resolver, path) = self.route(path).ok()?;
+    fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
+        let (resolver, path) = self.route(path)?;
         resolver.fs_path(&path)
     }
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {
@@ -379,36 +349,15 @@ impl Resolver for Router {
     }
 }
 
-/// The type holding the source code of external packages.
-///
-/// You typically don't implement this, instead it is generated for you by [`crate::PkgBuilder`].
-/// Crates containing shader packages export `const` instances of this type, which you can
-/// then import and [add to your resolver][StandardResolver::add_package].
-#[derive(Debug, PartialEq, Eq)]
-pub struct CodegenPkg {
-    pub crate_name: &'static str,
-    pub root: &'static CodegenModule,
-    pub dependencies: &'static [&'static CodegenPkg],
-}
-
-/// The type holding the source code of modules in external packages.
-///
-/// See [`CodegenPkg`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct CodegenModule {
-    pub name: &'static str,
-    pub source: &'static str,
-    pub submodules: &'static [&'static CodegenModule],
-}
-
 /// A resolver that only resolves module paths that refer to modules in external packages.
 ///
 /// Register external packages with [`Self::add_package`].
-pub struct PkgResolver {
-    packages: Vec<&'static CodegenPkg>,
+#[derive(Default)]
+pub struct PackageResolver {
+    packages: Vec<&'static StaticPackage>,
 }
 
-impl PkgResolver {
+impl PackageResolver {
     /// Create a new resolver.
     pub fn new() -> Self {
         Self {
@@ -417,18 +366,12 @@ impl PkgResolver {
     }
 
     /// Add a package to the resolver.
-    pub fn add_package(&mut self, pkg: &'static CodegenPkg) {
+    pub fn add_package(&mut self, pkg: &'static StaticPackage) {
         self.packages.push(pkg);
     }
 }
 
-impl Default for PkgResolver {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Resolver for PkgResolver {
+impl Resolver for PackageResolver {
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<std::borrow::Cow<'a, str>, E> {
         let pkg_path = match &path.origin {
             PathOrigin::Package(pkg) => pkg,
@@ -529,30 +472,66 @@ impl Resolver for PkgResolver {
     }
 }
 
+/// Numeric constants (WESL feature).
+///
+/// Numeric constants live in a special package named `constants`. This package is
+/// *virtual*, meaning it doesn't exist on the filesystem. Constants can be accessed
+/// by importing them: `import constants::MY_CONSTANT;`.
+///
+/// The type is specified by the variant of [`LiteralInstance`].
+/// The most flexible instance type is `AbstractFloat`, since it can be implicitly converted to all scalar types.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Constants {
+    constants: HashMap<String, LiteralInstance>,
+}
+
+impl Constants {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn add_constant(&mut self, name: impl ToString, value: impl Into<LiteralInstance>) {
+        self.constants.insert(name.to_string(), value.into());
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &LiteralInstance)> {
+        self.constants.iter()
+    }
+}
+
+impl FromIterator<(String, LiteralInstance)> for Constants {
+    fn from_iter<T: IntoIterator<Item = (String, LiteralInstance)>>(iter: T) -> Self {
+        Self {
+            constants: HashMap::from_iter(iter),
+        }
+    }
+}
+
 /// The resolver that implements the WESL standard.
 ///
 /// It resolves modules in external packages registered with [`Self::add_package`] and
 /// modules in the local package with the filesystem.
+#[derive(Default)]
 pub struct StandardResolver {
-    pkg: PkgResolver,
+    pkg: PackageResolver,
     files: FileResolver,
-    constants: HashMap<String, LiteralInstance>,
+    constants: Constants,
 }
 
 impl StandardResolver {
     /// Create a new resolver.
     ///
-    /// `base` is the root directory which absolute paths refer to.
-    pub fn new(base: impl AsRef<Path>) -> Self {
+    /// `pkg_root_dir` is the package root directory which `package::` paths refer to.
+    pub fn new(pkg_root_dir: impl AsRef<Path>) -> Self {
         Self {
-            pkg: PkgResolver::new(),
-            files: FileResolver::new(base),
-            constants: HashMap::new(),
+            pkg: PackageResolver::new(),
+            files: FileResolver::new(pkg_root_dir),
+            constants: Constants::new(),
         }
     }
 
     /// Add an external package.
-    pub fn add_package(&mut self, pkg: &'static CodegenPkg) {
+    pub fn add_package(&mut self, pkg: &'static StaticPackage) {
         self.pkg.add_package(pkg)
     }
 
@@ -562,14 +541,14 @@ impl StandardResolver {
     /// *virtual*, meaning it doesn't exist on the filesystem. Constants can be accessed
     /// by importing them: `import constants::MY_CONSTANT;`.
     ///
-    /// The type is specified by the variant of [`LiteralInstance`].\
+    /// The type is specified by the variant of [`LiteralInstance`].
     /// If specifying a constant that is used with multiple different types or
     /// a constant that benefits from precision, like π, use AbstractFloat,
     /// which can be implicitly converted to all scalar types.
     ///
     /// Note: [`LiteralInstance`] implements [`From`] for all standard numeric types
-    pub fn add_constant(&mut self, name: impl ToString, value: LiteralInstance) {
-        self.constants.insert(name.to_string(), value);
+    pub fn add_constant(&mut self, name: impl ToString, value: impl Into<LiteralInstance>) {
+        self.constants.add_constant(name, value);
     }
 
     /// Generate a module with all declared virtual constants in the resolver
@@ -605,12 +584,15 @@ impl Resolver for StandardResolver {
             self.files.display_name(path)
         }
     }
-    fn fs_path(&self, path: &ModulePath) -> Option<PathBuf> {
+    fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
         if path.origin.is_package() {
             self.pkg.fs_path(path)
         } else {
             self.files.fs_path(path)
         }
+    }
+    fn module_path(&self, path: &Path) -> Result<ModulePath, ResolveError> {
+        self.files.module_path(path)
     }
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {
         // the constants module is shared for all sub-dependencies
@@ -631,30 +613,10 @@ impl Resolver for StandardResolver {
     }
 }
 
-pub fn emit_rerun_if_changed(modules: &[ModulePath], resolver: &impl Resolver) {
-    for module in modules {
-        if module.origin.is_package() {
-            continue;
-        }
-        assert!(
-            !module.origin.is_relative(),
-            "the modules passed to emit_rerun_if_changed must be absolute"
-        );
-        if let Some(mut path) = resolver.fs_path(module) {
-            // Path::display is safe here because of the ModulePath naming restrictions
-            println!("cargo::rerun-if-changed={}", path.display());
-
-            // If it's a fallback path, we need to react to the higher priority path as well
-            if path.extension().unwrap() == "wgsl" {
-                path.set_extension("wesl");
-                println!("cargo::rerun-if-changed={}", path.display());
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
+    use crate::{CompileOptions, Compiler};
+
     use super::*;
 
     #[test]
@@ -698,68 +660,69 @@ mod test {
 
     #[test]
     fn canonical_paths() {
-        static C_ROOT: CodegenModule = CodegenModule {
+        use crate::package::{StaticPackage, StaticPackageModule};
+        static C_ROOT: StaticPackageModule = StaticPackageModule {
             name: "c",
             source: "",
             submodules: &[],
         };
-        static C: CodegenPkg = CodegenPkg {
+        static C: StaticPackage = StaticPackage {
             crate_name: "c",
             root: &C_ROOT,
             dependencies: &[],
         };
-        static D1_ROOT: CodegenModule = CodegenModule {
+        static D1_ROOT: StaticPackageModule = StaticPackageModule {
             name: "d",
             source: "",
             submodules: &[],
         };
-        static D1: CodegenPkg = CodegenPkg {
+        static D1: StaticPackage = StaticPackage {
             crate_name: "d",
             root: &D1_ROOT,
             dependencies: &[],
         };
-        static D2_ROOT: CodegenModule = CodegenModule {
+        static D2_ROOT: StaticPackageModule = StaticPackageModule {
             name: "d",
             source: "",
             submodules: &[],
         };
-        static D2: CodegenPkg = CodegenPkg {
+        static D2: StaticPackage = StaticPackage {
             crate_name: "d",
             root: &D2_ROOT,
             dependencies: &[],
         };
-        static A_ROOT: CodegenModule = CodegenModule {
+        static A_ROOT: StaticPackageModule = StaticPackageModule {
             name: "a",
             source: "",
             submodules: &[],
         };
-        static A: CodegenPkg = CodegenPkg {
+        static A: StaticPackage = StaticPackage {
             crate_name: "a",
             root: &A_ROOT,
             dependencies: &[&C, &D1],
         };
-        static B_ROOT: CodegenModule = CodegenModule {
+        static B_ROOT: StaticPackageModule = StaticPackageModule {
             name: "b",
             source: "",
             submodules: &[],
         };
-        static B: CodegenPkg = CodegenPkg {
+        static B: StaticPackage = StaticPackage {
             crate_name: "b",
             root: &B_ROOT,
             dependencies: &[&C, &D2],
         };
-        static E_ROOT: CodegenModule = CodegenModule {
+        static E_ROOT: StaticPackageModule = StaticPackageModule {
             name: "e",
             source: "",
             submodules: &[],
         };
-        static E: CodegenPkg = CodegenPkg {
+        static E: StaticPackage = StaticPackage {
             crate_name: "e",
             root: &E_ROOT,
             dependencies: &[&C],
         };
 
-        let mut r = PkgResolver::new();
+        let mut r = PackageResolver::new();
         r.add_package(&A);
         r.add_package(&B);
         r.add_package(&E);
@@ -788,15 +751,15 @@ mod test {
         // standard resolver to register some constants
         let mut std = StandardResolver::new(".");
         // AbstractFloat
-        std.add_constant("TAU", std::f64::consts::TAU.into());
+        std.add_constant("TAU", std::f64::consts::TAU);
         // f32
-        std.add_constant("LIGHTING_ANGLE", 10.0f32.into());
+        std.add_constant("LIGHTING_ANGLE", 10.0f32);
         // i32
-        std.add_constant("Z_ROTATION", (-10i32).into());
+        std.add_constant("Z_ROTATION", -10i32);
         // u32
-        std.add_constant("H", (12u32).into());
+        std.add_constant("H", 12u32);
         // bool
-        std.add_constant("BRIGHTEN", (false).into());
+        std.add_constant("BRIGHTEN", false);
 
         // use virtual resolver for the main module
         let mut v = VirtualResolver::new();
@@ -831,9 +794,8 @@ mod test {
         r.mount_fallback_resolver(std);
 
         // compile to test imports and casting
-        crate::Wesl::new(".")
-            .set_custom_resolver(r)
-            .compile(&"package::color_math".parse().unwrap())
+        Compiler::new_with_resolver(CompileOptions::default(), r)
+            .compile_module(&"package::color_math".parse().unwrap())
             .unwrap();
     }
 
@@ -844,17 +806,14 @@ mod test {
         let mut sr = StandardResolver::new(".");
 
         // add math constants
-        sr.add_constant("PI", LiteralInstance::from(std::f64::consts::PI));
-        sr.add_constant("E", LiteralInstance::from(std::f64::consts::E));
+        sr.add_constant("PI", std::f64::consts::PI);
+        sr.add_constant("E", std::f64::consts::E);
         // add misc constants
-        sr.add_constant("NEG_2", LiteralInstance::from(-2i32));
-        sr.add_constant("ONE", LiteralInstance::from(1u32));
-        sr.add_constant("F32_MAX", LiteralInstance::from(f32::MAX));
-        sr.add_constant("IS_HEAVY", LiteralInstance::from(false));
-        sr.add_constant(
-            "NUM_CONSTS",
-            LiteralInstance::from(sr.constants.len() as i64),
-        );
+        sr.add_constant("NEG_2", -2i32);
+        sr.add_constant("ONE", 1u32);
+        sr.add_constant("F32_MAX", f32::MAX);
+        sr.add_constant("IS_HEAVY", false);
+        sr.add_constant("NUM_CONSTS", sr.constants.iter().count() as i64);
 
         // generate the virtual module
         let generated = sr.generate_constant_module();
@@ -867,13 +826,13 @@ mod test {
         assert!(generated.contains("const IS_HEAVY = false;"));
         assert!(generated.contains(&format!(
             "const NUM_CONSTS = {};",
-            (sr.constants.len() as i64) - 1
+            (sr.constants.iter().count() as i64) - 1
         )));
 
         // resolve the package path with the origin `constants`,
         // the source of which should be the same as the generated module
-        let src_root = sr.resolve_source(&"constants".parse().unwrap()).unwrap();
-        assert_eq!(src_root, generated);
+        let constants_src = sr.resolve_source(&"constants".parse().unwrap()).unwrap();
+        assert_eq!(constants_src, generated);
 
         // resolving a path with components should return the same
         let src_comp = sr

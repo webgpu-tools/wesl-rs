@@ -15,7 +15,7 @@ fn test_atomic_compare_exchange_i64() {
         var exchanged: bool = false;
         while (!exchanged) {
             let new_: i64 = bitcast<i64>(old + 10li);
-            let result: __atomic_compare_exchange_result = atomicCompareExchangeWeak(&arr_i64[i], old, new_);
+            let result = atomicCompareExchangeWeak(&arr_i64[i], old, new_);
             old = result.old_value;
             exchanged = result.exchanged;
         }
@@ -29,7 +29,7 @@ fn test_atomic_compare_exchange_u64() {
         var exchanged: bool = false;
         while (!exchanged) {
             let new_: u64 = bitcast<u64>(old + 10lu);
-            let result: __atomic_compare_exchange_result = atomicCompareExchangeWeak(&arr_u64[i], old, new_);
+            let result = atomicCompareExchangeWeak(&arr_u64[i], old, new_);
             old = result.old_value;
             exchanged = result.exchanged;
         }

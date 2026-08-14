@@ -20,7 +20,7 @@ use wesl::syntax::*; // this is necessary for the quote_module macro
 let num_iterations = 8i64;
 
 // the following variable has type `TranslationUnit`.
-let wgsl = quote_module! {
+let module = quote_module! {
     @fragment
     fn fs_main(@location(0) in_color: vec4<f32>) -> @location(0) vec4<f32> {
         for (let i = 0; i < #num_iterations; i++) {
@@ -50,7 +50,7 @@ let inject_struct = Struct::new(Ident::new("mystruct".to_string()));
 let inject_func = Function::new(Ident::new("myfunc".to_string()));
 let inject_stmt = Statement::Void;
 let inject_expr = 1f32;
-let wgsl = quote_module! {
+let module = quote_module! {
     struct #inject_struct { dummy: u32 } // structs cannot be empty
     fn #inject_func() {}
     fn foo() {

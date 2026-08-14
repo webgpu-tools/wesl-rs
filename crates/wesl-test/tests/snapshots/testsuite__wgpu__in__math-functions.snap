@@ -39,13 +39,13 @@ fn main() {
     let clz_d: vec2<u32> = vec2(31u, 31u);
     let lde_a: f32 = 4.0;
     let lde_b: vec2<f32> = vec2(8.0, 32.0);
-    let modf_a: __modf_result_abstract = modf(1.5);
+    let modf_a = modf(1.5);
     let modf_b: f32 = modf(1.5).fract;
     let modf_c: f32 = modf(1.5).whole;
-    let modf_d: __modf_result_vec2_abstract = modf(vec2(1.5, 1.5));
+    let modf_d = modf(vec2(1.5, 1.5));
     let modf_e: f32 = modf(vec4(1.5, 1.5, 1.5, 1.5)).whole.x;
     let modf_f: f32 = modf(vec2(1.5, 1.5)).fract.y;
-    let frexp_a: __frexp_result_abstract = __frexp_result_abstract(0.75, 1);
+    let frexp_a = frexp(1.5);
     let frexp_b: f32 = 0.75;
     let frexp_c: i32 = 1;
     let frexp_d: i32 = 1;

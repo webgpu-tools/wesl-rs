@@ -1,23 +1,101 @@
-use std::fmt::Display;
+//! [`enum@Error`] types.
 
+use std::{fmt::Display, path::PathBuf};
+
+use thiserror::Error;
 use wgsl_parse::{
     span::Span,
     syntax::{Expression, Ident, ModulePath},
 };
 
-use crate::{Mangler, ResolveError, SourceMap, ValidateError};
-
-#[cfg(feature = "generics")]
-use crate::GenericsError;
-
-use crate::CondCompError;
-use crate::ImportError;
-
 #[cfg(feature = "eval")]
-use crate::eval::{Context, EvalError};
+use crate::eval::EvalError;
+use crate::{Mangler, sourcemap::SourceMap};
+
+/// Conditional translation error.
+#[derive(Debug, Error)]
+pub enum CondCompError {
+    #[error("invalid feature flag: `{0}`")]
+    InvalidFeatureFlag(String),
+    #[error("unexpected feature flag: `{0}`")]
+    UnexpectedFeatureFlag(String),
+    #[error("invalid if attribute expression: `{0}`")]
+    InvalidExpression(Expression),
+    #[error("an @elif or @else attribute must be preceded by a @if or @elif on the previous node")]
+    NoPrecedingIf,
+    #[error("cannot have multiple @if/@elif/@else attributes on the same node")]
+    DuplicateIf,
+}
+
+/// Error produced by module resolution.
+#[derive(Debug, thiserror::Error)]
+pub enum ResolveError {
+    #[error("I/O Error: {0}")]
+    Io(std::io::Error),
+    #[error("file not found: `{0}` ({1})")]
+    FileNotFound(PathBuf, String),
+    #[error("module not found: `{0}` ({1})")]
+    ModuleNotFound(ModulePath, String),
+    #[error("the resolver does not support file system paths")]
+    FilesystemNotSupported,
+    #[error("attempt to access path `{0}`, which escapes the package root path `{1}`")]
+    FileEscapesRoot(PathBuf, PathBuf),
+    #[error("{0}")]
+    Error(#[from] Diagnostic<Error>),
+}
+
+/// WESL or WGSL Validation error.
+#[derive(Clone, Debug, thiserror::Error)]
+pub enum ValidateError {
+    #[error("cannot find declaration of `{0}`")]
+    UndefinedSymbol(String),
+    #[error("incorrect number of arguments to `{0}`, expected `{1}`, got `{2}`")]
+    ParamCount(String, usize, usize),
+    #[error("`{0}` is not callable")]
+    NotCallable(String),
+    #[error("duplicate declaration of `{0}`")]
+    Duplicate(String),
+    #[error("declaration of `{0}` is cyclic via `{1}`")]
+    Cycle(String, String),
+}
+
+/// Error produced during import resolution.
+#[derive(Debug, thiserror::Error)]
+pub enum ImportError {
+    #[error("duplicate declaration of `{0}`")]
+    DuplicateSymbol(String),
+    #[error("{0}")]
+    ResolveError(#[from] ResolveError),
+    #[error("module `{0}` has no declaration `{1}`")]
+    MissingDecl(ModulePath, String),
+    #[error(
+        "import of `{0}` in module `{1}` is not `@publish`, but another module tried to import it"
+    )]
+    Private(String, ModulePath),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum TomlError {
+    #[error("wesl.toml not found at `{0}`")]
+    TomlNotFound(PathBuf),
+    #[error("Failed to parse wesl.toml: {0}")]
+    TomlParse(#[from] toml::de::Error),
+    #[error("expected dependencies = \"auto\"")]
+    ExpectedAuto,
+    #[error("Invalid glob pattern `{0}`: {1}")]
+    InvalidGlob(String, glob::PatternError),
+    #[error("File `{0}` is outside root `{1}`")]
+    FileOutsideRoot(PathBuf, PathBuf),
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("No source files matched the include patterns")]
+    NoFilesMatched,
+    #[error("Multiple files map to module `{0}`: {1:?}")]
+    ConflictingFiles(String, Vec<PathBuf>),
+}
 
 /// Any WESL error.
-#[derive(Clone, Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("{0}")]
     ParseError(#[from] wgsl_parse::Error),
@@ -29,9 +107,8 @@ pub enum Error {
     ImportError(#[from] ImportError),
     #[error("{0}")]
     CondCompError(#[from] CondCompError),
-    #[cfg(feature = "generics")]
     #[error("{0}")]
-    GenericsError(#[from] GenericsError),
+    TomlError(#[from] TomlError),
     #[cfg(feature = "eval")]
     #[error("{0}")]
     EvalError(#[from] EvalError),
@@ -45,8 +122,8 @@ pub enum Error {
 ///
 /// A diagnostic is a wrapper around an error with extra contextual metadata: the source,
 /// the declaration name, the span, ...
-#[derive(Clone, Debug)]
-pub struct Diagnostic<E> {
+#[derive(Debug)]
+pub struct Diagnostic<E = Error> {
     pub error: Box<E>,
     pub detail: Box<Detail>,
 }
@@ -79,9 +156,11 @@ impl From<ValidateError> for Diagnostic<Error> {
 impl From<ResolveError> for Diagnostic<Error> {
     fn from(error: ResolveError) -> Self {
         match error {
-            ResolveError::FileNotFound(_, _) | ResolveError::ModuleNotFound(_, _) => {
-                Self::new(error.into())
-            }
+            ResolveError::Io(_)
+            | ResolveError::FileNotFound(_, _)
+            | ResolveError::ModuleNotFound(_, _)
+            | ResolveError::FilesystemNotSupported
+            | ResolveError::FileEscapesRoot(_, _) => Self::new(error.into()),
             ResolveError::Error(e) => e,
         }
     }
@@ -102,9 +181,8 @@ impl From<CondCompError> for Diagnostic<Error> {
     }
 }
 
-#[cfg(feature = "generics")]
-impl From<GenericsError> for Diagnostic<Error> {
-    fn from(error: GenericsError) -> Self {
+impl From<TomlError> for Diagnostic<Error> {
+    fn from(error: TomlError) -> Self {
         Self::new(error.into())
     }
 }
@@ -123,12 +201,17 @@ impl From<Error> for Diagnostic<Error> {
             Error::ResolveError(e) => e.into(),
             Error::ImportError(e) => e.into(),
             Error::Error(e) => e,
-            error => Self::new(error),
+            Error::ValidateError(e) => e.into(),
+            Error::CondCompError(e) => e.into(),
+            Error::TomlError(e) => e.into(),
+            #[cfg(feature = "eval")]
+            Error::EvalError(e) => e.into(),
+            Error::Custom(_) => Self::new(error),
         }
     }
 }
 
-impl<E: std::error::Error> Diagnostic<E> {
+impl<E> Diagnostic<E> {
     /// Create an empty diagnostic from an error. No metadata is attached.
     fn new(error: E) -> Diagnostic<E> {
         Self {
@@ -185,7 +268,7 @@ impl<E: std::error::Error> Diagnostic<E> {
     }
     /// Add metadata collected by the evaluation/execution context.
     #[cfg(feature = "eval")]
-    pub fn with_ctx(mut self, ctx: &Context) -> Self {
+    pub fn with_ctx(mut self, ctx: &crate::eval::Context) -> Self {
         let (decl, span) = ctx.err_ctx();
         self.detail.declaration = decl.map(|id| id.to_string());
         self.detail.span = span;
@@ -196,24 +279,24 @@ impl<E: std::error::Error> Diagnostic<E> {
     /// this will automatically add the source, the module path and the declaration name.
     pub fn with_sourcemap(mut self, sourcemap: &impl SourceMap) -> Self {
         if let Some(decl) = &self.detail.declaration
-            && let Some((path, decl)) = sourcemap.get_decl(decl)
+            && let Some(entry) = sourcemap.item(decl)
         {
-            self.detail.module_path = Some(path.clone());
-            self.detail.declaration = Some(decl.to_string());
+            self.detail.module_path = Some(entry.path.clone());
+            self.detail.declaration = Some(entry.name.to_string());
             self.detail.display_name = sourcemap
-                .get_display_name(path)
+                .display_name(&entry.path)
                 .map(|name| name.to_string());
             self.detail.source = sourcemap
-                .get_source(path)
+                .source(&entry.path)
                 .map(|s| s.to_string())
                 .or(self.detail.source);
         }
 
         if self.detail.source.is_none() {
             if let Some(path) = &self.detail.module_path {
-                self.detail.source = sourcemap.get_source(path).map(|s| s.to_string());
+                self.detail.source = sourcemap.source(path).map(|s| s.to_string());
             } else {
-                self.detail.source = sourcemap.get_default_source().map(|s| s.to_string());
+                self.detail.source = sourcemap.default_source().map(|s| s.to_string());
             }
         }
 
@@ -240,12 +323,14 @@ impl<E: std::error::Error> Diagnostic<E> {
 }
 
 impl Diagnostic<Error> {
-    // XXX: this function has issues when the root module identifiers are not mangled.
+    /// XXX: this function has issues when the main module identifiers are not mangled.
     /// unmangle any mangled identifiers in the error.
     ///
     /// The mangled must be the same used for compiling the WGSL source. It must have
-    /// unmangling capabilities. If not, you might want to use a [`crate::SourceMapper`].
-    pub fn unmangle(
+    /// unmangling capabilities. If not, you might want to use a [`crate::sourcemap::SourceMapper`].
+    // TODO: this is no longer used, but should
+    #[allow(dead_code, reason = "TODO this should be re-added")]
+    fn unmangle(
         mut self,
         sourcemap: Option<&impl SourceMap>,
         mangler: Option<&impl Mangler>,
@@ -255,17 +340,17 @@ impl Diagnostic<Error> {
             sourcemap: Option<&impl SourceMap>,
             mangler: Option<&impl Mangler>,
         ) {
-            let res_name = if let Some(sourcemap) = sourcemap {
+            let path_name = if let Some(sourcemap) = sourcemap {
                 sourcemap
-                    .get_decl(&id.name())
-                    .map(|(res, name)| (res.clone(), name.to_string()))
+                    .item(&id.name())
+                    .map(|entry| (entry.path.clone(), entry.name.to_string()))
             } else if let Some(mangler) = mangler {
                 mangler.unmangle(&id.name())
             } else {
                 None
             };
-            if let Some((res, name)) = res_name {
-                *id = Ident::new(format!("{res}::{name}"));
+            if let Some((path, name)) = path_name {
+                *id = Ident::new(format!("{path}::{name}"));
             }
         }
 
@@ -274,17 +359,17 @@ impl Diagnostic<Error> {
             sourcemap: Option<&impl SourceMap>,
             mangler: Option<&impl Mangler>,
         ) {
-            let res_name = if let Some(sourcemap) = sourcemap {
+            let path_name = if let Some(sourcemap) = sourcemap {
                 sourcemap
-                    .get_decl(mangled)
-                    .map(|(res, name)| (res.clone(), name.to_string()))
+                    .item(mangled)
+                    .map(|entry| (entry.path.clone(), entry.name.to_string()))
             } else if let Some(mangler) = mangler {
                 mangler.unmangle(mangled)
             } else {
                 None
             };
-            if let Some((res, name)) = res_name {
-                *mangled = format!("{res}::{name}");
+            if let Some((path, name)) = path_name {
+                *mangled = format!("{path}::{name}");
             }
         }
 
@@ -371,6 +456,10 @@ impl Diagnostic<Error> {
             }
         }
 
+        if let Some(decl) = &mut self.detail.declaration {
+            unmangle_name(decl, sourcemap, mangler);
+        }
+
         match &mut *self.error {
             Error::ParseError(_) => {}
             Error::ValidateError(e) => match e {
@@ -392,8 +481,9 @@ impl Diagnostic<Error> {
                 | CondCompError::NoPrecedingIf
                 | CondCompError::DuplicateIf => {}
             },
-            #[cfg(feature = "generics")]
-            Error::GenericsError(_) => {}
+            Error::TomlError(_) => {}
+            // #[cfg(feature = "generics")]
+            // Error::GenericsError(_) => {}
             #[cfg(feature = "eval")]
             Error::EvalError(e) => match e {
                 EvalError::NotScalar(ty) => unmangle_ty(ty, sourcemap, mangler),
@@ -634,8 +724,8 @@ impl Error {
     ///
     /// Diagnostics provide better-looking error messages.
     /// Use [`Diagnostic::colored`] to get a colored output similar to Rust's compiler errors.
-    pub fn diagnostic(&self) -> Diagnostic<Error> {
-        Diagnostic::from(self.clone())
+    pub fn diagnostic(self) -> Diagnostic<Error> {
+        Diagnostic::from(self)
     }
 }
 

@@ -1,20 +1,23 @@
+//! Shader packaging.
+
 use std::{
     collections::HashSet,
     path::{Path, PathBuf},
 };
 
 use crate::{
-    Diagnostic, Error, ModulePath, SyntaxUtil,
-    resolve::CodegenPkg,
-    validate::validate_wesl,
-    wesl_toml::{self, ScanTomlError, WeslToml},
+    error::{Diagnostic, Error, TomlError},
+    pass,
+    toml_cfg::{self, WeslToml},
 };
-use quote::{format_ident, quote};
 use wgsl_parse::{
     lexer::{Lexer, Token},
-    syntax::TranslationUnit,
+    syntax::{ModulePath, TranslationUnit},
 };
 use wgsl_types::idents::RESERVED_WORDS;
+
+#[cfg(feature = "package")]
+use quote::{format_ident, quote};
 
 /// WGSL identifier predicate, including reserved words, but excluding keywords.
 pub(crate) fn is_mod_ident(name: &str) -> bool {
@@ -69,10 +72,12 @@ pub(crate) const RESERVED_MOD_NAMES: &[&str] = &[
 ///
 /// # Usage
 ///
-/// ```ignore
+/// ```no_run
 /// // in build.rs
+/// # #[allow(clippy::needless_doctest_main)]
 /// fn main() {
-///    wesl::PkgBuilder::new("my_package")
+/// #  #[cfg(feature = "package")]
+///    wesl::package::PackageBuilder::new("my_package")
 ///        // read all wesl files in the directory "src/shaders"
 ///        .scan_root("src/shaders")
 ///        .expect("failed to scan WESL files")
@@ -85,46 +90,71 @@ pub(crate) const RESERVED_MOD_NAMES: &[&str] = &[
 ///        .expect("failed to build artifact");
 /// }
 /// ```
+///
 /// Then, in your `lib.rs` file, expose the generated module with the [`crate::wesl_pkg`] macro.
-/// ```ignore
+///
+/// ```rust,ignore
 /// wesl::wesl_pkg!(pub my_package);
 /// ```
 ///
 /// The package name must be a valid rust identifier, E.g. it must not contain dashes `-`.
 /// Dashes are replaced with underscores `_`.
-pub struct PkgBuilder {
+pub struct PackageBuilder {
     name: String,
-    dependencies: Vec<&'static CodegenPkg>,
+    dependencies: Vec<&'static StaticPackage>,
 }
 
 /// The type holding the source code of packages.
 ///
-/// This struct is produced by [`PkgBuilder::scan_root`], but one can also create or edit
+/// This struct is produced by [`PackageBuilder::scan_root`], but one can also create or edit
 /// packages manually by modifying this struct. The final package is produced by calling
 /// [`Self::build_artifact`] or [`Self::codegen`].
-pub struct Pkg {
+pub struct Package {
     pub crate_name: String,
-    pub root: Module,
-    pub dependencies: Vec<&'static CodegenPkg>,
+    pub root: PackageModule,
+    pub dependencies: Vec<&'static StaticPackage>,
 }
 
 /// The type holding the source code of individual modules in packages.
 ///
-/// See [`Pkg`].
+/// See [`Package`].
 #[derive(Debug)]
-pub struct Module {
+pub struct PackageModule {
     pub name: String,
     pub source: String,
-    pub submodules: Vec<Module>,
+    pub submodules: Vec<PackageModule>,
 }
 
+/// The type holding the source code of external packages.
+///
+/// You typically don't implement this, instead it is generated for you by [`PackageBuilder`].
+/// Crates containing shader packages export `const` instances of this type, which you can
+/// then import and [add to your resolver][crate::resolver::StandardResolver::add_package].
+#[derive(Debug, PartialEq, Eq)]
+pub struct StaticPackage {
+    pub crate_name: &'static str,
+    pub root: &'static StaticPackageModule,
+    pub dependencies: &'static [&'static StaticPackage],
+}
+
+/// The type holding the source code of modules in external packages.
+///
+/// See [`StaticPackage`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct StaticPackageModule {
+    pub name: &'static str,
+    pub source: &'static str,
+    pub submodules: &'static [&'static StaticPackageModule],
+}
+
+/// Error type for [`PackageBuilder::scan_root`].
 #[derive(Debug, thiserror::Error)]
 pub enum ScanDirectoryError {
-    #[error("Package root was not found: `{0}`")]
+    #[error("Package root directory not found: `{0}`")]
     RootNotFound(PathBuf),
     #[error("Module name `{0}` is reserved")]
     ReservedModName(String),
-    #[error("I/O error while scanning package root: {0}")]
+    #[error("I/O error while scanning package directory: {0}")]
     Io(#[from] std::io::Error),
 }
 
@@ -132,7 +162,7 @@ fn cargo_crate_name() -> String {
     std::env::var("CARGO_PKG_NAME").expect("CARGO_PKG_NAME environment variable is not defined")
 }
 
-impl PkgBuilder {
+impl PackageBuilder {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.replace('-', "_"),
@@ -142,29 +172,28 @@ impl PkgBuilder {
 
     /// Add a package dependency.
     ///
-    /// Learn more about packages in [`PkgBuilder`].
-    pub fn add_package(mut self, pkg: &'static CodegenPkg) -> Self {
+    /// Learn more about packages in [`PackageBuilder`].
+    pub fn add_package(mut self, pkg: &'static StaticPackage) -> Self {
         self.dependencies.push(pkg);
         self
     }
 
     /// Add several package dependencies.
     ///
-    /// Learn more about packages in [`PkgBuilder`].
-    pub fn add_packages(mut self, pkgs: impl IntoIterator<Item = &'static CodegenPkg>) -> Self {
+    /// Learn more about packages in [`PackageBuilder`].
+    pub fn add_packages(mut self, pkgs: impl IntoIterator<Item = &'static StaticPackage>) -> Self {
         for pkg in pkgs {
             self = self.add_package(pkg);
         }
         self
     }
 
-    /// Reads all files to include in the package, starting from the root module.
+    // TODO: semantics have changed: the package root module is now in a special `package.wesl` file relative to the root dir.
+    /// Read all files to include in the package, starting from the package root directory.
     ///
-    /// The input path must point at the root file or folder. The package will include
-    /// all .wesl and .wgsl files reachable from the root module, recursively.
-    /// The name or the root file is ignored, instead the name of the package is used.
-    pub fn scan_root(self, path: impl AsRef<Path>) -> Result<Pkg, ScanDirectoryError> {
-        fn process_path(path: &Path) -> Result<Option<Module>, ScanDirectoryError> {
+    /// The package will include all `.wesl` and `.wgsl` files reachable from the package root, recursively.
+    pub fn scan_root(self, pkg_root_dir: impl AsRef<Path>) -> Result<Package, ScanDirectoryError> {
+        fn process_path(path: &Path) -> Result<Option<PackageModule>, ScanDirectoryError> {
             let path_with_ext_wesl = path.with_extension("wesl");
             let path_with_ext_wgsl = path.with_extension("wgsl");
             let path_without_ext = path.with_extension("");
@@ -231,7 +260,7 @@ impl PkgBuilder {
                 return Ok(None);
             }
 
-            let module = Module {
+            let module = PackageModule {
                 name: path_filename,
                 source,
                 submodules,
@@ -240,21 +269,22 @@ impl PkgBuilder {
             Ok(Some(module))
         }
 
-        let root_path = path.as_ref().to_path_buf();
-        let potential_module = process_path(&root_path)?;
+        let pkg_root_dir = pkg_root_dir.as_ref().to_path_buf();
+        let potential_module = process_path(&pkg_root_dir)?;
         let Some(mut module) = potential_module else {
-            return Err(ScanDirectoryError::RootNotFound(root_path));
+            return Err(ScanDirectoryError::RootNotFound(pkg_root_dir));
         };
         // top level module should be named by package builder and not file path
         module.name = self.name;
 
-        Ok(Pkg {
+        Ok(Package {
             crate_name: cargo_crate_name(),
             root: module,
             dependencies: self.dependencies,
         })
     }
 
+    // TODO: semantics have changed: the package root module is now in a special `package.wesl` file relative to the root dir.
     /// Reads a wesl.toml file and builds a package from its configuration.
     ///
     /// The wesl.toml file should be located in the given directory and contain:
@@ -263,29 +293,35 @@ impl PkgBuilder {
     ///
     /// # Example
     ///
-    /// ```ignore
-    /// wesl::PkgBuilder::new("my_package")
+    /// ```no_run
+    /// # #[cfg(feature = "package")]
+    /// wesl::package::PackageBuilder::new("my_package")
     ///     .scan_toml(".")  // looks for ./wesl.toml
     ///     .expect("failed to scan WESL files")
     ///     .build_artifact()
     ///     .expect("failed to build artifact");
     /// ```
-    pub fn scan_toml(self, dir: impl AsRef<Path>) -> Result<Pkg, ScanTomlError> {
-        let dir = dir.as_ref();
-        let toml_path = dir.join("wesl.toml");
+    pub fn scan_toml(self, toml_path: impl AsRef<Path>) -> Result<Package, TomlError> {
+        let mut toml_path = toml_path.as_ref().to_path_buf();
 
-        if !toml_path.exists() {
-            return Err(ScanTomlError::TomlNotFound(toml_path));
+        if toml_path.is_dir() {
+            toml_path.push("wesl.toml");
         }
 
+        if !toml_path.is_file() {
+            return Err(TomlError::TomlNotFound(toml_path));
+        }
+
+        let dir = toml_path.parent().unwrap(/* SAFETY: toml_path is a file, must have a parent. */);
+
         let config = WeslToml::from_file(&toml_path)?;
-        let result = wesl_toml::scan_from_config(&self.name, dir, &config)?;
+        let result = toml_cfg::scan_from_config(&self.name, dir, &config)?;
 
         for warning in &result.warnings {
             println!("cargo::warning={warning}");
         }
 
-        Ok(Pkg {
+        Ok(Package {
             crate_name: cargo_crate_name(),
             root: result.module,
             dependencies: self.dependencies,
@@ -293,7 +329,41 @@ impl PkgBuilder {
     }
 }
 
-impl Module {
+impl PackageModule {
+    fn validate(&self, parent_path: ModulePath) -> Result<(), Error> {
+        let mut path = parent_path.clone();
+        path.push(&self.name);
+
+        eprintln!("INFO: validate {path}");
+
+        let to_diagnostic = |e: Error| {
+            Diagnostic::from(e)
+                .with_module_path(path.clone(), None)
+                .with_source(self.source.clone())
+        };
+        let mut module: TranslationUnit = self
+            .source
+            .parse()
+            .map_err(|e: wgsl_parse::Error| to_diagnostic(e.into()))?;
+        pass::retarget_idents(&mut module);
+        pass::validate_wesl(&module).map_err(|e| to_diagnostic(e.into()))?;
+        for module in &self.submodules {
+            module.validate(path.clone())?;
+        }
+        Ok(())
+    }
+}
+
+impl Package {
+    /// Run [validation][pass::validate_wesl] on each of the scanned files.
+    pub fn validate(self) -> Result<Self, Error> {
+        self.root.validate(ModulePath::new_root())?;
+        Ok(self)
+    }
+}
+
+#[cfg(feature = "package")]
+impl PackageModule {
     fn codegen(&self) -> proc_macro2::TokenStream {
         let mod_ident = format_ident!("r#{}", self.name);
         let name = &self.name;
@@ -309,8 +379,8 @@ impl Module {
 
         quote! {
             pub mod #mod_ident {
-                use super::CodegenModule;
-                pub static MODULE: CodegenModule = CodegenModule {
+                use super::StaticPackageModule;
+                pub static MODULE: StaticPackageModule = StaticPackageModule {
                     name: #name,
                     source: #source,
                     submodules: &[#(#submodules),*]
@@ -320,32 +390,10 @@ impl Module {
             }
         }
     }
-
-    fn validate(&self, parent_path: ModulePath) -> Result<(), Error> {
-        let mut path = parent_path.clone();
-        path.push(&self.name);
-
-        eprintln!("INFO: validate {path}");
-
-        let to_diagnostic = |e: Error| {
-            Diagnostic::from(e)
-                .with_module_path(path.clone(), None)
-                .with_source(self.source.clone())
-        };
-        let mut wesl: TranslationUnit = self
-            .source
-            .parse()
-            .map_err(|e: wgsl_parse::Error| to_diagnostic(e.into()))?;
-        wesl.retarget_idents();
-        validate_wesl(&wesl).map_err(|e| to_diagnostic(e.into()))?;
-        for module in &self.submodules {
-            module.validate(path.clone())?;
-        }
-        Ok(())
-    }
 }
 
-impl Pkg {
+#[cfg(feature = "package")]
+impl Package {
     /// Generate the rust code that holds the packaged wesl files.
     /// You probably want to use [`Self::build_artifact`] instead.
     pub fn codegen(&self) -> String {
@@ -368,13 +416,13 @@ impl Pkg {
         let submods = self.root.submodules.iter().map(|submod| submod.codegen());
 
         let tokens = quote! {
-            pub static PACKAGE: CodegenPkg = CodegenPkg {
+            pub static PACKAGE: StaticPackage = StaticPackage {
                 crate_name: #crate_name,
                 root: &MODULE,
                 dependencies: &[#(#deps),*],
             };
 
-            pub static MODULE: CodegenModule = CodegenModule {
+            pub static MODULE: StaticPackageModule = StaticPackageModule {
                 name: #root_name,
                 source: #root_source,
                 submodules: &[#(#submodules),*]
@@ -384,12 +432,6 @@ impl Pkg {
         };
 
         tokens.to_string()
-    }
-
-    /// Run validation checks on each of the scanned files.
-    pub fn validate(self) -> Result<Self, Error> {
-        self.root.validate(ModulePath::new_root())?;
-        Ok(self)
     }
 
     /// Generate the build artifact that can then be exposed by the [`super::wesl_pkg`] macro.

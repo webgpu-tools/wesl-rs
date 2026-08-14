@@ -1,3 +1,5 @@
+//! Typechecking, Evaluation and Validation.
+
 mod attrs;
 mod constant;
 mod error;
@@ -27,7 +29,7 @@ use wgsl_parse::{
     syntax::*,
 };
 
-use crate::syntax_util::IteratorExt;
+use crate::util::IteratorExt;
 
 #[derive(Debug)]
 struct ScopeInner<T> {

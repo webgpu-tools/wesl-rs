@@ -1,25 +1,8 @@
+use crate::error::{CondCompError, Diagnostic, Error};
 use std::collections::HashMap;
-
-use crate::Diagnostic;
-use thiserror::Error;
 use wgsl_parse::{SyntaxNode, span::Spanned, syntax::*};
 
-/// Conditional translation error.
-#[derive(Clone, Debug, Error)]
-pub enum CondCompError {
-    #[error("invalid feature flag: `{0}`")]
-    InvalidFeatureFlag(String),
-    #[error("unexpected feature flag: `{0}`")]
-    UnexpectedFeatureFlag(String),
-    #[error("invalid if attribute expression: `{0}`")]
-    InvalidExpression(Expression),
-    #[error("an @elif or @else attribute must be preceded by a @if or @elif on the previous node")]
-    NoPrecedingIf,
-    #[error("cannot have multiple @if/@elif/@else attributes on the same node")]
-    DuplicateIf,
-}
-
-type E = crate::Error;
+type E = Error;
 
 /// Set the behavior for a feature flag during conditional translation.
 ///
@@ -40,6 +23,10 @@ pub enum Feature {
 
 /// Toggle conditional compilation feature flags.
 ///
+/// Conditional translation is incremental if [`field@Self::default`] is set to [`Feature::Keep`].
+/// If not all feature flags are handled, the output will contain unevaluated `@if`
+/// attributes and will therefore *not* be valid WGSL.
+///
 /// Feature flags set to `true` are enabled, and `false` are disabled. Feature flags not
 /// present in `flags` are treated according to `default`.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -55,6 +42,16 @@ impl From<bool> for Feature {
         } else {
             Feature::Disable
         }
+    }
+}
+
+impl Features {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn add_feature(&mut self, name: impl ToString, value: impl Into<Feature>) {
+        self.flags.insert(name.to_string(), value.into());
     }
 }
 
@@ -413,10 +410,11 @@ fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) 
     rec(statements, features).map(|_| ())
 }
 
-pub fn run(wesl: &mut TranslationUnit, features: &Features) -> Result<(), E> {
-    wesl.remove_voids();
-    eval_if_attrs(&mut wesl.imports, features)?;
-    eval_if_attrs(&mut wesl.global_directives, features)?;
+/// Run the conditional translation phase, eliminating unused code branches.
+pub fn condcomp(module: &mut TranslationUnit, features: &Features) -> Result<(), E> {
+    module.remove_voids();
+    eval_if_attrs(&mut module.imports, features)?;
+    eval_if_attrs(&mut module.global_directives, features)?;
 
     // If an `@if` decorates a compound global declaration, it gets flattened.
     // This is the same code as in eval_if_attrs, except it flattens the compound when it evaluates to true.
@@ -457,9 +455,9 @@ pub fn run(wesl: &mut TranslationUnit, features: &Features) -> Result<(), E> {
         Ok(())
     }
 
-    eval_flatten_compound(&mut wesl.global_declarations, features)?;
+    eval_flatten_compound(&mut module.global_declarations, features)?;
 
-    for decl in &mut wesl.global_declarations {
+    for decl in &mut module.global_declarations {
         if let GlobalDeclaration::Struct(decl) = decl.node_mut() {
             eval_if_attrs(&mut decl.members, features)
                 .map_err(|e| Diagnostic::from(e).with_declaration(decl.ident.to_string()))?;

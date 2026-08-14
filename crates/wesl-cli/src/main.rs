@@ -10,10 +10,12 @@ use std::{
     str::FromStr,
 };
 use wesl::{
-    CompileOptions, CompileResult, Diagnostic, Feature, Features, Inputs, ManglerKind, ModulePath,
-    PkgBuilder, Router, StandardResolver, SyntaxUtil, VirtualResolver, Wesl,
-    eval::{Eval, EvalAttrs, Instance, RefInstance, Ty, ty_eval_ty},
-    syntax::{self, AccessMode, AddressSpace, PathOrigin, TranslationUnit},
+    CompileOptions, CompileResult, Compiler, Feature, Features, ManglerKind,
+    error::Diagnostic,
+    eval::{Eval, EvalAttrs, Inputs, Instance, LiteralInstance, RefInstance, Ty, ty_eval_ty},
+    package::PackageBuilder,
+    resolver::{Router, StandardResolver, VirtualResolver},
+    syntax::{self, AccessMode, AddressSpace, ModulePath, PathOrigin, TranslationUnit},
 };
 
 // adapted from clap cookbook: https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
@@ -56,7 +58,7 @@ enum Command {
     /// Execute a WGSL shader function on the CPU
     Exec(ExecArgs),
     /// Generate a publishable Cargo package from WESL source code
-    Package(PkgArgs),
+    Package(PackageArgs),
 }
 
 #[derive(Default, Clone, Copy, Debug, ValueEnum)]
@@ -148,63 +150,80 @@ struct CompOptsArgs {
     /// Disable performing validation checks
     #[arg(long)]
     no_validate: bool,
-    /// Eager imports: load all modules referenced by an identifier, regardless of if it is
-    /// used.
+    /// Enable mangling of declarations in the main module.
     #[arg(long)]
-    eager: bool,
-    /// Enable mangling of declarations in the root module.
-    #[arg(long)]
-    mangle_root: bool,
+    mangle_main: bool,
     /// Disable performing validation checks with naga
     #[cfg(feature = "naga")]
     #[arg(long)]
     no_naga: bool,
-    /// Root module declaration names to keep. Keeps all root module entrypoints by
+    /// Main module declaration names to keep. Keeps all main module entrypoints by
     /// default. Can be repeated to keep multiple declarations
     #[arg(long)]
     keep: Option<Vec<String>>,
-    /// Keep all root module declarations instead of just the entrypoints
+    /// Keep all main module declarations instead of just the entrypoints
     #[arg(long)]
-    keep_root: bool,
+    keep_main: bool,
     /// Set a conditional compilation feature flag. Can be repeated
     #[arg(short='D', long, value_name="NAME | NAME=[enable, disable, keep, error]", value_parser = parse_key_val::<String, ClapFeature>)]
     feature: Vec<(String, ClapFeature)>,
     /// Default behavior for unspecified conditional compilation features
     #[arg(long, default_value = "disable")]
     feature_default: ClapFeature,
-    /// Root folder for `package::` imports. Defaults to the parent directory of the root module
+    /// Package root directory for `package::` imports. Defaults to the parent directory of the main module.
     #[arg(long)]
-    base: Option<PathBuf>,
+    root: Option<PathBuf>,
+    /// Literal constants in the `constants` virtual module.
+    #[arg(long = "constant", value_name="NAME=LITERAL", value_parser = parse_key_val::<String, String>)]
+    constants: Vec<(String, String)>,
 }
 
-impl From<&CompOptsArgs> for CompileOptions {
-    fn from(opts: &CompOptsArgs) -> Self {
+impl TryFrom<&CompOptsArgs> for CompileOptions {
+    type Error = CliError;
+
+    fn try_from(opts: &CompOptsArgs) -> Result<Self, CliError> {
         let flags = opts
             .feature
             .iter()
             .map(|(k, v)| (k.clone(), (*v).into()))
             .collect();
 
-        Self {
+        let constants = opts
+            .constants
+            .iter()
+            .map(
+                |(name, expr)| -> Result<(String, LiteralInstance), CliError> {
+                    let expr = expr
+                        .parse::<syntax::LiteralExpression>()
+                        .map_err(|e| Diagnostic::from(e).with_source(expr.to_string()))?;
+                    Ok((name.to_string(), LiteralInstance::from(expr)))
+                },
+            )
+            .collect::<Result<_, _>>()?;
+
+        Ok(Self {
             imports: !opts.no_imports,
             condcomp: !opts.no_cond_comp,
             generics: opts.generics,
             strip: !opts.no_strip,
             lower: opts.lower,
             validate: !opts.no_validate,
-            lazy: !opts.eager,
-            mangle_root: opts.mangle_root,
+            sourcemap: !opts.no_sourcemap,
+            mangle_main: opts.mangle_main,
             keep: if opts.no_strip {
                 None
             } else {
                 opts.keep.clone()
             },
-            keep_root: opts.keep_root,
+            keep_main: opts.keep_main,
             features: Features {
                 default: opts.feature_default.into(),
                 flags,
             },
-        }
+            mangler: opts.mangler.into(),
+            constants,
+            dependencies: Default::default(),
+        })
     }
 }
 
@@ -367,14 +386,14 @@ struct ExecArgs {
 }
 
 #[derive(Args, Clone, Debug)]
-struct PkgArgs {
+struct PackageArgs {
     /// name of the generated crate
     name: String,
     /// directory containing the .wesl shader files
     dir: PathBuf,
 }
 
-#[derive(Clone, Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 enum CliError {
     #[error("input file not found")]
     FileNotFound,
@@ -387,9 +406,9 @@ enum CliError {
     #[error("Could not convert instance to buffer (type `{0}` is not storable)")]
     NotStorable(wesl::eval::Type),
     #[error("{0}")]
-    WeslError(#[from] wesl::Error),
+    WeslError(#[from] wesl::error::Error),
     #[error("{0}")]
-    WeslDiagnostic(#[from] wesl::Diagnostic<wesl::Error>),
+    WeslDiagnostic(#[from] wesl::error::Diagnostic<wesl::error::Error>),
     #[cfg(feature = "naga")]
     #[error("naga parse error: {}", .0.emit_to_string(.1))]
     NagaParse(naga::front::wgsl::ParseError, String),
@@ -407,18 +426,13 @@ fn run_compile(
     options: &CompOptsArgs,
     file_or_source: FileOrSource,
 ) -> Result<CompileResult, CliError> {
-    let compile_options = CompileOptions::from(options);
-
-    let mut compiler = Wesl::new_barebones();
-    compiler
-        .set_options(compile_options)
-        .use_sourcemap(!options.no_sourcemap)
-        .set_mangler(options.mangler.into());
+    let compile_options = CompileOptions::try_from(options)?;
+    let compiler = Compiler::new(compile_options);
 
     match file_or_source {
         FileOrSource::File(path) => {
             let base = options
-                .base
+                .root
                 .as_deref()
                 .or(path.parent())
                 .ok_or(CliError::FileNotFound)?;
@@ -430,7 +444,7 @@ fn run_compile(
             let path = ModulePath::new(PathOrigin::Absolute, vec![name]);
             let resolver = StandardResolver::new(base);
 
-            let res = compiler.set_custom_resolver(resolver).compile(&path)?;
+            let res = compiler.with_resolver(resolver).compile_module(&path)?;
             Ok(res)
         }
         FileOrSource::Source(source) => {
@@ -443,7 +457,7 @@ fn run_compile(
             router.mount_resolver(path.clone(), resolver);
             router.mount_fallback_resolver(StandardResolver::new(base));
 
-            let res = compiler.set_custom_resolver(router).compile(&path)?;
+            let res = compiler.with_resolver(router).compile_module(&path)?;
             Ok(res)
         }
     }
@@ -451,11 +465,11 @@ fn run_compile(
 
 fn parse_binding(
     b: &Binding,
-    wgsl: &TranslationUnit,
+    module: &TranslationUnit,
 ) -> Result<((u32, u32), RefInstance), CliError> {
-    let mut ctx = wesl::eval::Context::new(wgsl);
+    let mut ctx = wesl::eval::Context::new(module);
 
-    let ty_expr = wgsl
+    let ty_expr = module
         .global_declarations
         .iter()
         .find_map(|d| match d.node() {
@@ -507,8 +521,8 @@ fn parse_binding(
     ))
 }
 
-fn parse_override(src: &str, wgsl: &TranslationUnit) -> Result<Instance, CliError> {
-    let mut ctx = wesl::eval::Context::new(wgsl);
+fn eval_expr(src: &str, module: &TranslationUnit) -> Result<Instance, CliError> {
+    let mut ctx = wesl::eval::Context::new(module);
     let expr = src
         .parse::<syntax::Expression>()
         .map_err(|e| Diagnostic::from(e).with_source(src.to_string()))?;
@@ -577,10 +591,10 @@ fn run(cli: Cli) -> Result<(), CliError> {
                     // extensions.
                     wgsl_parse::recognize_str(&source)
                         .map_err(|e| Diagnostic::from(e).with_source(source.clone()))?;
-                    let mut wgsl = wgsl_parse::parse_str(&source)
+                    let mut module = wgsl_parse::parse_str(&source)
                         .map_err(|e| Diagnostic::from(e).with_source(source.clone()))?;
-                    wgsl.retarget_idents();
-                    wesl::validate_wgsl(&wgsl)?;
+                    wesl::pass::retarget_idents(&mut module);
+                    wesl::pass::validate_wgsl(&module)?;
 
                     #[cfg(feature = "naga")]
                     if args.naga {
@@ -588,10 +602,10 @@ fn run(cli: Cli) -> Result<(), CliError> {
                     }
                 }
                 CheckKind::Wesl => {
-                    let mut wesl = TranslationUnit::from_str(&source)
+                    let mut module = TranslationUnit::from_str(&source)
                         .map_err(|e| Diagnostic::from(e).with_source(source))?;
-                    wesl.retarget_idents();
-                    wesl::validate_wesl(&wesl)?;
+                    wesl::pass::retarget_idents(&mut module);
+                    wesl::pass::validate_wesl(&module)?;
                 }
             }
             println!("OK");
@@ -638,7 +652,7 @@ fn run(cli: Cli) -> Result<(), CliError> {
                 .overrides
                 .iter()
                 .map(|(name, expr)| -> Result<(String, Instance), CliError> {
-                    Ok((name.to_string(), parse_override(expr, &comp.syntax)?))
+                    Ok((name.to_string(), eval_expr(expr, &comp.syntax)?))
                 })
                 .collect::<Result<_, _>>()?;
 
@@ -679,7 +693,7 @@ fn run(cli: Cli) -> Result<(), CliError> {
             }
         }
         Command::Package(args) => {
-            let code = PkgBuilder::new(&args.name)
+            let code = PackageBuilder::new(&args.name)
                 .scan_root(args.dir)
                 .expect("failed to scan WESL files")
                 .validate()

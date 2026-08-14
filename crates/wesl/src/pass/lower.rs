@@ -1,4 +1,4 @@
-use crate::{Error, visit::Visit};
+use crate::{error::Error, pass::Visit};
 
 use wgsl_parse::syntax::*;
 
@@ -21,10 +21,10 @@ use wgsl_parse::syntax::*;
 /// be available in the future:
 /// * make variable types explicit
 /// * remove unused variables / code with no side-effects
-pub fn lower(wesl: &mut TranslationUnit) -> Result<(), Error> {
-    wesl.imports.clear();
+pub fn lower(module: &mut TranslationUnit) -> Result<(), Error> {
+    module.imports.clear();
 
-    for attrs in Visit::<Attributes>::visit_mut(wesl) {
+    for attrs in Visit::<Attributes>::visit_mut(module) {
         attrs.retain(|attr| {
             !matches!(attr.node(),
             Attribute::Custom(CustomAttribute { name, .. }) if name == "generic")
@@ -34,28 +34,30 @@ pub fn lower(wesl: &mut TranslationUnit) -> Result<(), Error> {
     #[cfg(not(feature = "eval"))]
     {
         // these are redundant with eval::lower.
-        remove_type_aliases(wesl);
-        remove_global_consts(wesl);
+        inline_type_aliases(module);
+        inline_global_consts(module);
     }
     #[cfg(feature = "eval")]
     {
-        use crate::Diagnostic;
+        use crate::error::Diagnostic;
         use crate::eval::{Context, Exec, Lower, mark_functions_const};
         use wgsl_parse::SyntaxNode;
-        mark_functions_const(wesl);
+        mark_functions_const(module);
 
         // we want to drop wesl2 at the end of the block for idents use_count
         {
-            let wesl2 = wesl.clone();
-            let mut ctx = Context::new(&wesl2);
-            wesl.exec(&mut ctx) // populate the ctx with module-scope declarations
+            let module2 = module.clone();
+            let mut ctx = Context::new(&module2);
+            module
+                .exec(&mut ctx) // populate the ctx with module-scope declarations
                 .map_err(|e| Diagnostic::from(e).with_ctx(&ctx))?;
-            wesl.lower(&mut ctx)
+            module
+                .lower(&mut ctx)
                 .map_err(|e| Diagnostic::from(e).with_ctx(&ctx))?;
         }
 
         // remove `@const` attributes.
-        for decl in &mut wesl.global_declarations {
+        for decl in &mut module.global_declarations {
             if let GlobalDeclaration::Function(decl) = decl.node_mut() {
                 decl.retain_attributes_mut(|attr| *attr != Attribute::Const);
             }
@@ -65,9 +67,8 @@ pub fn lower(wesl: &mut TranslationUnit) -> Result<(), Error> {
 }
 
 /// Eliminate all type aliases.
-/// Naga doesn't like this: `alias T = u32; vec<T>`
 #[allow(unused)]
-fn remove_type_aliases(wesl: &mut TranslationUnit) {
+fn inline_type_aliases(wesl: &mut TranslationUnit) {
     let take_next_alias = |wesl: &mut TranslationUnit| {
         let index = wesl
             .global_declarations
@@ -94,9 +95,10 @@ fn remove_type_aliases(wesl: &mut TranslationUnit) {
 /// Replace usages of the const-declaration with its expression.
 ///
 /// # Panics
+///
 /// panics if the const-declaration is ill-formed, i.e. has no initializer.
 #[allow(unused)]
-fn remove_global_consts(wesl: &mut TranslationUnit) {
+fn inline_global_consts(wesl: &mut TranslationUnit) {
     let take_next_const = |wesl: &mut TranslationUnit| {
         let index = wesl.global_declarations.iter().position(|decl| {
             matches!(

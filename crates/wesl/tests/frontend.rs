@@ -2,7 +2,7 @@
 
 use std::path::Path;
 
-use wesl::{Feature, Wesl};
+use wesl::{CompileOptions, Compiler, Constants, Features};
 
 fn fixtures_dir() -> &'static Path {
     Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures"))
@@ -12,7 +12,7 @@ fn fixtures_dir() -> &'static Path {
 macro_rules! wesl_pkg {
     ($pkg_name:ident, $source:expr) => {
         mod $pkg_name {
-            use wesl::{CodegenModule, CodegenPkg};
+            use wesl::package::{StaticPackage, StaticPackageModule};
             include!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/tests/fixtures/",
@@ -26,13 +26,14 @@ wesl_pkg!(package_random, "package_random.rs");
 
 #[test]
 fn compile_wgsl() {
-    let test_path = fixtures_dir().join("compile_wgsl/shaders/");
+    let test_path = fixtures_dir().join("compile_wgsl/shaders/main.wgsl");
 
-    let mut compiler = Wesl::new(test_path);
-    compiler.use_lower(false).use_stripping(false);
+    let mut compiler = Compiler::default();
 
+    compiler.options.lower = false;
+    compiler.options.strip = false;
     let mut result = compiler
-        .compile(&"package::main".parse().unwrap())
+        .compile(&test_path)
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
@@ -42,13 +43,14 @@ fn compile_wgsl() {
 #[cfg(not(feature = "eval"))]
 #[test]
 fn compile_wgsl_lower() {
-    let test_path = fixtures_dir().join("compile_wgsl/shaders/");
+    let test_path = fixtures_dir().join("compile_wgsl/shaders/main.wgsl");
 
-    let mut compiler = Wesl::new(test_path);
-    compiler.use_lower(true).use_stripping(false);
+    let mut compiler = Compiler::default();
 
+    compiler.options.lower = true;
+    compiler.options.strip = false;
     let mut result = compiler
-        .compile(&"package::main".parse().unwrap())
+        .compile(&test_path)
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
@@ -58,13 +60,14 @@ fn compile_wgsl_lower() {
 #[cfg(feature = "eval")]
 #[test]
 fn compile_wgsl_lower_eval() {
-    let test_path = fixtures_dir().join("compile_wgsl/shaders/");
+    let test_path = fixtures_dir().join("compile_wgsl/shaders/main.wgsl");
 
-    let mut compiler = Wesl::new(test_path);
-    compiler.use_lower(true).use_stripping(false);
+    let mut compiler = Compiler::default();
 
+    compiler.options.lower = true;
+    compiler.options.strip = false;
     let mut result = compiler
-        .compile(&"package::main".parse().unwrap())
+        .compile(&test_path)
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
@@ -73,13 +76,14 @@ fn compile_wgsl_lower_eval() {
 
 #[test]
 fn compile_wgsl_strip() {
-    let test_path = fixtures_dir().join("compile_wgsl/shaders/");
+    let test_path = fixtures_dir().join("compile_wgsl/shaders/main.wgsl");
 
-    let mut compiler = Wesl::new(test_path);
-    compiler.use_lower(false).use_stripping(true);
+    let mut compiler = Compiler::default();
 
+    compiler.options.lower = false;
+    compiler.options.strip = true;
     let mut result = compiler
-        .compile(&"package::main".parse().unwrap())
+        .compile(&test_path)
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
@@ -87,35 +91,53 @@ fn compile_wgsl_strip() {
 }
 
 #[test]
-#[ignore = "wesl.toml not implemented for the compiler"]
 fn compile_wesl_toml_feat1() {
     let test_path = fixtures_dir().join("compile_wesl/wesl.toml");
 
-    let mut result = Wesl::new(test_path)
-        .set_missing_feature_behavior(Feature::Error)
-        .set_features([("feat1", true), ("feat2", false)])
-        .add_constants([("PI", std::f64::consts::PI.into()), ("TRUE", true.into())])
-        .add_package(&package_random::PACKAGE)
-        .compile(&"package::main".parse().unwrap())
-        .inspect_err(|e| eprintln!("{e}"))
-        .unwrap();
+    let mut features = Features::new();
+    features.add_feature("feat1", true);
+    features.add_feature("feat2", false);
+    features.default = wesl::Feature::Error;
+
+    let mut constants = Constants::new();
+    constants.add_constant("PI", std::f64::consts::PI);
+    constants.add_constant("TRUE", true);
+
+    let mut result = Compiler::new(CompileOptions {
+        features,
+        constants,
+        dependencies: vec![&package_random::PACKAGE],
+        ..Default::default()
+    })
+    .compile(&test_path)
+    .inspect_err(|e| eprintln!("{e}"))
+    .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
     insta::assert_snapshot!(result.syntax.to_string());
 }
 
 #[test]
-#[ignore = "wesl.toml not implemented for the compiler"]
 fn compile_wesl_toml_feat2() {
     let test_path = fixtures_dir().join("compile_wesl/wesl.toml");
 
-    let mut result = Wesl::new(test_path)
-        .set_missing_feature_behavior(Feature::Error)
-        .set_features([("feat1", true), ("feat2", false)])
-        .add_constants([("PI", std::f64::consts::PI.into()), ("TRUE", true.into())])
-        .add_package(&package_random::PACKAGE)
-        .compile(&"package::main".parse().unwrap())
-        .inspect_err(|e| eprintln!("{e}"))
-        .unwrap();
+    let mut features = Features::new();
+    features.add_feature("feat1", false);
+    features.add_feature("feat2", true);
+    features.default = wesl::Feature::Error;
+
+    let mut constants = Constants::new();
+    constants.add_constant("PI", std::f64::consts::PI);
+    constants.add_constant("TRUE", true);
+
+    let mut result = Compiler::new(CompileOptions {
+        features,
+        constants,
+        dependencies: vec![&package_random::PACKAGE],
+        ..Default::default()
+    })
+    .compile(&test_path)
+    .inspect_err(|e| eprintln!("{e}"))
+    .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
     insta::assert_snapshot!(result.syntax.to_string());
 }
@@ -136,14 +158,16 @@ wesl_pkg!(d2, "dependency_unification/d2.rs");
 /// and used C items are declared exactly once.
 #[test]
 fn compile_dependency_unification() {
-    let test_path = fixtures_dir().join("dependency_unification");
+    let test_path = fixtures_dir().join("dependency_unification/main.wesl");
 
     // in this test, A imports from C1 and D1, B imports from
-    let mut result = Wesl::new(test_path)
-        .add_packages([&a::PACKAGE, &b::PACKAGE])
-        .compile(&"package::main".parse().unwrap())
-        .inspect_err(|e| eprintln!("{e}"))
-        .unwrap();
+    let mut result = Compiler::new(CompileOptions {
+        dependencies: vec![&a::PACKAGE, &b::PACKAGE],
+        ..Default::default()
+    })
+    .compile(&test_path)
+    .inspect_err(|e| eprintln!("{e}"))
+    .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
     insta::assert_snapshot!(result.syntax.to_string());
 }

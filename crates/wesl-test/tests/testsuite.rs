@@ -7,7 +7,10 @@
 use std::{ffi::OsStr, path::PathBuf, process::Command, str::FromStr};
 
 use wesl::{
-    CompileOptions, EscapeMangler, NoMangler, SyntaxUtil, VirtualResolver, syntax::*, validate_wesl,
+    CompileOptions, Compiler, Features, ManglerKind,
+    error::Diagnostic,
+    resolver::{Constants, VirtualResolver},
+    syntax::*,
 };
 use wesl_test::schemas::*;
 
@@ -328,14 +331,14 @@ fn json_case(case: &Test) -> Result<(), libtest_mimic::Failed> {
             }
         }
         TestKind::Eval { eval, result } => {
-            let wesl = case.code.parse::<TranslationUnit>()?;
+            let module = case.code.parse::<TranslationUnit>()?;
             let expr = eval.parse::<Expression>()?;
-            let (eval_inst, _) = wesl::eval(&expr, &wesl);
+            let (eval_inst, _) = wesl::eval(&expr, &module);
             let expect = result
                 .as_ref()
                 .map(|expect| -> Result<_, wesl::Error> {
                     let expr = expect.parse::<Expression>()?;
-                    let (expect_inst, _) = wesl::eval(&expr, &wesl);
+                    let (expect_inst, _) = wesl::eval(&expr, &module);
                     Ok(expect_inst?)
                 })
                 .transpose()?;
@@ -355,12 +358,11 @@ fn json_case(case: &Test) -> Result<(), libtest_mimic::Failed> {
             }
         }
         TestKind::Context { lower } => {
-            let mut wesl = case.code.parse::<TranslationUnit>()?;
-            wesl.retarget_idents();
-            let mut valid = validate_wesl(&wesl);
+            let mut module = case.code.parse::<TranslationUnit>()?;
+            wesl::pass::retarget_idents(&mut module);
+            let mut valid = wesl::pass::validate_wesl(&module);
             if *lower && valid.is_ok() {
-                valid = wesl::lower(&mut wesl).map_err(wesl::Diagnostic::from);
-                println!("wesl: {wesl}");
+                valid = wesl::pass::lower(&mut module).map_err(Diagnostic::from);
             }
             match (valid, case.expect) {
                 (Err(_), Expectation::Fail) | (Ok(()), Expectation::Pass) => Ok(()),
@@ -402,15 +404,16 @@ pub fn testsuite_case(case: &WgslTestSrc) -> Result<(), libtest_mimic::Failed> {
         resolver.add_module(path, file.into());
     }
 
-    let root_module = ModulePath::from_str("package::main")?;
+    let main_module = ModulePath::from_str("package::main")?;
     let compile_options = CompileOptions {
-        lazy: !case.requires.iter().any(|r| r == "eager"),
-        keep_root: true,
+        // TODO
+        // lazy: !case.requires.iter().any(|r| r == "eager"),
+        keep_main: true,
         ..Default::default()
     };
 
     let mut case_wgsl =
-        wesl::compile_sourcemap(&root_module, &resolver, &EscapeMangler, &compile_options)?;
+        Compiler::new_with_resolver(compile_options, resolver).compile_module(&main_module)?;
 
     if let Some(expect_wgsl) = &case.underscore_wgsl {
         let mut expect_wgsl = wgsl_parse::parse_str(expect_wgsl)?;
@@ -425,59 +428,80 @@ pub fn testsuite_case(case: &WgslTestSrc) -> Result<(), libtest_mimic::Failed> {
 pub fn validation_case(test_name: String, path: PathBuf) -> Result<(), libtest_mimic::Failed> {
     let input = std::fs::read_to_string(path).expect("failed to read test file");
     let mut resolver = VirtualResolver::new();
-    let root = ModulePath::from_str("package::main")?;
-    resolver.add_module(root.clone(), input.into());
-    let options = CompileOptions {
-        strip: true,
+    let main_path = ModulePath::from_str("package::main")?;
+    resolver.add_module(main_path.clone(), input.into());
+    let compile_options = CompileOptions {
+        strip: false,
         lower: true,
         validate: true,
+        mangler: ManglerKind::None,
         ..Default::default()
     };
-    let mut res = wesl::compile_sourcemap(&root, &resolver, &NoMangler, &options)?;
+
+    let mut compiler = Compiler::new_with_resolver(compile_options, resolver);
+
+    // first we compile with strip: false to catch more bugs.
+    let _ = compiler.compile_module(&main_path)?;
+
+    // second, we run with strip: true, which is the default for WESL, and save the snapshot.
+    compiler.options.strip = true;
+    let mut res = compiler.compile_module(&main_path)?;
     res.syntax.sort_declarations();
     insta::assert_snapshot!(test_name, res.syntax.to_string());
     Ok(())
 }
 
 pub fn bevy_case(test_name: String, path: PathBuf) -> Result<(), libtest_mimic::Failed> {
-    let base = path.parent().ok_or("file not found")?;
+    let pkg_root_dir = path.parent().ok_or("file not found")?;
     let name = path
         .file_stem()
         .ok_or("file not found")?
         .to_string_lossy()
         .to_string();
-    let mut compiler = wesl::Wesl::new(base);
-    compiler
-        .add_package(&bevy_wgsl::PACKAGE)
-        .add_constants([
-            ("MAX_CASCADES_PER_LIGHT", 10u32.into()),
-            ("MAX_DIRECTIONAL_LIGHTS", 10.into()),
-            ("PER_OBJECT_BUFFER_BATCH_SIZE", 10.into()),
-            ("TONEMAPPING_LUT_TEXTURE_BINDING_INDEX", 10.into()),
-            ("TONEMAPPING_LUT_SAMPLER_BINDING_INDEX", 10.into()),
-        ])
-        .set_options(CompileOptions {
-            strip: true,
-            lower: true,
-            validate: true,
-            lazy: true,
-            ..Default::default()
-        })
-        .set_feature("MULTISAMPLED", true) // show_prepass needs it
-        .set_feature("DEPTH_PREPASS", true) // show_prepass needs it
-        .set_feature("NORMAL_PREPASS", true) // show_prepass needs it
-        .set_feature("IRRADIANCE_VOLUMES_ARE_USABLE", true) // irradiance_volume_voxel_visualization needs it
-        .set_feature("IRRADIANCE_VOLUMES_ARE_USABLE", true) // irradiance_volume_voxel_visualization needs it
-        .set_feature("MOTION_VECTOR_PREPASS", true) // show_prepass needs it
-        .set_feature("CLUSTERED_DECALS_ARE_USABLE", true) // custom_clustered_decal needs it
-        .set_feature("VERTEX_UVS_A", true) // texture_binding_array needs it
-        .set_feature("VERTEX_OUTPUT_INSTANCE_INDEX", true); // extended_material needs it
+
+    let mut constants = Constants::new();
+    constants.add_constant("MAX_CASCADES_PER_LIGHT", 10u32);
+    constants.add_constant("MAX_DIRECTIONAL_LIGHTS", 10);
+    constants.add_constant("PER_OBJECT_BUFFER_BATCH_SIZE", 10);
+    constants.add_constant("TONEMAPPING_LUT_TEXTURE_BINDING_INDEX", 10);
+    constants.add_constant("TONEMAPPING_LUT_SAMPLER_BINDING_INDEX", 10);
+
+    let mut features = Features::new();
+    features.add_feature("MULTISAMPLED", true); // show_prepass needs it
+    features.add_feature("DEPTH_PREPASS", true); // show_prepass needs it
+    features.add_feature("NORMAL_PREPASS", true); // show_prepass needs it
+    features.add_feature("IRRADIANCE_VOLUMES_ARE_USABLE", true); // irradiance_volume_voxel_visualization needs it
+    features.add_feature("IRRADIANCE_VOLUMES_ARE_USABLE", true); // irradiance_volume_voxel_visualization needs it
+    features.add_feature("MOTION_VECTOR_PREPASS", true); // show_prepass needs it
+    features.add_feature("CLUSTERED_DECALS_ARE_USABLE", true); // custom_clustered_decal needs it
+    features.add_feature("VERTEX_UVS_A", true); // texture_binding_array needs it
+    features.add_feature("VERTEX_OUTPUT_INSTANCE_INDEX", true); // extended_material needs it
+
     if name == "water_material" {
-        compiler.set_feature("PREPASS_FRAGMENT", true); // water_material needs it
-        compiler.set_feature("PREPASS_PIPELINE", true); // water_material needs it
-        compiler.set_feature("NORMAL_PREPASS_OR_DEFERRED_PREPASS", true); // water_material needs it
+        features.add_feature("PREPASS_FRAGMENT", true); // water_material needs it
+        features.add_feature("PREPASS_PIPELINE", true); // water_material needs it
+        features.add_feature("NORMAL_PREPASS_OR_DEFERRED_PREPASS", true); // water_material needs it
     }
-    let mut res = compiler.compile(&ModulePath::new(PathOrigin::Absolute, vec![name]))?;
+
+    let compile_options = CompileOptions {
+        strip: false,
+        lower: true,
+        validate: true,
+        constants,
+        features,
+        dependencies: vec![&bevy_wgsl::PACKAGE],
+        ..Default::default()
+    };
+
+    let mut compiler = Compiler::new(compile_options);
+    let main_path = ModulePath::new(PathOrigin::Absolute, vec![name]);
+
+    // first we compile with strip: false to catch more bugs.
+    let _ = compiler.compile_module(pkg_root_dir, &main_path)?;
+
+    // second, we run with strip: true, which is the default for WESL, and save the snapshot.
+    compiler.options.strip = true;
+    let mut res = compiler.compile_module(pkg_root_dir, &main_path)?;
     res.syntax.sort_declarations();
     insta::assert_snapshot!(test_name, res.syntax.to_string());
     Ok(())

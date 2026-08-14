@@ -46,7 +46,7 @@ fn function() {
                 break;
             }
             case 1 {
-                let _e31: __atomic_compare_exchange_result = atomicCompareExchangeWeak((&global.member), 3u, _e27.member_1);
+                let _e31 = atomicCompareExchangeWeak((&global.member), 3u, _e27.member_1);
                 phi_54_ = select(true, false, (_e31.old_value == 3u));
                 break;
             }

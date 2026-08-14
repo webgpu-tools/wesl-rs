@@ -46,4 +46,4 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 allow-git = []
 
 [sources.allow-org]
-github = ["wgsl-tooling-wg"]
+github = ["webgpu-tools"]

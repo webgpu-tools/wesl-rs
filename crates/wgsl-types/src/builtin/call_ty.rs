@@ -45,6 +45,7 @@ pub fn type_builtin_fn(
             let tplt = BitcastTemplate::parse(tplt)?;
             bitcast_t(tplt.ty(), a).map(Some)
         }
+        _ if tplt.is_some() => Err(err()),
         // logical
         ("all", [a]) => all(a).map(Some),
         ("any", [a]) => any(a).map(Some),

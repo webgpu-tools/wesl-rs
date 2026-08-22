@@ -363,6 +363,16 @@ pub enum Attribute {
     Payload(ExpressionNode),
     #[cfg(feature = "naga-ext")]
     Mesh(ExpressionNode),
+    #[cfg(feature = "naga-ext")]
+    RayGeneration,
+    #[cfg(feature = "naga-ext")]
+    AnyHit,
+    #[cfg(feature = "naga-ext")]
+    ClosestHit,
+    #[cfg(feature = "naga-ext")]
+    Miss,
+    #[cfg(feature = "naga-ext")]
+    IncomingPayload(ExpressionNode),
     #[cfg(feature = "imports")]
     Publish,
     #[cfg(feature = "condcomp")]
@@ -386,6 +396,11 @@ impl Attribute {
             Attribute::Vertex | Attribute::Fragment | Attribute::Compute => true,
             #[cfg(feature = "naga-ext")]
             Attribute::Task | Attribute::Mesh(_) => true,
+            #[cfg(feature = "naga-ext")]
+            Attribute::RayGeneration
+            | Attribute::AnyHit
+            | Attribute::ClosestHit
+            | Attribute::Miss => true,
             _ => false,
         }
     }

@@ -177,6 +177,10 @@ pub const BUILTIN_ENUMERANT_NAMES: &[&str] = &[
     "immediate",
     #[cfg(feature = "naga-ext")]
     "task_payload",
+    #[cfg(feature = "naga-ext")]
+    "ray_payload",
+    #[cfg(feature = "naga-ext")]
+    "incoming_ray_payload",
     // : texel format
     "rgba8unorm",
     "rgba8snorm",
@@ -425,6 +429,9 @@ pub const BUILTIN_FUNCTION_NAMES: &[&str] = &[
     "getCommittedHitVertexPositions",
     #[cfg(feature = "naga-ext")]
     "getCandidateHitVertexPositions",
+    // : ray tracing pipelines (naga extension)
+    #[cfg(feature = "naga-ext")]
+    "traceRay",
 ];
 
 /// Built-in constructor identifiers (zero-value and value-constructors).

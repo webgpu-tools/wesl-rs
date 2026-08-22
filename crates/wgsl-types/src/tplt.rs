@@ -212,6 +212,10 @@ impl PtrTemplate {
                     (AddressSpace::TaskPayload, _) => {
                         todo!("task_payload")
                     }
+                    #[cfg(feature = "naga-ext")]
+                    (AddressSpace::RayPayload | AddressSpace::IncomingRayPayload, access) => {
+                        access.unwrap_or(AccessMode::ReadWrite)
+                    }
                 };
                 Ok(PtrTemplate { space, ty, access })
             }

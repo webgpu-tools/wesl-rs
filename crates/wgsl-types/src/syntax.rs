@@ -29,6 +29,14 @@ pub enum AddressSpace {
     Immediate,
     #[cfg(feature = "naga-ext")]
     TaskPayload,
+    /// Ray tracing pipeline payload, passed to `traceRay`.
+    #[cfg(feature = "naga-ext")]
+    RayPayload,
+    /// Ray tracing pipeline payload, received by entry points invoked by `traceRay`.
+    ///
+    /// An entry point may reference at most one variable in this address space.
+    #[cfg(feature = "naga-ext")]
+    IncomingRayPayload,
 }
 
 impl AddressSpace {
@@ -43,6 +51,8 @@ impl AddressSpace {
             AddressSpace::Immediate => AccessMode::Read,
             #[cfg(feature = "naga-ext")]
             AddressSpace::TaskPayload => AccessMode::ReadWrite,
+            #[cfg(feature = "naga-ext")]
+            AddressSpace::RayPayload | AddressSpace::IncomingRayPayload => AccessMode::ReadWrite,
         }
     }
 }
@@ -231,6 +241,47 @@ pub enum BuiltinValue {
     TriangleIndices,
     #[cfg(feature = "naga-ext")]
     CullPrimitive,
+
+    // Ray tracing pipelines
+    /// `vec3<u32>`, available in all ray tracing stages.
+    #[cfg(feature = "naga-ext")]
+    RayInvocationId,
+    /// `vec3<u32>`, available in all ray tracing stages.
+    #[cfg(feature = "naga-ext")]
+    NumRayInvocations,
+    /// `u32`, available in the `any_hit` and `closest_hit` stages.
+    #[cfg(feature = "naga-ext")]
+    InstanceCustomData,
+    /// `u32`, available in the `any_hit` and `closest_hit` stages.
+    #[cfg(feature = "naga-ext")]
+    GeometryIndex,
+    /// `vec3<f32>`, available in the `any_hit`, `closest_hit` and `miss` stages.
+    #[cfg(feature = "naga-ext")]
+    WorldRayOrigin,
+    /// `vec3<f32>`, available in the `any_hit`, `closest_hit` and `miss` stages.
+    #[cfg(feature = "naga-ext")]
+    WorldRayDirection,
+    /// `vec3<f32>`, available in the `any_hit` and `closest_hit` stages.
+    #[cfg(feature = "naga-ext")]
+    ObjectRayOrigin,
+    /// `vec3<f32>`, available in the `any_hit` and `closest_hit` stages.
+    #[cfg(feature = "naga-ext")]
+    ObjectRayDirection,
+    /// `f32`, available in the `any_hit`, `closest_hit` and `miss` stages.
+    #[cfg(feature = "naga-ext")]
+    RayTMin,
+    /// `f32`, available in the `any_hit`, `closest_hit` and `miss` stages.
+    #[cfg(feature = "naga-ext")]
+    RayTCurrentMax,
+    /// `mat4x3<f32>`, available in the `any_hit` and `closest_hit` stages.
+    #[cfg(feature = "naga-ext")]
+    ObjectToWorld,
+    /// `mat4x3<f32>`, available in the `any_hit` and `closest_hit` stages.
+    #[cfg(feature = "naga-ext")]
+    WorldToObject,
+    /// `u32`, available in the `any_hit` and `closest_hit` stages.
+    #[cfg(feature = "naga-ext")]
+    HitKind,
 }
 
 /// Diagnostic Severity Control Names.
@@ -565,6 +616,10 @@ impl FromStr for AddressSpace {
             "immediate" => Ok(Self::Immediate),
             #[cfg(feature = "naga-ext")]
             "task_payload" => Ok(Self::TaskPayload),
+            #[cfg(feature = "naga-ext")]
+            "ray_payload" => Ok(Self::RayPayload),
+            #[cfg(feature = "naga-ext")]
+            "incoming_ray_payload" => Ok(Self::IncomingRayPayload),
             // "WGSL predeclares an enumerant for each address space, except for the handle address space."
             // "handle" => Ok(Self::Handle),
             _ => Err(()),
@@ -734,6 +789,32 @@ impl FromStr for BuiltinValue {
             "triangle_indices" => Ok(Self::TriangleIndices),
             #[cfg(feature = "naga-ext")]
             "cull_primitive" => Ok(Self::CullPrimitive),
+            #[cfg(feature = "naga-ext")]
+            "ray_invocation_id" => Ok(Self::RayInvocationId),
+            #[cfg(feature = "naga-ext")]
+            "num_ray_invocations" => Ok(Self::NumRayInvocations),
+            #[cfg(feature = "naga-ext")]
+            "instance_custom_data" => Ok(Self::InstanceCustomData),
+            #[cfg(feature = "naga-ext")]
+            "geometry_index" => Ok(Self::GeometryIndex),
+            #[cfg(feature = "naga-ext")]
+            "world_ray_origin" => Ok(Self::WorldRayOrigin),
+            #[cfg(feature = "naga-ext")]
+            "world_ray_direction" => Ok(Self::WorldRayDirection),
+            #[cfg(feature = "naga-ext")]
+            "object_ray_origin" => Ok(Self::ObjectRayOrigin),
+            #[cfg(feature = "naga-ext")]
+            "object_ray_direction" => Ok(Self::ObjectRayDirection),
+            #[cfg(feature = "naga-ext")]
+            "ray_t_min" => Ok(Self::RayTMin),
+            #[cfg(feature = "naga-ext")]
+            "ray_t_current_max" => Ok(Self::RayTCurrentMax),
+            #[cfg(feature = "naga-ext")]
+            "object_to_world" => Ok(Self::ObjectToWorld),
+            #[cfg(feature = "naga-ext")]
+            "world_to_object" => Ok(Self::WorldToObject),
+            #[cfg(feature = "naga-ext")]
+            "hit_kind" => Ok(Self::HitKind),
             _ => Err(()),
         }
     }
@@ -810,6 +891,10 @@ impl Display for AddressSpace {
             Self::Immediate => write!(f, "immediate"),
             #[cfg(feature = "naga-ext")]
             Self::TaskPayload => write!(f, "task_payload"),
+            #[cfg(feature = "naga-ext")]
+            Self::RayPayload => write!(f, "ray_payload"),
+            #[cfg(feature = "naga-ext")]
+            Self::IncomingRayPayload => write!(f, "incoming_ray_payload"),
         }
     }
 }
@@ -951,6 +1036,32 @@ impl Display for BuiltinValue {
             Self::TriangleIndices => write!(f, "triangle_indices"),
             #[cfg(feature = "naga-ext")]
             Self::CullPrimitive => write!(f, "cull_primitive"),
+            #[cfg(feature = "naga-ext")]
+            Self::RayInvocationId => write!(f, "ray_invocation_id"),
+            #[cfg(feature = "naga-ext")]
+            Self::NumRayInvocations => write!(f, "num_ray_invocations"),
+            #[cfg(feature = "naga-ext")]
+            Self::InstanceCustomData => write!(f, "instance_custom_data"),
+            #[cfg(feature = "naga-ext")]
+            Self::GeometryIndex => write!(f, "geometry_index"),
+            #[cfg(feature = "naga-ext")]
+            Self::WorldRayOrigin => write!(f, "world_ray_origin"),
+            #[cfg(feature = "naga-ext")]
+            Self::WorldRayDirection => write!(f, "world_ray_direction"),
+            #[cfg(feature = "naga-ext")]
+            Self::ObjectRayOrigin => write!(f, "object_ray_origin"),
+            #[cfg(feature = "naga-ext")]
+            Self::ObjectRayDirection => write!(f, "object_ray_direction"),
+            #[cfg(feature = "naga-ext")]
+            Self::RayTMin => write!(f, "ray_t_min"),
+            #[cfg(feature = "naga-ext")]
+            Self::RayTCurrentMax => write!(f, "ray_t_current_max"),
+            #[cfg(feature = "naga-ext")]
+            Self::ObjectToWorld => write!(f, "object_to_world"),
+            #[cfg(feature = "naga-ext")]
+            Self::WorldToObject => write!(f, "world_to_object"),
+            #[cfg(feature = "naga-ext")]
+            Self::HitKind => write!(f, "hit_kind"),
         }
     }
 }

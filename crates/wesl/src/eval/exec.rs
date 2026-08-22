@@ -761,6 +761,36 @@ pub struct Inputs {
     #[cfg(feature = "naga-ext")]
     pub view_index: Option<u32>,
 
+    // ray tracing pipelines
+    #[cfg(feature = "naga-ext")]
+    pub ray_invocation_id: Option<[u32; 3]>,
+    #[cfg(feature = "naga-ext")]
+    pub num_ray_invocations: Option<[u32; 3]>,
+    #[cfg(feature = "naga-ext")]
+    pub instance_custom_data: Option<u32>,
+    #[cfg(feature = "naga-ext")]
+    pub geometry_index: Option<u32>,
+    #[cfg(feature = "naga-ext")]
+    pub world_ray_origin: Option<[f32; 3]>,
+    #[cfg(feature = "naga-ext")]
+    pub world_ray_direction: Option<[f32; 3]>,
+    #[cfg(feature = "naga-ext")]
+    pub object_ray_origin: Option<[f32; 3]>,
+    #[cfg(feature = "naga-ext")]
+    pub object_ray_direction: Option<[f32; 3]>,
+    #[cfg(feature = "naga-ext")]
+    pub ray_t_min: Option<f32>,
+    #[cfg(feature = "naga-ext")]
+    pub ray_t_current_max: Option<f32>,
+    /// Column-major, 4 columns of 3 rows.
+    #[cfg(feature = "naga-ext")]
+    pub object_to_world: Option<[[f32; 3]; 4]>,
+    /// Column-major, 4 columns of 3 rows.
+    #[cfg(feature = "naga-ext")]
+    pub world_to_object: Option<[[f32; 3]; 4]>,
+    #[cfg(feature = "naga-ext")]
+    pub hit_kind: Option<u32>,
+
     pub user_defined: HashMap<u32, Instance>,
 }
 
@@ -792,9 +822,42 @@ impl Inputs {
             barycentric_no_perspective: Some([0.0, 0.0, 0.0]),
             #[cfg(feature = "naga-ext")]
             view_index: Some(0),
+            #[cfg(feature = "naga-ext")]
+            ray_invocation_id: Some([0, 0, 0]),
+            #[cfg(feature = "naga-ext")]
+            num_ray_invocations: Some([1, 1, 1]),
+            #[cfg(feature = "naga-ext")]
+            instance_custom_data: Some(0),
+            #[cfg(feature = "naga-ext")]
+            geometry_index: Some(0),
+            #[cfg(feature = "naga-ext")]
+            world_ray_origin: Some([0.0, 0.0, 0.0]),
+            #[cfg(feature = "naga-ext")]
+            world_ray_direction: Some([0.0, 0.0, 0.0]),
+            #[cfg(feature = "naga-ext")]
+            object_ray_origin: Some([0.0, 0.0, 0.0]),
+            #[cfg(feature = "naga-ext")]
+            object_ray_direction: Some([0.0, 0.0, 0.0]),
+            #[cfg(feature = "naga-ext")]
+            ray_t_min: Some(0.0),
+            #[cfg(feature = "naga-ext")]
+            ray_t_current_max: Some(0.0),
+            #[cfg(feature = "naga-ext")]
+            object_to_world: Some([[0.0; 3]; 4]),
+            #[cfg(feature = "naga-ext")]
+            world_to_object: Some([[0.0; 3]; 4]),
+            #[cfg(feature = "naga-ext")]
+            hit_kind: Some(0),
             user_defined: Default::default(),
         }
     }
+}
+
+/// Build a `mat4x3<f32>` instance from 4 columns of 3 rows.
+#[cfg(feature = "naga-ext")]
+fn mat4x3(cols: [[f32; 3]; 4]) -> Instance {
+    wgsl_types::inst::MatInstance::from_cols(cols.map(|col| VecInstance::from(col).into()).to_vec())
+        .into()
 }
 
 pub fn exec_entrypoint(
@@ -861,6 +924,46 @@ pub fn exec_entrypoint(
                         .map(|v| VecInstance::from(v).into()),
                     #[cfg(feature = "naga-ext")]
                     BuiltinValue::ViewIndex => inputs.view_index.map(Instance::from),
+                    #[cfg(feature = "naga-ext")]
+                    BuiltinValue::RayInvocationId => inputs
+                        .ray_invocation_id
+                        .map(|v| VecInstance::from(v).into()),
+                    #[cfg(feature = "naga-ext")]
+                    BuiltinValue::NumRayInvocations => inputs
+                        .num_ray_invocations
+                        .map(|v| VecInstance::from(v).into()),
+                    #[cfg(feature = "naga-ext")]
+                    BuiltinValue::InstanceCustomData => {
+                        inputs.instance_custom_data.map(Instance::from)
+                    }
+                    #[cfg(feature = "naga-ext")]
+                    BuiltinValue::GeometryIndex => inputs.geometry_index.map(Instance::from),
+                    #[cfg(feature = "naga-ext")]
+                    BuiltinValue::WorldRayOrigin => {
+                        inputs.world_ray_origin.map(|v| VecInstance::from(v).into())
+                    }
+                    #[cfg(feature = "naga-ext")]
+                    BuiltinValue::WorldRayDirection => inputs
+                        .world_ray_direction
+                        .map(|v| VecInstance::from(v).into()),
+                    #[cfg(feature = "naga-ext")]
+                    BuiltinValue::ObjectRayOrigin => inputs
+                        .object_ray_origin
+                        .map(|v| VecInstance::from(v).into()),
+                    #[cfg(feature = "naga-ext")]
+                    BuiltinValue::ObjectRayDirection => inputs
+                        .object_ray_direction
+                        .map(|v| VecInstance::from(v).into()),
+                    #[cfg(feature = "naga-ext")]
+                    BuiltinValue::RayTMin => inputs.ray_t_min.map(Instance::from),
+                    #[cfg(feature = "naga-ext")]
+                    BuiltinValue::RayTCurrentMax => inputs.ray_t_current_max.map(Instance::from),
+                    #[cfg(feature = "naga-ext")]
+                    BuiltinValue::ObjectToWorld => inputs.object_to_world.map(mat4x3),
+                    #[cfg(feature = "naga-ext")]
+                    BuiltinValue::WorldToObject => inputs.world_to_object.map(mat4x3),
+                    #[cfg(feature = "naga-ext")]
+                    BuiltinValue::HitKind => inputs.hit_kind.map(Instance::from),
                     BuiltinValue::ClipDistances | BuiltinValue::FragDepth => {
                         return Err(E::OutputBuiltin(builtin));
                     }
@@ -1088,6 +1191,12 @@ impl Exec for Declaration {
                         AddressSpace::Immediate => todo!("immediate address space"),
                         #[cfg(feature = "naga-ext")]
                         AddressSpace::TaskPayload => todo!("task_payload address space"),
+                        #[cfg(feature = "naga-ext")]
+                        AddressSpace::RayPayload => todo!("ray_payload address space"),
+                        #[cfg(feature = "naga-ext")]
+                        AddressSpace::IncomingRayPayload => {
+                            todo!("incoming_ray_payload address space")
+                        }
                     }
                 }
             }

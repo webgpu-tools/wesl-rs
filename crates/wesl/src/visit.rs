@@ -378,6 +378,12 @@ impl_visit! { Attribute => TypeExpression,
             y.[].(x => visit::<Expression, TypeExpression>(x)),
             z.[].(x => visit::<Expression, TypeExpression>(x)),
         },
+        #[cfg(feature = "naga-ext")]
+        Attribute::Payload.(x => visit::<Expression, TypeExpression>(x)),
+        #[cfg(feature = "naga-ext")]
+        Attribute::Mesh.(x => visit::<Expression, TypeExpression>(x)),
+        #[cfg(feature = "naga-ext")]
+        Attribute::IncomingPayload.(x => visit::<Expression, TypeExpression>(x)),
         #[cfg(feature = "generics")]
         Attribute::Type.variants.[],
         Attribute::Custom.arguments.[].[].(x => visit::<Expression, TypeExpression>(x))

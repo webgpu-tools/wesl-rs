@@ -295,6 +295,9 @@ pub fn type_builtin_fn(
         ("getCommittedHitVertexPositions", [a]) => getCommittedHitVertexPositions(a).map(Some),
         #[cfg(feature = "naga-ext")]
         ("getCandidateHitVertexPositions", [a]) => getCandidateHitVertexPositions(a).map(Some),
+        // naga ray tracing pipelines extension
+        #[cfg(feature = "naga-ext")]
+        ("traceRay", [a1, a2, a3]) => traceRay(a1, a2, a3).map(|()| None),
         _ => Err(err()),
     }
 }
@@ -2787,6 +2790,33 @@ pub fn getCandidateHitVertexPositions(e: &Type) -> Result<Type, E> {
     } else {
         Err(E::Builtin(
             "`getCandidateHitVertexPositions` expects a pointer to `ray_query` argument",
+        ))
+    }
+}
+
+// ------------------------------------
+// NAGA RAY TRACING PIPELINES EXTENSION
+// ------------------------------------
+// These built-ins are `naga` extensions and are not part of the WGSL specification.
+
+/// `traceRay()` `naga` built-in function.
+#[cfg(feature = "naga-ext")]
+pub fn traceRay(accel_struct: &Type, ray_desc: &Type, payload: &Type) -> Result<(), E> {
+    if matches!(accel_struct, Type::AccelerationStructure(_))
+        && matches!(ray_desc, Type::Struct(s) if s.name == "RayDesc")
+        && matches!(
+            payload,
+            Type::Ptr(
+                AddressSpace::RayPayload | AddressSpace::IncomingRayPayload,
+                _,
+                _
+            )
+        )
+    {
+        Ok(())
+    } else {
+        Err(E::Builtin(
+            "`traceRay` expects an acceleration structure, a `RayDesc` and a pointer to a `ray_payload` or `incoming_ray_payload` variable",
         ))
     }
 }

@@ -303,6 +303,9 @@ pub static PRELUDE: LazyLock<TranslationUnit> = LazyLock::new(|| {
         @extension(naga) fn rayQueryGetCandidateIntersection() -> RayIntersection @__intrinsic {}
         @extension(naga) fn getCommittedHitVertexPositions() -> array<vec3<f32>, 3> @__intrinsic {}
         @extension(naga) fn getCandidateHitVertexPositions() -> array<vec3<f32>, 3> @__intrinsic {}
+
+        // Naga ray tracing pipeline extension
+        @extension(naga) fn traceRay() @__intrinsic {}
     };
     crate::SyntaxUtil::retarget_idents(&mut module);
     module

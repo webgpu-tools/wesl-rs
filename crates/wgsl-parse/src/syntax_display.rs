@@ -315,6 +315,16 @@ impl Display for Attribute {
             Attribute::Payload(p) => write!(f, "@payload({p})"),
             #[cfg(feature = "naga-ext")]
             Attribute::Mesh(m) => write!(f, "@mesh({m})"),
+            #[cfg(feature = "naga-ext")]
+            Attribute::RayGeneration => write!(f, "@ray_generation"),
+            #[cfg(feature = "naga-ext")]
+            Attribute::AnyHit => write!(f, "@any_hit"),
+            #[cfg(feature = "naga-ext")]
+            Attribute::ClosestHit => write!(f, "@closest_hit"),
+            #[cfg(feature = "naga-ext")]
+            Attribute::Miss => write!(f, "@miss"),
+            #[cfg(feature = "naga-ext")]
+            Attribute::IncomingPayload(p) => write!(f, "@incoming_payload({p})"),
             #[cfg(feature = "imports")]
             Attribute::Publish => write!(f, "@publish"),
             #[cfg(feature = "condcomp")]

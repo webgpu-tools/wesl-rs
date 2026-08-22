@@ -243,6 +243,31 @@ pub(crate) fn parse_attribute(
             Some(expr) => Ok(Attribute::Mesh(expr)),
             None => Err(E::Attribute("mesh", "expected 1 arguments")),
         },
+        #[cfg(feature = "naga-ext")]
+        "ray_generation" => match zero_args(args) {
+            true => Ok(Attribute::RayGeneration),
+            false => Err(E::Attribute("ray_generation", "expected 0 arguments")),
+        },
+        #[cfg(feature = "naga-ext")]
+        "any_hit" => match zero_args(args) {
+            true => Ok(Attribute::AnyHit),
+            false => Err(E::Attribute("any_hit", "expected 0 arguments")),
+        },
+        #[cfg(feature = "naga-ext")]
+        "closest_hit" => match zero_args(args) {
+            true => Ok(Attribute::ClosestHit),
+            false => Err(E::Attribute("closest_hit", "expected 0 arguments")),
+        },
+        #[cfg(feature = "naga-ext")]
+        "miss" => match zero_args(args) {
+            true => Ok(Attribute::Miss),
+            false => Err(E::Attribute("miss", "expected 0 arguments")),
+        },
+        #[cfg(feature = "naga-ext")]
+        "incoming_payload" => match one_arg(args) {
+            Some(expr) => Ok(Attribute::IncomingPayload(expr)),
+            None => Err(E::Attribute("incoming_payload", "expected 1 arguments")),
+        },
         #[cfg(feature = "imports")]
         "publish" => Ok(Attribute::Publish),
         #[cfg(feature = "condcomp")]

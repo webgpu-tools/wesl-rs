@@ -153,10 +153,12 @@ pub(crate) fn query_impl(input: QueryInput, mutable: bool) -> TokenStream {
                                 let iter = std::iter::Iterator::chain(iter, #first #(.#rest)*);
                             })
                         });
-                    quote! { flat_map(|x| {
+                    // Keep large query branches behind a trait object. Without this, every
+                    // `Iterator::chain` becomes part of the concrete return type of `query!`.
+                    quote! { flat_map(|x| -> Box<dyn Iterator<Item = _>> {
                         let iter = std::iter::empty();
                         #(#cases)*
-                        iter
+                        Box::new(iter)
                     }) }
                 }
             },

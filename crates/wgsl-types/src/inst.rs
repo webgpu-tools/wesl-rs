@@ -6,11 +6,10 @@ use std::{
     rc::Rc,
 };
 
-use half::f16;
 use itertools::Itertools;
 
 use crate::{
-    Error,
+    Error, f16,
     syntax::{AccessMode, AddressSpace},
     ty::{StructType, Ty, Type},
 };

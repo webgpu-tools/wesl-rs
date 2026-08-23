@@ -5,12 +5,11 @@
 //!
 //! [automatic conversions]: https://www.w3.org/TR/WGSL/#feasible-automatic-conversion
 
-use half::f16;
 use itertools::Itertools;
 use num_traits::{FromPrimitive, ToPrimitive};
 
 use crate::{
-    Error, Instance,
+    Error, Instance, f16,
     inst::{ArrayInstance, LiteralInstance, MatInstance, StructInstance, VecInstance},
     syntax::AccessMode,
     ty::{Ty, Type},

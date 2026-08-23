@@ -1,9 +1,9 @@
 //! Memory layout utilities.
 
-use half::f16;
 use itertools::Itertools;
 
 use crate::{
+    f16,
     inst::{
         ArrayInstance, AtomicInstance, Instance, LiteralInstance, MatInstance, StructInstance,
         VecInstance,

@@ -47,6 +47,7 @@ wgsl-types = { workspace = true }
 
 [dev-dependencies]
 insta = { version = "1.48.0", features = ["yaml"] }
+tokio = { version = "1.53.1", features = ["macros", "rt"] }  # for testing async compile functions
 
 [features]
 eval = ["dep:wesl-quote"]

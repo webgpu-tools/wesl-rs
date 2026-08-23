@@ -40,6 +40,23 @@ fn compile_wgsl() {
     insta::assert_snapshot!(result.syntax.to_string());
 }
 
+#[tokio::test]
+async fn compile_wgsl_async() {
+    let test_path = fixtures_dir().join("compile_wgsl/shaders/main.wgsl");
+
+    let mut compiler = Compiler::default();
+
+    compiler.options.lower = false;
+    compiler.options.strip = false;
+    let mut result = compiler
+        .compile_async(&test_path)
+        .await
+        .inspect_err(|e| eprintln!("{e}"))
+        .unwrap();
+    result.syntax.sort_declarations(); // normalize for comparison
+    insta::assert_snapshot!(result.syntax.to_string());
+}
+
 #[cfg(not(feature = "eval"))]
 #[test]
 fn compile_wgsl_lower() {

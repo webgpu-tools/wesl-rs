@@ -406,8 +406,6 @@ pub fn testsuite_case(case: &WgslTestSrc) -> Result<(), libtest_mimic::Failed> {
 
     let main_module = ModulePath::from_str("package::main")?;
     let compile_options = CompileOptions {
-        // TODO
-        // lazy: !case.requires.iter().any(|r| r == "eager"),
         keep_main: true,
         ..Default::default()
     };

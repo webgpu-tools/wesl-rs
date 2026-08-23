@@ -21,14 +21,16 @@ pub struct CompileResult {
 /// 1. Load the main module.
 /// 2. Get the list declarations in the main module serving as entry points;
 ///    they are the basis of static usage analysis.
-/// 3. Run static usage analysis: for each entry point, collect the list of declarations it depends on, transitively. Usage analysis returns the set of imported identifiers (defined in other modules).
+/// 3. Run static usage analysis: for each entry point, collect the list of declarations it depends on, transitively.
+///    Usage analysis returns the set of imported identifiers (defined in other modules).
 /// 4. Load missing imported modules found via usage analysis.
-/// 5. Run the previous two steps for with imported modules/identifiers, until all identifiers have been usage-analyzed.
+/// 5. Run the previous two steps with imported modules/identifiers, until all identifiers have been usage-analyzed.
 /// 6. Assemble loaded modules into a final module.
 ///
 /// WESL features are implemented at different steps of this pipeline:
 ///
 /// * Conditional translation runs after module loading.
+/// * Import resolution runs at usage analysis.
 /// * Name mangling runs before assembly.
 pub trait CompilerDriver: Sized {
     /// Get the path of the main module.
@@ -45,7 +47,7 @@ pub trait CompilerDriver: Sized {
 
     /// List identifiers of declarations serving as starting point for static usage analysis.
     ///
-    /// Typically they are the entry points functions (`@verted`, `@fragment` and `@compute`),
+    /// Typically they are the entry points functions (`@vertex`, `@fragment` and `@compute`),
     /// but some users might want to keep different declarations.
     fn main_entry_points(&self, main_module: &TranslationUnit) -> Result<HashSet<Ident>, Error> {
         Ok(pass::main_entry_points(main_module))

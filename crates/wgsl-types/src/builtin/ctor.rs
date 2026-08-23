@@ -11,7 +11,7 @@
 //! * User-defined functions can shadow WGSL built-in functions.
 //! * Type aliases must be resolved: WGSL allows calling functions with the name of the alias.
 
-use half::prelude::*;
+use half::f16;
 use itertools::Itertools;
 use num_traits::{FromPrimitive, One, ToPrimitive, Zero};
 

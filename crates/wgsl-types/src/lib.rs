@@ -17,6 +17,8 @@ pub use error::Error;
 pub use inst::Instance;
 pub use ty::Type;
 
+pub use half::f16;
+
 use tplt::TpltParam;
 
 /// Function call signature.

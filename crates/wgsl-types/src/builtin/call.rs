@@ -16,7 +16,7 @@
 
 #![allow(non_snake_case)]
 
-use half::prelude::*;
+use half::f16;
 use itertools::{Itertools, chain, izip};
 use num_traits::{One, ToBytes, ToPrimitive, Zero, real::Real};
 

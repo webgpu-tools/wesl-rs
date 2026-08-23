@@ -95,13 +95,13 @@ fn compile_wesl_toml_feat1() {
     let test_path = fixtures_dir().join("compile_wesl/wesl.toml");
 
     let mut features = Features::new();
-    features.add_feature("feat1", true);
-    features.add_feature("feat2", false);
+    features.set("feat1", true);
+    features.set("feat2", false);
     features.default = wesl::Feature::Error;
 
     let mut constants = Constants::new();
-    constants.add_constant("PI", std::f64::consts::PI);
-    constants.add_constant("TRUE", true);
+    constants.set("PI", std::f64::consts::PI);
+    constants.set("TRUE", true);
 
     let mut result = Compiler::new(CompileOptions {
         features,
@@ -121,13 +121,13 @@ fn compile_wesl_toml_feat2() {
     let test_path = fixtures_dir().join("compile_wesl/wesl.toml");
 
     let mut features = Features::new();
-    features.add_feature("feat1", false);
-    features.add_feature("feat2", true);
+    features.set("feat1", false);
+    features.set("feat2", true);
     features.default = wesl::Feature::Error;
 
     let mut constants = Constants::new();
-    constants.add_constant("PI", std::f64::consts::PI);
-    constants.add_constant("TRUE", true);
+    constants.set("PI", std::f64::consts::PI);
+    constants.set("TRUE", true);
 
     let mut result = Compiler::new(CompileOptions {
         features,

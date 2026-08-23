@@ -50,7 +50,7 @@ impl Features {
         Default::default()
     }
 
-    pub fn add_feature(&mut self, name: impl ToString, value: impl Into<Feature>) {
+    pub fn set(&mut self, name: impl ToString, value: impl Into<Feature>) {
         self.flags.insert(name.to_string(), value.into());
     }
 }

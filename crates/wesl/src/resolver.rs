@@ -490,7 +490,7 @@ impl Constants {
         Default::default()
     }
 
-    pub fn add_constant(&mut self, name: impl ToString, value: impl Into<LiteralInstance>) {
+    pub fn set(&mut self, name: impl ToString, value: impl Into<LiteralInstance>) {
         self.constants.insert(name.to_string(), value.into());
     }
 
@@ -548,7 +548,7 @@ impl StandardResolver {
     ///
     /// Note: [`LiteralInstance`] implements [`From`] for all standard numeric types
     pub fn add_constant(&mut self, name: impl ToString, value: impl Into<LiteralInstance>) {
-        self.constants.add_constant(name, value);
+        self.constants.set(name, value);
     }
 
     /// Generate a module with all declared virtual constants in the resolver

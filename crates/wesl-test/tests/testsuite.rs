@@ -460,27 +460,27 @@ pub fn bevy_case(test_name: String, path: PathBuf) -> Result<(), libtest_mimic::
         .to_string();
 
     let mut constants = Constants::new();
-    constants.add_constant("MAX_CASCADES_PER_LIGHT", 10u32);
-    constants.add_constant("MAX_DIRECTIONAL_LIGHTS", 10);
-    constants.add_constant("PER_OBJECT_BUFFER_BATCH_SIZE", 10);
-    constants.add_constant("TONEMAPPING_LUT_TEXTURE_BINDING_INDEX", 10);
-    constants.add_constant("TONEMAPPING_LUT_SAMPLER_BINDING_INDEX", 10);
+    constants.set("MAX_CASCADES_PER_LIGHT", 10u32);
+    constants.set("MAX_DIRECTIONAL_LIGHTS", 10);
+    constants.set("PER_OBJECT_BUFFER_BATCH_SIZE", 10);
+    constants.set("TONEMAPPING_LUT_TEXTURE_BINDING_INDEX", 10);
+    constants.set("TONEMAPPING_LUT_SAMPLER_BINDING_INDEX", 10);
 
     let mut features = Features::new();
-    features.add_feature("MULTISAMPLED", true); // show_prepass needs it
-    features.add_feature("DEPTH_PREPASS", true); // show_prepass needs it
-    features.add_feature("NORMAL_PREPASS", true); // show_prepass needs it
-    features.add_feature("IRRADIANCE_VOLUMES_ARE_USABLE", true); // irradiance_volume_voxel_visualization needs it
-    features.add_feature("IRRADIANCE_VOLUMES_ARE_USABLE", true); // irradiance_volume_voxel_visualization needs it
-    features.add_feature("MOTION_VECTOR_PREPASS", true); // show_prepass needs it
-    features.add_feature("CLUSTERED_DECALS_ARE_USABLE", true); // custom_clustered_decal needs it
-    features.add_feature("VERTEX_UVS_A", true); // texture_binding_array needs it
-    features.add_feature("VERTEX_OUTPUT_INSTANCE_INDEX", true); // extended_material needs it
+    features.set("MULTISAMPLED", true); // show_prepass needs it
+    features.set("DEPTH_PREPASS", true); // show_prepass needs it
+    features.set("NORMAL_PREPASS", true); // show_prepass needs it
+    features.set("IRRADIANCE_VOLUMES_ARE_USABLE", true); // irradiance_volume_voxel_visualization needs it
+    features.set("IRRADIANCE_VOLUMES_ARE_USABLE", true); // irradiance_volume_voxel_visualization needs it
+    features.set("MOTION_VECTOR_PREPASS", true); // show_prepass needs it
+    features.set("CLUSTERED_DECALS_ARE_USABLE", true); // custom_clustered_decal needs it
+    features.set("VERTEX_UVS_A", true); // texture_binding_array needs it
+    features.set("VERTEX_OUTPUT_INSTANCE_INDEX", true); // extended_material needs it
 
     if name == "water_material" {
-        features.add_feature("PREPASS_FRAGMENT", true); // water_material needs it
-        features.add_feature("PREPASS_PIPELINE", true); // water_material needs it
-        features.add_feature("NORMAL_PREPASS_OR_DEFERRED_PREPASS", true); // water_material needs it
+        features.set("PREPASS_FRAGMENT", true); // water_material needs it
+        features.set("PREPASS_PIPELINE", true); // water_material needs it
+        features.set("NORMAL_PREPASS_OR_DEFERRED_PREPASS", true); // water_material needs it
     }
 
     let compile_options = CompileOptions {

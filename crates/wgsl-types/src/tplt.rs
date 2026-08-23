@@ -364,6 +364,10 @@ pub struct AccelerationStructureTags {
 
 #[cfg(feature = "naga-ext")]
 impl AccelerationStructureTags {
+    pub fn new(tags: Vec<AccelerationStructureTag>) -> Self {
+        Self { tags }
+    }
+
     pub fn parse(tplt: &[TpltParam]) -> Result<Self, E> {
         let tags = tplt
             .iter()

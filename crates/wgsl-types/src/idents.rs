@@ -32,10 +32,6 @@ pub const BUILTIN_TYPE_NAMES: &[&str] = &[
     "u64",
     #[cfg(feature = "naga-ext")]
     "f64",
-    #[cfg(feature = "naga-ext")]
-    "ray_query",
-    #[cfg(feature = "naga-ext")]
-    "acceleration_structure",
 ];
 
 /// Built-in type-generators identifiers.
@@ -76,6 +72,10 @@ pub const BUILTIN_TYPE_GENERATOR_NAMES: &[&str] = &[
     "texture_storage_1d_array",
     #[cfg(feature = "naga-ext")]
     "texture_multisampled_2d_array",
+    #[cfg(feature = "naga-ext")]
+    "ray_query",
+    #[cfg(feature = "naga-ext")]
+    "acceleration_structure",
 ];
 
 /// Built-in `struct` identifiers.

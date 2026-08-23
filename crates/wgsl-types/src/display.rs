@@ -203,12 +203,30 @@ impl Display for Type {
             #[cfg(feature = "naga-ext")]
             Type::RayQuery(None) => write!(f, "ray_query"),
             #[cfg(feature = "naga-ext")]
-            Type::RayQuery(Some(_)) => write!(f, "ray_query<vertex_return>"),
+            Type::RayQuery(Some(tags)) => {
+                write!(f, "ray_query<")?;
+                for (index, tag) in tags.tags().iter().enumerate() {
+                    if index > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{tag}")?;
+                }
+                write!(f, ">")?;
+                Ok(())
+            }
             #[cfg(feature = "naga-ext")]
             Type::AccelerationStructure(None) => write!(f, "acceleration_structure"),
             #[cfg(feature = "naga-ext")]
-            Type::AccelerationStructure(Some(_)) => {
-                write!(f, "acceleration_structure<vertex_return>")
+            Type::AccelerationStructure(Some(tags)) => {
+                write!(f, "acceleration_structure<")?;
+                for (index, tag) in tags.tags().iter().enumerate() {
+                    if index > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{tag}")?;
+                }
+                write!(f, ">")?;
+                Ok(())
             }
         }
     }

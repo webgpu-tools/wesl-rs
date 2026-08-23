@@ -29,7 +29,7 @@ pub(crate) fn is_mod_ident(name: &str) -> bool {
         )
 }
 
-// https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/Imports.md#reference-level-explanation
+// https://github.com/webgpu-tools/wesl-spec/blob/main/Imports.md#reference-level-explanation
 pub(crate) const RESERVED_MOD_NAMES: &[&str] = &[
     // WGSL keywords
     "const_assert",

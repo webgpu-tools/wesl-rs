@@ -76,7 +76,7 @@ impl CompileResult {
     /// # WESL Reference
     ///
     /// The user-defined `@const` attribute is non-standard.
-    /// See issue [#46](https://github.com/wgsl-tooling-wg/wesl-spec/issues/46#issuecomment-2389531479).
+    /// See issue [#46](https://github.com/webgpu-tools/wesl-spec/issues/46#issuecomment-2389531479).
     pub fn eval<'a>(&'a self, source: &str) -> Result<EvalResult<'a>, Error> {
         let expr = source
             .parse::<syntax::Expression>()

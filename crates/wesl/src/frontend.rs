@@ -25,14 +25,14 @@ use crate::{
 /// Compilation options used by [`Compiler`].
 #[derive(Clone, Debug, PartialEq)]
 pub struct CompileOptions {
-    /// Toggle [WESL Imports](https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/Imports.md).
+    /// Toggle [WESL Imports](https://github.com/webgpu-tools/wesl-spec/blob/main/Imports.md).
     ///
     /// If disabled:
     ///
     /// * The compiler will silently remove all import statements and inline paths.
     /// * Validation will not trigger an error if referencing an imported item.
     pub imports: bool,
-    /// Toggle [WESL Conditional Translation](https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/ConditionalTranslation.md).
+    /// Toggle [WESL Conditional Translation](https://github.com/webgpu-tools/wesl-spec/blob/main/ConditionalTranslation.md).
     ///
     /// See [`Self::features`] to enable/disable each feature flag.
     pub condcomp: bool,

@@ -115,7 +115,7 @@ extern {
         TokTemplateArgsEnd => Token::TemplateArgsEnd,
 
         // extension: wesl-imports
-        // https://github.com/wgsl-tooling-wg/wesl-spec/blob/imports-update/Imports.md
+        // https://github.com/webgpu-tools/wesl-spec/blob/imports-update/Imports.md
         // date: 2025-01-18, hash: 2db8e7f681087db6bdcd4a254963deb5c0159775
         #[cfg(feature = "imports")]
         "::" => Token::SymColonColon,
@@ -661,7 +661,7 @@ SingularExpression: Expression = {
 // XXX: this production rule is used for statements preceded by attributes (wesl `@if` extension).
 // because this sentence is not LR: `@attribute(x) (y) = z`.
 // so we only allow attributes on statements that don't start with `(`.
-// see https://github.com/wgsl-tooling-wg/wesl-rs/issues/162
+// see https://github.com/webgpu-tools/wesl-rs/issues/162
 LhsExpressionNoParen: Expression = {
     #[cfg(not(feature = "imports"))]
     <l: @L> <ident: Ident> <r: @R> <components: ComponentOrSwizzleSpecifier?> => {
@@ -1240,7 +1240,7 @@ DiagnosticControl: (DiagnosticSeverity, String) = {
 };
 
 // EXTENSION: WESL-IMPORTS
-// https://github.com/wgsl-tooling-wg/wesl-spec/blob/imports-update/Imports.md
+// https://github.com/webgpu-tools/wesl-spec/blob/imports-update/Imports.md
 // date: 2025-01-18, hash: 2db8e7f681087db6bdcd4a254963deb5c0159775
 
 #[cfg(feature = "imports")]

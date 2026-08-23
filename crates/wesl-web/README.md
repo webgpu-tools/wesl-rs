@@ -15,7 +15,7 @@ You need [`wasm-pack`][wasm-pack] installed.
 That's for `wesl-playground`. you can switch the `--target` to `node` or `deno` depending on your
 use-case. Read the [`wasm-pack` book][wasm-pack-book] for more.
 
-[wesl-rs]: https://github.com/wgsl-tooling-wg/wesl-rs
-[wesl-playground]: https://github.com/wgsl-tooling-wg/wesl-playground
+[wesl-rs]: https://github.com/webgpu-tools/wesl-rs
+[wesl-playground]: https://github.com/webgpu-tools/wesl-playground
 [wasm-pack]: https://rustwasm.github.io/wasm-pack/
 [wasm-pack-book]: https://rustwasm.github.io/docs/wasm-pack/

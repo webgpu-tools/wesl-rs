@@ -493,7 +493,7 @@ pub enum Token {
     TemplateArgsEnd,
 
     // extension: wesl-imports
-    // https://github.com/wgsl-tooling-wg/wesl-spec/blob/imports-update/Imports.md
+    // https://github.com/webgpu-tools/wesl-spec/blob/imports-update/Imports.md
     // date: 2025-01-18, hash: 2db8e7f681087db6bdcd4a254963deb5c0159775
     #[cfg(feature = "imports")]
     #[token("::")]

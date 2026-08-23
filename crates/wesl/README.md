@@ -121,5 +121,5 @@ assert_eq!(wgsl_expr, "42u");
 [wesl-quote]: https://docs.rs/wesl-quote
 [cli]: https://crates.io/crates/wesl-cli
 [generics]: https://github.com/k2d222/wesl-spec/blob/generics/Generics.md
-[packaging]: https://github.com/wgsl-tooling-wg/wesl-spec/blob/main/Packaging.md
+[packaging]: https://github.com/webgpu-tools/wesl-spec/blob/main/Packaging.md
 [cts]: https://github.com/k2d222/wesl-cts

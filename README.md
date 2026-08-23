@@ -4,8 +4,8 @@
 <!-- markdownlint-disable -->
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/wgsl-tooling-wg/wesl-spec/main/assets/logo/logo-square-dark.svg">
-    <img width="200" height="200" src="https://raw.githubusercontent.com/wgsl-tooling-wg/wesl-spec/main/assets/logo/logo-square-light.svg" alt="WESL logo" />
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/webgpu-tools/wesl-spec/main/assets/logo/logo-square-dark.svg">
+    <img width="200" height="200" src="https://raw.githubusercontent.com/webgpu-tools/wesl-spec/main/assets/logo/logo-square-light.svg" alt="WESL logo" />
   </picture>
 </p>
 

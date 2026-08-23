@@ -415,7 +415,7 @@ impl Resolver for PackageResolver {
         })?;
 
         // TODO: the resolution algorithm is currently not spec-compliant.
-        // https://github.com/wgsl-tooling-wg/wesl-spec/blob/imports-update/Imports.md
+        // https://github.com/webgpu-tools/wesl-spec/blob/imports-update/Imports.md
         let mut cur_mod = pkg.root;
         for comp in &path.components {
             if let Some(submod) = cur_mod.submodules.iter().find(|m| m.name == comp) {

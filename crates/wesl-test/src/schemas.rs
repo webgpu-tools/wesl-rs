@@ -1,5 +1,5 @@
 //! File containing the serde data structures for JSON test files.
-//! See schemas: <https://github.com/wgsl-tooling-wg/wesl-testsuite/blob/main/src/TestSchema.ts>
+//! See schemas: <https://github.com/webgpu-tools/wesl-testsuite/blob/main/src/TestSchema.ts>
 
 use std::{
     collections::HashMap,

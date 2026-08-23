@@ -1,5 +1,5 @@
 //! JSON Tests from the `wesl-testsuite`
-//! See schemas: https://github.com/wgsl-tooling-wg/wesl-testsuite/blob/main/src/TestSchema.ts
+//! See schemas: https://github.com/webgpu-tools/wesl-testsuite/blob/main/src/TestSchema.ts
 //!
 //! These tests are run with `harness = false` in `Cargo.toml`, because they rely on the
 //! `libtest_mimic` custom harness to generate tests at runtime based on the JSON files.

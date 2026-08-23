@@ -32,7 +32,7 @@ pub fn link(modules: &[Module], used_items: Option<&UsedItems>) -> TranslationUn
             .global_directives
             .extend(module.syntax.global_directives.clone());
     }
-    // TODO: <https://github.com/wgsl-tooling-wg/wesl-spec/issues/71>
+    // TODO: <https://github.com/webgpu-tools/wesl-spec/issues/71>
     // currently the behavior is:
     // * include all directives used (if strip)
     // * include all directives (if not strip)

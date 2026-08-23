@@ -30,7 +30,7 @@ default-members = [
 version = "0.4.3"
 edition = "2024"
 rust-version = "1.97.1"
-repository = "https://github.com/wgsl-tooling-wg/wesl-rs"
+repository = "https://github.com/webgpu-tools/wesl-rs"
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]

@@ -45,12 +45,7 @@ impl SyntaxUtil for TranslationUnit {
                 GlobalDeclaration::Function(decl) => decl
                     .attributes
                     .iter()
-                    .any(|attr| {
-                        matches!(
-                            attr.node(),
-                            Attribute::Vertex | Attribute::Fragment | Attribute::Compute
-                        )
-                    })
+                    .any(|attr| attr.is_entry_point())
                     .then_some(decl.ident.clone()),
                 _ => None,
             })

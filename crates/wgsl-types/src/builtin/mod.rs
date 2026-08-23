@@ -34,6 +34,8 @@ pub(crate) use ops::Compwise;
 
 use itertools::Itertools;
 
+#[cfg(feature = "naga-ext")]
+use crate::tplt::AccelerationStructureTags;
 use crate::{
     CallSignature, Error, Instance, ShaderStage,
     syntax::{BinaryOperator, UnaryOperator},
@@ -385,8 +387,9 @@ pub fn builtin_type(name: &str, tplt: Option<&[TpltParam]>) -> Result<Type, E> {
             #[cfg(feature = "naga-ext")]
             "ray_query" => Ok(Type::RayQuery(None)),
             #[cfg(feature = "naga-ext")]
+            // requires enable extensions
             "acceleration_structure" => Ok(Type::AccelerationStructure(Some(
-                crate::syntax::AccelerationStructureFlags::VertexReturn,
+                AccelerationStructureTags::parse(t)?,
             ))),
 
             _ => Err(E::UnexpectedTemplate(name.to_string())),

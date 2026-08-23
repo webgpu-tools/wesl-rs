@@ -286,20 +286,25 @@ impl ToExpr for Type {
             Type::Sampler(_) => Ok(TypeExpression::new(ident.unwrap())),
             Type::Unknown => Err(E::NotConstructible(Type::Unknown)),
             #[cfg(feature = "naga-ext")]
-            Type::RayQuery(flags) | Type::AccelerationStructure(flags) => Ok(TypeExpression {
-                path: None,
-                ident: ident.unwrap(),
-                template_args: (*flags == Some(AccelerationStructureFlags::VertexReturn)).then(
-                    || {
-                        vec![TemplateArg {
-                            expression: Expression::TypeOrIdentifier(TypeExpression::new(
-                                builtin_ident("vertex_return").unwrap().clone(),
-                            ))
-                            .into(),
-                        }]
-                    },
-                ),
-            }),
+            Type::RayQuery(template) | Type::AccelerationStructure(template) => {
+                Ok(TypeExpression {
+                    path: None,
+                    ident: ident.unwrap(),
+                    template_args: template.as_ref().map(|tags| {
+                        tags.tags()
+                            .iter()
+                            .map(|tag| match tag {
+                                AccelerationStructureTag::VertexReturn => TemplateArg {
+                                    expression: Expression::TypeOrIdentifier(TypeExpression::new(
+                                        builtin_ident("vertex_return").unwrap().clone(),
+                                    ))
+                                    .into(),
+                                },
+                            })
+                            .collect()
+                    }),
+                })
+            }
         }
         .map(Expression::from)
     }

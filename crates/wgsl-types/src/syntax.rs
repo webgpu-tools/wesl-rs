@@ -140,7 +140,7 @@ pub enum TexelFormat {
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum AccelerationStructureFlags {
+pub enum AccelerationStructureTag {
     VertexReturn,
 }
 
@@ -153,7 +153,7 @@ pub enum Enumerant {
     AddressSpace(AddressSpace),
     TexelFormat(TexelFormat),
     #[cfg(feature = "naga-ext")]
-    AccelerationStructureFlags(AccelerationStructureFlags),
+    AccelerationStructureTag(AccelerationStructureTag),
 }
 
 impl FromStr for Enumerant {
@@ -166,7 +166,7 @@ impl FromStr for Enumerant {
             .or_else(|()| TexelFormat::from_str(s).map(Enumerant::TexelFormat));
         #[cfg(feature = "naga-ext")]
         let res = res.or_else(|()| {
-            AccelerationStructureFlags::from_str(s).map(Enumerant::AccelerationStructureFlags)
+            AccelerationStructureTag::from_str(s).map(Enumerant::AccelerationStructureTag)
         });
         res
     }
@@ -663,7 +663,7 @@ impl FromStr for TexelFormat {
 }
 
 #[cfg(feature = "naga-ext")]
-impl FromStr for AccelerationStructureFlags {
+impl FromStr for AccelerationStructureTag {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -899,7 +899,7 @@ impl Display for TexelFormat {
 }
 
 #[cfg(feature = "naga-ext")]
-impl Display for AccelerationStructureFlags {
+impl Display for AccelerationStructureTag {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::VertexReturn => write!(f, "vertex_return"),

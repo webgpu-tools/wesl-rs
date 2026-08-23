@@ -116,7 +116,7 @@ impl Display for Enumerant {
             Enumerant::AddressSpace(address_space) => write!(f, "{address_space}"),
             Enumerant::TexelFormat(texel_format) => write!(f, "{texel_format}"),
             #[cfg(feature = "naga-ext")]
-            Enumerant::AccelerationStructureFlags(flags) => write!(f, "{flags}"),
+            Enumerant::AccelerationStructureTag(tag) => write!(f, "{tag}"),
         }
     }
 }

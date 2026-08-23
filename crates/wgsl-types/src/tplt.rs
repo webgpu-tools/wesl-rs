@@ -357,7 +357,7 @@ impl BitcastTemplate {
 }
 
 #[cfg(feature = "naga-ext")]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct AccelerationStructureTags {
     tags: Vec<AccelerationStructureTag>,
 }

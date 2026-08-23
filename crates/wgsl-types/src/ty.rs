@@ -6,7 +6,7 @@ use std::str::FromStr;
 use crate::tplt::AccelerationStructureTags;
 use crate::{Error, Instance, inst::*, syntax::*};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructMemberType {
     pub name: String,
     pub ty: Type,
@@ -25,7 +25,7 @@ impl StructMemberType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructType {
     pub name: String,
     pub members: Vec<StructMemberType>,
@@ -265,7 +265,7 @@ impl FromStr for SamplerType {
 }
 
 /// WGSL type.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Type {
     Bool,
     AbstractInt,

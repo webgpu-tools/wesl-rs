@@ -114,6 +114,16 @@ impl IsConst for Attribute {
             Attribute::Payload(_) => false,
             #[cfg(feature = "naga-ext")]
             Attribute::Mesh(_) => false, // attr on entrypoint function (never const)
+            #[cfg(feature = "naga-ext")]
+            Attribute::RayGeneration => false, // attr on entrypoint function (never const)
+            #[cfg(feature = "naga-ext")]
+            Attribute::AnyHit => false, // attr on entrypoint function (never const)
+            #[cfg(feature = "naga-ext")]
+            Attribute::ClosestHit => false, // attr on entrypoint function (never const)
+            #[cfg(feature = "naga-ext")]
+            Attribute::Miss => false, // attr on entrypoint function (never const)
+            #[cfg(feature = "naga-ext")]
+            Attribute::IncomingPayload(_) => false,
             Attribute::Publish => true, // imports are const
             Attribute::If(_) => true,   // if attributes are translate-time (always const)
             Attribute::Elif(_) => true, // if attributes are translate-time (always const)

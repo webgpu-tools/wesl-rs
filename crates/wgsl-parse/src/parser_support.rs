@@ -36,16 +36,20 @@ pub(crate) fn apply_components(
     span: Span,
     components: Vec<Spanned<Component>>,
 ) -> Expression {
-    components.into_iter().fold(expr, |base, comp| {
-        let span = span.extend(comp.span());
-        let base = Spanned::new(base, span);
-        match comp.into_inner() {
-            Component::Named(component) => {
-                Expression::NamedComponent(NamedComponentExpression { base, component })
-            }
-            Component::Index(index) => Expression::Indexing(IndexingExpression { base, index }),
-        }
-    })
+    components
+        .into_iter()
+        .fold((expr, span), |(base, base_span), comp| {
+            let component_span = comp.span();
+            let base = Spanned::new(base, base_span);
+            let expression = match comp.into_inner() {
+                Component::Named(component) => {
+                    Expression::NamedComponent(NamedComponentExpression { base, component })
+                }
+                Component::Index(index) => Expression::Indexing(IndexingExpression { base, index }),
+            };
+            (expression, base_span.extend(component_span))
+        })
+        .0
 }
 
 impl FromStr for DeclarationKind {
@@ -239,6 +243,31 @@ pub(crate) fn parse_attribute(
             Some(expr) => Ok(Attribute::Mesh(expr)),
             None => Err(E::Attribute("mesh", "expected 1 arguments")),
         },
+        #[cfg(feature = "naga-ext")]
+        "ray_generation" => match zero_args(args) {
+            true => Ok(Attribute::RayGeneration),
+            false => Err(E::Attribute("ray_generation", "expected 0 arguments")),
+        },
+        #[cfg(feature = "naga-ext")]
+        "any_hit" => match zero_args(args) {
+            true => Ok(Attribute::AnyHit),
+            false => Err(E::Attribute("any_hit", "expected 0 arguments")),
+        },
+        #[cfg(feature = "naga-ext")]
+        "closest_hit" => match zero_args(args) {
+            true => Ok(Attribute::ClosestHit),
+            false => Err(E::Attribute("closest_hit", "expected 0 arguments")),
+        },
+        #[cfg(feature = "naga-ext")]
+        "miss" => match zero_args(args) {
+            true => Ok(Attribute::Miss),
+            false => Err(E::Attribute("miss", "expected 0 arguments")),
+        },
+        #[cfg(feature = "naga-ext")]
+        "incoming_payload" => match one_arg(args) {
+            Some(expr) => Ok(Attribute::IncomingPayload(expr)),
+            None => Err(E::Attribute("incoming_payload", "expected 1 arguments")),
+        },
         #[cfg(feature = "imports")]
         "publish" => Ok(Attribute::Publish),
         #[cfg(feature = "condcomp")]
@@ -359,5 +388,26 @@ pub(crate) fn parse_var_template(
             }
         }
         None => Ok(None),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use super::*;
+
+    #[test]
+    fn component_base_spans_end_before_the_component() {
+        let expression = Expression::from_str("globals.voxel_clip.count").unwrap();
+        let Expression::NamedComponent(outer) = expression else {
+            panic!("expected outer named component");
+        };
+        assert_eq!(outer.base.span(), Span::new(0..18));
+
+        let Expression::NamedComponent(inner) = outer.base.node() else {
+            panic!("expected inner named component");
+        };
+        assert_eq!(inner.base.span(), Span::new(0..7));
     }
 }

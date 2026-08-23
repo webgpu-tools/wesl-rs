@@ -128,6 +128,8 @@ impl BuiltinIdent for SampledType {
             Self::I32 => builtin_ident("i32"),
             Self::U32 => builtin_ident("u32"),
             Self::F32 => builtin_ident("f32"),
+            #[cfg(feature = "naga-ext")]
+            Self::U64 => builtin_ident("u64"),
         }
     }
 }
@@ -145,6 +147,10 @@ impl BuiltinIdent for AddressSpace {
             Self::Immediate => builtin_ident("immediate"),
             #[cfg(feature = "naga-ext")]
             Self::TaskPayload => builtin_ident("task_payload"),
+            #[cfg(feature = "naga-ext")]
+            Self::RayPayload => builtin_ident("ray_payload"),
+            #[cfg(feature = "naga-ext")]
+            Self::IncomingRayPayload => builtin_ident("incoming_ray_payload"),
         }
     }
 }

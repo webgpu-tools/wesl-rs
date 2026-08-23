@@ -87,7 +87,7 @@ impl Type {
     /// Valid operands:
     /// * `-S`, S: scalar
     pub fn op_neg(&self) -> Result<Self, E> {
-        if self.is_scalar() {
+        if self.is_scalar() || matches!(self, Type::Vec(_, inner_ty) if inner_ty.is_scalar()) {
             Ok(self.clone())
         } else {
             Err(E::Unary(UnaryOperator::Negation, self.ty()))
@@ -157,25 +157,29 @@ impl Type {
                 let ty = convert_ty(self, rhs).ok_or_else(err)?;
                 Ok(ty.clone())
             }
+            // component-wise scaling
             (scalar_ty, Type::Vec(n, vec_ty)) | (Type::Vec(n, vec_ty), scalar_ty)
                 if scalar_ty.is_scalar() =>
             {
                 let inner_ty = convert_ty(scalar_ty, vec_ty).ok_or_else(err)?;
                 Ok(Type::Vec(*n, Box::new(inner_ty.clone())))
             }
+            // component-wise scaling
             (scalar_ty, Type::Mat(c, r, mat_ty)) | (Type::Mat(c, r, mat_ty), scalar_ty)
                 if scalar_ty.is_scalar() =>
             {
                 let inner_ty = convert_ty(scalar_ty, mat_ty).ok_or_else(err)?;
                 Ok(Type::Mat(*c, *r, Box::new(inner_ty.clone())))
             }
-            (Type::Vec(n1, vec_ty), Type::Mat(n2, n, mat_ty))
-            | (Type::Mat(n, n1, mat_ty), Type::Vec(n2, vec_ty))
-                if n1 == n2 =>
-            {
+            // linear algebra row-vector-matrix product
+            (Type::Vec(n1, vec_ty), Type::Mat(n, n2, mat_ty))
+            // linear algebra matrix-column-vector product
+            | (Type::Mat(n1, n, mat_ty), Type::Vec(n2, vec_ty))
+             if n1 == n2 => {
                 let inner_ty = convert_ty(vec_ty, mat_ty).ok_or_else(err)?;
                 Ok(Type::Vec(*n, Box::new(inner_ty.clone())))
             }
+            // linear algebra matrix product
             (Type::Mat(k1, r, lhs), Type::Mat(c, k2, rhs)) if k1 == k2 => {
                 let inner_ty = convert_ty(lhs, rhs).ok_or_else(err)?;
                 Ok(Type::Mat(*c, *r, Box::new(inner_ty.clone())))

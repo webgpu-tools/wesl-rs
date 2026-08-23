@@ -1,0 +1,41 @@
+---
+source: crates/wesl-test/tests/testsuite.rs
+expression: res.syntax.to_string()
+---
+enable wgpu_ray_tracing_pipeline;
+
+@group(0) @binding(0)
+var acc_struct: acceleration_structure;
+
+var<ray_payload> hit_num: HitCounters;
+
+var<incoming_ray_payload> incoming_hit_num: HitCounters;
+
+struct HitCounters {
+    hit_num: u32,
+    selected_hit: u32
+}
+
+@any_hit @incoming_payload(incoming_hit_num)
+fn any_hit_main(@builtin(instance_custom_data) data: u32, @builtin(geometry_index) geo_idx: u32, @builtin(ray_t_current_max) max: f32, @builtin(hit_kind) kind: u32) {
+    incoming_hit_num.hit_num++;
+    incoming_hit_num.selected_hit = data;
+}
+
+@closest_hit @incoming_payload(incoming_hit_num)
+fn closest_hit_main(@builtin(object_ray_origin) origin: vec3<f32>, @builtin(object_ray_direction) dir: vec3<f32>, @builtin(object_to_world) obj_to_world: mat4x3<f32>, @builtin(world_to_object) world_to_obj: mat4x3<f32>) {
+
+}
+
+@miss @incoming_payload(incoming_hit_num)
+fn miss(@builtin(world_ray_origin) origin: vec3<f32>, @builtin(world_ray_direction) dir: vec3<f32>, @builtin(ray_t_min) t_min: f32) {
+
+}
+
+@ray_generation
+fn ray_gen_main(@builtin(ray_invocation_id) id: vec3<u32>, @builtin(num_ray_invocations) num_invocations: vec3<u32>) {
+    hit_num = HitCounters(0u, 0u);
+    let shift: vec3<f32> = vec3<f32>(id) / vec3<f32>(num_invocations);
+    let ray_shift: vec3<f32> = (vec3(shift.x, 0.0, shift.y) * 2.0) - 1.0;
+    traceRay(acc_struct, RayDesc(0, 255, 0.01, 100.0, vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0) + ray_shift), &hit_num);
+}

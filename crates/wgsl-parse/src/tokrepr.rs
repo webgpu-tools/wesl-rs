@@ -47,15 +47,11 @@ impl NamedNode for Expression {
 
 impl NamedNode for Statement {
     fn name(&self) -> Option<String> {
-        // COMBAK: this nesting is hell. Hopefully if-let chains will stabilize soon.
-        if let Statement::Compound(stmt) = self
-            && stmt.statements.is_empty()
-            && let [attr] = stmt.attributes.as_slice()
-            && let Attribute::Custom(attr) = attr.node()
-        {
-            return Some(attr.name.to_string());
+        if let Statement::Declaration(stmt) = self {
+            Some(stmt.ident.to_string())
+        } else {
+            None
         }
-        None
     }
 }
 

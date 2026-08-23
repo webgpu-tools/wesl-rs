@@ -34,13 +34,17 @@ let module = quote_module! {
 One can inject variables into the following places by prefixing the name with
 a `#` symbol:
 
-| Code location | Injected type | Indirectly supported injection type with `Into` |
-| ------------- | ------------- | ----------------------------------------------- |
-| name of a global declaration | `GlobalDeclaration` | `Declaration` `TypeAlias` `Struct` `Function` `ConstAssert` |
-| name of a struct member | `StructMember` | |
-| name of an attribute, after `@` | `Attribute` | `BuiltinValue` `InterpolateAttribute` `WorkgroupSizeAttribute` `TypeConstraint` `CustomAttribute` |
-| type or identifier expression | `Expression` | `LiteralExpression` `ParenthesizedExpression` `NamedComponentExpression` `IndexingExpression` `UnaryExpression` `BinaryExpression` `FunctionCallExpression` `TypeOrIdentifierExpression` and transitively: `bool` `i64` (AbstractInt) `f64` (AbstractFloat) `i32` `u32` `f32` `Ident` |
-| name of an attribute preceding and empty block statement | `Statement` | `CompoundStatement` `AssignmentStatement` `IncrementStatement` `DecrementStatement` `IfStatement` `SwitchStatement` `LoopStatement` `ForStatement` `WhileStatement` `BreakStatement` `ContinueStatement` `ReturnStatement` `DiscardStatement` `FunctionCallStatement` `ConstAssertStatement` `DeclarationStatement` |
+An interpolation is either a bare `#ident` (in expression position) or an explicit
+marker of the form `#marker@ident`. The marker selects the syntactic location to inject
+into:
+
+| Marker | Injected type | Indirectly supported injection type with `Into` |
+| ------ | ------------- | ----------------------------------------------- |
+| `#decl@ident` | `GlobalDeclaration` | `Declaration` `TypeAlias` `Struct` `Function` `ConstAssert` |
+| `#mem@ident` | `StructMember` | |
+| `#attr@ident` | `Attribute` | `BuiltinValue` `InterpolateAttribute` `WorkgroupSizeAttribute` `TypeConstraint` `CustomAttribute` |
+| `#expr@ident` or bare `#ident` | `Expression` | `LiteralExpression` `ParenthesizedExpression` `NamedComponentExpression` `IndexingExpression` `UnaryExpression` `BinaryExpression` `FunctionCallExpression` `TypeOrIdentifierExpression` and transitively: `bool` `i64` (AbstractInt) `f64` (AbstractFloat) `i32` `u32` `f32` `Ident` |
+| `#stmt@ident` | `Statement` | `CompoundStatement` `AssignmentStatement` `IncrementStatement` `DecrementStatement` `IfStatement` `SwitchStatement` `LoopStatement` `ForStatement` `WhileStatement` `BreakStatement` `ContinueStatement` `ReturnStatement` `DiscardStatement` `FunctionCallStatement` `ConstAssertStatement` `DeclarationStatement` |
 
 ```rust
 # use wesl_quote::quote_module;
@@ -54,8 +58,8 @@ let module = quote_module! {
     struct #inject_struct { dummy: u32 } // structs cannot be empty
     fn #inject_func() {}
     fn foo() {
-        @#inject_stmt {}
-        let x: f32 = #inject_expr;
+        #stmt@inject_stmt
+        let x: f32 = #expr@inject_expr;
     }
 };
 ```

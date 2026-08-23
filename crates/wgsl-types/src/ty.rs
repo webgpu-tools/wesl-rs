@@ -2,6 +2,8 @@
 
 use std::str::FromStr;
 
+#[cfg(feature = "naga-ext")]
+use crate::tplt::AccelerationStructureTags;
 use crate::{Error, Instance, inst::*, syntax::*};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -238,6 +240,8 @@ impl From<SampledType> for Type {
             SampledType::I32 => Type::I32,
             SampledType::U32 => Type::U32,
             SampledType::F32 => Type::F32,
+            #[cfg(feature = "naga-ext")]
+            SampledType::U64 => Type::U64,
         }
     }
 }
@@ -291,9 +295,9 @@ pub enum Type {
     #[cfg(feature = "naga-ext")]
     BindingArray(Box<Type>, Option<usize>),
     #[cfg(feature = "naga-ext")]
-    RayQuery(Option<AccelerationStructureFlags>),
+    RayQuery(Option<AccelerationStructureTags>),
     #[cfg(feature = "naga-ext")]
-    AccelerationStructure(Option<AccelerationStructureFlags>),
+    AccelerationStructure(Option<AccelerationStructureTags>),
 }
 
 impl Type {

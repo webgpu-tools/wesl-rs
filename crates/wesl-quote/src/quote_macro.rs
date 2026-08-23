@@ -17,6 +17,8 @@ struct Lexer {
     recognizing_template: bool,
     opened_templates: u32,
     token_counter: usize,
+    /// Tokens produced by an interpolation marker (e.g. `#decl@ident`).
+    pending: std::collections::VecDeque<(Token, Span)>,
     extras: LexerState,
 }
 
@@ -269,17 +271,25 @@ impl Lexer {
             recognizing_template: false,
             opened_templates: 0,
             token_counter: 0,
+            pending: Default::default(),
             extras: Default::default(),
         };
         if lex.next_token.is_none() {
-            lex.next_token = lex
-                .rust_tok_next()
-                .and_then(|(tok, off)| lex.tok2wesl(tok, off));
+            lex.next_token = lex.wesl_next_token();
         }
         lex
     }
 
-    fn rust_tok_next(&mut self) -> Option<(RustToken, usize)> {
+    /// Pull the next WESL token, draining any pending interpolation tokens first.
+    fn wesl_next_token(&mut self) -> NextToken {
+        if let Some(tok) = self.pending.pop_front() {
+            return Some(tok);
+        }
+        self.rust_next_token()
+            .and_then(|(tok, off)| self.tok2wesl(tok, off))
+    }
+
+    fn rust_next_token(&mut self) -> Option<(RustToken, usize)> {
         let tok = self.token_stream.next()?;
         let offset = self.token_counter;
         self.token_counter += 1;
@@ -295,9 +305,7 @@ impl Lexer {
                 let (_, span) = tok1.as_ref().unwrap(); // safety: lookahead implies lexer looked at a `<` token
                 Some((tok, span.clone()))
             }
-            None => self
-                .rust_tok_next()
-                .and_then(|(tok, off)| self.tok2wesl(tok, off)),
+            None => self.wesl_next_token(),
         };
 
         (tok1, tok2)
@@ -318,12 +326,14 @@ impl Lexer {
             RustToken::Punct(punct) => {
                 let mut repr = punct.to_string();
                 if repr == "#" {
-                    match self.rust_tok_next()? {
-                        (RustToken::Ident(id), offset) => {
-                            span.end = offset + 1;
-                            Some((Token::Ident(format!("#{id}")), span))
+                    match self.rust_next_token()? {
+                        (RustToken::Ident(id), off) => {
+                            span.end = off + 1;
+                            self.marker2wesl(&id.to_string(), span)
                         }
-                        (tok, _) => abort!(tok.span(), "cannot escape token `{}`", tok),
+                        (tok, _) => {
+                            abort!(tok.span(), "expected an interpolation marker after `#`",)
+                        }
                     }
                 } else {
                     let mut join_punct = punct.spacing() == Spacing::Joint;
@@ -337,7 +347,7 @@ impl Lexer {
                                 } else {
                                     repr.push(chr);
                                     join_punct = punct.spacing() == Spacing::Joint;
-                                    let (_, offset) = self.rust_tok_next().unwrap();
+                                    let (_, offset) = self.rust_next_token().unwrap();
                                     span.end = offset + 1;
                                 }
                             }
@@ -348,6 +358,70 @@ impl Lexer {
                 }
             }
         }
+    }
+
+    /// Expand a variable interpolation composed of a marker and a variable identifier (e.g. `#expr@ident`).
+    fn marker2wesl(&mut self, marker: &str, mut span: Span) -> NextToken {
+        let is_marker = matches!(marker, "expr" | "decl" | "stmt" | "mem" | "attr")
+            && matches!(self.token_stream.peek(), Some(RustToken::Punct(p)) if p.as_char() == '@');
+
+        if !is_marker {
+            // no marker (#ident) is equivalent to #expr@ident.
+            return Some((Token::Ident(format!("#{marker}")), span));
+        }
+
+        self.rust_next_token(); // consume the `@`.
+
+        // consume the variable ident.
+        let (ident, off) = match self.rust_next_token() {
+            Some((RustToken::Ident(id), off)) => (id.to_string(), off),
+            Some((tok, _)) => abort!(tok.span(), "expected an identifier after `#{}@`", marker),
+            None => abort_call_site!("expected an identifier after `#{}@`", marker),
+        };
+        span.end = off + 1;
+
+        let inject = Token::Ident(format!("#{ident}"));
+
+        // build the token sequence for the marker. the first token is returned, the rest
+        // are queued in `self.pending`.
+        let (tok, pending): (Token, Vec<Token>) = match marker {
+            "expr" => {
+                // `#ident`
+                (inject, vec![])
+            }
+            "decl" | "stmt" => {
+                // `const #ident = __dummy_interpolation ;`
+                (
+                    Token::KwConst,
+                    vec![
+                        inject,
+                        Token::SymEqual,
+                        Token::Ident("__dummy_interpolation".to_string()),
+                        Token::SymSemicolon,
+                    ],
+                )
+            }
+            "mem" => {
+                // `#ident : __dummy_interpolation`
+                (
+                    inject,
+                    vec![
+                        Token::SymColon,
+                        Token::Ident("__dummy_interpolation".to_string()),
+                    ],
+                )
+            }
+            "attr" => {
+                // `@ #ident`
+                (Token::SymAttr, vec![inject])
+            }
+            _ => unreachable!("not a valid marker name"),
+        };
+
+        self.pending
+            .extend(pending.into_iter().map(|tok| (tok, span.clone())));
+
+        Some((tok, span))
     }
 
     fn next_tok(&mut self) -> Option<(Token, Span)> {

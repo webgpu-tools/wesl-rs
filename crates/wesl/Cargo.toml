@@ -29,16 +29,9 @@ glob = { version = "0.3", optional = true }  # dep for feature 'package'
 half = { version = "2.4.1", features = ["num-traits"] }
 itertools = "0.15.0"
 num-traits = "0.2.19"
-proc-macro2 = {
-  version = "1.0.93",
-  optional = true
-}  # dep for feature 'package'
+proc-macro2 = { version = "1.0.93", optional = true }  # dep for feature 'package'
 quote = { version = "1.0.38", optional = true }  # dep for feature 'package'
-serde = {
-  version = "1.0",
-  features = ["derive"],
-  optional = true
-}  # dep for feature 'package'
+serde = { version = "1.0", features = ["derive"], optional = true }  # dep for feature 'package'
 thiserror = "2.0.11"
 toml = { version = "1.1", optional = true }  # dep for feature 'package'
 wesl-macros = { workspace = true, features = ["query"] }

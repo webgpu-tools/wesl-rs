@@ -238,6 +238,8 @@ impl From<SampledType> for Type {
             SampledType::I32 => Type::I32,
             SampledType::U32 => Type::U32,
             SampledType::F32 => Type::F32,
+            #[cfg(feature = "naga-ext")]
+            SampledType::U64 => Type::U64,
         }
     }
 }

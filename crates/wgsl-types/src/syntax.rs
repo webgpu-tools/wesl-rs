@@ -404,6 +404,9 @@ pub enum SampledType {
     I32,
     U32,
     F32,
+    #[cfg(feature = "naga-ext")]
+    /// r64uint
+    U64,
 }
 
 impl TexelFormat {
@@ -469,7 +472,7 @@ impl TexelFormat {
             #[cfg(feature = "naga-ext")]
             TexelFormat::Rg11b10Float => SampledType::F32,
             #[cfg(feature = "naga-ext")]
-            TexelFormat::R64Uint => SampledType::U32,
+            TexelFormat::R64Uint => SampledType::U64,
             #[cfg(feature = "naga-ext")]
             TexelFormat::Rgba16Unorm => SampledType::F32,
             #[cfg(feature = "naga-ext")]
@@ -1060,6 +1063,8 @@ impl Display for SampledType {
             SampledType::I32 => write!(f, "i32"),
             SampledType::U32 => write!(f, "u32"),
             SampledType::F32 => write!(f, "f32"),
+            #[cfg(feature = "naga-ext")]
+            SampledType::U64 => write!(f, "u64"),
         }
     }
 }

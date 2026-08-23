@@ -128,6 +128,8 @@ impl BuiltinIdent for SampledType {
             Self::I32 => builtin_ident("i32"),
             Self::U32 => builtin_ident("u32"),
             Self::F32 => builtin_ident("f32"),
+            #[cfg(feature = "naga-ext")]
+            Self::U64 => builtin_ident("u64"),
         }
     }
 }

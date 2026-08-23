@@ -16,13 +16,13 @@
 
 #![allow(non_snake_case)]
 
-use half::prelude::*;
 use itertools::{Itertools, chain, izip};
 use num_traits::{One, ToBytes, ToPrimitive, Zero, real::Real};
 
 use crate::{
     Error, Instance, ShaderStage,
     conv::{Convert, convert, convert_all_ty},
+    f16,
     inst::{
         AtomicInstance, LiteralInstance, MatInstance, RefInstance, StructInstance, VecInstance,
     },

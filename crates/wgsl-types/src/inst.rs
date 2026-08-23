@@ -8,13 +8,10 @@ use std::{
 };
 
 use crate::{
-    Error,
+    Error, f16,
     syntax::{AccessMode, AddressSpace},
     ty::{StructType, Ty, Type},
 };
-
-// re-export
-pub use half::f16;
 
 type E = Error;
 

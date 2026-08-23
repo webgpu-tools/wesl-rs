@@ -16,10 +16,7 @@ regex = "1.11.1"
 serde = { version = "1.0.210", features = ["derive"] }
 
 [dev-dependencies]
-bevy-wgsl = {
-  git = "https://github.com/webgpu-tools/bevy-wgsl",
-  rev = "1b5acfe16b63302d38fa2d05b67d3bead1431c31"
-}
+bevy-wgsl = { git = "https://github.com/wgsl-tooling-wg/bevy-wgsl", rev = "1b5acfe16b63302d38fa2d05b67d3bead1431c31" }
 insta = { version = "1.48.0", features = ["yaml"] }
 libtest-mimic = "0.8.1"
 serde_json = "1.0.140"

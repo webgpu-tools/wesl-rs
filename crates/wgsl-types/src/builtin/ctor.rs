@@ -11,13 +11,13 @@
 //! * User-defined functions can shadow WGSL built-in functions.
 //! * Type aliases must be resolved: WGSL allows calling functions with the name of the alias.
 
-use half::prelude::*;
 use itertools::Itertools;
 use num_traits::{FromPrimitive, One, ToPrimitive, Zero};
 
 use crate::{
     CallSignature, Error, ShaderStage,
     conv::{Convert, convert_all, convert_all_inner_to, convert_all_to, convert_all_ty},
+    f16,
     inst::{ArrayInstance, Instance, LiteralInstance, MatInstance, StructInstance, VecInstance},
     tplt::{ArrayTemplate, MatTemplate, TpltParam, VecTemplate},
     ty::{StructType, Ty, Type},

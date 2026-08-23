@@ -1,8 +1,8 @@
-use half::f16;
 use itertools::Itertools;
 use wgsl_parse::{span::Spanned, syntax::*};
 use wgsl_types::{
     builtin::{call_binary_op, call_unary_op},
+    f16,
     inst::{Instance, LiteralInstance, RefInstance, VecInstance},
     ty::{Ty, Type},
 };

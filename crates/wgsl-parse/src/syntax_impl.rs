@@ -549,7 +549,7 @@ impl From<LiteralExpression> for LiteralInstance {
             LiteralExpression::I32(l) => LiteralInstance::I32(l),
             LiteralExpression::U32(l) => LiteralInstance::U32(l),
             LiteralExpression::F32(l) => LiteralInstance::F32(l),
-            LiteralExpression::F16(l) => LiteralInstance::F16(wgsl_types::inst::f16::from_f32(l)),
+            LiteralExpression::F16(l) => LiteralInstance::F16(wgsl_types::f16::from_f32(l)),
             #[cfg(feature = "naga-ext")]
             LiteralExpression::I64(l) => LiteralInstance::I64(l),
             #[cfg(feature = "naga-ext")]

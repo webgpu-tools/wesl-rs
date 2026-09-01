@@ -586,6 +586,12 @@ GlobalValueDecl: Declaration = {
 // 8. EXPRESSIONS
 // https://www.w3.org/TR/WGSL/#expressions
 
+BinaryExpression<Op, E1, E2>: Expression = {
+    <left: Spanned<E1>> <operator: Op> <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
+        operator, left, right
+    }),
+}
+
 PrimaryExpression<E>: Expression = {
     TemplateElaboratedIdent => Expression::TypeOrIdentifier(<>),
     CallExpression,
@@ -632,8 +638,8 @@ SingleComponentOrSwizzleSpecifier: Component = {
     "." <MemberIdent>       => Component::Named(<>),
 }
 
-UnaryExpression: Expression = {
-    <operator: UnaryOperator> <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
+UnaryExpression<E>: Expression = {
+    <operator: UnaryOperator> <operand: Spanned<E>> => Expression::Unary(UnaryExpression {
         operator, operand
     }),
 };
@@ -706,22 +712,16 @@ LhsExpression: Expression = {
     LhsExpressionParen => <>,
 };
 
-MultiplicativeExpression<E1, E2>: Expression = {
-    <left: Spanned<E1>> <operator: MultiplicativeOperator> <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
-        operator, left, right
-    }),
-};
+MultiplicativeExpression<E1, E2>: Expression = BinaryExpression<MultiplicativeOperator, E1, E2>;
 
 MultiplicativeOperator: BinaryOperator = {
     "*" => BinaryOperator::Multiplication,
-    // "/" => BinaryOperator::Division,
-    // "%" => BinaryOperator::Remainder,
+    "/" => BinaryOperator::Division,
+    "%" => BinaryOperator::Remainder,
 };
 
 AdditiveExpression<E1, E2>: Expression = {
-    <left: Spanned<E1>> <operator: AdditiveOperator> <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
-        operator, left, right
-    }),
+    BinaryExpression<AdditiveOperator, E1, E2>,
     // this handles the special case `x = 5--7` which must be parsed as `x = 5 - (-7)`
     <left: Spanned<E1>> <l: @L> "--" <right: Spanned<E2>> => {
         let outer_span = Span::new((l+1)..right.span().range().end);
@@ -739,20 +739,14 @@ AdditiveOperator: BinaryOperator = {
     "-" => BinaryOperator::Subtraction,
 };
 
-ShiftExpression<E1, E2>: Expression = {
-    <left: Spanned<E1>> "<<" <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::ShiftLeft, left, right
-    }),
-    <left: Spanned<E1>> ">>" <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::ShiftRight, left, right
-    }),
-};
+ShiftExpression<E1, E2>: Expression = BinaryExpression<ShiftOperator, E1, E2>;
 
-RelationalExpression<E1, E2>: Expression = {
-    <left: Spanned<E1>> <operator: RelationalOperator> <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
-        operator, left, right
-    }),
-};
+ShiftOperator: BinaryOperator = {
+    "<<" => BinaryOperator::ShiftLeft,
+    ">>" => BinaryOperator::ShiftLeft,
+}
+
+RelationalExpression<E1, E2>: Expression = BinaryExpression<RelationalOperator, E1, E2>;
 
 RelationalOperator: BinaryOperator = {
     "<" => BinaryOperator::LessThan,
@@ -763,57 +757,36 @@ RelationalOperator: BinaryOperator = {
     "!=" => BinaryOperator::Inequality,
 };
 
-ShortCircuitAndExpression<E1, E2>: Expression = {
-    <left: Spanned<E1>> "&&" <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::ShortCircuitAnd, left, right
-    }),
- };
+ShortCircuitAndExpression<E1, E2>: Expression = BinaryExpression<ShortCircuitAndOperator, E1, E2>;
 
-ShortCircuitOrExpression<E1, E2>: Expression = {
-    <left: Spanned<E1>> "||" <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::ShortCircuitOr, left, right
-    }),
- };
+ShortCircuitAndOperator: BinaryOperator = "&&" => BinaryOperator::ShortCircuitAnd;
 
-BinaryOrExpression<E1, E2>: Expression = {
-    <left: Spanned<E1>> "|" <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::BitwiseOr, left, right
-    }),
-};
+ShortCircuitOrExpression<E1, E2>: Expression = BinaryExpression<ShortCircuitOrOperator, E1, E2>;
 
-BinaryAndExpression<E1, E2>: Expression = {
-    <left: Spanned<E1>> "&" <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::BitwiseAnd, left, right
-    }),
-};
+ShortCircuitOrOperator: BinaryOperator = "||" => BinaryOperator::ShortCircuitOr;
 
-BinaryXorExpression<E1, E2>: Expression = {
-    <left: Spanned<E1>> "^" <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::BitwiseXor, left, right
-    }),
-};
+BinaryOrExpression<E1, E2>: Expression = BinaryExpression<BinaryOrOperator, E1, E2>;
 
-BitwiseExpression<E1, E2>: Expression = {
-    <left: Spanned<E1>> <operator: BitwiseOperator> <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
-        operator, left, right
-    }),
-};
+BinaryOrOperator: BinaryOperator = "|" => BinaryOperator::BitwiseOr;
 
-BitwiseOperator: BinaryOperator = {
-    "&" => BinaryOperator::BitwiseAnd,
-    "|" => BinaryOperator::BitwiseOr,
-    "^" => BinaryOperator::BitwiseXor,
-};
+BinaryAndExpression<E1, E2>: Expression = BinaryExpression<BinaryAndOperator, E1, E2>;
 
-// see comment below to understand why sub-expression types take a <Expression> template parameter:
+BinaryAndOperator: BinaryOperator = "&" => BinaryOperator::BitwiseAnd;
+
+BinaryXorExpression<E1, E2>: Expression = BinaryExpression<BinaryXorOperator, E1, E2>;
+
+BinaryXorOperator: BinaryOperator = "^" => BinaryOperator::BitwiseXor;
+
+// Expression rules take one or two <Expression> template parameters because #[precedence] substitutes it by name after macro inlining.
+// See explanatory GitHub comment:
 // https://github.com/lalrpop/lalrpop/issues/951#issuecomment-2476984972
 Expression: Expression = {
     #[precedence(level="0")]
     PrimaryExpression<Expression>,
     #[precedence(level="1")] #[assoc(side="left")]
     SingularExpression<Expression>,
-    // #[precedence(level="2")] #[assoc(side="right")]
-    // UnaryExpression,
+    #[precedence(level="2")] #[assoc(side="right")]
+    UnaryExpression<Expression>,
     #[precedence(level="3")] #[assoc(side="left")]
     MultiplicativeExpression<Expression, Expression>,
     #[precedence(level="4")] #[assoc(side="left")]

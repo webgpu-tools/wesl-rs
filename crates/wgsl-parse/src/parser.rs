@@ -10,11 +10,11 @@ use lalrpop_util::lalrpop_mod;
 
 lalrpop_mod!(
     #[allow(clippy::all, reason = "generated code")]
-    wgsl
+    grammar
 );
 
 pub use crate::parser_support::ParseEntryPoint;
-use wgsl::EntryPointParser;
+use grammar::EntryPointParser;
 
 macro_rules! parse {
     ($source:expr, $token:ident, $entrypoint:ident) => {{

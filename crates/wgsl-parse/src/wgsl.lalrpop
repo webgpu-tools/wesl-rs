@@ -592,11 +592,11 @@ BinaryExpression<Op, E1, E2>: Expression = {
     }),
 }
 
-PrimaryExpression<E>: Expression = {
+PrimaryExpression: Expression = {
     TemplateElaboratedIdent => Expression::TypeOrIdentifier(<>),
     CallExpression,
     Literal => Expression::Literal(<>),
-    ParenExpression<E> => Expression::Parenthesized(<>),
+    ParenExpression => Expression::Parenthesized(<>),
 };
 
 CallExpression: Expression = {
@@ -611,8 +611,8 @@ CallPhrase: FunctionCall = {
     },
 };
 
-ParenExpression<E>: ParenthesizedExpression = {
-    "(" <Spanned<E>> ")" => ParenthesizedExpression {
+ParenExpression: ParenthesizedExpression = {
+    "(" <Spanned<Expression>> ")" => ParenthesizedExpression {
         expression: <>
     },
 };
@@ -743,14 +743,14 @@ ShiftExpression<E1, E2>: Expression = BinaryExpression<ShiftOperator, E1, E2>;
 
 ShiftOperator: BinaryOperator = {
     "<<" => BinaryOperator::ShiftLeft,
-    ">>" => BinaryOperator::ShiftLeft,
+    ">>" => BinaryOperator::ShiftRight,
 }
 
 RelationalExpression<E1, E2>: Expression = BinaryExpression<RelationalOperator, E1, E2>;
 
 RelationalOperator: BinaryOperator = {
     "<" => BinaryOperator::LessThan,
-    ">" => BinaryOperator::LessThan,
+    ">" => BinaryOperator::GreaterThan,
     "<=" => BinaryOperator::LessThanEqual,
     ">=" => BinaryOperator::GreaterThanEqual,
     "==" => BinaryOperator::Equality,
@@ -782,7 +782,7 @@ BinaryXorOperator: BinaryOperator = "^" => BinaryOperator::BitwiseXor;
 // https://github.com/lalrpop/lalrpop/issues/951#issuecomment-2476984972
 Expression: Expression = {
     #[precedence(level="0")]
-    PrimaryExpression<Expression>,
+    PrimaryExpression,
     #[precedence(level="1")] #[assoc(side="left")]
     SingularExpression<Expression>,
     #[precedence(level="2")] #[assoc(side="right")]

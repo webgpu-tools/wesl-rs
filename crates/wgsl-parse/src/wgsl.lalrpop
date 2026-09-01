@@ -596,7 +596,7 @@ CoreExpression: Expression = {
     TemplateElaboratedIdent => Expression::TypeOrIdentifier(<>),
     CallExpression,
     Literal => Expression::Literal(<>),
-    ParenExpression => Expression::Parenthesized(<>),
+    ParenExpression<Expression>,
 };
 
 PrimaryExpression<E>: Expression = {
@@ -616,10 +616,10 @@ CallPhrase: FunctionCall = {
     },
 };
 
-ParenExpression: ParenthesizedExpression = {
-    "(" <Spanned<Expression>> ")" => ParenthesizedExpression {
+ParenExpression<E>: Expression = {
+    "(" <Spanned<E>> ")" => Expression::Parenthesized(ParenthesizedExpression {
         expression: <>
-    },
+    }),
 };
 
 ArgumentExpressionList: Vec<ExpressionNode> = {
@@ -643,21 +643,6 @@ IndexingExpression<E>: Expression = {
     }),
 }
 
-// TODO: remove
-// was modified from the spec, but should be equivalent
-ComponentOrSwizzleSpecifier: Vec<Spanned<Component>> = {
-    // "[" Expression "]" ComponentOrSwizzleSpecifier?,
-    // "." MemberIdent ComponentOrSwizzleSpecifier?,
-    // "." SwizzleName ComponentOrSwizzleSpecifier ?,
-    Spanned<SingleComponentOrSwizzleSpecifier>+
-};
-
-// TODO: remove
-SingleComponentOrSwizzleSpecifier: Component = {
-    "[" <Spanned<Expression>> "]" => Component::Index(<>),
-    "." <MemberIdent>       => Component::Named(<>),
-}
-
 UnaryExpression<E>: Expression = {
     <operator: UnaryOperator> <operand: Spanned<E>> => Expression::Unary(UnaryExpression {
         operator, operand
@@ -672,51 +657,35 @@ UnaryOperator: UnaryOperator = {
     "&" => UnaryOperator::AddressOf,
 };
 
+CoreLhsExpression: Expression = {
+    // XXX: this is too permissive, it allows templates: `x<t> = y;` is never valid.
+    TemplateElaboratedIdent => Expression::TypeOrIdentifier(<>),
+    CallExpression,
+}
+
 // XXX: this production rule is used for statements preceded by attributes (wesl `@if` extension).
 // because this sentence is not LR: `@attribute(x) (y) = z`.
 // so we only allow attributes on statements that don't start with `(`.
 // see https://github.com/webgpu-tools/wesl-rs/issues/162
 LhsExpressionNoParen: Expression = {
-    #[cfg(not(feature = "imports"))]
-    <l: @L> <ident: Ident> <r: @R> <components: ComponentOrSwizzleSpecifier?> => {
-        let span = (l..r).into();
-        let expression = Expression::TypeOrIdentifier(TypeExpression { ident, template_args: None });
-        match components {
-            Some(components) => apply_components(expression, span, components),
-            None => expression
-        }
-    },
-    #[cfg(feature = "imports")]
-    <l: @L> <path: ModulePath?> <ident: Ident> <r: @R> <components: ComponentOrSwizzleSpecifier?> => {
-        let span = (l..r).into();
-        let expression = Expression::TypeOrIdentifier(TypeExpression { path, ident, template_args: None });
-        match components {
-            Some(components) => apply_components(expression, span, components),
-            None => expression
-        }
-    },
+    NamedComponentExpression<CoreLhsExpression>,
     "*" <operand: Spanned<LhsExpression>> => Expression::Unary(UnaryExpression {
         operator: UnaryOperator::Indirection, operand
     }),
     "&" <operand: Spanned<LhsExpression>> => Expression::Unary(UnaryExpression {
         operator: UnaryOperator::AddressOf, operand
     }),
-};
-LhsExpressionParen: Expression = {
-    <l: @L> "(" <expression: Spanned<LhsExpression>> ")" <r: @R> <components: ComponentOrSwizzleSpecifier?> => {
-        let span = (l..r).into();
-        let expression = Expression::Parenthesized(ParenthesizedExpression { expression });
-        match components {
-            Some(components) => apply_components(expression, span, components),
-            None => expression
-        }
-    },
+    CoreLhsExpression,
 };
 
+LhsExpressionParen: Expression = {
+    ParenExpression<LhsExpressionNoParen>,
+}
+
 LhsExpression: Expression = {
-    LhsExpressionNoParen => <>,
-    LhsExpressionParen => <>,
-};
+    LhsExpressionNoParen,
+    LhsExpressionParen,
+}
 
 MultiplicativeExpression<E1, E2>: Expression = BinaryExpression<MultiplicativeOperator, E1, E2>;
 

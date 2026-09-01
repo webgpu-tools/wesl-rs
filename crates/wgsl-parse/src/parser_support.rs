@@ -4,11 +4,7 @@ use std::str::FromStr;
 
 use itertools::Itertools;
 
-use crate::{
-    error::ParseError,
-    span::{Span, Spanned},
-    syntax::*,
-};
+use crate::{error::ParseError, span::Span, syntax::*};
 
 type E = ParseError;
 
@@ -24,32 +20,6 @@ pub enum ParseEntryPoint {
     Statement(Statement),
     #[cfg(feature = "imports")]
     ImportStatement(ImportStatement),
-}
-
-pub(crate) enum Component {
-    Named(Ident),
-    Index(ExpressionNode),
-}
-
-pub(crate) fn apply_components(
-    expr: Expression,
-    span: Span,
-    components: Vec<Spanned<Component>>,
-) -> Expression {
-    components
-        .into_iter()
-        .fold((expr, span), |(base, base_span), comp| {
-            let component_span = comp.span();
-            let base = Spanned::new(base, base_span);
-            let expression = match comp.into_inner() {
-                Component::Named(component) => {
-                    Expression::NamedComponent(NamedComponentExpression { base, component })
-                }
-                Component::Index(index) => Expression::Indexing(IndexingExpression { base, index }),
-            };
-            (expression, base_span.extend(component_span))
-        })
-        .0
 }
 
 impl FromStr for DeclarationKind {

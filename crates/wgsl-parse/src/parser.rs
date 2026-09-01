@@ -106,3 +106,36 @@ impl FromStr for crate::syntax::ImportStatement {
         parse!(source, EntryPointImportStatement, ImportStatement)
     }
 }
+
+#[test]
+fn test_operator_prec_assoc() {
+    fn expect_expr_err(expr: &str) {
+        let parsed = Expression::from_str(expr);
+        assert!(
+            parsed.is_err(),
+            "case `{expr}`: expected Err, got Ok({})",
+            parsed.unwrap()
+        );
+    }
+
+    fn expect_expr_ok(expr: &str) {
+        let parsed = Expression::from_str(expr);
+        assert!(
+            parsed.is_ok(),
+            "case `{expr}`: expected Ok, got Err({})",
+            parsed.unwrap_err()
+        );
+    }
+
+    // failure cases from the WGSL spec
+    expect_expr_ok("x & (y ^ (z | w))"); // Invalid: x & y ^ z | w
+    expect_expr_ok("(x + y) << (z >= w)"); // Invalid: x + y << z >= w
+    expect_expr_ok("x < (y > z)"); // Invalid: x < y > z
+    expect_expr_ok("x && (y || z)"); // Invalid: x && y || z
+    expect_expr_err("x & y ^ z | w");
+    expect_expr_err("x + y << z >= w");
+    expect_expr_err("x < y > z");
+    expect_expr_err("x && y || z");
+
+    // more cases
+}

@@ -777,8 +777,8 @@ ExpressionMultiplicative: Expression = {
     ExpressionUnary,
 }
 
-ExpressionBinaryXor: Expression = {
-    BinaryXorExpression<ExpressionBinaryXor, ExpressionUnary>,
+ExpressionBinaryAnd: Expression = {
+    BinaryAndExpression<ExpressionBinaryAnd, ExpressionUnary>,
     ExpressionUnary,
 }
 
@@ -787,8 +787,8 @@ ExpressionBinaryOr: Expression = {
     ExpressionUnary,
 }
 
-ExpressionBinaryAnd: Expression = {
-    BinaryAndExpression<ExpressionBinaryAnd, ExpressionUnary>,
+ExpressionBinaryXor: Expression = {
+    BinaryXorExpression<ExpressionBinaryXor, ExpressionUnary>,
     ExpressionUnary,
 }
 
@@ -809,15 +809,20 @@ ExpressionRelational: Expression = {
 
 ExpressionShortCircuitAnd: Expression = {
     ShortCircuitAndExpression<ExpressionShortCircuitAnd, ExpressionRelational>,
+    ExpressionRelational,
 }
 
 ExpressionShortCircuitOr: Expression = {
     ShortCircuitOrExpression<ExpressionShortCircuitOr, ExpressionRelational>,
+    ExpressionRelational,
 }
 
 Expression: Expression = {
-    ExpressionShortCircuitAnd,
-    ExpressionShortCircuitOr,
+    ShortCircuitAndExpression<ExpressionShortCircuitAnd, ExpressionRelational>,
+    ShortCircuitOrExpression<ExpressionShortCircuitOr, ExpressionRelational>,
+    BinaryAndExpression<ExpressionBinaryAnd, ExpressionUnary>,
+    BinaryOrExpression<ExpressionBinaryOr, ExpressionUnary>,
+    BinaryXorExpression<ExpressionBinaryXor, ExpressionUnary>,
     ExpressionRelational,
 };
 

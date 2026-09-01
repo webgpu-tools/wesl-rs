@@ -136,6 +136,14 @@ fn test_operator_prec_assoc() {
     expect_expr_err("x + y << z >= w");
     expect_expr_err("x < y > z");
     expect_expr_err("x && y || z");
-
     // more cases
+    expect_expr_ok("x && y && z");
+    expect_expr_ok("x || y || z");
+    expect_expr_ok("x & y & z");
+    expect_expr_ok("x ^ y ^ z");
+    expect_expr_ok("x | y | z");
+    expect_expr_err("x >> y >> z");
+    expect_expr_err("x << y << z");
+    expect_expr_ok("x && y < z && &w");
+    expect_expr_ok("x & -y & &z");
 }

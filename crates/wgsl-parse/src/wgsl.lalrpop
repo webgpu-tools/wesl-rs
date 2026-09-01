@@ -586,11 +586,11 @@ GlobalValueDecl: Declaration = {
 // 8. EXPRESSIONS
 // https://www.w3.org/TR/WGSL/#expressions
 
-PrimaryExpression: Expression = {
+PrimaryExpression<E>: Expression = {
     TemplateElaboratedIdent => Expression::TypeOrIdentifier(<>),
     CallExpression,
     Literal => Expression::Literal(<>),
-    ParenExpression => Expression::Parenthesized(<>),
+    ParenExpression<E> => Expression::Parenthesized(<>),
 };
 
 CallExpression: Expression = {
@@ -605,8 +605,8 @@ CallPhrase: FunctionCall = {
     },
 };
 
-ParenExpression: ParenthesizedExpression = {
-    "(" <Spanned<Expression>> ")" => ParenthesizedExpression {
+ParenExpression<E>: ParenthesizedExpression = {
+    "(" <Spanned<E>> ")" => ParenthesizedExpression {
         expression: <>
     },
 };
@@ -633,28 +633,30 @@ SingleComponentOrSwizzleSpecifier: Component = {
 }
 
 UnaryExpression: Expression = {
-    SingularExpression,
-    "-" <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::Negation, operand
-    }),
-    "!" <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::LogicalNegation, operand
-    }),
-    "~" <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::BitwiseComplement, operand
-    }),
-    "*" <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::Indirection, operand
-    }),
-    "&" <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::AddressOf, operand
+    <operator: UnaryOperator> <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
+        operator, operand
     }),
 };
 
-SingularExpression: Expression = {
-    <expression: WithSpan<PrimaryExpression>> <components: ComponentOrSwizzleSpecifier?> => match components {
-        Some(components) => apply_components(expression.0, expression.1, components),
-        None => expression.0
+UnaryOperator: UnaryOperator = {
+    "-" => UnaryOperator::Negation,
+    "!" => UnaryOperator::LogicalNegation,
+    "~" => UnaryOperator::BitwiseComplement,
+    "*" => UnaryOperator::Indirection,
+    "&" => UnaryOperator::AddressOf,
+};
+
+SingularExpression<E>: Expression = {
+    <base: Spanned<E>> <component: SingleComponentOrSwizzleSpecifier> => {
+        match component {
+            Component::Named(component) => Expression::NamedComponent(NamedComponentExpression {
+                base, component
+            }),
+            Component::Index(index) => Expression::Indexing(IndexingExpression {
+
+                base, index
+            }),
+        }
     },
 };
 
@@ -704,26 +706,24 @@ LhsExpression: Expression = {
     LhsExpressionParen => <>,
 };
 
-MultiplicativeExpression: Expression = {
-    UnaryExpression,
-    <left: Spanned<MultiplicativeExpression>> <operator: MultiplicativeOperator> <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
+MultiplicativeExpression<E1, E2>: Expression = {
+    <left: Spanned<E1>> <operator: MultiplicativeOperator> <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
         operator, left, right
     }),
 };
 
 MultiplicativeOperator: BinaryOperator = {
     "*" => BinaryOperator::Multiplication,
-    "/" => BinaryOperator::Division,
-    "%" => BinaryOperator::Remainder,
+    // "/" => BinaryOperator::Division,
+    // "%" => BinaryOperator::Remainder,
 };
 
-AdditiveExpression: Expression = {
-    MultiplicativeExpression,
-    <left: Spanned<AdditiveExpression>> <operator: AdditiveOperator> <right: Spanned<MultiplicativeExpression>> => Expression::Binary(BinaryExpression {
+AdditiveExpression<E1, E2>: Expression = {
+    <left: Spanned<E1>> <operator: AdditiveOperator> <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
         operator, left, right
     }),
     // this handles the special case `x = 5--7` which must be parsed as `x = 5 - (-7)`
-    <left: Spanned<AdditiveExpression>> <l: @L> "--" <right: Spanned<MultiplicativeExpression>> => {
+    <left: Spanned<E1>> <l: @L> "--" <right: Spanned<E2>> => {
         let outer_span = Span::new((l+1)..right.span().range().end);
         let right = Spanned::new(Expression::Unary(UnaryExpression {
             operator: UnaryOperator::Negation, operand: right,
@@ -739,94 +739,99 @@ AdditiveOperator: BinaryOperator = {
     "-" => BinaryOperator::Subtraction,
 };
 
-ShiftExpression: Expression = {
-    AdditiveExpression,
-    <left: Spanned<UnaryExpression>> "<<" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
+ShiftExpression<E1, E2>: Expression = {
+    <left: Spanned<E1>> "<<" <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
         operator: BinaryOperator::ShiftLeft, left, right
     }),
-    <left: Spanned<UnaryExpression>> ">>" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
+    <left: Spanned<E1>> ">>" <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
         operator: BinaryOperator::ShiftRight, left, right
     }),
 };
 
-RelationalExpression: Expression = {
-    ShiftExpression,
-    <left: Spanned<ShiftExpression>> "<" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::LessThan, left, right
-    }),
-    <left: Spanned<ShiftExpression>> ">" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::GreaterThan, left, right
-    }),
-    <left: Spanned<ShiftExpression>> "<=" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::LessThanEqual, left, right
-    }),
-    <left: Spanned<ShiftExpression>> ">=" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::GreaterThanEqual, left, right
-    }),
-    <left: Spanned<ShiftExpression>> "==" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::Equality, left, right
-    }),
-    <left: Spanned<ShiftExpression>> "!=" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::Inequality, left, right
+RelationalExpression<E1, E2>: Expression = {
+    <left: Spanned<E1>> <operator: RelationalOperator> <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
+        operator, left, right
     }),
 };
 
-ShortCircuitAndExpression: Expression = {
-    RelationalExpression,
-    <left: Spanned<ShortCircuitAndExpression>> "&&" <right: Spanned<RelationalExpression>> => Expression::Binary(BinaryExpression {
+RelationalOperator: BinaryOperator = {
+    "<" => BinaryOperator::LessThan,
+    ">" => BinaryOperator::LessThan,
+    "<=" => BinaryOperator::LessThanEqual,
+    ">=" => BinaryOperator::GreaterThanEqual,
+    "==" => BinaryOperator::Equality,
+    "!=" => BinaryOperator::Inequality,
+};
+
+ShortCircuitAndExpression<E1, E2>: Expression = {
+    <left: Spanned<E1>> "&&" <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
         operator: BinaryOperator::ShortCircuitAnd, left, right
     }),
  };
 
-ShortCircuitOrExpression: Expression = {
-    RelationalExpression,
-    <left: Spanned<ShortCircuitOrExpression>> "||" <right: Spanned<RelationalExpression>> => Expression::Binary(BinaryExpression {
+ShortCircuitOrExpression<E1, E2>: Expression = {
+    <left: Spanned<E1>> "||" <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
         operator: BinaryOperator::ShortCircuitOr, left, right
     }),
  };
 
-BinaryOrExpression: Expression = {
-    UnaryExpression,
-    <left: Spanned<BinaryOrExpression>> "|" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
+BinaryOrExpression<E1, E2>: Expression = {
+    <left: Spanned<E1>> "|" <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
         operator: BinaryOperator::BitwiseOr, left, right
     }),
 };
 
-BinaryAndExpression: Expression = {
-    UnaryExpression,
-    <left: Spanned<BinaryAndExpression>> "&" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
+BinaryAndExpression<E1, E2>: Expression = {
+    <left: Spanned<E1>> "&" <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
         operator: BinaryOperator::BitwiseAnd, left, right
     }),
 };
 
-BinaryXorExpression: Expression = {
-    UnaryExpression,
-    <left: Spanned<BinaryXorExpression>> "^" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
+BinaryXorExpression<E1, E2>: Expression = {
+    <left: Spanned<E1>> "^" <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
         operator: BinaryOperator::BitwiseXor, left, right
     }),
 };
 
-BitwiseExpression: Expression = {
-    <left: Spanned<BinaryAndExpression>> "&" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::BitwiseAnd, left, right
-    }),
-    <left: Spanned<BinaryOrExpression>> "|" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::BitwiseOr, left, right
-    }),
-    <left: Spanned<BinaryXorExpression>> "^" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::BitwiseXor, left, right
+BitwiseExpression<E1, E2>: Expression = {
+    <left: Spanned<E1>> <operator: BitwiseOperator> <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
+        operator, left, right
     }),
 };
 
+BitwiseOperator: BinaryOperator = {
+    "&" => BinaryOperator::BitwiseAnd,
+    "|" => BinaryOperator::BitwiseOr,
+    "^" => BinaryOperator::BitwiseXor,
+};
+
+// see comment below to understand why sub-expression types take a <Expression> template parameter:
+// https://github.com/lalrpop/lalrpop/issues/951#issuecomment-2476984972
 Expression: Expression = {
-    RelationalExpression,
-    <left: Spanned<ShortCircuitOrExpression>> "||" <right: Spanned<RelationalExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::ShortCircuitOr, left, right
-    }),
-    <left: Spanned<ShortCircuitAndExpression>> "&&" <right: Spanned<RelationalExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::ShortCircuitAnd, left, right
-    }),
-    BitwiseExpression,
+    #[precedence(level="0")]
+    PrimaryExpression<Expression>,
+    #[precedence(level="1")] #[assoc(side="left")]
+    SingularExpression<Expression>,
+    // #[precedence(level="2")] #[assoc(side="right")]
+    // UnaryExpression,
+    #[precedence(level="3")] #[assoc(side="left")]
+    MultiplicativeExpression<Expression, Expression>,
+    #[precedence(level="4")] #[assoc(side="left")]
+    AdditiveExpression<Expression, Expression>,
+    #[precedence(level="5")] #[assoc(side="none")]
+    ShiftExpression<Expression, Expression>,
+    #[precedence(level="6")] #[assoc(side="none")]
+    RelationalExpression<Expression, Expression>,
+    #[precedence(level="7")] #[assoc(side="left")]
+    BinaryAndExpression<Expression, Expression>,
+    #[precedence(level="8")] #[assoc(side="left")]
+    BinaryXorExpression<Expression, Expression>,
+    #[precedence(level="9")] #[assoc(side="left")]
+    BinaryOrExpression<Expression, Expression>,
+    #[precedence(level="10")] #[assoc(side="left")]
+    ShortCircuitAndExpression<Expression, Expression>,
+    #[precedence(level="11")] #[assoc(side="left")]
+    ShortCircuitOrExpression<Expression, Expression>,
 };
 
 ExpressionNode: ExpressionNode = Spanned<Expression>;

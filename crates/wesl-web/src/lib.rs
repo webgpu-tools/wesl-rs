@@ -11,7 +11,6 @@ use wesl::{
 };
 
 #[derive(Tsify, Clone, Copy, Debug, Default, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(rename_all = "lowercase")]
 pub enum ManglerKind {
     #[default]
@@ -32,7 +31,6 @@ impl From<ManglerKind> for wesl::ManglerKind {
 
 #[derive(Tsify, Debug, Serialize, Deserialize)]
 #[serde(tag = "command")]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub enum Command {
     Compile(CompileOptions),
     Eval(EvalOptions),
@@ -41,7 +39,6 @@ pub enum Command {
 }
 
 #[derive(Tsify, Clone, Debug, Default, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 #[serde(rename_all = "lowercase")]
 pub enum Feature {
     Enable,
@@ -64,7 +61,6 @@ impl From<Feature> for wesl::Feature {
 }
 
 #[derive(Tsify, Clone, Debug, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct CompileOptions {
     #[tsify(type = "{ [name: string]: string }")]
     pub files: HashMap<String, String>,
@@ -91,7 +87,6 @@ pub struct CompileOptions {
 }
 
 #[derive(Tsify, Clone, Copy, Debug, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 enum BindingType {
     #[serde(rename = "uniform")]
     Uniform,
@@ -124,7 +119,6 @@ enum BindingType {
 }
 
 #[derive(Tsify, Clone, Debug, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct Binding {
     group: u32,
     binding: u32,
@@ -135,7 +129,6 @@ pub struct Binding {
 }
 
 #[derive(Tsify, Clone, Debug, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct EvalOptions {
     #[serde(flatten)]
     pub compile: CompileOptions,
@@ -143,7 +136,6 @@ pub struct EvalOptions {
 }
 
 #[derive(Tsify, Clone, Debug, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ExecOptions {
     #[serde(flatten)]
     pub compile: CompileOptions,
@@ -156,7 +148,6 @@ pub struct ExecOptions {
 }
 
 #[derive(Tsify, Clone, Debug, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct DumpOptions {
     source: String,
 }
@@ -178,7 +169,6 @@ enum CliError {
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct Diagnostic {
     file: String,
     span: std::ops::Range<u32>,
@@ -186,7 +176,6 @@ pub struct Diagnostic {
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct Error {
     source: Option<String>,
     message: String,

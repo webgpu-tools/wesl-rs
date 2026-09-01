@@ -12,10 +12,6 @@ lalrpop_mod!(
     #[allow(clippy::all, reason = "generated code")]
     wgsl
 );
-lalrpop_mod!(
-    #[allow(clippy::all, reason = "generated code")]
-    wgsl_recognize
-);
 
 pub use crate::parser_support::ParseEntryPoint;
 use wgsl::EntryPointParser;
@@ -50,15 +46,6 @@ pub fn parse_tokens(
 /// Identical to [`TranslationUnit::from_str`].
 pub fn parse_str(source: &str) -> Result<TranslationUnit, Error> {
     parse!(source, EntryPointTranslationUnit, TranslationUnit)
-}
-
-/// Test whether a string represent a valid WGSL module ([`TranslationUnit`]).
-///
-/// Warning: it does not take WESL extensions into account.
-pub fn recognize_str(source: &str) -> Result<(), Error> {
-    let lexer = Lexer::new(source);
-    let parser = wgsl_recognize::TranslationUnitParser::new();
-    parser.parse(lexer).map_err(Into::into)
 }
 
 pub fn recognize_template_list(lexer: impl TokenIterator) -> Result<(), Error> {

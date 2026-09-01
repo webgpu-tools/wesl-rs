@@ -107,10 +107,15 @@ impl FromStr for crate::syntax::ImportStatement {
     }
 }
 
-#[test]
-fn test_operator_prec_assoc() {
-    fn expect_expr_err(expr: &str) {
-        let parsed = Expression::from_str(expr);
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn expect_err<T: FromStr + std::fmt::Display>(expr: &str)
+    where
+        <T as FromStr>::Err: std::fmt::Debug,
+    {
+        let parsed = T::from_str(expr);
         assert!(
             parsed.is_err(),
             "case `{expr}`: expected Err, got Ok({})",
@@ -118,8 +123,11 @@ fn test_operator_prec_assoc() {
         );
     }
 
-    fn expect_expr_ok(expr: &str) {
-        let parsed = Expression::from_str(expr);
+    fn expect_ok<T: FromStr + std::fmt::Debug>(expr: &str)
+    where
+        <T as FromStr>::Err: std::fmt::Display,
+    {
+        let parsed = T::from_str(expr);
         assert!(
             parsed.is_ok(),
             "case `{expr}`: expected Ok, got Err({})",
@@ -127,23 +135,47 @@ fn test_operator_prec_assoc() {
         );
     }
 
-    // failure cases from the WGSL spec
-    expect_expr_ok("x & (y ^ (z | w))"); // Invalid: x & y ^ z | w
-    expect_expr_ok("(x + y) << (z >= w)"); // Invalid: x + y << z >= w
-    expect_expr_ok("x < (y > z)"); // Invalid: x < y > z
-    expect_expr_ok("x && (y || z)"); // Invalid: x && y || z
-    expect_expr_err("x & y ^ z | w");
-    expect_expr_err("x + y << z >= w");
-    expect_expr_err("x < y > z");
-    expect_expr_err("x && y || z");
-    // more cases
-    expect_expr_ok("x && y && z");
-    expect_expr_ok("x || y || z");
-    expect_expr_ok("x & y & z");
-    expect_expr_ok("x ^ y ^ z");
-    expect_expr_ok("x | y | z");
-    expect_expr_err("x >> y >> z");
-    expect_expr_err("x << y << z");
-    expect_expr_ok("x && y < z && &w");
-    expect_expr_ok("x & -y & &z");
+    #[test]
+    fn operator_prec_assoc() {
+        // failure cases from the WGSL spec
+        expect_ok::<Expression>("x & (y ^ (z | w))"); // Invalid: x & y ^ z | w
+        expect_ok::<Expression>("(x + y) << (z >= w)"); // Invalid: x + y << z >= w
+        expect_ok::<Expression>("x < (y > z)"); // Invalid: x < y > z
+        expect_ok::<Expression>("x && (y || z)"); // Invalid: x && y || z
+        expect_err::<Expression>("x & y ^ z | w");
+        expect_err::<Expression>("x + y << z >= w");
+        expect_err::<Expression>("x < y > z");
+        expect_err::<Expression>("x && y || z");
+        // more cases
+        expect_ok::<Expression>("x && y && z");
+        expect_ok::<Expression>("x || y || z");
+        expect_ok::<Expression>("x & y & z");
+        expect_ok::<Expression>("x ^ y ^ z");
+        expect_ok::<Expression>("x | y | z");
+        expect_err::<Expression>("x >> y >> z");
+        expect_err::<Expression>("x << y << z");
+        expect_ok::<Expression>("x && y < z && &w");
+        expect_ok::<Expression>("x & -y & &z");
+    }
+
+    #[test]
+    fn lhs_expression() {
+        expect_ok::<Statement>("(x) = 1;");
+        expect_ok::<Statement>("(*x) += 1;");
+        expect_ok::<Statement>("&(*x) += 1;");
+
+        if cfg!(feature = "attributes") {
+            expect_ok::<Statement>("@if(true) x = 1;");
+            expect_ok::<Statement>("@if(true) &(*x) += 1;");
+            expect_err::<Statement>("@if(true) (*x) += 1;");
+        } else {
+            expect_err::<Statement>("@if(true) x = 1;");
+        }
+
+        if cfg!(feature = "imports") {
+            expect_ok::<Statement>("x::y = 1;");
+        } else {
+            expect_err::<Statement>("x::y = 1;");
+        }
+    }
 }

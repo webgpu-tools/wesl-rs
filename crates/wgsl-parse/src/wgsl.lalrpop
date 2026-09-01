@@ -592,11 +592,16 @@ BinaryExpression<Op, E1, E2>: Expression = {
     }),
 }
 
-PrimaryExpression: Expression = {
+CoreExpression: Expression = {
     TemplateElaboratedIdent => Expression::TypeOrIdentifier(<>),
     CallExpression,
     Literal => Expression::Literal(<>),
     ParenExpression => Expression::Parenthesized(<>),
+};
+
+PrimaryExpression<E>: Expression = {
+    NamedComponentExpression<E>,
+    IndexingExpression<E>,
 };
 
 CallExpression: Expression = {
@@ -625,6 +630,20 @@ ExpressionCommaList: Vec<ExpressionNode> = {
     Comma1<ExpressionNode>,
 };
 
+
+NamedComponentExpression<E>: Expression = {
+    <base: Spanned<E>> "." <component: MemberIdent> => Expression::NamedComponent(NamedComponentExpression {
+            base, component
+    }),
+}
+
+IndexingExpression<E>: Expression = {
+    <base: Spanned<E>> "[" <index: Spanned<Expression>> "]" => Expression::Indexing(IndexingExpression {
+            base, index
+    }),
+}
+
+// TODO: remove
 // was modified from the spec, but should be equivalent
 ComponentOrSwizzleSpecifier: Vec<Spanned<Component>> = {
     // "[" Expression "]" ComponentOrSwizzleSpecifier?,
@@ -633,6 +652,7 @@ ComponentOrSwizzleSpecifier: Vec<Spanned<Component>> = {
     Spanned<SingleComponentOrSwizzleSpecifier>+
 };
 
+// TODO: remove
 SingleComponentOrSwizzleSpecifier: Component = {
     "[" <Spanned<Expression>> "]" => Component::Index(<>),
     "." <MemberIdent>       => Component::Named(<>),
@@ -650,20 +670,6 @@ UnaryOperator: UnaryOperator = {
     "~" => UnaryOperator::BitwiseComplement,
     "*" => UnaryOperator::Indirection,
     "&" => UnaryOperator::AddressOf,
-};
-
-SingularExpression<E>: Expression = {
-    <base: Spanned<E>> <component: SingleComponentOrSwizzleSpecifier> => {
-        match component {
-            Component::Named(component) => Expression::NamedComponent(NamedComponentExpression {
-                base, component
-            }),
-            Component::Index(index) => Expression::Indexing(IndexingExpression {
-
-                base, index
-            }),
-        }
-    },
 };
 
 // XXX: this production rule is used for statements preceded by attributes (wesl `@if` extension).
@@ -777,34 +783,73 @@ BinaryXorExpression<E1, E2>: Expression = BinaryExpression<BinaryXorOperator, E1
 
 BinaryXorOperator: BinaryOperator = "^" => BinaryOperator::BitwiseXor;
 
-// Expression rules take one or two <Expression> template parameters because #[precedence] substitutes it by name after macro inlining.
+// ExpressionXYZ rules take one or two <Expression> template parameters because of how complex precedence and associativity is in WGSL.
 // See explanatory GitHub comment:
 // https://github.com/lalrpop/lalrpop/issues/951#issuecomment-2476984972
+//
+// Below, we hand-roll lalrpop's #[precedence] and #[assoc] markers, because the following constraints are otherwise not representable:
+// * BinaryAnd, BinaryOr and BinaryXor associate with Unary and themselves, but not with each other.
+// * Same with ShortCircuitAnd and ShortCircuitOr: they associate with Relational and themselves, but not each other.
+// * Relational associates with both Shift and Additive (so they are in the same group), but Additive associates with Multiplicative whereas Shift associates with Multiplicative.
+//
+
+ExpressionPrimary: Expression = {
+    PrimaryExpression<ExpressionPrimary>,
+    CoreExpression,
+}
+
+ExpressionUnary: Expression = {
+    UnaryExpression<ExpressionUnary>,
+    ExpressionPrimary,
+}
+
+ExpressionMultiplicative: Expression = {
+    MultiplicativeExpression<ExpressionMultiplicative, ExpressionUnary>,
+    ExpressionUnary,
+}
+
+ExpressionBinaryXor: Expression = {
+    BinaryXorExpression<ExpressionBinaryXor, ExpressionUnary>,
+    ExpressionUnary,
+}
+
+ExpressionBinaryOr: Expression = {
+    BinaryOrExpression<ExpressionBinaryOr, ExpressionUnary>,
+    ExpressionUnary,
+}
+
+ExpressionBinaryAnd: Expression = {
+    BinaryAndExpression<ExpressionBinaryAnd, ExpressionUnary>,
+    ExpressionUnary,
+}
+
+ExpressionAdditive: Expression = {
+    AdditiveExpression<ExpressionAdditive, ExpressionMultiplicative>,
+    ExpressionMultiplicative,
+}
+
+ExpressionShift: Expression = {
+    ShiftExpression<ExpressionUnary, ExpressionUnary>,
+    ExpressionAdditive,
+}
+
+ExpressionRelational: Expression = {
+    RelationalExpression<ExpressionRelational, ExpressionShift>,
+    ExpressionShift,
+}
+
+ExpressionShortCircuitAnd: Expression = {
+    ShortCircuitAndExpression<ExpressionShortCircuitAnd, ExpressionRelational>,
+}
+
+ExpressionShortCircuitOr: Expression = {
+    ShortCircuitOrExpression<ExpressionShortCircuitOr, ExpressionRelational>,
+}
+
 Expression: Expression = {
-    #[precedence(level="0")]
-    PrimaryExpression,
-    #[precedence(level="1")] #[assoc(side="left")]
-    SingularExpression<Expression>,
-    #[precedence(level="2")] #[assoc(side="right")]
-    UnaryExpression<Expression>,
-    #[precedence(level="3")] #[assoc(side="left")]
-    MultiplicativeExpression<Expression, Expression>,
-    #[precedence(level="4")] #[assoc(side="left")]
-    AdditiveExpression<Expression, Expression>,
-    #[precedence(level="5")] #[assoc(side="none")]
-    ShiftExpression<Expression, Expression>,
-    #[precedence(level="6")] #[assoc(side="none")]
-    RelationalExpression<Expression, Expression>,
-    #[precedence(level="7")] #[assoc(side="left")]
-    BinaryAndExpression<Expression, Expression>,
-    #[precedence(level="8")] #[assoc(side="left")]
-    BinaryXorExpression<Expression, Expression>,
-    #[precedence(level="9")] #[assoc(side="left")]
-    BinaryOrExpression<Expression, Expression>,
-    #[precedence(level="10")] #[assoc(side="left")]
-    ShortCircuitAndExpression<Expression, Expression>,
-    #[precedence(level="11")] #[assoc(side="left")]
-    ShortCircuitOrExpression<Expression, Expression>,
+    ExpressionShortCircuitAnd,
+    ExpressionShortCircuitOr,
+    ExpressionRelational,
 };
 
 ExpressionNode: ExpressionNode = Spanned<Expression>;

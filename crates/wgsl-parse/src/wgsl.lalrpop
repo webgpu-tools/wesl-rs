@@ -4,9 +4,6 @@ use crate::span::{Spanned, Span};
 use crate::syntax::*;
 use crate::parser_support::*;
 
-// this grammar follows closely the wgsl spec.
-// following the spec at this date: https://www.w3.org/TR/2024/WD-WGSL-20240731/
-
 grammar;
 
 extern {
@@ -191,9 +188,6 @@ pub EntryPoint: ParseEntryPoint = {
     #[cfg(feature = "imports")]
     EntryPointImportStatement <ImportStatement> => ParseEntryPoint::ImportStatement(<>)
 };
-
-// the grammar rules are laid out in the same order as in the spec.
-// following the spec at this date: https://www.w3.org/TR/2024/WD-WGSL-20240731/
 
 // custom entrypoint called by the lexer when it sees [Token::Ident, Token::SymLessThan].
 // if this parse succeeds, the next token emitted by the lexer will be TokTemplateList.

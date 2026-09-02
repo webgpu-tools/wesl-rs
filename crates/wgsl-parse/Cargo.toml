@@ -28,7 +28,7 @@ derive_more = {
 }
 itertools = "0.15.0"
 lalrpop-util = "0.23.1"
-lexical = { version = "7.0.4", features = ["format", "power-of-two"] }
+lexical = { version = "7.0.5", features = ["format", "power-of-two"] }
 logos = "0.16.0"
 serde = { version = "1.0.215", features = ["derive", "rc"], optional = true }
 thiserror = "2.0.12"

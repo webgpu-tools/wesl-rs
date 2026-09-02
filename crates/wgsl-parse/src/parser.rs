@@ -163,6 +163,9 @@ mod test {
         expect_ok::<Statement>("(x) = 1;");
         expect_ok::<Statement>("(*x) += 1;");
         expect_ok::<Statement>("&(*x) += 1;");
+        expect_ok::<Statement>("x[0] = 1;");
+        expect_ok::<Statement>("x.y[0] = 1;");
+        expect_ok::<Statement>("x[0].y = 1;");
 
         if cfg!(feature = "attributes") {
             expect_ok::<Statement>("@if(true) x = 1;");

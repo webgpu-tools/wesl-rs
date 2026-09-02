@@ -584,28 +584,52 @@ UnaryOperator: UnaryOperator = {
 };
 
 CoreLhsExpression: Expression = {
-    // XXX: this is too permissive, it allows templates: `x<t> = y;` is never valid.
-    TemplateElaboratedIdent => Expression::TypeOrIdentifier(<>),
-    CallExpression,
 };
 
-// XXX: this production rule is used for statements preceded by attributes (wesl `@if` extension).
-// because this sentence is not LR: `@attribute(x) (y) = z`.
+// // A chain of one or more `.field` / `[index]` accessors on a base expression `E`.
+// // Requires at least one accessor (bare `E` is handled separately), and recurses
+// // on itself so chains like `x.y[0].z` parse. The base is left as the macro
+// // parameter so this does not conflict with the rest of the grammar.
+// ComponentOrIndexLhs<E>: Expression = {
+//     <base: Spanned<E>> "." <component: MemberIdent> => Expression::NamedComponent(NamedComponentExpression {
+//         base, component
+//     }),
+//     <base: Spanned<E>> "[" <index: Spanned<Expression>> "]" => Expression::Indexing(IndexingExpression {
+//         base, index
+//     }),
+//     <base: Spanned<ComponentOrIndexLhs<E>>> "." <component: MemberIdent> => Expression::NamedComponent(NamedComponentExpression {
+//         base, component
+//     }),
+//     <base: Spanned<ComponentOrIndexLhs<E>>> "[" <index: Spanned<Expression>> "]" => Expression::Indexing(IndexingExpression {
+//         base, index
+//     }),
+// };
+
+// This production rule guarantees that it doesn't start with `(`.
+// We need it because this sentence is not LR: `@attribute(x) (y) = z`.
 // so we only allow attributes on statements that don't start with `(`.
 // see https://github.com/webgpu-tools/wesl-rs/issues/162
 LhsExpressionNoParen: Expression = {
-    NamedComponentExpression<CoreLhsExpression>,
+    #[precedence(level="0")]
+    TemplateElaboratedIdent => Expression::TypeOrIdentifier(<>),
+    CallExpression,
+    NamedComponentExpression<LhsExpressionNoParen>,
+    IndexingExpression<LhsExpressionNoParen>,
+
+    #[precedence(level="1")]
     "*" <operand: Spanned<LhsExpression>> => Expression::Unary(UnaryExpression {
         operator: UnaryOperator::Indirection, operand
     }),
     "&" <operand: Spanned<LhsExpression>> => Expression::Unary(UnaryExpression {
         operator: UnaryOperator::AddressOf, operand
     }),
-    CoreLhsExpression,
 };
 
+// This production rule guarantees that it starts with `(`.
 LhsExpressionParen: Expression = {
     ParenExpression<LhsExpressionNoParen>,
+    NamedComponentExpression<LhsExpressionParen>,
+    IndexingExpression<LhsExpressionParen>,
 };
 
 LhsExpression: Expression = {

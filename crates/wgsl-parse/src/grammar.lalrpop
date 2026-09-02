@@ -268,7 +268,6 @@ Ident: Ident = {
     Name => Ident::new(<>),
 };
 
-// #[inline]
 MemberIdent: Ident = Ident;
 
 DiagnosticNameToken: String = Name;
@@ -309,6 +308,19 @@ GlobalDirective: GlobalDirective = {
     RequiresDirective   => GlobalDirective::Requires(<>),
 };
 
+DiagnosticDirective: DiagnosticDirective = {
+    #[cfg(not(feature = "attributes"))]
+    "diagnostic" <DiagnosticControl> ";" => {
+        let (severity, rule_name) = <>;
+        DiagnosticDirective { severity, rule_name }
+    },
+    #[cfg(feature = "attributes")]
+    <AttributeNode*> "diagnostic" <DiagnosticControl> ";" => {
+        let (attributes, (severity, rule_name)) = (<>);
+        DiagnosticDirective { attributes, severity, rule_name }
+    },
+};
+
 EnableDirective: EnableDirective = {
     #[cfg(not(feature = "attributes"))]
     "enable" <extensions: EnableExtensionList> ";" => EnableDirective {
@@ -338,22 +350,6 @@ RequiresDirective: RequiresDirective = {
 SoftwareExtensionList: Vec<String> = {
     Comma1<SoftwareExtensionName>,
 };
-
-DiagnosticDirective: DiagnosticDirective = {
-    #[cfg(not(feature = "attributes"))]
-    "diagnostic" <DiagnosticControl> ";" => {
-        let (severity, rule_name) = <>;
-        DiagnosticDirective { severity, rule_name }
-    },
-    #[cfg(feature = "attributes")]
-    <AttributeNode*> "diagnostic" <DiagnosticControl> ";" => {
-        let (attributes, (severity, rule_name)) = (<>);
-        DiagnosticDirective { attributes, severity, rule_name }
-    },
-};
-
-// 5. DECLARATION AND SCOPE
-// https://www.w3.org/TR/WGSL/#declaration-and-scope
 
 // 6. TYPES
 // https://www.w3.org/TR/WGSL/#types
@@ -524,16 +520,15 @@ BinaryExpression<Op, E1, E2>: Expression = {
 }
 
 CoreExpression: Expression = {
-    TemplateElaboratedIdent => Expression::TypeOrIdentifier(<>),
+    IdentExpression,
+    LiteralExpression,
     CallExpression,
-    Literal => Expression::Literal(<>),
     ParenExpression<Expression>,
 };
 
-PrimaryExpression<E>: Expression = {
-    NamedComponentExpression<E>,
-    IndexingExpression<E>,
-};
+IdentExpression: Expression = TemplateElaboratedIdent => Expression::TypeOrIdentifier(<>);
+
+LiteralExpression: Expression = Literal => Expression::Literal(<>);
 
 CallExpression: Expression = {
     CallPhrase => Expression::FunctionCall(<>),
@@ -547,12 +542,6 @@ CallPhrase: FunctionCall = {
     },
 };
 
-ParenExpression<E>: Expression = {
-    "(" <Spanned<E>> ")" => Expression::Parenthesized(ParenthesizedExpression {
-        expression: <>
-    }),
-};
-
 ArgumentExpressionList: Vec<ExpressionNode> = {
     "(" <ExpressionCommaList?> ")" => <>.unwrap_or_default(),
 };
@@ -561,6 +550,16 @@ ExpressionCommaList: Vec<ExpressionNode> = {
     Comma1<ExpressionNode>,
 };
 
+ParenExpression<E>: Expression = {
+    "(" <Spanned<E>> ")" => Expression::Parenthesized(ParenthesizedExpression {
+        expression: <>
+    }),
+};
+
+PrimaryExpression<E>: Expression = {
+    NamedComponentExpression<E>,
+    IndexingExpression<E>,
+};
 
 NamedComponentExpression<E>: Expression = {
     <base: Spanned<E>> "." <component: MemberIdent> => Expression::NamedComponent(NamedComponentExpression {
@@ -689,9 +688,8 @@ BinaryXorOperator: BinaryOperator = "^" => BinaryOperator::BitwiseXor;
 //
 // Below, we hand-roll lalrpop's #[precedence] and #[assoc] markers, because the following constraints are otherwise not representable:
 // * BinaryAnd, BinaryOr and BinaryXor associate with Unary and themselves, but not with each other.
-// * Same with ShortCircuitAnd and ShortCircuitOr: they associate with Relational and themselves, but not each other.
-// * Relational associates with both Shift and Additive (so they are in the same group), but Additive associates with Multiplicative whereas Shift associates with Multiplicative.
-//
+// * Same with ShortCircuitAnd and ShortCircuitOr: they associate with Relational and themselves, but not with each other.
+// * Relational associates with both Shift and Additive (so they are in the same group), but Additive associates with Multiplicative whereas Shift associates with Unary.
 
 ExpressionPrimary: Expression = {
     PrimaryExpression<ExpressionPrimary>,

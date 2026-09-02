@@ -527,13 +527,6 @@ SelfAssociativeBinaryExpression<Op, E>: Expression = {
 };
 
 
-CoreExpression: Expression = {
-    IdentExpression,
-    LiteralExpression,
-    CallExpression,
-    ParenExpression<Expression>,
-};
-
 IdentExpression: Expression = TemplateElaboratedIdent => Expression::TypeOrIdentifier(<>);
 
 LiteralExpression: Expression = Literal => Expression::Literal(<>);
@@ -562,11 +555,6 @@ ParenExpression<E>: Expression = {
     "(" <Spanned<E>> ")" => Expression::Parenthesized(ParenthesizedExpression {
         expression: <>
     }),
-};
-
-PrimaryExpression<E>: Expression = {
-    NamedComponentExpression<E>,
-    IndexingExpression<E>,
 };
 
 NamedComponentExpression<E>: Expression = {
@@ -695,8 +683,12 @@ BitwiseOperator: BinaryOperator = {
 // * Relational associates with both Shift and Additive (so they are in the same group), but Additive associates with Multiplicative whereas Shift associates with Unary.
 
 ExpressionPrimary: Expression = {
-    PrimaryExpression<ExpressionPrimary>,
-    CoreExpression,
+    IdentExpression,
+    LiteralExpression,
+    CallExpression,
+    ParenExpression<Expression>,
+    NamedComponentExpression<ExpressionPrimary>,
+    IndexingExpression<ExpressionPrimary>,
 }
 
 ExpressionUnary: Expression = {

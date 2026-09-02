@@ -273,8 +273,8 @@ MemberIdent: Ident = Ident;
 DiagnosticNameToken: String = Name;
 
 SeverityControlName: DiagnosticSeverity = {
-    Name =>? {
-        DiagnosticSeverity::from_str(&<>)
+    <l: @L> <name: Name> <r: @R> =>? {
+        DiagnosticSeverity::from_str(&name)
             .map_err(|()| lalrpop_util::ParseError::User{ error: (l, ParseError::DiagnosticSeverity, r) })
     },
 };
@@ -517,7 +517,15 @@ BinaryExpression<Op, E1, E2>: Expression = {
     <left: Spanned<E1>> <operator: Op> <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
         operator, left, right
     }),
-}
+};
+
+SelfAssociativeBinaryExpression<Op, E>: Expression = {
+    <l: @L> <left: Spanned<E>> <right_chain: (Op Spanned<E>)+> <r: @R> =>? {
+        fold_same_operator(left, right_chain)
+            .map_err(|e| lalrpop_util::ParseError::User{ error: (l, e, r) })
+    },
+};
+
 
 CoreExpression: Expression = {
     IdentExpression,
@@ -565,13 +573,13 @@ NamedComponentExpression<E>: Expression = {
     <base: Spanned<E>> "." <component: MemberIdent> => Expression::NamedComponent(NamedComponentExpression {
             base, component
     }),
-}
+};
 
 IndexingExpression<E>: Expression = {
     <base: Spanned<E>> "[" <index: Spanned<Expression>> "]" => Expression::Indexing(IndexingExpression {
             base, index
     }),
-}
+};
 
 UnaryExpression<E>: Expression = {
     <operator: UnaryOperator> <operand: Spanned<E>> => Expression::Unary(UnaryExpression {
@@ -591,7 +599,7 @@ CoreLhsExpression: Expression = {
     // XXX: this is too permissive, it allows templates: `x<t> = y;` is never valid.
     TemplateElaboratedIdent => Expression::TypeOrIdentifier(<>),
     CallExpression,
-}
+};
 
 // XXX: this production rule is used for statements preceded by attributes (wesl `@if` extension).
 // because this sentence is not LR: `@attribute(x) (y) = z`.
@@ -610,12 +618,12 @@ LhsExpressionNoParen: Expression = {
 
 LhsExpressionParen: Expression = {
     ParenExpression<LhsExpressionNoParen>,
-}
+};
 
 LhsExpression: Expression = {
     LhsExpressionNoParen,
     LhsExpressionParen,
-}
+};
 
 MultiplicativeExpression<E1, E2>: Expression = BinaryExpression<MultiplicativeOperator, E1, E2>;
 
@@ -662,25 +670,20 @@ RelationalOperator: BinaryOperator = {
     "!=" => BinaryOperator::Inequality,
 };
 
-ShortCircuitAndExpression<E1, E2>: Expression = BinaryExpression<ShortCircuitAndOperator, E1, E2>;
+ShortCircuitExpression<E>: Expression = SelfAssociativeBinaryExpression<ShortCircuitOperator, E>;
 
-ShortCircuitAndOperator: BinaryOperator = "&&" => BinaryOperator::ShortCircuitAnd;
+ShortCircuitOperator: BinaryOperator = {
+    "&&" => BinaryOperator::ShortCircuitAnd,
+    "||" => BinaryOperator::ShortCircuitOr,
+};
 
-ShortCircuitOrExpression<E1, E2>: Expression = BinaryExpression<ShortCircuitOrOperator, E1, E2>;
+BitwiseExpression<E>: Expression = SelfAssociativeBinaryExpression<BitwiseOperator, E>;
 
-ShortCircuitOrOperator: BinaryOperator = "||" => BinaryOperator::ShortCircuitOr;
-
-BinaryOrExpression<E1, E2>: Expression = BinaryExpression<BinaryOrOperator, E1, E2>;
-
-BinaryOrOperator: BinaryOperator = "|" => BinaryOperator::BitwiseOr;
-
-BinaryAndExpression<E1, E2>: Expression = BinaryExpression<BinaryAndOperator, E1, E2>;
-
-BinaryAndOperator: BinaryOperator = "&" => BinaryOperator::BitwiseAnd;
-
-BinaryXorExpression<E1, E2>: Expression = BinaryExpression<BinaryXorOperator, E1, E2>;
-
-BinaryXorOperator: BinaryOperator = "^" => BinaryOperator::BitwiseXor;
+BitwiseOperator: BinaryOperator = {
+    "|" => BinaryOperator::BitwiseOr,
+    "&" => BinaryOperator::BitwiseAnd,
+    "^" => BinaryOperator::BitwiseXor,
+};
 
 // ExpressionXYZ rules take one or two <Expression> template parameters because of how complex precedence and associativity is in WGSL.
 // See explanatory GitHub comment:
@@ -706,21 +709,6 @@ ExpressionMultiplicative: Expression = {
     ExpressionUnary,
 }
 
-ExpressionBinaryAnd: Expression = {
-    BinaryAndExpression<ExpressionBinaryAnd, ExpressionUnary>,
-    ExpressionUnary,
-}
-
-ExpressionBinaryOr: Expression = {
-    BinaryOrExpression<ExpressionBinaryOr, ExpressionUnary>,
-    ExpressionUnary,
-}
-
-ExpressionBinaryXor: Expression = {
-    BinaryXorExpression<ExpressionBinaryXor, ExpressionUnary>,
-    ExpressionUnary,
-}
-
 ExpressionAdditive: Expression = {
     AdditiveExpression<ExpressionAdditive, ExpressionMultiplicative>,
     ExpressionMultiplicative,
@@ -736,24 +724,16 @@ ExpressionRelational: Expression = {
     ExpressionShift,
 }
 
-ExpressionShortCircuitAnd: Expression = {
-    ShortCircuitAndExpression<ExpressionShortCircuitAnd, ExpressionRelational>,
-    ExpressionRelational,
-}
-
-ExpressionShortCircuitOr: Expression = {
-    ShortCircuitOrExpression<ExpressionShortCircuitOr, ExpressionRelational>,
-    ExpressionRelational,
-}
-
 Expression: Expression = {
-    ShortCircuitAndExpression<ExpressionShortCircuitAnd, ExpressionRelational>,
-    ShortCircuitOrExpression<ExpressionShortCircuitOr, ExpressionRelational>,
-    BinaryAndExpression<ExpressionBinaryAnd, ExpressionUnary>,
-    BinaryOrExpression<ExpressionBinaryOr, ExpressionUnary>,
-    BinaryXorExpression<ExpressionBinaryXor, ExpressionUnary>,
+    ShortCircuitExpression<ExpressionRelational>,
+    BitwiseExpression<ExpressionUnary>,
     ExpressionRelational,
 };
+
+// operand nodes for the flat operator chains above.
+ExpressionUnaryNode: ExpressionNode = Spanned<ExpressionUnary>;
+RelationalNode: ExpressionNode = Spanned<ExpressionRelational>;
+
 
 ExpressionNode: ExpressionNode = Spanned<Expression>;
 

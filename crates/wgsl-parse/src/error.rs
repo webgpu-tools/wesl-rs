@@ -6,7 +6,7 @@ use std::{
 use itertools::Itertools;
 use thiserror::Error;
 
-use crate::{lexer::Token, span::Span};
+use crate::{lexer::Token, span::Span, syntax::BinaryOperator};
 
 /// WGSL parse error kind.
 #[derive(Error, Clone, Debug, PartialEq)]
@@ -30,6 +30,8 @@ pub enum ErrorKind {
     Attribute(&'static str, &'static str),
     #[error("invalid `var` template arguments, {0}")]
     VarTemplate(&'static str),
+    #[error("cannot mix `{0}` and `{1}` operators without parentheses")]
+    MixedBinaryOperators(BinaryOperator, BinaryOperator),
 }
 
 #[derive(Default, Clone, Debug, PartialEq)]
@@ -40,6 +42,7 @@ pub enum ParseError {
     DiagnosticSeverity,
     Attribute(&'static str, &'static str),
     VarTemplate(&'static str),
+    MixedBinaryOperators(BinaryOperator, BinaryOperator),
 }
 
 type LalrpopError = lalrpop_util::ParseError<usize, Token, (usize, ParseError, usize)>;
@@ -108,6 +111,7 @@ impl From<LalrpopError> for Error {
                     ParseError::DiagnosticSeverity => ErrorKind::DiagnosticSeverity,
                     ParseError::Attribute(attr, expected) => ErrorKind::Attribute(attr, expected),
                     ParseError::VarTemplate(reason) => ErrorKind::VarTemplate(reason),
+                    ParseError::MixedBinaryOperators(a, b) => ErrorKind::MixedBinaryOperators(a, b),
                 };
                 Self { span, error }
             }

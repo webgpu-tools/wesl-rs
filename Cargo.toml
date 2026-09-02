@@ -53,6 +53,7 @@ mutable_key_type = "allow"
 
 [patch.crates-io]
 wesl = { path = "crates/wesl" }
+wesl-core = { path = "crates/wesl-core" }
 
 # [patch.'https://github.com/webgpu-tools/bevy-wgsl']
 # bevy-wgsl = { path = "../bevy-wgsl" }

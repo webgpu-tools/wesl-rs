@@ -936,6 +936,7 @@ name = "random_wgsl"
 version = "0.4.4"
 dependencies = [
  "wesl",
+ "wesl-core",
 ]
 
 [[package]]
@@ -1500,6 +1501,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "toml 1.1.4+spec-1.1.0",
+ "wesl-core",
  "wesl-macros",
  "wesl-quote",
  "wgsl-parse",
@@ -1524,6 +1526,10 @@ dependencies = [
  "wesl",
  "wgsl-parse",
 ]
+
+[[package]]
+name = "wesl-core"
+version = "0.1.0"
 
 [[package]]
 name = "wesl-macros"

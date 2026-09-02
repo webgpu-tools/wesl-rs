@@ -7,6 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use wesl_core::StaticPackage;
 use wgsl_parse::{
     SyntaxNode,
     syntax::{Ident, ModulePath, PathOrigin, TranslationUnit},
@@ -16,7 +17,6 @@ use crate::{
     SyntaxUtil,
     error::{Diagnostic, Error, ImportError, ResolveError},
     mangler::{self, Mangler},
-    package::StaticPackage,
     pass::{self, CompilerDriver, Features, Module, UsedItems},
     resolver::{Constants, Resolver, StandardResolver},
     sourcemap::{BasicSourceMap, SourceMapper},

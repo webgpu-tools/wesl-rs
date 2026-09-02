@@ -12,7 +12,7 @@ fn fixtures_dir() -> &'static Path {
 macro_rules! wesl_pkg {
     ($pkg_name:ident, $source:expr) => {
         mod $pkg_name {
-            use wesl::package::{StaticPackage, StaticPackageModule};
+            use wesl_core::{StaticPackage, StaticPackageModule};
             include!(concat!(
                 env!("CARGO_MANIFEST_DIR"),
                 "/tests/fixtures/",

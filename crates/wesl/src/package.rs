@@ -16,6 +16,8 @@ use wgsl_parse::{
 };
 use wgsl_types::idents::RESERVED_WORDS;
 
+pub use wesl_core::{StaticPackage, StaticPackageModule};
+
 #[cfg(feature = "package")]
 use quote::{format_ident, quote};
 
@@ -123,28 +125,6 @@ pub struct PackageModule {
     pub name: String,
     pub source: String,
     pub submodules: Vec<PackageModule>,
-}
-
-/// The type holding the source code of external packages.
-///
-/// You typically don't implement this, instead it is generated for you by [`PackageBuilder`].
-/// Crates containing shader packages export `const` instances of this type, which you can
-/// then import and [add to your resolver][crate::resolver::StandardResolver::add_package].
-#[derive(Debug, PartialEq, Eq)]
-pub struct StaticPackage {
-    pub crate_name: &'static str,
-    pub root: &'static StaticPackageModule,
-    pub dependencies: &'static [&'static StaticPackage],
-}
-
-/// The type holding the source code of modules in external packages.
-///
-/// See [`StaticPackage`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct StaticPackageModule {
-    pub name: &'static str,
-    pub source: &'static str,
-    pub submodules: &'static [&'static StaticPackageModule],
 }
 
 /// Error type for [`PackageBuilder::scan_root`].

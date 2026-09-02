@@ -9,7 +9,7 @@ license.workspace = true
 publish = false
 
 [dependencies]
-wesl = { workspace = true }
+wesl-core = { workspace = true }
 
 [build-dependencies]
 wesl = { workspace = true, features = ["package"] }

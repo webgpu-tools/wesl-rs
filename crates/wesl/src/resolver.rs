@@ -1,11 +1,9 @@
 //! [`Resolver`] trait and implementations.
 
-use crate::{
-    error::{Error, ResolveError},
-    package::StaticPackage,
-};
+use crate::error::{Error, ResolveError};
 
 use itertools::Itertools;
+use wesl_core::StaticPackage;
 use wgsl_parse::syntax::{ModulePath, PathOrigin, TranslationUnit};
 use wgsl_types::inst::LiteralInstance;
 
@@ -615,6 +613,8 @@ impl Resolver for StandardResolver {
 
 #[cfg(test)]
 mod test {
+    use wesl_core::StaticPackageModule;
+
     use crate::{CompileOptions, Compiler};
 
     use super::*;
@@ -660,7 +660,6 @@ mod test {
 
     #[test]
     fn canonical_paths() {
-        use crate::package::{StaticPackage, StaticPackageModule};
         static C_ROOT: StaticPackageModule = StaticPackageModule {
             name: "c",
             source: "",

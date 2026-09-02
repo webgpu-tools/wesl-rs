@@ -214,13 +214,12 @@ TranslationUnit: TranslationUnit = {
 };
 
 GlobalDecl: GlobalDeclaration = {
-    ";"                        => GlobalDeclaration::Void,
-    <GlobalVariableDecl> ";"   => GlobalDeclaration::Declaration(<>),
-    <GlobalValueDecl> ";"      => GlobalDeclaration::Declaration(<>),
-    <TypeAliasDecl> ";"        => GlobalDeclaration::TypeAlias(<>),
-    <StructDecl>               => GlobalDeclaration::Struct(<>),
-    <FunctionDecl>             => GlobalDeclaration::Function(<>),
-    <ConstAssertStatement> ";" => GlobalDeclaration::ConstAssert(<>),
+    ";"                             => GlobalDeclaration::Void,
+    <GlobalVariableOrValueDecl> ";" => GlobalDeclaration::Declaration(<>),
+    <TypeAliasDecl> ";"             => GlobalDeclaration::TypeAlias(<>),
+    <StructDecl>                    => GlobalDeclaration::Struct(<>),
+    <FunctionDecl>                  => GlobalDeclaration::Function(<>),
+    <ConstAssertStatement> ";"      => GlobalDeclaration::ConstAssert(<>),
     #[cfg(feature = "condcomp")]
     <CompoundGlobalDecl> => GlobalDeclaration::Compound(<>),
 };
@@ -258,68 +257,36 @@ BoolLiteral: LiteralExpression = {
     "false" => LiteralExpression::Bool(false),
 };
 
-Ident: Ident = {
-    IdentPatternToken => {
-        Ident::new(<>)
-    },
-    <l: @L> <word: ReservedWord> <r: @R> =>? {
-        Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
-    },
-};
-
-MemberIdent: Ident = {
-    IdentPatternToken => {
-        Ident::new(<>)
-    },
-    <l: @L> <word: ReservedWord> <r: @R> =>? {
-        Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
-    },
-};
-
-DiagnosticNameToken: String = {
+Name: String = {
     IdentPatternToken => <>,
     <l: @L> <word: ReservedWord> <r: @R> =>? {
         Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
     },
+}
+
+Ident: Ident = {
+    Name => Ident::new(<>),
 };
+
+// #[inline]
+MemberIdent: Ident = Ident;
+
+DiagnosticNameToken: String = Name;
 
 SeverityControlName: DiagnosticSeverity = {
-    <l: @L> <ident: IdentPatternToken> <r: @R> =>? {
-        DiagnosticSeverity::from_str(&ident)
+    Name =>? {
+        DiagnosticSeverity::from_str(&<>)
             .map_err(|()| lalrpop_util::ParseError::User{ error: (l, ParseError::DiagnosticSeverity, r) })
     },
-    <l: @L> <word: ReservedWord> <r: @R> =>? {
-        Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
-    },
 };
 
-EnableExtensionName: String = {
-    IdentPatternToken => <>,
-    <l: @L> <word: ReservedWord> <r: @R> =>? {
-        Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
-    },
-};
+EnableExtensionName: String = Name;
 
-SoftwareExtensionName: String = {
-    IdentPatternToken => <>,
-    <l: @L> <word: ReservedWord> <r: @R> =>? {
-        Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
-    },
-};
+SoftwareExtensionName: String = Name;
 
-InterpolateSamplingName: String = {
-    IdentPatternToken => <>,
-    <l: @L> <word: ReservedWord> <r: @R> =>? {
-        Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
-    },
-};
+InterpolateSamplingName: String = Name;
 
-SwizzleName: String = {
-    IdentPatternToken => <>,
-    <l: @L> <word: ReservedWord> <r: @R> =>? {
-        Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
-    },
-};
+SwizzleName: String = Name;
 
 TemplateList: Vec<TemplateArg> = {
     TokTemplateArgsStart <TemplateArgCommaList> TokTemplateArgsEnd,
@@ -403,7 +370,7 @@ StructDecl: Struct = {
 };
 
 StructBodyDecl: Vec<StructMemberNode> = {
-    "{" <Comma1<StructMemberNode>> "}",
+    "{" <Comma1<Spanned<StructMember>>> "}",
 };
 
 StructMember: StructMember = {
@@ -411,8 +378,6 @@ StructMember: StructMember = {
         attributes, ident, ty
     },
 };
-
-StructMemberNode: StructMemberNode = Spanned<StructMember>;
 
 TypeAliasDecl: TypeAlias = {
     #[cfg(not(feature = "attributes"))]
@@ -425,9 +390,7 @@ TypeAliasDecl: TypeAlias = {
     },
 };
 
-TypeSpecifier: TypeExpression = {
-    TemplateElaboratedIdent,
-};
+TypeSpecifier: TypeExpression = TemplateElaboratedIdent;
 
 TemplateElaboratedIdent: TypeExpression = {
     #[cfg(not(feature = "imports"))]
@@ -445,27 +408,90 @@ TemplateElaboratedIdent: TypeExpression = {
 
 VariableOrValueStatement: Declaration = {
     VariableDecl,
-    <mut decl: VariableDecl> "=" <initializer: ExpressionNode> => {
-        decl.initializer = Some(initializer);
-        decl
-    },
+    LetDecl,
+    ConstDecl,
+};
+
+GlobalVariableOrValueDecl: Declaration = {
+    VariableDecl,
+    ConstDecl,
+    OverrideDecl,
+};
+
+VariableDecl: Declaration = {
     #[cfg(not(feature = "attributes"))]
-    "let" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
+    <l: @L> "var" <template_args: TemplateList?> <r: @R> <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> =>? {
         let (ident, ty) = id_ty;
-        Declaration {
+        let address_space = parse_var_template(template_args)
+            .map_err(|e| lalrpop_util::ParseError::User{ error: (l, e, r) })?;
+        Ok(Declaration {
             attributes: Vec::new(),
-            kind: DeclarationKind::Let,
+            kind: DeclarationKind::Var(address_space),
             ident,
             ty,
-            initializer: Some(initializer),
-        }
+            initializer,
+        })
     },
+    #[cfg(feature = "attributes")]
+    <attributes: AttributeNode*> <l: @L> "var" <template_args: TemplateList?> <r: @R> <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> =>? {
+        let (ident, ty) = id_ty;
+        let address_space = parse_var_template(template_args)
+            .map_err(|e| lalrpop_util::ParseError::User{ error: (l, e, r) })?;
+        Ok(Declaration {
+            attributes,
+            kind: DeclarationKind::Var(address_space),
+            ident,
+            ty,
+            initializer,
+        })
+    },
+};
+
+ConstDecl: Declaration = {
     #[cfg(not(feature = "attributes"))]
     "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
         let (ident, ty) = id_ty;
         Declaration {
             attributes: Vec::new(),
             kind: DeclarationKind::Const,
+            ident,
+            ty,
+            initializer: Some(initializer),
+        }
+    },
+    #[cfg(feature = "attributes")]
+    <attributes: AttributeNode*> "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
+        let (ident, ty) = id_ty;
+        Declaration {
+            attributes,
+            kind: DeclarationKind::Const,
+            ident,
+            ty,
+            initializer: Some(initializer),
+        }
+    },
+};
+
+OverrideDecl: Declaration = {
+    <attributes: AttributeNode*> "override" <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> => {
+        let (ident, ty) = id_ty;
+        Declaration {
+            attributes,
+            kind: DeclarationKind::Override,
+            ident,
+            ty,
+            initializer,
+        }
+    },
+};
+
+LetDecl: Declaration = {
+    #[cfg(not(feature = "attributes"))]
+    "let" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
+        let (ident, ty) = id_ty;
+        Declaration {
+            attributes: Vec::new(),
+            kind: DeclarationKind::Let,
             ident,
             ty,
             initializer: Some(initializer),
@@ -482,99 +508,10 @@ VariableOrValueStatement: Declaration = {
             initializer: Some(initializer),
         }
     },
-    #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
-        let (ident, ty) = id_ty;
-        Declaration {
-            attributes,
-            kind: DeclarationKind::Const,
-            ident,
-            ty,
-            initializer: Some(initializer),
-        }
-    },
-};
-
-VariableDecl: Declaration = {
-    #[cfg(not(feature = "attributes"))]
-    <l: @L> "var" <template_args: TemplateList?> <r: @R> <id_ty: OptionallyTypedIdent> =>? {
-        let (ident, ty) = id_ty;
-        let address_space = parse_var_template(template_args)
-            .map_err(|e| lalrpop_util::ParseError::User{ error: (l, e, r) })?;
-        Ok(Declaration {
-            attributes: Vec::new(),
-            kind: DeclarationKind::Var(address_space),
-            ident,
-            ty,
-            initializer: None,
-        })
-    },
-    #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> <l: @L> "var" <template_args: TemplateList?> <r: @R> <id_ty: OptionallyTypedIdent> =>? {
-        let (ident, ty) = id_ty;
-        let address_space = parse_var_template(template_args)
-            .map_err(|e| lalrpop_util::ParseError::User{ error: (l, e, r) })?;
-        Ok(Declaration {
-            attributes,
-            kind: DeclarationKind::Var(address_space),
-            ident,
-            ty,
-            initializer: None,
-        })
-    },
-};
+}
 
 OptionallyTypedIdent: (Ident, Option<TypeExpression>) = {
     <Ident> <(":" <TypeSpecifier>)?>,
-};
-
-GlobalVariableDecl: Declaration = {
-    #[cfg(not(feature = "attributes"))]
-    <attributes: AttributeNode*> <mut decl: VariableDecl> <initializer: ("=" <ExpressionNode>)?> => {
-        decl.attributes = attributes;
-        decl.initializer = initializer;
-        decl
-    },
-    #[cfg(feature = "attributes")]
-    <mut decl: VariableDecl> <initializer: ("=" <ExpressionNode>)?> => {
-        decl.initializer = initializer;
-        decl
-    },
-};
-
-GlobalValueDecl: Declaration = {
-    #[cfg(not(feature = "attributes"))]
-    "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
-        let (ident, ty) = id_ty;
-        Declaration {
-            attributes: Vec::new(),
-            kind: DeclarationKind::Const,
-            ident,
-            ty,
-            initializer: Some(initializer),
-        }
-    },
-    <attributes: AttributeNode*> "override" <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> => {
-        let (ident, ty) = id_ty;
-        Declaration {
-            attributes,
-            kind: DeclarationKind::Override,
-            ident,
-            ty,
-            initializer,
-        }
-    },
-    #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
-        let (ident, ty) = id_ty;
-        Declaration {
-            attributes,
-            kind: DeclarationKind::Const,
-            ident,
-            ty,
-            initializer: Some(initializer),
-        }
-    },
 };
 
 // 8. EXPRESSIONS

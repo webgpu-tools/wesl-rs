@@ -128,6 +128,9 @@ fn main() {
     let testsuite_tests = [
         "wesl-testsuite/src/test-cases-json/importCases.json",
         "wesl-testsuite/src/test-cases-json/conditionalTranslationCases.json",
+        "spec-tests/dead-code.json",
+        "spec-tests/condcomp-flatten.json",
+        "spec-tests/wildcards.json",
     ];
     for path in testsuite_tests {
         tests.extend({

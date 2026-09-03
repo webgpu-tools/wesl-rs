@@ -1,0 +1,20 @@
+[
+	{
+		"name": "wildcard-import",
+		"weslSrc": {
+			"./main.wgsl": "import other::*; fn f() { x++; }",
+			"./other.wgsl": "var<private> x: u32 = 0;"
+		},
+		"expectedWgsl": "var<private> x: u32 = 0; fn f() { x++; }",
+		"underscoreWgsl": "var<private> package_other_x: u32 = 0; fn f() { package_other_x++; }"
+	},
+	{
+		"name": "wildcard-import-shadow",
+		"weslSrc": {
+			"./main.wgsl": "import other::*; var<private> x: f32 = 0; fn f() { x++; }",
+			"./other.wgsl": "var<private> x: u32 = 0;"
+		},
+		"expectedWgsl": "var<private> x: f32 = 0; fn f() { x++; }",
+		"underscoreWgsl": "var<private> x: f32 = 0; fn f() { x++; }"
+	}
+]

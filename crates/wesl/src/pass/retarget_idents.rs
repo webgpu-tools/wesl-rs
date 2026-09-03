@@ -80,6 +80,8 @@ impl Scope {
 }
 
 /// Make all identifiers that point to the same declaration refer to the same string.
+/// Returns identifiers with no definition either as an import statement or a
+/// module-scope declaration (this includes builtins).
 ///
 /// Retarget local references to the local declaration ident and global
 /// references to the global declaration ident. It does this by keeping track of the
@@ -87,8 +89,8 @@ impl Scope {
 ///
 /// Same-scope declarations with the same name will have the same identifier.
 /// Note: this can be valid code only with `@if` conditional declarations.
-pub fn retarget_idents(module: &mut TranslationUnit) {
-    fn flatten_imports(imports: &mut [ImportStatement]) -> impl Iterator<Item = &mut Ident> + '_ {
+pub fn retarget_idents(module: &mut TranslationUnit) -> Vec<Ident> {
+    fn iter_imports(imports: &mut [ImportStatement]) -> impl Iterator<Item = &mut Ident> + '_ {
         fn rec(content: &mut ImportContent) -> impl Iterator<Item = &mut Ident> + '_ {
             match content {
                 ImportContent::Item(item) => {
@@ -106,20 +108,29 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
             .flat_map(|import| rec(&mut import.content))
     }
 
-    fn retarget_ty(ty: &mut TypeExpression, scope: &Scope) {
-        if let Some((_, id)) = scope
-            .iter()
-            .find(|(name, _)| name.as_str() == *ty.ident.name())
-        {
+    fn retarget_ty(
+        ty: &mut TypeExpression,
+        scope: &Scope,
+        unresolved: &mut HashMap<String, Ident>,
+    ) {
+        let name = ty.ident.name().to_string();
+        if let Some((_, id)) = scope.iter().find(|(n, _)| n.as_str() == name) {
             ty.ident = id.clone();
+        } else if let Some(id) = unresolved.get(&name).cloned() {
+            // an unresolved ident with the same name was already seen: retarget to it,
+            // so all occurrences of an undefined name share the same ident.
+            ty.ident = id;
         } else {
-            let builtin = builtin_ident(&ty.ident.name()).cloned();
+            let builtin = builtin_ident(&name).cloned();
             if let Some(id) = builtin {
                 ty.ident = id;
             }
+            // no local/global declaration and no import for this identifier
+            // (this includes builtins, which have no import/module-scope declaration).
+            unresolved.insert(name, ty.ident.clone());
         }
         query_mut!(ty.template_args.[].[].expression.(x => Visit::<TypeExpression>::visit_mut(&mut **x)))
-            .for_each(|ty| retarget_ty(ty, scope));
+            .for_each(|ty| retarget_ty(ty, scope, unresolved));
     }
 
     // retarget local references to the local declaration ident and global
@@ -128,13 +139,14 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
     fn retarget_stats<'a>(
         stats: impl IntoIterator<Item = &'a mut StatementNode>,
         mut scope: Scope,
+        unresolved: &mut HashMap<String, Ident>,
     ) -> Scope {
         stats.into_iter().for_each(|stmt| match stmt.node_mut() {
             Statement::Void => (),
             Statement::Compound(s) => {
                 query_mut!(s.attributes.[].(x => x.visit_mut()))
-                    .for_each(|ty| retarget_ty(ty, &scope));
-                retarget_stats(&mut s.statements, scope.push());
+                    .for_each(|ty| retarget_ty(ty, &scope, unresolved));
+                retarget_stats(&mut s.statements, scope.push(), unresolved);
             }
             Statement::Assignment(s) => {
                 query_mut!(s.{
@@ -142,21 +154,21 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
                     lhs.(x => Visit::<TypeExpression>::visit_mut(&mut **x)),
                     rhs.(x => Visit::<TypeExpression>::visit_mut(&mut **x)),
                 })
-                .for_each(|ty| retarget_ty(ty, &scope));
+                .for_each(|ty| retarget_ty(ty, &scope, unresolved));
             }
             Statement::Increment(s) => {
                 query_mut!(s.{
                     attributes.[].(x => x.visit_mut()),
                     expression.(x => Visit::<TypeExpression>::visit_mut(&mut **x)),
                 })
-                .for_each(|ty| retarget_ty(ty, &scope));
+                .for_each(|ty| retarget_ty(ty, &scope, unresolved));
             }
             Statement::Decrement(s) => {
                 query_mut!(s.{
                     attributes.[].(x => x.visit_mut()),
                     expression.(x => Visit::<TypeExpression>::visit_mut(&mut **x)),
                 })
-                .for_each(|ty| retarget_ty(ty, &scope));
+                .for_each(|ty| retarget_ty(ty, &scope, unresolved));
             }
             Statement::If(s) => {
                 let s2 = &mut *s; // COMBAK: not sure why this is needed?
@@ -182,13 +194,13 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
                         },
                     },
                 })
-                .for_each(|ty| retarget_ty(ty, &scope));
-                retarget_stats(&mut s.if_clause.body.statements, scope.push());
+                .for_each(|ty| retarget_ty(ty, &scope, unresolved));
+                retarget_stats(&mut s.if_clause.body.statements, scope.push(), unresolved);
                 for clause in &mut s.else_if_clauses {
-                    retarget_stats(&mut clause.body.statements, scope.push());
+                    retarget_stats(&mut clause.body.statements, scope.push(), unresolved);
                 }
                 if let Some(clause) = &mut s.else_clause {
-                    retarget_stats(&mut clause.body.statements, scope.push());
+                    retarget_stats(&mut clause.body.statements, scope.push(), unresolved);
                 }
             }
             Statement::Switch(s) => {
@@ -206,9 +218,9 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
                     },
 
                 })
-                .for_each(|ty| retarget_ty(ty, &scope));
+                .for_each(|ty| retarget_ty(ty, &scope, unresolved));
                 for clause in &mut s.clauses {
-                    retarget_stats(&mut clause.body.statements, scope.push());
+                    retarget_stats(&mut clause.body.statements, scope.push(), unresolved);
                 }
             }
             Statement::Loop(s) => {
@@ -217,8 +229,8 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
                     attributes.[].(x => x.visit_mut()),
                     body.attributes.[].(x => x.visit_mut()),
                 })
-                .for_each(|ty| retarget_ty(ty, &scope));
-                let scope = retarget_stats(&mut s.body.statements, scope.push());
+                .for_each(|ty| retarget_ty(ty, &scope, unresolved));
+                let scope = retarget_stats(&mut s.body.statements, scope.push(), unresolved);
                 // continuing, if present, must be the last statement of the loop body
                 // and therefore has access to the scope at the end of the body.
                 if let Some(s) = &mut s.continuing {
@@ -227,8 +239,8 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
                         attributes.[].(x => x.visit_mut()),
                         body.attributes.[].(x => x.visit_mut()),
                     })
-                    .for_each(|ty| retarget_ty(ty, &scope));
-                    let scope = retarget_stats(&mut s.body.statements, scope.push());
+                    .for_each(|ty| retarget_ty(ty, &scope, unresolved));
+                    let scope = retarget_stats(&mut s.body.statements, scope.push(), unresolved);
                     // break-if, if present, must be the last statement of the continuing body
                     // and therefore has access to the scope at the end of the body.
                     if let Some(s) = &mut s.break_if {
@@ -237,26 +249,26 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
                             attributes.[].(x => x.visit_mut()),
                             expression.(x => Visit::<TypeExpression>::visit_mut(&mut **x)),
                         })
-                        .for_each(|ty| retarget_ty(ty, &scope));
+                        .for_each(|ty| retarget_ty(ty, &scope, unresolved));
                     }
                 }
             }
             Statement::For(s) => {
                 query_mut!(s.attributes.[].(x => x.visit_mut()))
-                    .for_each(|ty| retarget_ty(ty, &scope));
+                    .for_each(|ty| retarget_ty(ty, &scope, unresolved));
                 let scope = if let Some(init) = &mut s.initializer {
-                    retarget_stats([init], scope.push())
+                    retarget_stats([init], scope.push(), unresolved)
                 } else {
                     scope.push()
                 };
                 query_mut!(s.condition.[].(x => Visit::<TypeExpression>::visit_mut(&mut **x)))
-                    .for_each(|ty| retarget_ty(ty, &scope));
+                    .for_each(|ty| retarget_ty(ty, &scope, unresolved));
                 query_mut!(s.body.attributes.[].(x => x.visit_mut()))
-                    .for_each(|ty| retarget_ty(ty, &scope));
+                    .for_each(|ty| retarget_ty(ty, &scope, unresolved));
                 if let Some(update) = &mut s.update {
-                    retarget_stats([update], scope.push());
+                    retarget_stats([update], scope.push(), unresolved);
                 }
-                retarget_stats(&mut s.body.statements, scope);
+                retarget_stats(&mut s.body.statements, scope, unresolved);
             }
             Statement::While(s) => {
                 let s2 = &mut *s; // COMBAK: not sure why this is needed?
@@ -265,24 +277,24 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
                     condition.(x => Visit::<TypeExpression>::visit_mut(&mut **x)),
                     body.attributes.[].(x => x.visit_mut()),
                 })
-                .for_each(|ty| retarget_ty(ty, &scope));
-                retarget_stats(&mut s.body.statements, scope.push());
+                .for_each(|ty| retarget_ty(ty, &scope, unresolved));
+                retarget_stats(&mut s.body.statements, scope.push(), unresolved);
             }
             Statement::Break(s) => {
                 query_mut!(s.attributes.[].(x => x.visit_mut()))
-                    .for_each(|ty| retarget_ty(ty, &scope));
+                    .for_each(|ty| retarget_ty(ty, &scope, unresolved));
             }
             Statement::Continue(s) => {
                 query_mut!(s.attributes.[].(x => x.visit_mut()))
-                    .for_each(|ty| retarget_ty(ty, &scope));
+                    .for_each(|ty| retarget_ty(ty, &scope, unresolved));
             }
             Statement::Return(s) => {
                 query_mut!(s.expression.[].(x => Visit::<TypeExpression>::visit_mut(&mut **x)))
-                    .for_each(|ty| retarget_ty(ty, &scope));
+                    .for_each(|ty| retarget_ty(ty, &scope, unresolved));
             }
             Statement::Discard(s) => {
                 query_mut!(s.attributes.[].(x => x.visit_mut()))
-                    .for_each(|ty| retarget_ty(ty, &scope));
+                    .for_each(|ty| retarget_ty(ty, &scope, unresolved));
             }
             Statement::FunctionCall(s) => {
                 query_mut!(s.{
@@ -292,13 +304,13 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
                         arguments.[].(x => Visit::<TypeExpression>::visit_mut(&mut **x)),
                     }
                 })
-                .for_each(|ty| retarget_ty(ty, &scope));
+                .for_each(|ty| retarget_ty(ty, &scope, unresolved));
             }
             Statement::ConstAssert(s) => {
                 query_mut!(s.{
                     expression.(x => Visit::<TypeExpression>::visit_mut(&mut **x))
                 })
-                .for_each(|ty| retarget_ty(ty, &scope));
+                .for_each(|ty| retarget_ty(ty, &scope, unresolved));
             }
             Statement::Declaration(s) => {
                 let s2 = &mut *s; // COMBAK: not sure why this is needed?
@@ -307,16 +319,18 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
                     ty.[],
                     initializer.[].(x => Visit::<TypeExpression>::visit_mut(&mut **x)),
                 })
-                .for_each(|ty| retarget_ty(ty, &scope));
+                .for_each(|ty| retarget_ty(ty, &scope, unresolved));
                 scope.insert(&mut s.ident);
             }
         });
         scope
     }
 
+    let mut unresolved: HashMap<String, Ident> = HashMap::new();
+
     let mut scope = Scope::new();
 
-    for ident in flatten_imports(&mut module.imports) {
+    for ident in iter_imports(&mut module.imports) {
         scope.insert(ident);
     }
 
@@ -339,15 +353,12 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
     for decl in &mut module.global_declarations {
         match decl.node_mut() {
             GlobalDeclaration::Void => (),
-            GlobalDeclaration::Declaration(d) => {
-                Visit::<TypeExpression>::visit_mut(d).for_each(|ty| retarget_ty(ty, &scope))
-            }
-            GlobalDeclaration::TypeAlias(d) => {
-                Visit::<TypeExpression>::visit_mut(d).for_each(|ty| retarget_ty(ty, &scope))
-            }
-            GlobalDeclaration::Struct(d) => {
-                Visit::<TypeExpression>::visit_mut(d).for_each(|ty| retarget_ty(ty, &scope))
-            }
+            GlobalDeclaration::Declaration(d) => Visit::<TypeExpression>::visit_mut(d)
+                .for_each(|ty| retarget_ty(ty, &scope, &mut unresolved)),
+            GlobalDeclaration::TypeAlias(d) => Visit::<TypeExpression>::visit_mut(d)
+                .for_each(|ty| retarget_ty(ty, &scope, &mut unresolved)),
+            GlobalDeclaration::Struct(d) => Visit::<TypeExpression>::visit_mut(d)
+                .for_each(|ty| retarget_ty(ty, &scope, &mut unresolved)),
             GlobalDeclaration::Function(d) => {
                 #[cfg(feature = "generics")]
                 let scope = {
@@ -374,25 +385,26 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
                         attributes.[].(x => x.visit_mut()),
                     }
                 })
-                .for_each(|ty| retarget_ty(ty, &scope));
+                .for_each(|ty| retarget_ty(ty, &scope, &mut unresolved));
                 let mut scope = scope.push();
                 d.parameters
                     .iter_mut()
                     .for_each(|param| scope.insert(&mut param.ident));
-                retarget_stats(&mut d.body.statements, scope);
+                retarget_stats(&mut d.body.statements, scope, &mut unresolved);
             }
-            GlobalDeclaration::ConstAssert(d) => {
-                Visit::<TypeExpression>::visit_mut(d).for_each(|ty| retarget_ty(ty, &scope))
-            }
+            GlobalDeclaration::ConstAssert(d) => Visit::<TypeExpression>::visit_mut(d)
+                .for_each(|ty| retarget_ty(ty, &scope, &mut unresolved)),
             GlobalDeclaration::Compound(d) => {
                 query_mut!(d.{
                     attributes.[].(x => x.visit_mut()),
                     body.[].(x => Visit::<TypeExpression>::visit_mut(&mut **x)),
                 })
-                .for_each(|ty| retarget_ty(ty, &scope));
+                .for_each(|ty| retarget_ty(ty, &scope, &mut unresolved));
             }
         }
     }
+
+    unresolved.into_values().collect()
 }
 
 /// Retarget used identifiers to point at the corresponding declaration.
@@ -615,3 +627,81 @@ fn test_retarget_idents() {
 
     assert_eq!(module.to_string(), module_stripped.to_string())
 }
+
+/// Check that retarget_idents returns identifiers that have no definition as an
+/// import statement or module-scope declaration (this includes builtins).
+#[test]
+fn test_retarget_idents_unresolved() {
+    use std::collections::HashSet;
+
+    let source = r#"
+        import        imported;
+        const         defined_const = 0;
+        struct        DefinedStruct { m: u32 }
+
+        fn defined_fn(param: DefinedStruct) {
+            // resolved references (should NOT be reported)
+            let a = imported;
+            let b = defined_const;
+            let c: DefinedStruct = param;
+            let d: u32 = 0; // u32 is a builtin, which has no import/module-scope decl: reported
+
+            // unresolved references (SHOULD be reported)
+            let e = missing_local;
+            let f: MissingType = missing_local; // duplicate name still reported per-occurrence
+
+            {
+                let g = missing_nested;
+            }
+        }
+
+        // unresolved reference at module scope
+        const_assert missing_global;
+    "#;
+
+    let mut module: TranslationUnit = source.parse().expect("parse failure");
+    let unresolved = retarget_idents(&mut module);
+
+    let names: Vec<String> = unresolved.iter().map(|id| id.to_string()).collect();
+    println!("unresolved idents: {names:?}");
+
+    let unique: HashSet<&String> = names.iter().collect();
+
+    // each unresolved name is stored only once.
+    assert_eq!(names.len(), unique.len(), "unresolved names must be unique");
+
+    // all occurrences of an unresolved name must be retargeted to the same ident,
+    // so the returned ident's use-count reflects every occurrence (e.g. `missing_local`
+    // appears twice in the source).
+    let missing_local = unresolved
+        .iter()
+        .find(|id| id.to_string() == "missing_local")
+        .expect("missing_local should be reported");
+    assert!(
+        missing_local.use_count() > 1,
+        "all occurrences of missing_local should share the same ident"
+    );
+
+    // identifiers with no import/module-scope declaration must be reported,
+    // including builtins (`u32`).
+    assert!(unique.contains(&"missing_local".to_string()));
+    assert!(unique.contains(&"MissingType".to_string()));
+    assert!(unique.contains(&"missing_nested".to_string()));
+    assert!(unique.contains(&"missing_global".to_string()));
+    assert!(unique.contains(&"u32".to_string()));
+
+    // imports and module-scope declarations must NOT be reported.
+    for name in [
+        "imported",
+        "defined_const",
+        "DefinedStruct",
+        "defined_fn",
+        "param",
+    ] {
+        assert!(
+            !unique.contains(&name.to_string()),
+            "{name} should not be reported as unresolved"
+        );
+    }
+}
+

@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 /// Include a WGSL file compiled with [`wesl::CompileResult::write_artifact`](ttps://docs.rs/wesl/latest/wesl/struct.CompileResult.html#method.write_artifact) as a string.
 ///
 /// The argument corresponds to the `artifact_name` passed to `write_artifact`.

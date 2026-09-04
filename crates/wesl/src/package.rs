@@ -93,7 +93,7 @@ pub(crate) const RESERVED_MOD_NAMES: &[&str] = &[
 /// }
 /// ```
 ///
-/// Then, in your `lib.rs` file, expose the generated module with the [`crate::wesl_pkg`] macro.
+/// Then, in your `lib.rs` file, expose the generated module with the [`wesl_core::wesl_pkg`] macro.
 ///
 /// ```rust,ignore
 /// wesl::wesl_pkg!(pub my_package);

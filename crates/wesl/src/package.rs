@@ -414,7 +414,7 @@ impl Package {
         tokens.to_string()
     }
 
-    /// Generate the build artifact that can then be exposed by the [`super::wesl_pkg`] macro.
+    /// Generate the build artifact that can then be exposed by the [`wesl_core::wesl_pkg`] macro.
     ///
     /// This function must be called from a `build.rs` file. Refer to the crate documentation
     /// for more details.

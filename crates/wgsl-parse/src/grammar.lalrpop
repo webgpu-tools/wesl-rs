@@ -586,25 +586,6 @@ UnaryOperator: UnaryOperator = {
 CoreLhsExpression: Expression = {
 };
 
-// // A chain of one or more `.field` / `[index]` accessors on a base expression `E`.
-// // Requires at least one accessor (bare `E` is handled separately), and recurses
-// // on itself so chains like `x.y[0].z` parse. The base is left as the macro
-// // parameter so this does not conflict with the rest of the grammar.
-// ComponentOrIndexLhs<E>: Expression = {
-//     <base: Spanned<E>> "." <component: MemberIdent> => Expression::NamedComponent(NamedComponentExpression {
-//         base, component
-//     }),
-//     <base: Spanned<E>> "[" <index: Spanned<Expression>> "]" => Expression::Indexing(IndexingExpression {
-//         base, index
-//     }),
-//     <base: Spanned<ComponentOrIndexLhs<E>>> "." <component: MemberIdent> => Expression::NamedComponent(NamedComponentExpression {
-//         base, component
-//     }),
-//     <base: Spanned<ComponentOrIndexLhs<E>>> "[" <index: Spanned<Expression>> "]" => Expression::Indexing(IndexingExpression {
-//         base, index
-//     }),
-// };
-
 // This production rule guarantees that it doesn't start with `(`.
 // We need it because this sentence is not LR: `@attribute(x) (y) = z`.
 // so we only allow attributes on statements that don't start with `(`.

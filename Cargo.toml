@@ -6,6 +6,7 @@ members = [
   "crates/wesl",
   "crates/wesl-c",
   "crates/wesl-cli",
+  "crates/wesl-core",
   "crates/wesl-macros",
   "crates/wesl-quote",
   "crates/wesl-test",
@@ -20,6 +21,7 @@ default-members = [
   "crates/wesl",
   "crates/wesl-c",
   "crates/wesl-cli",
+  "crates/wesl-core",
   "crates/wesl-macros",
   "crates/wesl-quote",
   "crates/wgsl-parse",
@@ -37,6 +39,7 @@ license = "MIT OR Apache-2.0"
 tokrepr = { path = "crates/tokrepr", version = "0.1.0" }
 tokrepr-derive = { path = "crates/tokrepr-derive", version = "0.1.0" }
 wesl = { path = "crates/wesl", version = "0.4.4" }
+wesl-core = { path = "crates/wesl-core", version = "0.1.0" }
 wesl-macros = { path = "crates/wesl-macros", version = "0.4.4" }
 wesl-quote = { path = "crates/wesl-quote", version = "0.4.4" }
 wgsl-parse = { path = "crates/wgsl-parse", version = "0.4.4" }
@@ -50,6 +53,7 @@ mutable_key_type = "allow"
 
 [patch.crates-io]
 wesl = { path = "crates/wesl" }
+wesl-core = { path = "crates/wesl-core" }
 
 # [patch.'https://github.com/webgpu-tools/bevy-wgsl']
 # bevy-wgsl = { path = "../bevy-wgsl" }

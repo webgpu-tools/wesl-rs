@@ -105,9 +105,10 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 [[package]]
 name = "bevy-wgsl"
 version = "0.1.0"
-source = "git+https://github.com/webgpu-tools/bevy-wgsl?rev=1b5acfe16b63302d38fa2d05b67d3bead1431c31#1b5acfe16b63302d38fa2d05b67d3bead1431c31"
+source = "git+https://github.com/webgpu-tools/bevy-wgsl?rev=9325bb623217d4b303e29fb47dfc39ac91d94af7#9325bb623217d4b303e29fb47dfc39ac91d94af7"
 dependencies = [
  "wesl",
+ "wesl-core",
 ]
 
 [[package]]
@@ -936,6 +937,7 @@ name = "random_wgsl"
 version = "0.4.4"
 dependencies = [
  "wesl",
+ "wesl-core",
 ]
 
 [[package]]
@@ -1500,6 +1502,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "toml 1.1.4+spec-1.1.0",
+ "wesl-core",
  "wesl-macros",
  "wesl-quote",
  "wgsl-parse",
@@ -1524,6 +1527,10 @@ dependencies = [
  "wesl",
  "wgsl-parse",
 ]
+
+[[package]]
+name = "wesl-core"
+version = "0.1.0"
 
 [[package]]
 name = "wesl-macros"

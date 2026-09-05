@@ -7,6 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use wesl_core::StaticPackage;
 use wgsl_parse::{
     SyntaxNode,
     syntax::{Ident, ModulePath, PathOrigin, TranslationUnit},
@@ -16,7 +17,6 @@ use crate::{
     SyntaxUtil,
     error::{Diagnostic, Error, ImportError, ResolveError},
     mangler::{self, Mangler},
-    package::StaticPackage,
     pass::{self, CompilerDriver, Features, Module, UsedItems},
     resolver::{Constants, Resolver, StandardResolver},
     sourcemap::{BasicSourceMap, SourceMapper},
@@ -491,7 +491,7 @@ impl CompileResult {
     /// Write the result in rust's `OUT_DIR`.
     ///
     /// This function is meant to be used in a `build.rs` workflow. The output WGSL will
-    /// be accessed with the [`crate::include_wesl`] macro. See the crate documentation for a
+    /// be accessed with the [`wesl_core::include_wesl`] macro. See the crate documentation for a
     /// usage example.
     ///
     /// # Panics

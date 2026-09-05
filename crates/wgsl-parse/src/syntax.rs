@@ -36,7 +36,6 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Default, Clone, Debug, PartialEq)]
 pub struct TranslationUnit {
-    #[cfg(feature = "wesl")]
     pub imports: Vec<ImportStatement>,
     pub global_directives: Vec<GlobalDirective>,
     pub global_declarations: Vec<GlobalDeclarationNode>,
@@ -95,18 +94,17 @@ impl std::hash::Hash for Ident {
     }
 }
 
-#[cfg(feature = "wesl")]
+/// WESL imports extension
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ImportStatement {
-    #[cfg(feature = "wesl")]
     pub attributes: Attributes,
     pub path: Option<ModulePath>,
     pub content: ImportContent,
 }
 
-#[cfg(feature = "wesl")]
+/// WESL imports extension
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash, IsVariant)]
@@ -119,7 +117,7 @@ pub enum PathOrigin {
     Package(String),
 }
 
-#[cfg(feature = "wesl")]
+/// WESL imports extension
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -128,7 +126,7 @@ pub struct ModulePath {
     pub components: Vec<String>,
 }
 
-#[cfg(feature = "wesl")]
+/// WESL imports extension
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -137,7 +135,7 @@ pub struct Import {
     pub content: ImportContent,
 }
 
-#[cfg(feature = "wesl")]
+/// WESL imports extension
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq, IsVariant)]
@@ -146,7 +144,7 @@ pub enum ImportContent {
     Collection(Vec<Import>),
 }
 
-#[cfg(feature = "wesl")]
+/// WESL imports extension
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -168,7 +166,7 @@ pub enum GlobalDirective {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct DiagnosticDirective {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub severity: DiagnosticSeverity,
     pub rule_name: String,
@@ -178,7 +176,7 @@ pub struct DiagnosticDirective {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct EnableDirective {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub extensions: Vec<String>,
 }
@@ -187,7 +185,7 @@ pub struct EnableDirective {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct RequiresDirective {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub extensions: Vec<String>,
 }
@@ -202,7 +200,7 @@ pub enum GlobalDeclaration {
     Struct(Struct),
     Function(Function),
     ConstAssert(ConstAssert),
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     Compound(CompoundGlobalDeclaration),
 }
 
@@ -233,7 +231,7 @@ pub enum DeclarationKind {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct TypeAlias {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub ident: Ident,
     pub ty: TypeExpression,
@@ -243,7 +241,7 @@ pub struct TypeAlias {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Struct {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub ident: Ident,
     pub members: Vec<StructMemberNode>,
@@ -285,12 +283,12 @@ pub struct FormalParameter {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ConstAssert {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub expression: ExpressionNode,
 }
 
-#[cfg(feature = "wesl")]
+/// WESL extension
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
@@ -357,35 +355,49 @@ pub enum Attribute {
     Vertex,
     Fragment,
     Compute,
-    #[cfg(feature = "naga-ext")]
-    Task,
-    #[cfg(feature = "naga-ext")]
-    Payload(ExpressionNode),
-    #[cfg(feature = "naga-ext")]
-    Mesh(ExpressionNode),
-    #[cfg(feature = "naga-ext")]
-    RayGeneration,
-    #[cfg(feature = "naga-ext")]
-    AnyHit,
-    #[cfg(feature = "naga-ext")]
-    ClosestHit,
-    #[cfg(feature = "naga-ext")]
-    Miss,
-    #[cfg(feature = "naga-ext")]
-    IncomingPayload(ExpressionNode),
-    #[cfg(feature = "wesl")]
+
+    /// WESL extension
     Publish,
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     If(ExpressionNode),
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     Elif(ExpressionNode),
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     Else,
+
+    /// WESL experimental extension
     #[cfg(feature = "generics")]
     #[from]
     Type(TypeConstraint),
+
+    /// Naga extension
+    #[cfg(feature = "naga-ext")]
+    Task,
+    /// Naga extension
+    #[cfg(feature = "naga-ext")]
+    Payload(ExpressionNode),
+    /// Naga extension
+    #[cfg(feature = "naga-ext")]
+    Mesh(ExpressionNode),
+    /// Naga extension
+    #[cfg(feature = "naga-ext")]
+    RayGeneration,
+    /// Naga extension
+    #[cfg(feature = "naga-ext")]
+    AnyHit,
+    /// Naga extension
+    #[cfg(feature = "naga-ext")]
+    ClosestHit,
+    /// Naga extension
+    #[cfg(feature = "naga-ext")]
+    Miss,
+    /// Naga extension
+    #[cfg(feature = "naga-ext")]
+    IncomingPayload(ExpressionNode),
+    /// Naga extension
     #[cfg(feature = "naga-ext")]
     EarlyDepthTest(Option<ConservativeDepth>),
+
     #[from]
     Custom(CustomAttribute),
 }
@@ -394,18 +406,20 @@ impl Attribute {
     pub fn is_entry_point(&self) -> bool {
         match self {
             Attribute::Vertex | Attribute::Fragment | Attribute::Compute => true,
+
+            // naga extensions
             #[cfg(feature = "naga-ext")]
-            Attribute::Task | Attribute::Mesh(_) => true,
-            #[cfg(feature = "naga-ext")]
-            Attribute::RayGeneration
+            Attribute::Task
+            | Attribute::Mesh(_)
+            | Attribute::RayGeneration
             | Attribute::AnyHit
             | Attribute::ClosestHit
             | Attribute::Miss => true,
+
             _ => false,
         }
     }
 
-    #[cfg(feature = "wesl")]
     pub fn is_condcomp(&self) -> bool {
         matches!(
             self,
@@ -416,7 +430,6 @@ impl Attribute {
 
 pub type AttributeNode = Spanned<Attribute>;
 
-#[cfg(feature = "wesl")]
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq, From)]
@@ -455,12 +468,16 @@ pub enum LiteralExpression {
     F32(f32),
     #[from(skip)]
     F16(f32),
+
+    /// naga extension
     #[cfg(feature = "naga-ext")]
     #[from(skip)]
     I64(i64),
+    /// naga extension
     #[cfg(feature = "naga-ext")]
     #[from(skip)]
     U64(u64),
+    /// naga extension
     #[cfg(feature = "naga-ext")]
     #[from(skip)]
     F64(f64),
@@ -520,7 +537,7 @@ pub type FunctionCallExpression = FunctionCall;
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct TypeExpression {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub path: Option<ModulePath>,
     pub ident: Ident,
     pub template_args: TemplateArgs,
@@ -571,7 +588,7 @@ pub struct CompoundStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct AssignmentStatement {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub operator: AssignmentOperator,
     pub lhs: ExpressionNode,
@@ -582,7 +599,7 @@ pub struct AssignmentStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct IncrementStatement {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub expression: ExpressionNode,
 }
@@ -591,7 +608,7 @@ pub struct IncrementStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct DecrementStatement {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub expression: ExpressionNode,
 }
@@ -618,7 +635,7 @@ pub struct IfClause {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ElseIfClause {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub expression: ExpressionNode,
     pub body: CompoundStatement,
@@ -628,7 +645,7 @@ pub struct ElseIfClause {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ElseClause {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub body: CompoundStatement,
 }
@@ -647,7 +664,7 @@ pub struct SwitchStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct SwitchClause {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub case_selectors: Vec<CaseSelector>,
     pub body: CompoundStatement,
@@ -667,9 +684,9 @@ pub enum CaseSelector {
 pub struct LoopStatement {
     pub attributes: Attributes,
     pub body: CompoundStatement,
-    // a ContinuingStatement can only appear inside a LoopStatement body, therefore it is
-    // not part of the StatementNode enum. it appears here instead, but consider it part of
-    // body as the last statement of the CompoundStatement.
+    /// a ContinuingStatement can only appear inside a LoopStatement body, therefore it is
+    /// not part of the StatementNode enum. it appears here instead, but consider it part of
+    /// body as the last statement of the CompoundStatement.
     pub continuing: Option<ContinuingStatement>,
 }
 
@@ -677,12 +694,12 @@ pub struct LoopStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ContinuingStatement {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub body: CompoundStatement,
-    // a BreakIfStatement can only appear inside a ContinuingStatement body, therefore it
-    // not part of the StatementNode enum. it appears here instead, but consider it part of
-    // body as the last statement of the CompoundStatement.
+    /// a BreakIfStatement can only appear inside a ContinuingStatement body, therefore it
+    /// not part of the StatementNode enum. it appears here instead, but consider it part of
+    /// body as the last statement of the CompoundStatement.
     pub break_if: Option<BreakIfStatement>,
 }
 
@@ -690,7 +707,7 @@ pub struct ContinuingStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct BreakIfStatement {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub expression: ExpressionNode,
 }
@@ -719,7 +736,7 @@ pub struct WhileStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct BreakStatement {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
 }
 
@@ -727,7 +744,7 @@ pub struct BreakStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ContinueStatement {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
 }
 
@@ -735,7 +752,7 @@ pub struct ContinueStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ReturnStatement {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub expression: Option<ExpressionNode>,
 }
@@ -744,7 +761,7 @@ pub struct ReturnStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct DiscardStatement {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
 }
 
@@ -752,7 +769,7 @@ pub struct DiscardStatement {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct FunctionCallStatement {
-    #[cfg(feature = "wesl")]
+    /// WESL extension
     pub attributes: Attributes,
     pub call: FunctionCall,
 }

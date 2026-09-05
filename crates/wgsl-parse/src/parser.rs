@@ -98,7 +98,6 @@ impl FromStr for LiteralExpression {
         parse!(source, EntryPointLiteral, Literal)
     }
 }
-#[cfg(feature = "wesl")]
 impl FromStr for crate::syntax::ImportStatement {
     type Err = Error;
 
@@ -167,14 +166,10 @@ mod test {
         expect_ok::<Statement>("x.y[0] = 1;");
         expect_ok::<Statement>("x[0].y = 1;");
 
-        if cfg!(feature = "wesl") {
-            expect_ok::<Statement>("@if(true) x = 1;");
-            expect_ok::<Statement>("@if(true) &(*x) += 1;");
-            expect_err::<Statement>("@if(true) (*x) += 1;");
-            expect_ok::<Statement>("x::y = 1;");
-        } else {
-            expect_err::<Statement>("@if(true) x = 1;");
-            expect_err::<Statement>("x::y = 1;");
-        }
+        // WESL extensions
+        expect_ok::<Statement>("@if(true) x = 1;");
+        expect_ok::<Statement>("@if(true) &(*x) += 1;");
+        expect_err::<Statement>("@if(true) (*x) += 1;");
+        expect_ok::<Statement>("x::y = 1;");
     }
 }

@@ -153,7 +153,7 @@ fn parse_hex_f16(lex: &mut logos::Lexer<Token>) -> Option<f32> {
     lexical::parse_with_options::<f32, _, HEX_FORMAT>(str, &FLOAT_HEX_OPTIONS).ok()
 }
 
-#[cfg(feature = "naga-ext")]
+// naga extension
 fn parse_dec_i64(lex: &mut logos::Lexer<Token>) -> Option<i64> {
     let options = &lexical::parse_integer_options::STANDARD;
     let str = lex.slice();
@@ -161,7 +161,7 @@ fn parse_dec_i64(lex: &mut logos::Lexer<Token>) -> Option<i64> {
     lexical::parse_with_options::<i64, _, DEC_FORMAT>(str, options).ok()
 }
 
-#[cfg(feature = "naga-ext")]
+// naga extension
 fn parse_hex_i64(lex: &mut logos::Lexer<Token>) -> Option<i64> {
     let options = &lexical::parse_integer_options::STANDARD;
     let str = lex.slice();
@@ -169,7 +169,7 @@ fn parse_hex_i64(lex: &mut logos::Lexer<Token>) -> Option<i64> {
     lexical::parse_with_options::<i64, _, HEX_FORMAT>(str, options).ok()
 }
 
-#[cfg(feature = "naga-ext")]
+// naga extension
 fn parse_dec_u64(lex: &mut logos::Lexer<Token>) -> Option<u64> {
     let options = &lexical::parse_integer_options::STANDARD;
     let str = lex.slice();
@@ -177,7 +177,7 @@ fn parse_dec_u64(lex: &mut logos::Lexer<Token>) -> Option<u64> {
     lexical::parse_with_options::<u64, _, DEC_FORMAT>(str, options).ok()
 }
 
-#[cfg(feature = "naga-ext")]
+// naga extension
 fn parse_hex_u64(lex: &mut logos::Lexer<Token>) -> Option<u64> {
     let options = &lexical::parse_integer_options::STANDARD;
     let str = lex.slice();
@@ -185,7 +185,7 @@ fn parse_hex_u64(lex: &mut logos::Lexer<Token>) -> Option<u64> {
     lexical::parse_with_options::<u64, _, HEX_FORMAT>(str, options).ok()
 }
 
-#[cfg(feature = "naga-ext")]
+// naga extension
 fn parse_dec_f64(lex: &mut logos::Lexer<Token>) -> Option<f64> {
     let options = &lexical::parse_float_options::STANDARD;
     let str = lex.slice();
@@ -193,7 +193,7 @@ fn parse_dec_f64(lex: &mut logos::Lexer<Token>) -> Option<f64> {
     lexical::parse_with_options::<f64, _, DEC_FORMAT>(str, options).ok()
 }
 
-#[cfg(feature = "naga-ext")]
+// naga extension
 fn parse_hex_f64(lex: &mut logos::Lexer<Token>) -> Option<f64> {
     let str = lex.slice();
     let str = &str[..str.len() - 2];
@@ -269,7 +269,8 @@ pub enum Token {
     EntryPointGlobalDirective,
     EntryPointExpression,
     EntryPointStatement,
-    #[cfg(feature = "wesl")]
+
+    // wesl import extension
     EntryPointImportStatement,
 
     #[token("//", parse_line_comment)]
@@ -450,15 +451,12 @@ pub enum Token {
     #[regex(r#"0[xX][\da-fA-F]+\.[\da-fA-F]*([pP][+-]?\d+)?"#, parse_hex_abs_float)]
     #[regex(r#"0[xX]\.[\da-fA-F]+([pP][+-]?\d+)?"#, parse_hex_abs_float)]
     #[regex(r#"0[xX][\da-fA-F]+[pP][+-]?\d+"#, parse_hex_abs_float)]
-    // hex
     AbstractFloat(f64),
     #[regex(r#"(0|[1-9]\d*)i"#, parse_dec_i32)]
     #[regex(r#"0[xX][\da-fA-F]+i"#, parse_hex_i32)]
-    // hex
     I32(i32),
     #[regex(r#"(0|[1-9]\d*)u"#, parse_dec_u32)]
     #[regex(r#"0[xX][\da-fA-F]+u"#, parse_hex_u32)]
-    // hex
     U32(u32),
     #[regex(r#"(\d+\.\d*|\.\d+)([eE][+-]?\d+)?f"#, parse_dec_f32)]
     #[regex(r#"\d+([eE][+-]?\d+)?f"#, parse_dec_f32)]
@@ -472,45 +470,36 @@ pub enum Token {
     #[regex(r#"0[xX]\.[\da-fA-F]+[pP][+-]?\d+h"#, parse_hex_f16)]
     #[regex(r#"0[xX][\da-fA-F]+[pP][+-]?\d+h"#, parse_hex_f16)]
     F16(f32),
-    #[cfg(feature = "naga-ext")]
+    TemplateArgsStart,
+    TemplateArgsEnd,
+
+    // naga extension
     #[regex(r#"(0|[1-9]\d*)li"#, parse_dec_i64)]
     #[regex(r#"0[xX][\da-fA-F]+li"#, parse_hex_i64)]
-    // hex
     I64(i64),
-    #[cfg(feature = "naga-ext")]
     #[regex(r#"(0|[1-9]\d*)lu"#, parse_dec_u64)]
     #[regex(r#"0[xX][\da-fA-F]+lu"#, parse_hex_u64)]
-    // hex
     U64(u64),
-    #[cfg(feature = "naga-ext")]
     #[regex(r#"(\d+\.\d*|\.\d+)([eE][+-]?\d+)?lf"#, parse_dec_f64)]
     #[regex(r#"\d+([eE][+-]?\d+)?lf"#, parse_dec_f64)]
     #[regex(r#"0[xX][\da-fA-F]+\.[\da-fA-F]*[pP][+-]?\d+lf"#, parse_hex_f64)]
     #[regex(r#"0[xX]\.[\da-fA-F]+[pP][+-]?\d+lf"#, parse_hex_f64)]
     #[regex(r#"0[xX][\da-fA-F]+[pP][+-]?\d+lf"#, parse_hex_f64)]
     F64(f64),
-    TemplateArgsStart,
-    TemplateArgsEnd,
 
     // extension: wesl-imports
     // https://github.com/webgpu-tools/wesl-spec/blob/imports-update/Imports.md
     // date: 2025-01-18, hash: 2db8e7f681087db6bdcd4a254963deb5c0159775
-    #[cfg(feature = "wesl")]
     #[token("::")]
     SymColonColon,
-    #[cfg(feature = "wesl")]
     #[token("self")]
     KwSelf,
-    #[cfg(feature = "wesl")]
     #[token("super")]
     KwSuper,
-    #[cfg(feature = "wesl")]
     #[token("package")]
     KwPackage,
-    #[cfg(feature = "wesl")]
     #[token("as")]
     KwAs,
-    #[cfg(feature = "wesl")]
     #[token("import")]
     KwImport,
 }
@@ -634,8 +623,10 @@ impl Display for Token {
             Token::EntryPointGlobalDirective => f.write_str("EntryPointGlobalDirective"),
             Token::EntryPointExpression => f.write_str("EntryPointExpression"),
             Token::EntryPointStatement => f.write_str("EntryPointStatement"),
-            #[cfg(feature = "wesl")]
+
+            // wesl extension
             Token::EntryPointImportStatement => f.write_str("EntryPointImportStatement"),
+
             Token::LineComment => f.write_str("// line comment"),
             Token::BlockComment => f.write_str("/* block comment */"),
             Token::Ignored => unreachable!(),
@@ -719,25 +710,20 @@ impl Display for Token {
             Token::U32(n) => write!(f, "{n}u"),
             Token::F32(n) => write!(f, "{n}f"),
             Token::F16(n) => write!(f, "{n}h"),
-            #[cfg(feature = "naga-ext")]
-            Token::I64(n) => write!(f, "{n}li"),
-            #[cfg(feature = "naga-ext")]
-            Token::U64(n) => write!(f, "{n}lu"),
-            #[cfg(feature = "naga-ext")]
-            Token::F64(n) => write!(f, "{n}lf"),
             Token::TemplateArgsStart => f.write_str("start of template"),
             Token::TemplateArgsEnd => f.write_str("end of template"),
-            #[cfg(feature = "wesl")]
+
+            // naga extension
+            Token::I64(n) => write!(f, "{n}li"),
+            Token::U64(n) => write!(f, "{n}lu"),
+            Token::F64(n) => write!(f, "{n}lf"),
+
+            // wesl import extension
             Token::SymColonColon => write!(f, "::"),
-            #[cfg(feature = "wesl")]
             Token::KwSelf => write!(f, "self"),
-            #[cfg(feature = "wesl")]
             Token::KwSuper => write!(f, "super"),
-            #[cfg(feature = "wesl")]
             Token::KwPackage => write!(f, "package"),
-            #[cfg(feature = "wesl")]
             Token::KwAs => write!(f, "as"),
-            #[cfg(feature = "wesl")]
             Token::KwImport => write!(f, "import"),
         }
     }

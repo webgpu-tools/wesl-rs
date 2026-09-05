@@ -16,6 +16,7 @@ members = [
   "examples/buildrs_wesl",
   "examples/random_wgsl",
   "examples/runtime_wesl",
+  "xtask",
 ]
 default-members = [
   "crates/wesl",

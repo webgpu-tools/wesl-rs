@@ -6,12 +6,10 @@ use crate::{
     syntax::*,
 };
 
-use lalrpop_util::lalrpop_mod;
-
-lalrpop_mod!(
-    #[allow(clippy::all, reason = "generated code")]
-    grammar
-);
+#[allow(clippy::all, reason = "generated code")]
+mod grammar {
+    include!("grammar.rs");
+}
 
 pub use crate::parser_support::ParseEntryPoint;
 use grammar::EntryPointParser;

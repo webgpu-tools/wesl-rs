@@ -233,34 +233,34 @@ Literal: LiteralExpression = {
     "false"          => LiteralExpression::Bool(false),
 
     // naga exensions
-    <l: @L> <tok: TokI64> <r: @R> =>? {
+    <_l: @L> <_tok: TokI64> <_r: @R> =>? {
         #[cfg(feature = "naga-ext")]
         {
-            Ok(LiteralExpression::I64(tok))
+            Ok(LiteralExpression::I64(_tok))
         }
         #[cfg(not(feature = "naga-ext"))]
         {
-            Err(lalrpop_util::ParseError::User{ error: (l, ParseError::UnsupportedExtension("naga-ext"), r) })
+            Err(lalrpop_util::ParseError::User{ error: (_l, ParseError::UnsupportedExtension("naga-ext"), _r) })
         }
     },
-    <l: @L> <tok: TokU64> <r: @R> =>? {
+    <_l: @L> <_tok: TokU64> <_r: @R> =>? {
         #[cfg(feature = "naga-ext")]
         {
-            Ok(LiteralExpression::U64(tok))
+            Ok(LiteralExpression::U64(_tok))
         }
         #[cfg(not(feature = "naga-ext"))]
         {
-            Err(lalrpop_util::ParseError::User{ error: (l, ParseError::UnsupportedExtension("naga-ext"), r) })
+            Err(lalrpop_util::ParseError::User{ error: (_l, ParseError::UnsupportedExtension("naga-ext"), _r) })
         }
     },
-    <l: @L> <tok: TokF64> <r: @R> =>? {
+    <_l: @L> <_tok: TokF64> <_r: @R> =>? {
         #[cfg(feature = "naga-ext")]
         {
-            Ok(LiteralExpression::F64(tok))
+            Ok(LiteralExpression::F64(_tok))
         }
         #[cfg(not(feature = "naga-ext"))]
         {
-            Err(lalrpop_util::ParseError::User{ error: (l, ParseError::UnsupportedExtension("naga-ext"), r) })
+            Err(lalrpop_util::ParseError::User{ error: (_l, ParseError::UnsupportedExtension("naga-ext"), _r) })
         }
     },
 };

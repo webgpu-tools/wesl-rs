@@ -587,10 +587,6 @@ fn run(cli: Cli) -> Result<(), CliError> {
 
             match &args.kind {
                 CheckKind::Wgsl => {
-                    // recognize is a spec-compliant parser, it does not recognize WESL
-                    // extensions.
-                    wgsl_parse::recognize_str(&source)
-                        .map_err(|e| Diagnostic::from(e).with_source(source.clone()))?;
                     let mut module = wgsl_parse::parse_str(&source)
                         .map_err(|e| Diagnostic::from(e).with_source(source.clone()))?;
                     wesl::pass::retarget_idents(&mut module);

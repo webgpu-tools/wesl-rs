@@ -269,7 +269,7 @@ pub enum Token {
     EntryPointGlobalDirective,
     EntryPointExpression,
     EntryPointStatement,
-    #[cfg(feature = "imports")]
+    #[cfg(feature = "wesl")]
     EntryPointImportStatement,
 
     #[token("//", parse_line_comment)]
@@ -495,22 +495,22 @@ pub enum Token {
     // extension: wesl-imports
     // https://github.com/webgpu-tools/wesl-spec/blob/imports-update/Imports.md
     // date: 2025-01-18, hash: 2db8e7f681087db6bdcd4a254963deb5c0159775
-    #[cfg(feature = "imports")]
+    #[cfg(feature = "wesl")]
     #[token("::")]
     SymColonColon,
-    #[cfg(feature = "imports")]
+    #[cfg(feature = "wesl")]
     #[token("self")]
     KwSelf,
-    #[cfg(feature = "imports")]
+    #[cfg(feature = "wesl")]
     #[token("super")]
     KwSuper,
-    #[cfg(feature = "imports")]
+    #[cfg(feature = "wesl")]
     #[token("package")]
     KwPackage,
-    #[cfg(feature = "imports")]
+    #[cfg(feature = "wesl")]
     #[token("as")]
     KwAs,
-    #[cfg(feature = "imports")]
+    #[cfg(feature = "wesl")]
     #[token("import")]
     KwImport,
 }
@@ -634,7 +634,7 @@ impl Display for Token {
             Token::EntryPointGlobalDirective => f.write_str("EntryPointGlobalDirective"),
             Token::EntryPointExpression => f.write_str("EntryPointExpression"),
             Token::EntryPointStatement => f.write_str("EntryPointStatement"),
-            #[cfg(feature = "imports")]
+            #[cfg(feature = "wesl")]
             Token::EntryPointImportStatement => f.write_str("EntryPointImportStatement"),
             Token::LineComment => f.write_str("// line comment"),
             Token::BlockComment => f.write_str("/* block comment */"),
@@ -727,17 +727,17 @@ impl Display for Token {
             Token::F64(n) => write!(f, "{n}lf"),
             Token::TemplateArgsStart => f.write_str("start of template"),
             Token::TemplateArgsEnd => f.write_str("end of template"),
-            #[cfg(feature = "imports")]
+            #[cfg(feature = "wesl")]
             Token::SymColonColon => write!(f, "::"),
-            #[cfg(feature = "imports")]
+            #[cfg(feature = "wesl")]
             Token::KwSelf => write!(f, "self"),
-            #[cfg(feature = "imports")]
+            #[cfg(feature = "wesl")]
             Token::KwSuper => write!(f, "super"),
-            #[cfg(feature = "imports")]
+            #[cfg(feature = "wesl")]
             Token::KwPackage => write!(f, "package"),
-            #[cfg(feature = "imports")]
+            #[cfg(feature = "wesl")]
             Token::KwAs => write!(f, "as"),
-            #[cfg(feature = "imports")]
+            #[cfg(feature = "wesl")]
             Token::KwImport => write!(f, "import"),
         }
     }

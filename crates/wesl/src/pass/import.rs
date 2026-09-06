@@ -38,7 +38,7 @@ pub fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Import
     let mut res = Imports::default();
 
     for import in imports {
-        let public = import.attributes.iter().any(|attr| attr.is_publish());
+        let public = import.visibility.is_public();
         match &import.path {
             Some(import_path) => {
                 let path = path.join_path(import_path);

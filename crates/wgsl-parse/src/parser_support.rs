@@ -332,7 +332,6 @@ pub(crate) fn parse_attribute(
             Some(expr) => Ok(Attribute::IncomingPayload(expr)),
             None => Err(E::Attribute("incoming_payload", "expected 1 arguments")),
         },
-        "publish" => Ok(Attribute::Publish),
         "if" => match one_arg(args) {
             Some(expr) => Ok(Attribute::If(expr)),
             None => Err(E::Attribute("if", "expected 1 argument")),

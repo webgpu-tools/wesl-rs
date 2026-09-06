@@ -68,9 +68,7 @@ pub enum ImportError {
     ResolveError(#[from] ResolveError),
     #[error("module `{0}` has no declaration `{1}`")]
     MissingDecl(ModulePath, String),
-    #[error(
-        "import of `{0}` in module `{1}` is not `@publish`, but another module tried to import it"
-    )]
+    #[error("import of `{0}` in module `{1}` is private, but another module tried to import it")]
     Private(String, ModulePath),
 }
 

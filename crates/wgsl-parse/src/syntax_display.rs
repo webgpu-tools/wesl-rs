@@ -322,7 +322,6 @@ impl Display for Attribute {
             Attribute::Compute => write!(f, "@compute"),
 
             // wesl extensions
-            Attribute::Publish => write!(f, "@publish"),
             Attribute::If(e1) => write!(f, "@if({e1})"),
             Attribute::Elif(e1) => write!(f, "@elif({e1})"),
             Attribute::Else => write!(f, "@else"),

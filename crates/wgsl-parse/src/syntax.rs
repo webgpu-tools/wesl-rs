@@ -373,8 +373,6 @@ pub enum Attribute {
     Compute,
 
     /// WESL extension
-    Publish,
-    /// WESL extension
     If(ExpressionNode),
     /// WESL extension
     Elif(ExpressionNode),

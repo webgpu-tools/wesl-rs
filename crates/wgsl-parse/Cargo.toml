@@ -35,30 +35,15 @@ thiserror = "2.0.12"
 tokrepr = { workspace = true, optional = true }
 wgsl-types = { workspace = true }
 
-[build-dependencies]
-lalrpop = { version = "0.23.1", default-features = false }
-
 [features]
 default = []
-# allow attributes on most declarations and statements.
-# reference: https://github.com/webgpu-tools/wesl-spec/blob/main/ConditionalTranslation.md#appendix-updated-grammar
-attributes = []
-# conditional translation attribute (@if).
-# reference: https://github.com/webgpu-tools/wesl-spec/blob/main/ConditionalTranslation.md
-condcomp = ["attributes"]
-# reference: none yet
-generics = ["attributes"]
-# import declarations.
-# reference: https://github.com/webgpu-tools/wesl-spec/blob/main/Imports.md
-imports = []
+# experimental
+generics = ["wesl"]
 # See crates/wesl/Cargo.toml
 naga-ext = ["wgsl-types/naga-ext"]
 serde = ["dep:serde", "wgsl-types/serde"]
-# allow templates on function declarations
-# reference: none yet
-templates = []
 tokrepr = ["dep:tokrepr", "wgsl-types/tokrepr"]
-wesl = ["condcomp", "imports"]
+wesl = []
 
 [lints]
 workspace = true

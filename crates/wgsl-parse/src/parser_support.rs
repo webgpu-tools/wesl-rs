@@ -49,7 +49,6 @@ pub enum ParseEntryPoint {
     GlobalDirective(GlobalDirective),
     Expression(Expression),
     Statement(Statement),
-    #[cfg(feature = "imports")]
     ImportStatement(ImportStatement),
 }
 
@@ -85,8 +84,7 @@ fn zero_args(arguments: Option<Vec<ExpressionNode>>) -> bool {
 fn ident(expr: ExpressionNode) -> Option<Ident> {
     match expr.into_inner() {
         Expression::TypeOrIdentifier(TypeExpression {
-            #[cfg(feature = "imports")]
-                path: _,
+            path: _,
             ident,
             template_args: None,
         }) => Some(ident),
@@ -130,8 +128,7 @@ pub(crate) fn parse_attribute(
                 let severity = ident(e1).and_then(|id| id.name().parse().ok());
                 let rule = match e2.into_inner() {
                     Expression::TypeOrIdentifier(TypeExpression {
-                        #[cfg(feature = "imports")]
-                            path: _,
+                        path: _,
                         ident,
                         template_args: None,
                     }) => Some(ident.name().to_string()),
@@ -269,19 +266,15 @@ pub(crate) fn parse_attribute(
             Some(expr) => Ok(Attribute::IncomingPayload(expr)),
             None => Err(E::Attribute("incoming_payload", "expected 1 arguments")),
         },
-        #[cfg(feature = "imports")]
         "publish" => Ok(Attribute::Publish),
-        #[cfg(feature = "condcomp")]
         "if" => match one_arg(args) {
             Some(expr) => Ok(Attribute::If(expr)),
             None => Err(E::Attribute("if", "expected 1 argument")),
         },
-        #[cfg(feature = "condcomp")]
         "elif" => match one_arg(args) {
             Some(expr) => Ok(Attribute::Elif(expr)),
             None => Err(E::Attribute("elif", "expected 1 argument")),
         },
-        #[cfg(feature = "condcomp")]
         "else" => match zero_args(args) {
             true => Ok(Attribute::Else),
             false => Err(E::Attribute("else", "expected 0 arguments")),

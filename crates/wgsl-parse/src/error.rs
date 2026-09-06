@@ -32,6 +32,8 @@ pub enum ErrorKind {
     VarTemplate(&'static str),
     #[error("cannot mix `{0}` and `{1}` operators without parentheses")]
     MixedBinaryOperators(BinaryOperator, BinaryOperator),
+    #[error("this syntax is only supported with feature \"{0}\" enabled")]
+    UnsupportedExtension(&'static str),
 }
 
 #[derive(Default, Clone, Debug, PartialEq)]
@@ -43,6 +45,7 @@ pub enum ParseError {
     Attribute(&'static str, &'static str),
     VarTemplate(&'static str),
     MixedBinaryOperators(BinaryOperator, BinaryOperator),
+    UnsupportedExtension(&'static str),
 }
 
 type LalrpopError = lalrpop_util::ParseError<usize, Token, (usize, ParseError, usize)>;
@@ -112,6 +115,7 @@ impl From<LalrpopError> for Error {
                     ParseError::Attribute(attr, expected) => ErrorKind::Attribute(attr, expected),
                     ParseError::VarTemplate(reason) => ErrorKind::VarTemplate(reason),
                     ParseError::MixedBinaryOperators(a, b) => ErrorKind::MixedBinaryOperators(a, b),
+                    ParseError::UnsupportedExtension(ext) => ErrorKind::UnsupportedExtension(ext),
                 };
                 Self { span, error }
             }

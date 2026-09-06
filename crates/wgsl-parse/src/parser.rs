@@ -6,12 +6,10 @@ use crate::{
     syntax::*,
 };
 
-use lalrpop_util::lalrpop_mod;
-
-lalrpop_mod!(
-    #[allow(clippy::all, reason = "generated code")]
-    grammar
-);
+#[allow(clippy::all, reason = "generated code")]
+mod grammar {
+    include!("grammar.rs");
+}
 
 pub use crate::parser_support::ParseEntryPoint;
 use grammar::EntryPointParser;
@@ -98,7 +96,6 @@ impl FromStr for LiteralExpression {
         parse!(source, EntryPointLiteral, Literal)
     }
 }
-#[cfg(feature = "imports")]
 impl FromStr for crate::syntax::ImportStatement {
     type Err = Error;
 
@@ -167,18 +164,10 @@ mod test {
         expect_ok::<Statement>("x.y[0] = 1;");
         expect_ok::<Statement>("x[0].y = 1;");
 
-        if cfg!(feature = "attributes") {
-            expect_ok::<Statement>("@if(true) x = 1;");
-            expect_ok::<Statement>("@if(true) &(*x) += 1;");
-            expect_err::<Statement>("@if(true) (*x) += 1;");
-        } else {
-            expect_err::<Statement>("@if(true) x = 1;");
-        }
-
-        if cfg!(feature = "imports") {
-            expect_ok::<Statement>("x::y = 1;");
-        } else {
-            expect_err::<Statement>("x::y = 1;");
-        }
+        // WESL extensions
+        expect_ok::<Statement>("@if(true) x = 1;");
+        expect_ok::<Statement>("@if(true) &(*x) += 1;");
+        expect_err::<Statement>("@if(true) (*x) += 1;");
+        expect_ok::<Statement>("x::y = 1;");
     }
 }

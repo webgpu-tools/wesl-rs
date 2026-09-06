@@ -26,11 +26,8 @@ impl TranslationUnit {
         type Decl = GlobalDeclaration;
         self.global_declarations
             .sort_unstable_by(|a, b| match (a.node(), b.node()) {
-                #[cfg(feature = "condcomp")]
                 (Decl::Compound(_), Decl::Compound(_)) => Equal,
-                #[cfg(feature = "condcomp")]
                 (Decl::Compound(_), _) => Less,
-                #[cfg(feature = "condcomp")]
                 (_, Decl::Compound(_)) => Greater,
 
                 (Decl::Void, Decl::Void) => Equal,
@@ -104,7 +101,6 @@ impl TranslationUnit {
     }
 }
 
-#[cfg(feature = "imports")]
 impl ModulePath {
     /// Create a new module path from components.
     ///
@@ -296,7 +292,6 @@ impl ModulePath {
     }
 }
 
-#[cfg(feature = "imports")]
 #[test]
 fn test_module_path_join() {
     use std::str::FromStr;
@@ -328,7 +323,6 @@ fn test_module_path_join() {
     }
 }
 
-#[cfg(feature = "imports")]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, thiserror::Error)]
 pub enum ModulePathParseError {
     #[error("module name cannot be empty")]
@@ -341,7 +335,6 @@ pub enum ModulePathParseError {
     MisplacedSuper,
 }
 
-#[cfg(feature = "imports")]
 impl std::str::FromStr for ModulePath {
     type Err = ModulePathParseError;
 
@@ -380,7 +373,6 @@ impl std::str::FromStr for ModulePath {
     }
 }
 
-#[cfg(feature = "imports")]
 #[test]
 fn test_module_path_fromstr() {
     use std::str::FromStr;
@@ -425,7 +417,6 @@ impl GlobalDeclaration {
 impl TypeAlias {
     pub fn new(ident: Ident, ty: TypeExpression) -> Self {
         Self {
-            #[cfg(feature = "attributes")]
             attributes: Default::default(),
             ident,
             ty,
@@ -436,7 +427,6 @@ impl TypeAlias {
 impl Struct {
     pub fn new(ident: Ident) -> Self {
         Self {
-            #[cfg(feature = "attributes")]
             attributes: Default::default(),
             ident,
             members: Default::default(),
@@ -480,7 +470,6 @@ impl FormalParameter {
 impl ConstAssert {
     pub fn new(expression: Expression) -> Self {
         Self {
-            #[cfg(feature = "attributes")]
             attributes: Default::default(),
             expression: expression.into(),
         }
@@ -491,7 +480,6 @@ impl TypeExpression {
     /// New [`TypeExpression`] with no template.
     pub fn new(ident: Ident) -> Self {
         Self {
-            #[cfg(feature = "imports")]
             path: None,
             ident,
             template_args: None,
@@ -569,7 +557,6 @@ impl From<Ident> for TypeExpression {
 impl From<ExpressionNode> for ReturnStatement {
     fn from(expression: ExpressionNode) -> Self {
         Self {
-            #[cfg(feature = "attributes")]
             attributes: Default::default(),
             expression: Some(expression),
         }
@@ -584,7 +571,6 @@ impl From<Expression> for ReturnStatement {
 impl From<FunctionCall> for FunctionCallStatement {
     fn from(call: FunctionCall) -> Self {
         Self {
-            #[cfg(feature = "attributes")]
             attributes: Default::default(),
             call,
         }
@@ -725,14 +711,11 @@ macro_rules! impl_attrs_enum {
     };
 }
 
-#[cfg(feature = "imports")]
 impl SyntaxNode for ImportStatement {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for GlobalDirective {
-    #[cfg(feature = "attributes")]
     impl_attrs_enum! {
         GlobalDirective::Diagnostic,
         GlobalDirective::Enable,
@@ -741,17 +724,14 @@ impl SyntaxNode for GlobalDirective {
 }
 
 impl SyntaxNode for DiagnosticDirective {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for EnableDirective {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for RequiresDirective {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
@@ -764,12 +744,10 @@ impl SyntaxNode for GlobalDeclaration {
             GlobalDeclaration::Struct(decl) => Some(decl.ident.clone()),
             GlobalDeclaration::Function(decl) => Some(decl.ident.clone()),
             GlobalDeclaration::ConstAssert(_) => None,
-            #[cfg(feature = "condcomp")]
             GlobalDeclaration::Compound(_) => None,
         }
     }
 
-    #[cfg(all(feature = "attributes", feature = "condcomp"))]
     impl_attrs_enum! {
         GlobalDeclaration::Declaration,
         GlobalDeclaration::TypeAlias,
@@ -777,15 +755,6 @@ impl SyntaxNode for GlobalDeclaration {
         GlobalDeclaration::Function,
         GlobalDeclaration::ConstAssert,
         GlobalDeclaration::Compound,
-    }
-
-    #[cfg(all(feature = "attributes", not(feature = "condcomp")))]
-    impl_attrs_enum! {
-        GlobalDeclaration::Declaration,
-        GlobalDeclaration::TypeAlias,
-        GlobalDeclaration::Struct,
-        GlobalDeclaration::Function,
-        GlobalDeclaration::ConstAssert,
     }
 }
 
@@ -802,7 +771,6 @@ impl SyntaxNode for TypeAlias {
         Some(self.ident.clone())
     }
 
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
@@ -811,7 +779,6 @@ impl SyntaxNode for Struct {
         Some(self.ident.clone())
     }
 
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
@@ -840,7 +807,6 @@ impl SyntaxNode for FormalParameter {
 }
 
 impl SyntaxNode for ConstAssert {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
@@ -855,7 +821,6 @@ impl SyntaxNode for FunctionCall {}
 impl SyntaxNode for TypeExpression {}
 
 impl SyntaxNode for Statement {
-    #[cfg(feature = "attributes")]
     impl_attrs_enum! {
         Statement::Compound,
         Statement::Assignment,
@@ -881,17 +846,14 @@ impl SyntaxNode for CompoundStatement {
 }
 
 impl SyntaxNode for AssignmentStatement {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for IncrementStatement {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for DecrementStatement {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
@@ -902,12 +864,10 @@ impl SyntaxNode for IfStatement {
 impl SyntaxNode for IfClause {}
 
 impl SyntaxNode for ElseIfClause {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for ElseClause {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
@@ -916,7 +876,6 @@ impl SyntaxNode for SwitchStatement {
 }
 
 impl SyntaxNode for SwitchClause {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
@@ -925,12 +884,10 @@ impl SyntaxNode for LoopStatement {
 }
 
 impl SyntaxNode for ContinuingStatement {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for BreakIfStatement {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
@@ -943,26 +900,21 @@ impl SyntaxNode for WhileStatement {
 }
 
 impl SyntaxNode for BreakStatement {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for ContinueStatement {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for ReturnStatement {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for DiscardStatement {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }
 
 impl SyntaxNode for FunctionCallStatement {
-    #[cfg(feature = "attributes")]
     impl_attrs_struct! {}
 }

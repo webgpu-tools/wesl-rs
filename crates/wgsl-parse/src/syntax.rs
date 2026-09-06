@@ -245,6 +245,7 @@ pub enum DeclarationKind {
 pub struct TypeAlias {
     /// WESL extension
     pub attributes: Attributes,
+    pub visibility: Visibility,
     pub ident: Ident,
     pub ty: TypeExpression,
 }
@@ -255,6 +256,7 @@ pub struct TypeAlias {
 pub struct Struct {
     /// WESL extension
     pub attributes: Attributes,
+    pub visibility: Visibility,
     pub ident: Ident,
     pub members: Vec<StructMemberNode>,
 }
@@ -275,6 +277,7 @@ pub type StructMemberNode = Spanned<StructMember>;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Function {
     pub attributes: Attributes,
+    pub visibility: Visibility,
     pub ident: Ident,
     pub parameters: Vec<FormalParameter>,
     pub return_attributes: Attributes,

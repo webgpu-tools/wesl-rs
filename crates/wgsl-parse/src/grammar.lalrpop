@@ -359,8 +359,8 @@ SoftwareExtensionList: Vec<String> = {
 // https://www.w3.org/TR/WGSL/#types
 
 StructDecl: Struct = {
-    <attributes: Attributes> "struct" <ident: Ident> <members: StructBodyDecl> => Struct {
-        attributes, ident, members
+    <attributes: Attributes> <visibility: Visibility?> "struct" <ident: Ident> <members: StructBodyDecl> => Struct {
+        attributes, visibility: visibility.unwrap_or_default(), ident, members
     },
 };
 
@@ -375,8 +375,8 @@ StructMember: StructMember = {
 };
 
 TypeAliasDecl: TypeAlias = {
-    <attributes: Attributes> "alias" <ident: Ident> "=" <ty: TypeSpecifier> => TypeAlias {
-        attributes, ident, ty
+    <attributes: Attributes> <visibility: Visibility?> "alias" <ident: Ident> "=" <ty: TypeSpecifier> => TypeAlias {
+        attributes, visibility: visibility.unwrap_or_default(), ident, ty
     },
 };
 
@@ -919,9 +919,9 @@ VariableUpdatingStatement: Statement = {
 // https://www.w3.org/TR/WGSL/#functions
 
 FunctionDecl: Function = {
-    <attributes: Attributes> <header: FunctionHeader> <body: CompoundStatement> => {
+    <attributes: Attributes> <visibility: Visibility?> <header: FunctionHeader> <body: CompoundStatement> => {
         let (ident, parameters, return_attributes, return_type) = header;
-        Function { attributes, ident, parameters, return_attributes, return_type, body }
+        Function { attributes, visibility: visibility.unwrap_or_default(), ident, parameters, return_attributes, return_type, body }
     },
 };
 
@@ -982,7 +982,7 @@ DiagnosticControl: (DiagnosticSeverity, String) = {
 Visibility: Visibility = {
     "public" => Visibility::Public,
     "private" => Visibility::Private,
-}
+};
 
 // EXTENSION: WESL-IMPORTS
 // https://github.com/webgpu-tools/wesl-spec/blob/imports-update/Imports.md

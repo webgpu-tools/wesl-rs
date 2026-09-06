@@ -418,6 +418,7 @@ impl TypeAlias {
     pub fn new(ident: Ident, ty: TypeExpression) -> Self {
         Self {
             attributes: Default::default(),
+            visibility: Default::default(),
             ident,
             ty,
         }
@@ -428,6 +429,7 @@ impl Struct {
     pub fn new(ident: Ident) -> Self {
         Self {
             attributes: Default::default(),
+            visibility: Default::default(),
             ident,
             members: Default::default(),
         }
@@ -448,6 +450,7 @@ impl Function {
     pub fn new(ident: Ident) -> Self {
         Self {
             attributes: Default::default(),
+            visibility: Default::default(),
             ident,
             parameters: Default::default(),
             return_attributes: Default::default(),

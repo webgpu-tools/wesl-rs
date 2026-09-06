@@ -450,7 +450,6 @@ pub fn retarget_modules(modules: &mut [Module], used_items: &UsedItems, resolver
                     } else if let Some((_, item)) = module_imports
                         .iter()
                         .find(|(ident, _)| *ident.name() == *ty.ident.name())
-                        && item.public
                     {
                         // there is no declaration with this name, but there is a re-export.
                         // we loop again with a new path and ident to look up.
@@ -479,7 +478,6 @@ pub fn retarget_modules(modules: &mut [Module], used_items: &UsedItems, resolver
                         .imports
                         .iter()
                         .find(|(ident, _)| *ident.name() == *import_ident.name())
-                        && item.public
                     {
                         // there is no declaration with this name, but there is a re-export.
                         // we loop again with a new path and ident to look up.

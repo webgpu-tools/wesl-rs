@@ -151,7 +151,6 @@ pub fn usage_analysis(
             .imports
             .iter()
             .find(|(ident, _)| *ident.name() == decl_name)
-            && item.public
         {
             // there is no declaration with this name, but there is a re-export.
             to_analyze.insert_ident(item.path.clone(), item.ident.clone());

@@ -6,14 +6,14 @@ use wgsl_parse::syntax::*;
 pub struct ImportedItem {
     pub path: ModulePath,
     pub ident: Ident, // this is the ident's original name before `as` renaming.
-    pub public: bool,
+    pub visibility: Visibility,
 }
 
 pub type Imports = HashMap<Ident, ImportedItem>;
 
 /// Flatten imports to a list.
 pub fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Imports {
-    fn rec(content: &ImportContent, path: ModulePath, public: bool, res: &mut Imports) {
+    fn rec(content: &ImportContent, path: ModulePath, visibility: Visibility, res: &mut Imports) {
         match content {
             ImportContent::Item(item) => {
                 let ident = item.rename.as_ref().unwrap_or(&item.ident).clone();
@@ -22,14 +22,14 @@ pub fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Import
                     ImportedItem {
                         path,
                         ident: item.ident.clone(),
-                        public,
+                        visibility,
                     },
                 );
             }
             ImportContent::Collection(coll) => {
                 for import in coll {
                     let path = path.clone().join(import.path.iter().cloned());
-                    rec(&import.content, path, public, res);
+                    rec(&import.content, path, visibility, res);
                 }
             }
         }
@@ -38,11 +38,11 @@ pub fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Import
     let mut res = Imports::default();
 
     for import in imports {
-        let public = import.visibility.is_public();
+        let visibility = import.visibility;
         match &import.path {
             Some(import_path) => {
                 let path = path.join_path(import_path);
-                rec(&import.content, path, public, &mut res);
+                rec(&import.content, path, visibility, &mut res);
             }
             None => {
                 // this covers two cases: `import foo;` and `import {foo, ..};`.
@@ -61,7 +61,7 @@ pub fn flatten_imports(imports: &[ImportStatement], path: &ModulePath) -> Import
                                     PathOrigin::Package(pkg_name),
                                     components.collect_vec(),
                                 );
-                                rec(&import.content, path, public, &mut res);
+                                rec(&import.content, path, visibility, &mut res);
                             }
                         }
                     }

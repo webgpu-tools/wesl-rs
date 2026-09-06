@@ -386,77 +386,43 @@ TemplateElaboratedIdent: TypeExpression = {
 // https://www.w3.org/TR/WGSL/#var-and-value
 
 VariableOrValueStatement: Declaration = {
-    VariableDecl,
-    LetDecl,
-    ConstDecl,
+    <l: @L> <decl: Declaration> <r: @R> =>? {
+        validate_declaration(&decl, DeclarationScope::Function)
+            .map_err(|e| lalrpop_util::ParseError::User{ error: (l, e, r) })?;
+        Ok(decl)
+    },
 };
 
 GlobalVariableOrValueDecl: Declaration = {
-    VariableDecl,
-    ConstDecl,
-    OverrideDecl,
+    <l: @L> <decl: Declaration> <r: @R> =>? {
+        validate_declaration(&decl, DeclarationScope::Module)
+            .map_err(|e| lalrpop_util::ParseError::User{ error: (l, e, r) })?;
+        Ok(decl)
+    },
 };
 
-VariableDecl: Declaration = {
-    <attributes: Attributes> <visibility: Visibility?> <l: @L> "var" <template_args: TemplateList?> <r: @R> <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> =>? {
-        let (ident, ty) = id_ty;
+Declaration: Declaration = {
+    <attributes: Attributes> <visibility: Visibility?> <kind: DeclarationKind> <ident: Ident> <ty: (":" <TypeSpecifier>)?> <initializer: ("=" <ExpressionNode>)?> => {
+        Declaration {
+            attributes,
+            visibility: visibility.unwrap_or_default(),
+            kind,
+            ident,
+            ty,
+            initializer,
+        }
+    }
+};
+
+DeclarationKind: DeclarationKind = {
+    "const" => DeclarationKind::Const,
+    "override" => DeclarationKind::Override,
+    "let" => DeclarationKind::Let,
+    <l: @L> "var" <template_args: TemplateList?> <r: @R> =>? {
         let address_space = parse_var_template(template_args)
             .map_err(|e| lalrpop_util::ParseError::User{ error: (l, e, r) })?;
-        Ok(Declaration {
-            attributes,
-            visibility: visibility.unwrap_or_default(),
-            kind: DeclarationKind::Var(address_space),
-            ident,
-            ty,
-            initializer,
-        })
+        Ok(DeclarationKind::Var(address_space))
     },
-};
-
-ConstDecl: Declaration = {
-    <attributes: Attributes> <visibility: Visibility?> "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
-        let (ident, ty) = id_ty;
-        Declaration {
-            attributes,
-            visibility: visibility.unwrap_or_default(),
-            kind: DeclarationKind::Const,
-            ident,
-            ty,
-            initializer: Some(initializer),
-        }
-    },
-};
-
-OverrideDecl: Declaration = {
-    <attributes: Attributes> <visibility: Visibility?> "override" <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> => {
-        let (ident, ty) = id_ty;
-        Declaration {
-            attributes,
-            visibility: visibility.unwrap_or_default(),
-            kind: DeclarationKind::Override,
-            ident,
-            ty,
-            initializer,
-        }
-    },
-};
-
-LetDecl: Declaration = {
-    <attributes: Attributes> <visibility: Visibility?> "let" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
-        let (ident, ty) = id_ty;
-        Declaration {
-            attributes,
-            visibility: visibility.unwrap_or_default(),
-            kind: DeclarationKind::Let,
-            ident,
-            ty,
-            initializer: Some(initializer),
-        }
-    },
-}
-
-OptionallyTypedIdent: (Ident, Option<TypeExpression>) = {
-    <Ident> <(":" <TypeSpecifier>)?>,
 };
 
 // 8. EXPRESSIONS

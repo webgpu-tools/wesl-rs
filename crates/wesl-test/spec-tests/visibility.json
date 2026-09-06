@@ -1,0 +1,10 @@
+[
+	{
+		"name": "private-same-module",
+		"desc": "use of a private declaration in the same module",
+		"kind": "modules",
+		"code": "private const x: u32 = 0; const y = x; public const z = x; fn foo() { let w = x; }",
+		"expect": "pass",
+		"result": "const x: u32 = 0; const y = x; const z = x; fn foo() { let w = x; }"
+	}
+]

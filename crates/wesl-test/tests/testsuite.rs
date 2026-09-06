@@ -70,6 +70,7 @@ fn main() {
         "spec-tests/types.json",
         "spec-tests/dead-code.json",
         "spec-tests/condcomp-flatten.json",
+        "spec-tests/visibility.json",
     ];
     for path in spec_tests {
         tests.extend({

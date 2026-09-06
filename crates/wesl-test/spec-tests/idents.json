@@ -1,58 +1,58 @@
 [
-  {
-    "name": "ident-allow-unicode",
-    "desc": "Tests valid unicode identifiers",
-    "kind": "syntax",
-    "syntax": "declaration",
-    "code": "const Δέλτα = 1u; const réflexion = 1u; const Кызыл = 1u; const 𐰓𐰏𐰇 = 1u; const 朝焼け = 1u; const سلام = 1u; const 검정 = 1u; const שָׁלוֹם = 1u; const गुलाबी = 1u; const փիրուզ = 1u;",
-    "expect": "pass"
-  },
-  {
-    "name": "ident-disallow-digit-first-char",
-    "desc": "Tests identifier cannot start with a digit",
-    "kind": "syntax",
-    "syntax": "declaration",
-    "code": "const 1 = 1u",
-    "expect": "fail"
-  },
-  {
-    "name": "ident-disallow-two-leading-underscores",
-    "desc": "Tests identifier cannot start with two underscores",
-    "kind": "syntax",
-    "syntax": "declaration",
-    "code": "const __foo = 1u",
-    "expect": "fail"
-  },
-  {
-    "name": "ident-disallow-single-underscore",
-    "desc": "Tests identifier cannot be a single underscore",
-    "kind": "syntax",
-    "syntax": "declaration",
-    "code": "const _ = 1u",
-    "expect": "fail"
-  },
-  {
-    "name": "ident-disallow-reserved-words",
-    "desc": "Tests WGSL reserved words are not valid identifiers",
-    "kind": "syntax",
-    "syntax": "declaration",
-    "code": "const common = 1u;",
-    "expect": "fail"
-  },
-  {
-    "name": "import-path-allow-reserved-words",
-    "desc": "Tests WGSL reserved words are valid module paths",
-    "kind": "syntax",
-    "syntax": "declaration",
-    "code": "import common::NULL::await::export::of::wgsl::item;",
-    "expect": "pass"
-  },
-  {
-    "name": "import-path-allow-keywords",
-    "desc": "Tests WGSL keywords are valid module paths",
-    "kind": "syntax",
-    "syntax": "declaration",
-    "code": "import alias::break::const::override::true::item;",
-    "expect": "pass"
-  }
+	{
+		"name": "ident-allow-unicode",
+		"desc": "Tests valid unicode identifiers",
+		"kind": "syntax",
+		"syntax": "declaration",
+		"code": "const Δέλτα = 1u; const réflexion = 1u; const Кызыл = 1u; const 𐰓𐰏𐰇 = 1u; const 朝焼け = 1u; const سلام = 1u; const 검정 = 1u; const שָׁלוֹם = 1u; const गुलाबी = 1u; const փիրուզ = 1u;",
+		"expect": "pass"
+	},
+	{
+		"name": "ident-disallow-digit-first-char",
+		"desc": "Tests identifier cannot start with a digit",
+		"kind": "syntax",
+		"syntax": "declaration",
+		"code": "const 1 = 1u",
+		"expect": "fail"
+	},
+	{
+		"name": "ident-disallow-two-leading-underscores",
+		"desc": "Tests identifier cannot start with two underscores",
+		"kind": "syntax",
+		"syntax": "declaration",
+		"code": "const __foo = 1u",
+		"expect": "fail"
+	},
+	{
+		"name": "ident-disallow-single-underscore",
+		"desc": "Tests identifier cannot be a single underscore",
+		"kind": "syntax",
+		"syntax": "declaration",
+		"code": "const _ = 1u",
+		"expect": "fail"
+	},
+	{
+		"name": "ident-disallow-reserved-words",
+		"desc": "Tests WGSL reserved words are not valid identifiers",
+		"kind": "syntax",
+		"syntax": "declaration",
+		"code": "const common = 1u;",
+		"expect": "fail"
+	},
+	{
+		"name": "import-path-allow-reserved-words",
+		"desc": "Tests WGSL reserved words are valid module paths",
+		"kind": "syntax",
+		"syntax": "declaration",
+		"code": "import common::NULL::await::export::of::wgsl::item;",
+		"expect": "pass"
+	},
+	{
+		"name": "import-path-allow-keywords",
+		"desc": "Tests WGSL keywords are valid module paths",
+		"kind": "syntax",
+		"syntax": "declaration",
+		"code": "import alias::break::const::override::true::item;",
+		"expect": "pass"
+	}
 ]

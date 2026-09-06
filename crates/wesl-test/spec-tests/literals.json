@@ -1,34 +1,34 @@
 [
-    {
-        "name": "no-leading-zero-abstractint",
-        "desc": "AbstractInt literals cannot have leading zeros",
-        "kind": "syntax",
-        "syntax": "expression",
-        "code": "07",
-        "expect": "fail"
-    },
-    {
-        "name": "no-leading-zero-abstractfloat",
-        "desc": "AbstractFloat literals can have leading zeros",
-        "kind": "syntax",
-        "syntax": "expression",
-        "code": "07.0",
-        "expect": "pass"
-    },
-    {
-        "name": "no-leading-zero-u32",
-        "desc": "u32 literals cannot have leading zeros",
-        "kind": "syntax",
-        "syntax": "expression",
-        "code": "07u",
-        "expect": "fail"
-    },
-    {
-        "name": "no-leading-zero-f32",
-        "desc": "f32 literals can have leading zeros",
-        "kind": "syntax",
-        "syntax": "expression",
-        "code": "07.0f",
-        "expect": "pass"
-    }
+	{
+		"name": "no-leading-zero-abstractint",
+		"desc": "AbstractInt literals cannot have leading zeros",
+		"kind": "syntax",
+		"syntax": "expression",
+		"code": "07",
+		"expect": "fail"
+	},
+	{
+		"name": "no-leading-zero-abstractfloat",
+		"desc": "AbstractFloat literals can have leading zeros",
+		"kind": "syntax",
+		"syntax": "expression",
+		"code": "07.0",
+		"expect": "pass"
+	},
+	{
+		"name": "no-leading-zero-u32",
+		"desc": "u32 literals cannot have leading zeros",
+		"kind": "syntax",
+		"syntax": "expression",
+		"code": "07u",
+		"expect": "fail"
+	},
+	{
+		"name": "no-leading-zero-f32",
+		"desc": "f32 literals can have leading zeros",
+		"kind": "syntax",
+		"syntax": "expression",
+		"code": "07.0f",
+		"expect": "pass"
+	}
 ]

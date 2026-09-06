@@ -139,6 +139,11 @@ pub enum TestKind {
         #[serde(default)]
         lower: bool,
     },
+    Modules {
+        #[serde(default)]
+        modules: HashMap<String, String>,
+        result: Option<String>, // must be None when expect is Fail, must be Some when expect is Pass
+    },
 }
 
 impl fmt::Display for TestKind {
@@ -147,6 +152,7 @@ impl fmt::Display for TestKind {
             TestKind::Syntax { .. } => f.write_str("Syntax"),
             TestKind::Eval { .. } => f.write_str("Eval"),
             TestKind::Context { .. } => f.write_str("Context"),
+            TestKind::Modules { .. } => f.write_str("Modules"),
         }
     }
 }

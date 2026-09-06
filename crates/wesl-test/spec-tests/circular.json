@@ -1,52 +1,51 @@
 [
-    {
-        "name": "circular-alias",
-        "desc": "an alias cannot have cycles",
-        "kind": "context",
-        "code": "alias foo = bar; alias bar = foo;",
-        "expect": "fail"
-    },
-    {
-        "name": "circular-alias-direct",
-        "desc": "an alias cannot alias itself",
-        "kind": "context",
-        "code": "alias foo = foo;",
-        "expect": "fail"
-    },
-    {
-        "name": "circular-alias-indirect",
-        "desc": "an alias cannot reference itself",
-        "kind": "context",
-        "code": "alias foo = array<foo, 1>;",
-        "expect": "fail"
-    },
-    {
-        "name": "circular-const",
-        "desc": "a global const cannot have cycles",
-        "kind": "context",
-        "code": "const foo: u32 = bar; const bar: u32 = foo;",
-        "expect": "fail"
-    },
-    {
-        "name": "circular-const-indirect",
-        "desc": "a global const cannot reference itself",
-        "kind": "context",
-        "code": "const foo: array<u32, foo[0]> = array(1u);",
-        "expect": "fail"
-    },
-    {
-        "name": "circular-alias-const",
-        "desc": "cycle between an alias and a const",
-        "kind": "context",
-        "code": "alias foo = array<u32, bar[0]>; const bar = array<foo, 1>(1u);",
-        "expect": "fail"
-    },
-    {
-        "name": "circular-var",
-        "desc": "a global var cannot have cycles",
-        "kind": "context",
-        "code": "var<private> foo = bar; const bar = foo;",
-        "expect": "fail"
-    }
+	{
+		"name": "circular-alias",
+		"desc": "an alias cannot have cycles",
+		"kind": "context",
+		"code": "alias foo = bar; alias bar = foo;",
+		"expect": "fail"
+	},
+	{
+		"name": "circular-alias-direct",
+		"desc": "an alias cannot alias itself",
+		"kind": "context",
+		"code": "alias foo = foo;",
+		"expect": "fail"
+	},
+	{
+		"name": "circular-alias-indirect",
+		"desc": "an alias cannot reference itself",
+		"kind": "context",
+		"code": "alias foo = array<foo, 1>;",
+		"expect": "fail"
+	},
+	{
+		"name": "circular-const",
+		"desc": "a global const cannot have cycles",
+		"kind": "context",
+		"code": "const foo: u32 = bar; const bar: u32 = foo;",
+		"expect": "fail"
+	},
+	{
+		"name": "circular-const-indirect",
+		"desc": "a global const cannot reference itself",
+		"kind": "context",
+		"code": "const foo: array<u32, foo[0]> = array(1u);",
+		"expect": "fail"
+	},
+	{
+		"name": "circular-alias-const",
+		"desc": "cycle between an alias and a const",
+		"kind": "context",
+		"code": "alias foo = array<u32, bar[0]>; const bar = array<foo, 1>(1u);",
+		"expect": "fail"
+	},
+	{
+		"name": "circular-var",
+		"desc": "a global var cannot have cycles",
+		"kind": "context",
+		"code": "var<private> foo = bar; const bar = foo;",
+		"expect": "fail"
+	}
 ]
-

@@ -315,7 +315,7 @@ DiagnosticDirective: DiagnosticDirective = {
         DiagnosticDirective { severity, rule_name }
     },
     #[cfg(feature = "attributes")]
-    <AttributeNode*> "diagnostic" <DiagnosticControl> ";" => {
+    <Attributes> "diagnostic" <DiagnosticControl> ";" => {
         let (attributes, (severity, rule_name)) = (<>);
         DiagnosticDirective { attributes, severity, rule_name }
     },
@@ -327,7 +327,7 @@ EnableDirective: EnableDirective = {
         extensions
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "enable" <extensions: EnableExtensionList> ";" => EnableDirective {
+    <attributes: Attributes> "enable" <extensions: EnableExtensionList> ";" => EnableDirective {
         attributes, extensions
     },
 };
@@ -342,7 +342,7 @@ RequiresDirective: RequiresDirective = {
         extensions
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "requires" <extensions: SoftwareExtensionList> ";" => RequiresDirective {
+    <attributes: Attributes> "requires" <extensions: SoftwareExtensionList> ";" => RequiresDirective {
         attributes, extensions
     },
 };
@@ -360,7 +360,7 @@ StructDecl: Struct = {
         ident, members
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "struct" <ident: Ident> <members: StructBodyDecl> => Struct {
+    <attributes: Attributes> "struct" <ident: Ident> <members: StructBodyDecl> => Struct {
         attributes, ident, members
     },
 };
@@ -370,7 +370,7 @@ StructBodyDecl: Vec<StructMemberNode> = {
 };
 
 StructMember: StructMember = {
-    <attributes: AttributeNode*> <ident: MemberIdent> ":" <ty: TypeSpecifier> => StructMember {
+    <attributes: Attributes> <ident: MemberIdent> ":" <ty: TypeSpecifier> => StructMember {
         attributes, ident, ty
     },
 };
@@ -381,7 +381,7 @@ TypeAliasDecl: TypeAlias = {
         ident, ty
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "alias" <ident: Ident> "=" <ty: TypeSpecifier> => TypeAlias {
+    <attributes: Attributes> "alias" <ident: Ident> "=" <ty: TypeSpecifier> => TypeAlias {
         attributes, ident, ty
     },
 };
@@ -429,7 +429,7 @@ VariableDecl: Declaration = {
         })
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> <l: @L> "var" <template_args: TemplateList?> <r: @R> <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> =>? {
+    <attributes: Attributes> <l: @L> "var" <template_args: TemplateList?> <r: @R> <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> =>? {
         let (ident, ty) = id_ty;
         let address_space = parse_var_template(template_args)
             .map_err(|e| lalrpop_util::ParseError::User{ error: (l, e, r) })?;
@@ -456,7 +456,7 @@ ConstDecl: Declaration = {
         }
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
+    <attributes: Attributes> "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
         let (ident, ty) = id_ty;
         Declaration {
             attributes,
@@ -469,7 +469,7 @@ ConstDecl: Declaration = {
 };
 
 OverrideDecl: Declaration = {
-    <attributes: AttributeNode*> "override" <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> => {
+    <attributes: Attributes> "override" <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> => {
         let (ident, ty) = id_ty;
         Declaration {
             attributes,
@@ -494,7 +494,7 @@ LetDecl: Declaration = {
         }
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "let" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
+    <attributes: Attributes> "let" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
         let (ident, ty) = id_ty;
         Declaration {
             attributes,
@@ -739,7 +739,7 @@ ExpressionNode: ExpressionNode = Spanned<Expression>;
 
 
 CompoundStatement: CompoundStatement = {
-    <attributes: AttributeNode*> "{" <statements: StatementNode*> "}" => CompoundStatement {
+    <attributes: Attributes> "{" <statements: StatementNode*> "}" => CompoundStatement {
         attributes, statements
     },
 };
@@ -762,10 +762,10 @@ AssignmentStatement: AssignmentStatement = {
 
 #[cfg(feature = "attributes")]
 AssignmentStatement: AssignmentStatement = {
-    <attributes: AttributeNode*> <lhs: Spanned<LhsExpressionNoParen>> "=" <rhs: ExpressionNode> => AssignmentStatement {
+    <attributes: Attributes> <lhs: Spanned<LhsExpressionNoParen>> "=" <rhs: ExpressionNode> => AssignmentStatement {
         attributes, operator: AssignmentOperator::Equal, lhs, rhs
     },
-    <attributes: AttributeNode*> <lhs: Spanned<LhsExpressionNoParen>> <operator: CompoundAssignmentOperator> <rhs: ExpressionNode> => AssignmentStatement {
+    <attributes: Attributes> <lhs: Spanned<LhsExpressionNoParen>> <operator: CompoundAssignmentOperator> <rhs: ExpressionNode> => AssignmentStatement {
         attributes, operator, lhs, rhs
     },
     <lhs: Spanned<LhsExpressionParen>> "=" <rhs: ExpressionNode> => AssignmentStatement {
@@ -774,7 +774,7 @@ AssignmentStatement: AssignmentStatement = {
     <lhs: Spanned<LhsExpressionParen>> <operator: CompoundAssignmentOperator> <rhs: ExpressionNode> => AssignmentStatement {
         attributes: vec![], operator, lhs, rhs
     },
-    <attributes: AttributeNode*> <l: @L> "_" <r: @R> "=" <rhs: ExpressionNode> => {
+    <attributes: Attributes> <l: @L> "_" <r: @R> "=" <rhs: ExpressionNode> => {
         let lhs = Expression::TypeOrIdentifier(Ident::new("_".to_string()).into());
         let span = (l..r).into();
         let lhs = Spanned::new(lhs, span);
@@ -801,7 +801,7 @@ IncrementStatement: IncrementStatement = {
         expression
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> <expression: Spanned<LhsExpressionNoParen>> "++" => IncrementStatement {
+    <attributes: Attributes> <expression: Spanned<LhsExpressionNoParen>> "++" => IncrementStatement {
         attributes, expression
     },
     #[cfg(feature = "attributes")]
@@ -816,7 +816,7 @@ DecrementStatement: DecrementStatement = {
         expression
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> <expression: Spanned<LhsExpressionNoParen>> "--" => DecrementStatement {
+    <attributes: Attributes> <expression: Spanned<LhsExpressionNoParen>> "--" => DecrementStatement {
         attributes, expression
     },
     #[cfg(feature = "attributes")]
@@ -826,7 +826,7 @@ DecrementStatement: DecrementStatement = {
 };
 
 IfStatement: IfStatement = {
-    <attributes: AttributeNode*> <if_clause: IfClause> <else_if_clauses: ElseIfClause*> <else_clause: ElseClause?> => IfStatement {
+    <attributes: Attributes> <if_clause: IfClause> <else_if_clauses: ElseIfClause*> <else_clause: ElseClause?> => IfStatement {
         attributes, if_clause, else_if_clauses, else_clause
     },
 };
@@ -858,7 +858,7 @@ ElseClause: ElseClause = {
 }
 
 SwitchStatement: SwitchStatement = {
-    <attributes: AttributeNode*> "switch" <expression: ExpressionNode> <body: SwitchBody> => {
+    <attributes: Attributes> "switch" <expression: ExpressionNode> <body: SwitchBody> => {
         let (body_attributes, clauses) = body;
         SwitchStatement {
             attributes, expression, body_attributes, clauses
@@ -867,7 +867,7 @@ SwitchStatement: SwitchStatement = {
 };
 
 SwitchBody: (Vec<AttributeNode>, Vec<SwitchClause>) = {
-    <AttributeNode*> "{" <SwitchClause+> "}",
+    <Attributes> "{" <SwitchClause+> "}",
 };
 
 SwitchClause: SwitchClause = {
@@ -881,7 +881,7 @@ CaseClause: SwitchClause = {
         case_selectors, body
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "case" <case_selectors: CaseSelectors> ":"? <body: CompoundStatement> => SwitchClause {
+    <attributes: Attributes> "case" <case_selectors: CaseSelectors> ":"? <body: CompoundStatement> => SwitchClause {
         attributes, case_selectors, body
     },
 };
@@ -892,7 +892,7 @@ DefaultAloneClause: SwitchClause = {
         case_selectors: vec![CaseSelector::Default], body
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "default" ":"? <body: CompoundStatement> => SwitchClause {
+    <attributes: Attributes> "default" ":"? <body: CompoundStatement> => SwitchClause {
         attributes, case_selectors: vec![CaseSelector::Default], body
     },
 };
@@ -907,7 +907,7 @@ CaseSelector: CaseSelector = {
 };
 
 LoopStatement: LoopStatement = {
-    <attributes: AttributeNode*> "loop" <body_attributes: AttributeNode*> "{" <statements: StatementNode*> <continuing: ContinuingStatement?> "}" => {
+    <attributes: Attributes> "loop" <body_attributes: Attributes> "{" <statements: StatementNode*> <continuing: ContinuingStatement?> "}" => {
         let body = CompoundStatement { attributes: body_attributes, statements };
         LoopStatement {
             attributes, body, continuing
@@ -916,7 +916,7 @@ LoopStatement: LoopStatement = {
 };
 
 ForStatement: ForStatement = {
-     <attributes: AttributeNode*> "for" "(" <header: ForHeader> ")" <body: CompoundStatement> => {
+     <attributes: Attributes> "for" "(" <header: ForHeader> ")" <body: CompoundStatement> => {
         let (initializer, condition, update) = header;
         ForStatement {
             attributes, initializer, condition, update, body
@@ -955,7 +955,7 @@ ForUpdate: StatementNode = {
 };
 
 WhileStatement: WhileStatement = {
-    <attributes: AttributeNode*> "while" <condition: ExpressionNode> <body: CompoundStatement> => WhileStatement {
+    <attributes: Attributes> "while" <condition: ExpressionNode> <body: CompoundStatement> => WhileStatement {
         attributes, condition, body
     },
 };
@@ -964,7 +964,7 @@ BreakStatement: BreakStatement = {
     #[cfg(not(feature = "attributes"))]
     "break" => BreakStatement {},
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "break" => BreakStatement {
+    <attributes: Attributes> "break" => BreakStatement {
         attributes
     },
 };
@@ -975,7 +975,7 @@ BreakIfStatement: BreakIfStatement = {
         expression
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "break" "if" <expression: ExpressionNode> ";" => BreakIfStatement {
+    <attributes: Attributes> "break" "if" <expression: ExpressionNode> ";" => BreakIfStatement {
         attributes, expression
     },
 };
@@ -984,7 +984,7 @@ ContinueStatement: ContinueStatement = {
     #[cfg(not(feature = "attributes"))]
     "continue" => ContinueStatement {},
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "continue" => ContinueStatement {
+    <attributes: Attributes> "continue" => ContinueStatement {
         attributes
     },
 };
@@ -993,7 +993,7 @@ ContinuingStatement: ContinuingStatement = {
     #[cfg(not(feature = "attributes"))]
     "continuing" <ContinuingCompoundStatement>,
     #[cfg(feature = "attributes")]
-    <AttributeNode*> "continuing" <ContinuingCompoundStatement> => {
+    <Attributes> "continuing" <ContinuingCompoundStatement> => {
         let (attributes, mut statement) = (<>);
         statement.attributes = attributes;
         statement
@@ -1002,12 +1002,12 @@ ContinuingStatement: ContinuingStatement = {
 
 ContinuingCompoundStatement: ContinuingStatement = {
     #[cfg(not(feature = "attributes"))]
-    <attributes: AttributeNode*> "{" <statements: StatementNode*> <break_if: BreakIfStatement?> "}" => {
+    <attributes: Attributes> "{" <statements: StatementNode*> <break_if: BreakIfStatement?> "}" => {
         let body = CompoundStatement { attributes, statements };
         ContinuingStatement { body, break_if }
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "{" <statements: StatementNode*> <break_if: BreakIfStatement?> "}" => {
+    <attributes: Attributes> "{" <statements: StatementNode*> <break_if: BreakIfStatement?> "}" => {
         let body = CompoundStatement { attributes, statements };
         ContinuingStatement { attributes: Vec::new(), body, break_if }
     },
@@ -1019,7 +1019,7 @@ ReturnStatement: ReturnStatement = {
         expression
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "return" <expression: ExpressionNode?> => ReturnStatement {
+    <attributes: Attributes> "return" <expression: ExpressionNode?> => ReturnStatement {
         attributes, expression
     },
 };
@@ -1028,7 +1028,7 @@ DiscardStatement: DiscardStatement = {
     #[cfg(not(feature = "attributes"))]
     "discard" => DiscardStatement {},
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "discard" => DiscardStatement {
+    <attributes: Attributes> "discard" => DiscardStatement {
         attributes
     },
 };
@@ -1039,7 +1039,7 @@ FuncCallStatement: FunctionCallStatement = {
         call
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> <call: CallPhrase> => FunctionCallStatement {
+    <attributes: Attributes> <call: CallPhrase> => FunctionCallStatement {
         attributes, call
     },
 }
@@ -1050,7 +1050,7 @@ ConstAssertStatement: ConstAssertStatement = {
         expression
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "const_assert" <expression: ExpressionNode> => ConstAssertStatement {
+    <attributes: Attributes> "const_assert" <expression: ExpressionNode> => ConstAssertStatement {
         attributes, expression
     },
 };
@@ -1085,14 +1085,14 @@ VariableUpdatingStatement: Statement = {
 // https://www.w3.org/TR/WGSL/#functions
 
 FunctionDecl: Function = {
-    <attributes: AttributeNode*> <header: FunctionHeader> <body: CompoundStatement> => {
+    <attributes: Attributes> <header: FunctionHeader> <body: CompoundStatement> => {
         let (ident, parameters, return_attributes, return_type) = header;
         Function { attributes, ident, parameters, return_attributes, return_type, body }
     },
 };
 
 FunctionHeader: (Ident, Vec<FormalParameter>, Vec<AttributeNode>, Option<TypeExpression>) = {
-    "fn" <ident: Ident> "(" <parameters: ParamList?> ")" <ret: ("->" <AttributeNode*> <TemplateElaboratedIdent>)?> => {
+    "fn" <ident: Ident> "(" <parameters: ParamList?> ")" <ret: ("->" <Attributes> <TemplateElaboratedIdent>)?> => {
         let (return_attributes, return_type) = ret.map(|(return_attributes, return_type)| {
             (return_attributes, Some(return_type))
         }).unwrap_or_default();
@@ -1106,14 +1106,14 @@ ParamList: Vec<FormalParameter> = {
 };
 
 Param: FormalParameter = {
-    <attributes: AttributeNode*> <ident: Ident> ":" <ty: TypeSpecifier> => FormalParameter {
+    <attributes: Attributes> <ident: Ident> ":" <ty: TypeSpecifier> => FormalParameter {
         attributes, ident, ty
     },
 };
 
 #[cfg(feature = "condcomp")]
 CompoundGlobalDecl: CompoundGlobalDeclaration = {
-    <attributes: AttributeNode*> "{" <body: GlobalDeclarationNode*> "}" => CompoundGlobalDeclaration {
+    <attributes: Attributes> "{" <body: GlobalDeclarationNode*> "}" => CompoundGlobalDeclaration {
         attributes, body
     },
 };
@@ -1136,7 +1136,7 @@ Attribute: Attribute = {
     },
 };
 
-AttributeNode: AttributeNode = Spanned<Attribute>;
+Attributes: Vec<AttributeNode> = Spanned<Attribute>*;
 
 DiagnosticControl: (DiagnosticSeverity, String) = {
     "(" <SeverityControlName> "," <DiagnosticRuleName> ","? ")",
@@ -1187,7 +1187,7 @@ ImportStatement: ImportStatement = {
         ImportStatement { path, content }
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "import" <path: ModulePath?> <content: ImportContent> ";" => {
+    <attributes: Attributes> "import" <path: ModulePath?> <content: ImportContent> ";" => {
         ImportStatement { attributes, path, content }
     },
 };

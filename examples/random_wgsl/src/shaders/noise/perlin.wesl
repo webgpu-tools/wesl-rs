@@ -4,7 +4,7 @@ import super::super::hash::permute4;
 // MIT License. © Stefan Gustavson, Munrocket
 // https://gist.github.com/munrocket/236ed5ba7e409b8bdf1ff6eca5dcdc39
 
-fn perlin_noise2(P: vec2f) -> f32 {
+public fn perlin_noise2(P: vec2f) -> f32 {
     var Pi: vec4f = floor(P.xyxy) + vec4f(0., 0., 1., 1.);
     let Pf = fract(P.xyxy) - vec4f(0., 0., 1., 1.);
     Pi = Pi % vec4f(289.); // To avoid truncation effects in permutation

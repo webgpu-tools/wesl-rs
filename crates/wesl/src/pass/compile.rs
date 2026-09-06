@@ -50,7 +50,7 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
     let main_entrypoints = driver
         .main_entry_points(&main_module)?
         .into_iter()
-        .map(|ident| (ident, Visibility::Package)) // Entry points must be public or package to be pipeline-visible.
+        .map(|ident| (ident, Visibility::Private)) // No visibility requirements for entry points
         .collect::<HashMap<Ident, Visibility>>();
 
     let mut modules = Vec::new();
@@ -108,7 +108,7 @@ pub async fn compile_async(driver: &mut impl CompilerDriver) -> Result<CompileRe
     let main_entrypoints = driver
         .main_entry_points(&main_module)?
         .into_iter()
-        .map(|ident| (ident, Visibility::Package)) // Entry points must be public or package to be pipeline-visible.
+        .map(|ident| (ident, Visibility::Private)) // No visibility requirements for entry points
         .collect::<HashMap<Ident, Visibility>>();
 
     let mut modules = Vec::new();

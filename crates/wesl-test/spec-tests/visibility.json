@@ -36,7 +36,7 @@
 			"foo::m1": "public const x: u32 = 3;"
 		},
 		"expect": "pass",
-		"result": "const x: u32 = 3;"
+		"result": "const foo_m1_x: u32 = 3; const y = foo_m1_x;"
 	},
 	{
 		"name": "cross-package-import-public-decl-inline",
@@ -47,7 +47,7 @@
 			"foo::m1": "public const x: u32 = 3;"
 		},
 		"expect": "pass",
-		"result": "const x: u32 = 3;"
+		"result": "const foo_m1_x: u32 = 3; const y = foo_m1_x;"
 	},
 	{
 		"name": "cross-package-import-package-decl",
@@ -57,8 +57,7 @@
 		"modules": {
 			"foo::m1": "const x: u32 = 3;"
 		},
-		"expect": "pass",
-		"result": "const x: u32 = 3;"
+		"expect": "fail"
 	},
 	{
 		"name": "cross-package-import-package-decl-inline",
@@ -68,8 +67,7 @@
 		"modules": {
 			"foo::m1": "const x: u32 = 3;"
 		},
-		"expect": "pass",
-		"result": "const x: u32 = 3;"
+		"expect": "fail"
 	},
 	{
 		"name": "cross-package-import-private-decl",
@@ -79,8 +77,7 @@
 		"modules": {
 			"foo::m1": "private const x: u32 = 3;"
 		},
-		"expect": "pass",
-		"result": "const x: u32 = 3;"
+		"expect": "fail"
 	},
 	{
 		"name": "cross-package-import-private-decl-inline",
@@ -90,8 +87,7 @@
 		"modules": {
 			"foo::m1": "private const x: u32 = 3;"
 		},
-		"expect": "pass",
-		"result": "const x: u32 = 3;"
+		"expect": "fail"
 	},
 	{
 		"name": "public-import-public-decl",
@@ -103,7 +99,7 @@
 			"package::m1": "public import package::m2::x;"
 		},
 		"expect": "pass",
-		"result": "const x: u32 = 3;"
+		"result": "const package_m2_x: u32 = 3; const y = package_m2_x;"
 	},
 	{
 		"name": "public-import-package-decl",
@@ -126,7 +122,7 @@
 			"package::m1": "import package::m2::x;"
 		},
 		"expect": "pass",
-		"result": "const x: u32 = 3;"
+		"result": "const package_m2_x: u32 = 3; const y = package_m2_x;"
 	},
 	{
 		"name": "package-import-private-decl",
@@ -137,8 +133,7 @@
 			"package::m2": "private const x: u32 = 3;",
 			"package::m1": "import package::m2::x;"
 		},
-		"expect": "pass",
-		"result": "const x: u32 = 3;"
+		"expect": "fail"
 	},
 	{
 		"name": "cross-package-public-import-public-decl",
@@ -150,7 +145,7 @@
 			"foo::m1": "public import package::m2::x;"
 		},
 		"expect": "pass",
-		"result": "const x: u32 = 3;"
+		"result": "const foo_m2_x: u32 = 3; const y = foo_m2_x;"
 	},
 	{
 		"name": "cross-package-package-import-public-decl",
@@ -173,6 +168,7 @@
 			"package::m2": "public import package::m3::x;",
 			"package::m1": "import package::m2::x;"
 		},
-		"expect": "fail"
+		"expect": "pass",
+		"result": "const package_m3_x: u32 = 3; const y = package_m3_x;"
 	}
 ]

@@ -48,13 +48,9 @@ import package::gfx::tonemap;
 // -- visibility and re-exports (public imports) -------------------------------
 // re-exported entry points, resource variable and override become part of the
 // pipeline-visible API of this entry module, keeping their (aliased) names.
-// TODO: visibility
-// public import package::gfx::{vert_main, frag_main as fs_main};
-// public import package::gfx::scene_data;
-// public import package::gfx::exposure;
-import package::gfx::{vert_main, frag_main as fs_main};
-import package::gfx::scene_data;
-import package::gfx::exposure;
+public import package::gfx::{vert_main, frag_main as fs_main};
+public import package::gfx::scene_data;
+public import package::gfx::exposure;
 
 // -- conditional directives ---------------------------------------------------
 @if(feat2)
@@ -87,16 +83,12 @@ override root_boost: f32 = 2.0;
 
 // visibility keywords on global declarations:
 // `private` = visible only in this module, no keyword = package-visible.
-// TODO: visibility
-// private const ROOT_SECRET: f32 = 0.5;
-const ROOT_SECRET: f32 = 0.5;
+private const ROOT_SECRET: f32 = 0.5;
 
 // this *declaration* shares its name with the *module* `package::util`
 // (util.wesl): modules and declarations live in separate namespaces.
 // `gfx.wesl` imports `package::util` and uses both `util()` and `util::dot2`.
-// TODO: visibility
-// public fn util() -> f32 {
-fn util() -> f32 {
+public fn util() -> f32 {
     return ROOT_SECRET * 8.0;
 }
 

@@ -10,8 +10,6 @@ fn ping(x: f32) -> f32 {
     return x + A_OFFSET;
 }
 
-// TODO: visibility
-// public fn ping2(x: f32) -> f32 {
-fn ping2(x: f32) -> f32 {
+public fn ping2(x: f32) -> f32 {
     return pong(x) + ping(0.0);
 }

@@ -18,6 +18,16 @@
 		"expect": "fail"
 	},
 	{
+		"name": "reverse-import-private-decl",
+		"desc": "another module cannot import a private direction in the current module",
+		"kind": "modules",
+		"code": "private const y = 3;",
+		"modules": {
+			"package::m1": "import package::y; const x = y;"
+		},
+		"expect": "fail"
+	},
+	{
 		"name": "import-private-decl-inline",
 		"desc": "cannot inline-import a private declaration from a different module",
 		"kind": "modules",
@@ -170,5 +180,16 @@
 		},
 		"expect": "pass",
 		"result": "const package_m3_x: u32 = 3; const y = package_m3_x;"
+	},
+	{
+		"name": "circular-visibility-requirements",
+		"desc": "private import of a declaration that depends on the current module",
+		"kind": "modules",
+		"code": "private import package::m1::x; const y: u32 = 3; const z = x;",
+		"modules": {
+			"package::m1": "const x = package::y;"
+		},
+		"expect": "pass",
+		"result": "const package_m1_x = y; const y: u32 = 3; const z = package_m1_x;"
 	}
 ]

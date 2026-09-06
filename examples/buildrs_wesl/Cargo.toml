@@ -12,7 +12,7 @@ publish = false
 
 [build-dependencies]
 random_wgsl = { path = "../random_wgsl" }
-wesl = { workspace = true }
+wesl = { workspace = true, features = ["eval"] }
 
 [lints]
 workspace = true

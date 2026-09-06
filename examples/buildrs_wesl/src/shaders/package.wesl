@@ -4,6 +4,16 @@ import super::util::rotate_3u;
 import random::noise::perlin::perlin_noise2;
 import random::hash::rand11;
 
+struct SimParams {
+  deltaT : f32,
+  rule1Distance : f32,
+  rule2Distance : f32,
+  rule3Distance : f32,
+  rule1Scale : f32,
+  rule2Scale : f32,
+  rule3Scale : f32,
+}
+
 @compute
 fn main(@builtin(global_invocation_id) index: vec3u) {
     let rotated_fully_qualified = super::util::rotate_3u(vec3f(1.0, 0.0, 0.0));

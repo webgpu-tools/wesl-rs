@@ -226,6 +226,7 @@ pub fn compile(
 
         Ok(CompileResult {
             syntax: res.syntax,
+            modules: res.modules,
             sourcemap: Some(sourcemap),
             used_items: res.used_items,
         })
@@ -234,6 +235,7 @@ pub fn compile(
         let res = CompilerDriver::compile(&mut pass)?;
         Ok(CompileResult {
             syntax: res.syntax,
+            modules: res.modules,
             sourcemap: None,
             used_items: res.used_items,
         })
@@ -257,6 +259,7 @@ pub async fn compile_async(
 
         Ok(CompileResult {
             syntax: res.syntax,
+            modules: res.modules,
             sourcemap: Some(sourcemap),
             used_items: res.used_items,
         })
@@ -265,6 +268,7 @@ pub async fn compile_async(
         let res = CompilerDriver::compile_async(&mut pass).await?;
         Ok(CompileResult {
             syntax: res.syntax,
+            modules: res.modules,
             sourcemap: None,
             used_items: res.used_items,
         })
@@ -447,6 +451,7 @@ impl<R: Resolver> Compiler<R> {
 pub struct CompileResult {
     /// The syntax tree of the resulting
     pub syntax: TranslationUnit,
+    pub modules: Vec<Module>,
     pub sourcemap: Option<BasicSourceMap>,
     pub used_items: UsedItems,
 }

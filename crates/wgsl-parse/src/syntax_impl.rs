@@ -406,10 +406,23 @@ fn test_module_path_fromstr() {
 }
 
 impl GlobalDeclaration {
-    /// Remove all [`Statement::Void`]
+    /// Remove all [`Statement::Void`].
     pub fn remove_voids(&mut self) {
         if let GlobalDeclaration::Function(decl) = self {
             decl.body.remove_voids();
+        }
+    }
+
+    /// Get the [`Visibility`] of a global declaration.
+    pub fn visibility(&self) -> Visibility {
+        match self {
+            GlobalDeclaration::Declaration(decl) => decl.visibility,
+            GlobalDeclaration::TypeAlias(decl) => decl.visibility,
+            GlobalDeclaration::Struct(decl) => decl.visibility,
+            GlobalDeclaration::Function(decl) => decl.visibility,
+            GlobalDeclaration::Void
+            | GlobalDeclaration::ConstAssert(_)
+            | GlobalDeclaration::Compound(_) => Visibility::Private,
         }
     }
 }

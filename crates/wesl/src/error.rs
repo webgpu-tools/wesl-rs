@@ -5,7 +5,7 @@ use std::{fmt::Display, path::PathBuf};
 use thiserror::Error;
 use wgsl_parse::{
     span::Span,
-    syntax::{Expression, Ident, ModulePath},
+    syntax::{Expression, Ident, ModulePath, Visibility},
 };
 
 #[cfg(feature = "eval")]
@@ -68,8 +68,10 @@ pub enum ImportError {
     ResolveError(#[from] ResolveError),
     #[error("module `{0}` has no declaration `{1}`")]
     MissingDecl(ModulePath, String),
-    #[error("import of `{0}` in module `{1}` is private, but another module tried to import it")]
-    Private(String, ModulePath),
+    #[error(
+        "`{0}::{1}` is declared with `{2}` visibility, but another module tried to import it with `{3}` visibility"
+    )]
+    Visibility(ModulePath, String, Visibility, Visibility),
 }
 
 #[derive(Debug, thiserror::Error)]

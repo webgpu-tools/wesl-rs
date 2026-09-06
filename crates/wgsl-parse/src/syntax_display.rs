@@ -59,6 +59,16 @@ impl Display for Ident {
     }
 }
 
+impl Display for Visibility {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Visibility::Private => f.write_str("private"),
+            Visibility::Package => f.write_str("package"),
+            Visibility::Public => f.write_str("public"),
+        }
+    }
+}
+
 impl Display for ImportStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(

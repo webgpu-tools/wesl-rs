@@ -97,12 +97,12 @@ impl std::hash::Hash for Ident {
 /// WESL visibility extension
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, IsVariant)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, IsVariant)]
 pub enum Visibility {
-    Public,
+    Private,
     #[default]
     Package,
-    Private,
+    Public,
 }
 
 /// WESL imports extension

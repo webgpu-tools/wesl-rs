@@ -1,6 +1,6 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-use wgsl_parse::syntax::{Ident, ModulePath, TranslationUnit};
+use wgsl_parse::syntax::{Ident, ModulePath, TranslationUnit, Visibility};
 
 use crate::{
     SyntaxUtil,
@@ -47,7 +47,11 @@ pub async fn load_module_async(
 pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error> {
     let main_path = driver.main_path().clone();
     let main_module = driver.load_module(&main_path)?;
-    let main_entrypoints = driver.main_entry_points(&main_module)?;
+    let main_entrypoints = driver
+        .main_entry_points(&main_module)?
+        .into_iter()
+        .map(|ident| (ident, Visibility::Package)) // Entry points must be public or package to be pipeline-visible.
+        .collect::<HashMap<Ident, Visibility>>();
 
     let mut modules = Vec::new();
     modules.push(Module::new(main_path.clone(), main_module));
@@ -60,21 +64,22 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
         let mut next_to_analyze = UsedItems::new();
 
         for (path, items_to_analyze) in to_analyze.iter() {
-            let path = &driver.canonical_path(path);
-            let module = match modules.iter().find(|module| module.path == *path) {
+            let path = driver.canonical_path(path);
+            let module = match modules.iter().find(|module| module.path == path) {
                 Some(module) => module,
                 None => {
-                    let module = driver.load_module(path)?;
-                    modules.push_mut(Module::new(path.clone(), module))
+                    let module = driver.load_module(&path)?;
+                    modules.push_mut(Module::new(path, module))
                 }
             };
 
             driver.module_usage_analysis(module, &mut used_items, &mut next_to_analyze)?;
 
-            for item in items_to_analyze {
+            for (item, min_vis) in items_to_analyze {
                 driver.usage_analysis(
                     module,
                     &item.name(),
+                    *min_vis,
                     &mut used_items,
                     &mut next_to_analyze,
                 )?;
@@ -100,46 +105,57 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
 pub async fn compile_async(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error> {
     let main_path = driver.main_path().clone();
     let main_module = driver.load_module(&main_path)?;
-    let main_entrypoints = driver.main_entry_points(&main_module)?;
+    let main_entrypoints = driver
+        .main_entry_points(&main_module)?
+        .into_iter()
+        .map(|ident| (ident, Visibility::Package)) // Entry points must be public or package to be pipeline-visible.
+        .collect::<HashMap<Ident, Visibility>>();
 
     let mut modules = Vec::new();
     modules.push(Module::new(main_path.clone(), main_module));
 
-    let mut newly_used = UsedItems::new();
-    let mut already_used = UsedItems::new();
+    let mut used_items = UsedItems::new();
+    let mut to_analyze = UsedItems::new();
+    to_analyze.insert_module(main_path, main_entrypoints);
 
-    newly_used.insert_module(main_path, main_entrypoints);
+    loop {
+        let mut next_to_analyze = UsedItems::new();
 
-    while !newly_used.is_empty() {
-        let mut next_newly_used = UsedItems::new();
-
-        for (path, used_items) in newly_used.iter() {
-            let module = match modules.iter().find(|module| module.path == *path) {
+        for (path, items_to_analyze) in to_analyze.iter() {
+            let path = driver.canonical_path(path);
+            let module = match modules.iter().find(|module| module.path == path) {
                 Some(module) => module,
                 None => {
-                    let module = driver.load_module_async(path).await?;
-                    modules.push_mut(Module::new(path.clone(), module))
+                    let module = driver.load_module_async(&path).await?;
+                    modules.push_mut(Module::new(path, module))
                 }
             };
 
-            for item in used_items {
+            driver.module_usage_analysis(module, &mut used_items, &mut next_to_analyze)?;
+
+            for (item, min_vis) in items_to_analyze {
                 driver.usage_analysis(
                     module,
                     &item.name(),
-                    &mut already_used,
-                    &mut next_newly_used,
+                    *min_vis,
+                    &mut used_items,
+                    &mut next_to_analyze,
                 )?;
             }
         }
 
-        newly_used = next_newly_used;
+        if next_to_analyze.is_empty() {
+            break;
+        }
+
+        to_analyze = next_to_analyze;
     }
 
-    let final_module = driver.link(&mut modules, &already_used)?;
+    let final_module = driver.link(&mut modules, &used_items)?;
 
     Ok(CompileResult {
         syntax: final_module,
         modules,
-        used_items: already_used,
+        used_items,
     })
 }

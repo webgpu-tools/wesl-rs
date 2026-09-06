@@ -19,7 +19,7 @@ pub fn link(modules: &[Module], used_items: Option<&UsedItems>) -> TranslationUn
                         decl.is_const_assert()
                             || decl
                                 .ident()
-                                .is_some_and(|id| used_items.contains_ident(&module.path, &id))
+                                .is_some_and(|id| used_items.get_ident(&module.path, &id).is_some())
                     })
                     .cloned(),
             );

@@ -588,7 +588,13 @@ impl CompilerDriver for CompilationPass<'_> {
         if !self.options.strip {
             for decl in &module.syntax.global_declarations {
                 if let Some(ident) = decl.ident() {
-                    self.usage_analysis(module, &ident.name(), already_used, to_analyze)?;
+                    self.usage_analysis(
+                        module,
+                        &ident.name(),
+                        decl.visibility(),
+                        already_used,
+                        to_analyze,
+                    )?;
                 }
             }
         }

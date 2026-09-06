@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet, hash_map::Entry},
+    collections::{HashMap, hash_map::Entry},
     rc::Rc,
 };
 
@@ -411,7 +411,7 @@ pub fn retarget_modules(modules: &mut [Module], used_items: &UsedItems, resolver
         ty: &mut TypeExpression,
         module_path: &ModulePath,
         module_imports: &Imports,
-        module_idents: &HashSet<Ident>,
+        module_idents: &HashMap<Ident, Visibility>,
         other_modules: impl IntoIterator<Item = &'a Module> + Clone + 'a,
         resolver: &impl Resolver,
     ) {
@@ -439,7 +439,7 @@ pub fn retarget_modules(modules: &mut [Module], used_items: &UsedItems, resolver
                 // module is not stored in `other_modules`.
                 if import_path == *module_path {
                     if let Some(ident) = module_idents
-                        .iter()
+                        .keys()
                         .find(|ident| *ident.name() == *import_ident.name())
                         .cloned()
                     {
@@ -509,7 +509,7 @@ pub fn retarget_modules(modules: &mut [Module], used_items: &UsedItems, resolver
         for decl in &mut module.syntax.global_declarations {
             // we only retarget used declarations. Other declarations are not checked.
             if let Some(ident) = decl.ident()
-                && !module_used_items.contains(&ident)
+                && !module_used_items.contains_key(&ident)
             {
                 continue;
             }

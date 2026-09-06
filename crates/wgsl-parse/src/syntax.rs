@@ -94,6 +94,17 @@ impl std::hash::Hash for Ident {
     }
 }
 
+/// WESL visibility extension
+#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, IsVariant)]
+pub enum Visibility {
+    Public,
+    #[default]
+    Package,
+    Private,
+}
+
 /// WESL imports extension
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -211,6 +222,7 @@ pub type GlobalDeclarationNode = Spanned<GlobalDeclaration>;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Declaration {
     pub attributes: Attributes,
+    pub visibility: Visibility,
     pub kind: DeclarationKind,
     pub ident: Ident,
     pub ty: Option<TypeExpression>,

@@ -6,7 +6,11 @@ use std::{
 use itertools::Itertools;
 use thiserror::Error;
 
-use crate::{lexer::Token, span::Span, syntax::BinaryOperator};
+use crate::{
+    lexer::Token,
+    span::Span,
+    syntax::{BinaryOperator, DeclarationKind},
+};
 
 /// WGSL parse error kind.
 #[derive(Error, Clone, Debug, PartialEq)]
@@ -34,6 +38,8 @@ pub enum ErrorKind {
     MixedBinaryOperators(BinaryOperator, BinaryOperator),
     #[error("this syntax is only supported with feature \"{0}\" enabled")]
     UnsupportedExtension(&'static str),
+    #[error("invalid {0} declaration: {1}")]
+    InvalidDeclaration(DeclarationKind, &'static str),
 }
 
 #[derive(Default, Clone, Debug, PartialEq)]
@@ -46,6 +52,7 @@ pub enum ParseError {
     VarTemplate(&'static str),
     MixedBinaryOperators(BinaryOperator, BinaryOperator),
     UnsupportedExtension(&'static str),
+    InvalidDeclaration(DeclarationKind, &'static str),
 }
 
 type LalrpopError = lalrpop_util::ParseError<usize, Token, (usize, ParseError, usize)>;
@@ -116,6 +123,9 @@ impl From<LalrpopError> for Error {
                     ParseError::VarTemplate(reason) => ErrorKind::VarTemplate(reason),
                     ParseError::MixedBinaryOperators(a, b) => ErrorKind::MixedBinaryOperators(a, b),
                     ParseError::UnsupportedExtension(ext) => ErrorKind::UnsupportedExtension(ext),
+                    ParseError::InvalidDeclaration(kind, msg) => {
+                        ErrorKind::InvalidDeclaration(kind, msg)
+                    }
                 };
                 Self { span, error }
             }

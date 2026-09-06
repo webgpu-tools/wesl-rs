@@ -112,6 +112,12 @@ extern {
         TokTemplateArgsStart => Token::TemplateArgsStart,
         TokTemplateArgsEnd => Token::TemplateArgsEnd,
 
+        // extension: wesl-visibility
+        // https://github.com/webgpu-tools/wesl-spec/blob/main/visibility.md
+        // date: 2026-09-06, hash: af8236a875332f672a0fc5bcc4f9a034aec4f1ee
+        "public" => Token::KwPublic,
+        "private" => Token::KwPrivate,
+
         // extension: wesl-imports
         // https://github.com/webgpu-tools/wesl-spec/blob/imports-update/Imports.md
         // date: 2025-01-18, hash: 2db8e7f681087db6bdcd4a254963deb5c0159775
@@ -392,12 +398,13 @@ GlobalVariableOrValueDecl: Declaration = {
 };
 
 VariableDecl: Declaration = {
-    <attributes: Attributes> <l: @L> "var" <template_args: TemplateList?> <r: @R> <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> =>? {
+    <attributes: Attributes> <visibility: Visibility?> <l: @L> "var" <template_args: TemplateList?> <r: @R> <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> =>? {
         let (ident, ty) = id_ty;
         let address_space = parse_var_template(template_args)
             .map_err(|e| lalrpop_util::ParseError::User{ error: (l, e, r) })?;
         Ok(Declaration {
             attributes,
+            visibility: visibility.unwrap_or_default(),
             kind: DeclarationKind::Var(address_space),
             ident,
             ty,
@@ -407,10 +414,11 @@ VariableDecl: Declaration = {
 };
 
 ConstDecl: Declaration = {
-    <attributes: Attributes> "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
+    <attributes: Attributes> <visibility: Visibility?> "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
         let (ident, ty) = id_ty;
         Declaration {
             attributes,
+            visibility: visibility.unwrap_or_default(),
             kind: DeclarationKind::Const,
             ident,
             ty,
@@ -420,10 +428,11 @@ ConstDecl: Declaration = {
 };
 
 OverrideDecl: Declaration = {
-    <attributes: Attributes> "override" <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> => {
+    <attributes: Attributes> <visibility: Visibility?> "override" <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> => {
         let (ident, ty) = id_ty;
         Declaration {
             attributes,
+            visibility: visibility.unwrap_or_default(),
             kind: DeclarationKind::Override,
             ident,
             ty,
@@ -433,10 +442,11 @@ OverrideDecl: Declaration = {
 };
 
 LetDecl: Declaration = {
-    <attributes: Attributes> "let" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
+    <attributes: Attributes> <visibility: Visibility?> "let" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
         let (ident, ty) = id_ty;
         Declaration {
             attributes,
+            visibility: visibility.unwrap_or_default(),
             kind: DeclarationKind::Let,
             ident,
             ty,
@@ -992,6 +1002,15 @@ Attributes: Vec<AttributeNode> = Spanned<Attribute>*;
 DiagnosticControl: (DiagnosticSeverity, String) = {
     "(" <SeverityControlName> "," <DiagnosticRuleName> ","? ")",
 };
+
+// EXTENSION: WESL-VISIBILITY
+// https://github.com/webgpu-tools/wesl-spec/blob/main/Visibility.md
+// date: 2026-09-06, hash: af8236a875332f672a0fc5bcc4f9a034aec4f1ee
+
+Visibility: Visibility = {
+    "public" => Visibility::Public,
+    "private" => Visibility::Private,
+}
 
 // EXTENSION: WESL-IMPORTS
 // https://github.com/webgpu-tools/wesl-spec/blob/imports-update/Imports.md

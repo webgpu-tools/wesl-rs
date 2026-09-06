@@ -116,6 +116,35 @@ jobs:
   #       env:
   #         RUSTFLAGS: -Zrandomize-layout
 
+  grammar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: "true"
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-grammar-${{ hashFiles('**/Cargo.toml') }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.STABLE_TOOLCHAIN }}
+      - name: Regenerate grammar
+        run: cargo xtask update_grammar
+      - name: Check that the grammar is up-to-date
+        run: git diff --exit-code -- crates/wgsl-parse/src/grammar.rs
+      - name: Grammar info
+        if: failure()
+        run: |
+          echo 'The generated grammar is out of date.'
+          echo 'Please run `cargo xtask update_grammar` and commit the result.'
+
   markdownlint:
     runs-on: ubuntu-latest
     timeout-minutes: 30

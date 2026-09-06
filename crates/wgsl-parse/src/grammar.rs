@@ -1,5 +1,5 @@
 // auto-generated: "lalrpop 0.23.1"
-// sha3: 74528394aac803b752c0191b44fedde3e6a12fe4852e4eec9a67ed4e01dc087c
+// sha3: f47ef8127d623f38d5c0df8df1ba0d2758c3dc1ff4a4041062bec6ee0abf1215
 use std::str::FromStr;
 use crate::{error::ParseError, lexer::Token};
 use crate::span::{Spanned, Span};

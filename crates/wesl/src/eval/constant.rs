@@ -124,9 +124,9 @@ impl IsConst for Attribute {
             Attribute::Miss => false, // attr on entrypoint function (never const)
             #[cfg(feature = "naga-ext")]
             Attribute::IncomingPayload(_) => false,
-            Attribute::If(_) => true,   // if attributes are translate-time (always const)
+            Attribute::If(_) => true, // if attributes are translate-time (always const)
             Attribute::Elif(_) => true, // if attributes are translate-time (always const)
-            Attribute::Else => true,    // if attributes are translate-time (always const)
+            Attribute::Else => true,  // if attributes are translate-time (always const)
             #[cfg(feature = "generics")]
             Attribute::Type(_) => todo!(),
             #[cfg(feature = "naga-ext")]

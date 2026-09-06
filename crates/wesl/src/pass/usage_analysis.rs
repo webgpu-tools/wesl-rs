@@ -34,10 +34,7 @@ impl std::fmt::Display for UsedItems {
             writeln!(
                 f,
                 "{path} -> {}",
-                items
-                    .iter()
-                    .map(|(ident, _vis)| ident.to_string())
-                    .format(", ")
+                items.keys().map(|ident| ident.to_string()).format(", ")
             )?;
         }
         Ok(())

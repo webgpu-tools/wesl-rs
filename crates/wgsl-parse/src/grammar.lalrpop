@@ -1022,8 +1022,8 @@ PathIdent: String = {
 };
 
 ImportStatement: ImportStatement = {
-    <attributes: Attributes> "import" <path: ModulePath?> <content: ImportContent> ";" => {
-        ImportStatement { attributes, path, content }
+    <attributes: Attributes> <visibility: Visibility?> "import" <path: ModulePath?> <content: ImportContent> ";" => {
+        ImportStatement { attributes, visibility: visibility.unwrap_or_default(), path, content }
     },
 };
 

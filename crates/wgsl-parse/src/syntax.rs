@@ -97,7 +97,7 @@ impl std::hash::Hash for Ident {
 /// WESL visibility extension
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, IsVariant)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, IsVariant)]
 pub enum Visibility {
     Public,
     #[default]
@@ -111,6 +111,7 @@ pub enum Visibility {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ImportStatement {
     pub attributes: Attributes,
+    pub visibility: Visibility,
     pub path: Option<ModulePath>,
     pub content: ImportContent,
 }

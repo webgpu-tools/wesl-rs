@@ -232,7 +232,7 @@ Literal: LiteralExpression = {
     "true"           => LiteralExpression::Bool(true),
     "false"          => LiteralExpression::Bool(false),
 
-    // naga exensions
+    // naga extensions
     <_l: @L> <_tok: TokI64> <_r: @R> =>? {
         #[cfg(feature = "naga-ext")]
         {

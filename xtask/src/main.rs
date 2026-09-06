@@ -21,7 +21,11 @@ fn update_grammar() -> ExitCode {
 
     println!("generating grammar from {}", grammar.display());
     lalrpop::Configuration::new()
-        .set_out_dir(grammar.parent().expect("grammar file has a parent directory"))
+        .set_out_dir(
+            grammar
+                .parent()
+                .expect("grammar file has a parent directory"),
+        )
         .process_file(&grammar)
         .unwrap();
     println!("done");

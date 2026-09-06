@@ -4,9 +4,6 @@ use crate::span::{Spanned, Span};
 use crate::syntax::*;
 use crate::parser_support::*;
 
-// this grammar follows closely the wgsl spec.
-// following the spec at this date: https://www.w3.org/TR/2024/WD-WGSL-20240731/
-
 grammar;
 
 extern {
@@ -192,9 +189,6 @@ pub EntryPoint: ParseEntryPoint = {
     EntryPointImportStatement <ImportStatement> => ParseEntryPoint::ImportStatement(<>)
 };
 
-// the grammar rules are laid out in the same order as in the spec.
-// following the spec at this date: https://www.w3.org/TR/2024/WD-WGSL-20240731/
-
 // custom entrypoint called by the lexer when it sees [Token::Ident, Token::SymLessThan].
 // if this parse succeeds, the next token emitted by the lexer will be TokTemplateList.
 TryTemplateList: Span = {
@@ -220,13 +214,12 @@ TranslationUnit: TranslationUnit = {
 };
 
 GlobalDecl: GlobalDeclaration = {
-    ";"                        => GlobalDeclaration::Void,
-    <GlobalVariableDecl> ";"   => GlobalDeclaration::Declaration(<>),
-    <GlobalValueDecl> ";"      => GlobalDeclaration::Declaration(<>),
-    <TypeAliasDecl> ";"        => GlobalDeclaration::TypeAlias(<>),
-    <StructDecl>               => GlobalDeclaration::Struct(<>),
-    <FunctionDecl>             => GlobalDeclaration::Function(<>),
-    <ConstAssertStatement> ";" => GlobalDeclaration::ConstAssert(<>),
+    ";"                             => GlobalDeclaration::Void,
+    <GlobalVariableOrValueDecl> ";" => GlobalDeclaration::Declaration(<>),
+    <TypeAliasDecl> ";"             => GlobalDeclaration::TypeAlias(<>),
+    <StructDecl>                    => GlobalDeclaration::Struct(<>),
+    <FunctionDecl>                  => GlobalDeclaration::Function(<>),
+    <ConstAssertStatement> ";"      => GlobalDeclaration::ConstAssert(<>),
     #[cfg(feature = "condcomp")]
     <CompoundGlobalDecl> => GlobalDeclaration::Compound(<>),
 };
@@ -264,68 +257,35 @@ BoolLiteral: LiteralExpression = {
     "false" => LiteralExpression::Bool(false),
 };
 
-Ident: Ident = {
-    IdentPatternToken => {
-        Ident::new(<>)
-    },
-    <l: @L> <word: ReservedWord> <r: @R> =>? {
-        Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
-    },
-};
-
-MemberIdent: Ident = {
-    IdentPatternToken => {
-        Ident::new(<>)
-    },
-    <l: @L> <word: ReservedWord> <r: @R> =>? {
-        Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
-    },
-};
-
-DiagnosticNameToken: String = {
+Name: String = {
     IdentPatternToken => <>,
     <l: @L> <word: ReservedWord> <r: @R> =>? {
         Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
     },
+}
+
+Ident: Ident = {
+    Name => Ident::new(<>),
 };
+
+MemberIdent: Ident = Ident;
+
+DiagnosticNameToken: String = Name;
 
 SeverityControlName: DiagnosticSeverity = {
-    <l: @L> <ident: IdentPatternToken> <r: @R> =>? {
-        DiagnosticSeverity::from_str(&ident)
+    <l: @L> <name: Name> <r: @R> =>? {
+        DiagnosticSeverity::from_str(&name)
             .map_err(|()| lalrpop_util::ParseError::User{ error: (l, ParseError::DiagnosticSeverity, r) })
     },
-    <l: @L> <word: ReservedWord> <r: @R> =>? {
-        Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
-    },
 };
 
-EnableExtensionName: String = {
-    IdentPatternToken => <>,
-    <l: @L> <word: ReservedWord> <r: @R> =>? {
-        Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
-    },
-};
+EnableExtensionName: String = Name;
 
-SoftwareExtensionName: String = {
-    IdentPatternToken => <>,
-    <l: @L> <word: ReservedWord> <r: @R> =>? {
-        Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
-    },
-};
+SoftwareExtensionName: String = Name;
 
-InterpolateSamplingName: String = {
-    IdentPatternToken => <>,
-    <l: @L> <word: ReservedWord> <r: @R> =>? {
-        Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
-    },
-};
+InterpolateSamplingName: String = Name;
 
-SwizzleName: String = {
-    IdentPatternToken => <>,
-    <l: @L> <word: ReservedWord> <r: @R> =>? {
-        Err(lalrpop_util::ParseError::User{ error: (l, ParseError::ReservedWord(word), r) })
-    },
-};
+SwizzleName: String = Name;
 
 TemplateList: Vec<TemplateArg> = {
     TokTemplateArgsStart <TemplateArgCommaList> TokTemplateArgsEnd,
@@ -348,13 +308,26 @@ GlobalDirective: GlobalDirective = {
     RequiresDirective   => GlobalDirective::Requires(<>),
 };
 
+DiagnosticDirective: DiagnosticDirective = {
+    #[cfg(not(feature = "attributes"))]
+    "diagnostic" <DiagnosticControl> ";" => {
+        let (severity, rule_name) = <>;
+        DiagnosticDirective { severity, rule_name }
+    },
+    #[cfg(feature = "attributes")]
+    <Attributes> "diagnostic" <DiagnosticControl> ";" => {
+        let (attributes, (severity, rule_name)) = (<>);
+        DiagnosticDirective { attributes, severity, rule_name }
+    },
+};
+
 EnableDirective: EnableDirective = {
     #[cfg(not(feature = "attributes"))]
     "enable" <extensions: EnableExtensionList> ";" => EnableDirective {
         extensions
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "enable" <extensions: EnableExtensionList> ";" => EnableDirective {
+    <attributes: Attributes> "enable" <extensions: EnableExtensionList> ";" => EnableDirective {
         attributes, extensions
     },
 };
@@ -369,7 +342,7 @@ RequiresDirective: RequiresDirective = {
         extensions
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "requires" <extensions: SoftwareExtensionList> ";" => RequiresDirective {
+    <attributes: Attributes> "requires" <extensions: SoftwareExtensionList> ";" => RequiresDirective {
         attributes, extensions
     },
 };
@@ -377,22 +350,6 @@ RequiresDirective: RequiresDirective = {
 SoftwareExtensionList: Vec<String> = {
     Comma1<SoftwareExtensionName>,
 };
-
-DiagnosticDirective: DiagnosticDirective = {
-    #[cfg(not(feature = "attributes"))]
-    "diagnostic" <DiagnosticControl> ";" => {
-        let (severity, rule_name) = <>;
-        DiagnosticDirective { severity, rule_name }
-    },
-    #[cfg(feature = "attributes")]
-    <AttributeNode*> "diagnostic" <DiagnosticControl> ";" => {
-        let (attributes, (severity, rule_name)) = (<>);
-        DiagnosticDirective { attributes, severity, rule_name }
-    },
-};
-
-// 5. DECLARATION AND SCOPE
-// https://www.w3.org/TR/WGSL/#declaration-and-scope
 
 // 6. TYPES
 // https://www.w3.org/TR/WGSL/#types
@@ -403,22 +360,20 @@ StructDecl: Struct = {
         ident, members
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "struct" <ident: Ident> <members: StructBodyDecl> => Struct {
+    <attributes: Attributes> "struct" <ident: Ident> <members: StructBodyDecl> => Struct {
         attributes, ident, members
     },
 };
 
 StructBodyDecl: Vec<StructMemberNode> = {
-    "{" <Comma1<StructMemberNode>> "}",
+    "{" <Comma1<Spanned<StructMember>>> "}",
 };
 
 StructMember: StructMember = {
-    <attributes: AttributeNode*> <ident: MemberIdent> ":" <ty: TypeSpecifier> => StructMember {
+    <attributes: Attributes> <ident: MemberIdent> ":" <ty: TypeSpecifier> => StructMember {
         attributes, ident, ty
     },
 };
-
-StructMemberNode: StructMemberNode = Spanned<StructMember>;
 
 TypeAliasDecl: TypeAlias = {
     #[cfg(not(feature = "attributes"))]
@@ -426,14 +381,12 @@ TypeAliasDecl: TypeAlias = {
         ident, ty
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "alias" <ident: Ident> "=" <ty: TypeSpecifier> => TypeAlias {
+    <attributes: Attributes> "alias" <ident: Ident> "=" <ty: TypeSpecifier> => TypeAlias {
         attributes, ident, ty
     },
 };
 
-TypeSpecifier: TypeExpression = {
-    TemplateElaboratedIdent,
-};
+TypeSpecifier: TypeExpression = TemplateElaboratedIdent;
 
 TemplateElaboratedIdent: TypeExpression = {
     #[cfg(not(feature = "imports"))]
@@ -451,10 +404,84 @@ TemplateElaboratedIdent: TypeExpression = {
 
 VariableOrValueStatement: Declaration = {
     VariableDecl,
-    <mut decl: VariableDecl> "=" <initializer: ExpressionNode> => {
-        decl.initializer = Some(initializer);
-        decl
+    LetDecl,
+    ConstDecl,
+};
+
+GlobalVariableOrValueDecl: Declaration = {
+    VariableDecl,
+    ConstDecl,
+    OverrideDecl,
+};
+
+VariableDecl: Declaration = {
+    #[cfg(not(feature = "attributes"))]
+    <l: @L> "var" <template_args: TemplateList?> <r: @R> <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> =>? {
+        let (ident, ty) = id_ty;
+        let address_space = parse_var_template(template_args)
+            .map_err(|e| lalrpop_util::ParseError::User{ error: (l, e, r) })?;
+        Ok(Declaration {
+            attributes: Vec::new(),
+            kind: DeclarationKind::Var(address_space),
+            ident,
+            ty,
+            initializer,
+        })
     },
+    #[cfg(feature = "attributes")]
+    <attributes: Attributes> <l: @L> "var" <template_args: TemplateList?> <r: @R> <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> =>? {
+        let (ident, ty) = id_ty;
+        let address_space = parse_var_template(template_args)
+            .map_err(|e| lalrpop_util::ParseError::User{ error: (l, e, r) })?;
+        Ok(Declaration {
+            attributes,
+            kind: DeclarationKind::Var(address_space),
+            ident,
+            ty,
+            initializer,
+        })
+    },
+};
+
+ConstDecl: Declaration = {
+    #[cfg(not(feature = "attributes"))]
+    "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
+        let (ident, ty) = id_ty;
+        Declaration {
+            attributes: Vec::new(),
+            kind: DeclarationKind::Const,
+            ident,
+            ty,
+            initializer: Some(initializer),
+        }
+    },
+    #[cfg(feature = "attributes")]
+    <attributes: Attributes> "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
+        let (ident, ty) = id_ty;
+        Declaration {
+            attributes,
+            kind: DeclarationKind::Const,
+            ident,
+            ty,
+            initializer: Some(initializer),
+        }
+    },
+};
+
+OverrideDecl: Declaration = {
+    <attributes: Attributes> "override" <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> => {
+        let (ident, ty) = id_ty;
+        Declaration {
+            attributes,
+            kind: DeclarationKind::Override,
+            ident,
+            ty,
+            initializer,
+        }
+    },
+};
+
+LetDecl: Declaration = {
     #[cfg(not(feature = "attributes"))]
     "let" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
         let (ident, ty) = id_ty;
@@ -466,19 +493,8 @@ VariableOrValueStatement: Declaration = {
             initializer: Some(initializer),
         }
     },
-    #[cfg(not(feature = "attributes"))]
-    "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
-        let (ident, ty) = id_ty;
-        Declaration {
-            attributes: Vec::new(),
-            kind: DeclarationKind::Const,
-            ident,
-            ty,
-            initializer: Some(initializer),
-        }
-    },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "let" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
+    <attributes: Attributes> "let" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
         let (ident, ty) = id_ty;
         Declaration {
             attributes,
@@ -488,110 +504,32 @@ VariableOrValueStatement: Declaration = {
             initializer: Some(initializer),
         }
     },
-    #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
-        let (ident, ty) = id_ty;
-        Declaration {
-            attributes,
-            kind: DeclarationKind::Const,
-            ident,
-            ty,
-            initializer: Some(initializer),
-        }
-    },
-};
-
-VariableDecl: Declaration = {
-    #[cfg(not(feature = "attributes"))]
-    <l: @L> "var" <template_args: TemplateList?> <r: @R> <id_ty: OptionallyTypedIdent> =>? {
-        let (ident, ty) = id_ty;
-        let address_space = parse_var_template(template_args)
-            .map_err(|e| lalrpop_util::ParseError::User{ error: (l, e, r) })?;
-        Ok(Declaration {
-            attributes: Vec::new(),
-            kind: DeclarationKind::Var(address_space),
-            ident,
-            ty,
-            initializer: None,
-        })
-    },
-    #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> <l: @L> "var" <template_args: TemplateList?> <r: @R> <id_ty: OptionallyTypedIdent> =>? {
-        let (ident, ty) = id_ty;
-        let address_space = parse_var_template(template_args)
-            .map_err(|e| lalrpop_util::ParseError::User{ error: (l, e, r) })?;
-        Ok(Declaration {
-            attributes,
-            kind: DeclarationKind::Var(address_space),
-            ident,
-            ty,
-            initializer: None,
-        })
-    },
-};
+}
 
 OptionallyTypedIdent: (Ident, Option<TypeExpression>) = {
     <Ident> <(":" <TypeSpecifier>)?>,
 };
 
-GlobalVariableDecl: Declaration = {
-    #[cfg(not(feature = "attributes"))]
-    <attributes: AttributeNode*> <mut decl: VariableDecl> <initializer: ("=" <ExpressionNode>)?> => {
-        decl.attributes = attributes;
-        decl.initializer = initializer;
-        decl
-    },
-    #[cfg(feature = "attributes")]
-    <mut decl: VariableDecl> <initializer: ("=" <ExpressionNode>)?> => {
-        decl.initializer = initializer;
-        decl
-    },
-};
-
-GlobalValueDecl: Declaration = {
-    #[cfg(not(feature = "attributes"))]
-    "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
-        let (ident, ty) = id_ty;
-        Declaration {
-            attributes: Vec::new(),
-            kind: DeclarationKind::Const,
-            ident,
-            ty,
-            initializer: Some(initializer),
-        }
-    },
-    <attributes: AttributeNode*> "override" <id_ty: OptionallyTypedIdent> <initializer: ("=" <ExpressionNode>)?> => {
-        let (ident, ty) = id_ty;
-        Declaration {
-            attributes,
-            kind: DeclarationKind::Override,
-            ident,
-            ty,
-            initializer,
-        }
-    },
-    #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "const" <id_ty: OptionallyTypedIdent> "=" <initializer: ExpressionNode> => {
-        let (ident, ty) = id_ty;
-        Declaration {
-            attributes,
-            kind: DeclarationKind::Const,
-            ident,
-            ty,
-            initializer: Some(initializer),
-        }
-    },
-};
-
 // 8. EXPRESSIONS
 // https://www.w3.org/TR/WGSL/#expressions
 
-PrimaryExpression: Expression = {
-    TemplateElaboratedIdent => Expression::TypeOrIdentifier(<>),
-    CallExpression,
-    Literal => Expression::Literal(<>),
-    ParenExpression => Expression::Parenthesized(<>),
+BinaryExpression<Op, E1, E2>: Expression = {
+    <left: Spanned<E1>> <operator: Op> <right: Spanned<E2>> => Expression::Binary(BinaryExpression {
+        operator, left, right
+    }),
 };
+
+SelfAssociativeBinaryExpression<Op, E>: Expression = {
+    <l: @L> <left: Spanned<E>> <right_chain: (Op Spanned<E>)+> <r: @R> =>? {
+        fold_same_operator(left, right_chain)
+            .map_err(|e| lalrpop_util::ParseError::User{ error: (l, e, r) })
+    },
+};
+
+
+IdentExpression: Expression = TemplateElaboratedIdent => Expression::TypeOrIdentifier(<>);
+
+LiteralExpression: Expression = Literal => Expression::Literal(<>);
 
 CallExpression: Expression = {
     CallPhrase => Expression::FunctionCall(<>),
@@ -605,12 +543,6 @@ CallPhrase: FunctionCall = {
     },
 };
 
-ParenExpression: ParenthesizedExpression = {
-    "(" <Spanned<Expression>> ")" => ParenthesizedExpression {
-        expression: <>
-    },
-};
-
 ArgumentExpressionList: Vec<ExpressionNode> = {
     "(" <ExpressionCommaList?> ")" => <>.unwrap_or_default(),
 };
@@ -619,68 +551,53 @@ ExpressionCommaList: Vec<ExpressionNode> = {
     Comma1<ExpressionNode>,
 };
 
-// was modified from the spec, but should be equivalent
-ComponentOrSwizzleSpecifier: Vec<Spanned<Component>> = {
-    // "[" Expression "]" ComponentOrSwizzleSpecifier?,
-    // "." MemberIdent ComponentOrSwizzleSpecifier?,
-    // "." SwizzleName ComponentOrSwizzleSpecifier ?,
-    Spanned<SingleComponentOrSwizzleSpecifier>+
-};
-
-SingleComponentOrSwizzleSpecifier: Component = {
-    "[" <Spanned<Expression>> "]" => Component::Index(<>),
-    "." <MemberIdent>       => Component::Named(<>),
-}
-
-UnaryExpression: Expression = {
-    SingularExpression,
-    "-" <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::Negation, operand
-    }),
-    "!" <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::LogicalNegation, operand
-    }),
-    "~" <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::BitwiseComplement, operand
-    }),
-    "*" <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::Indirection, operand
-    }),
-    "&" <operand: Spanned<UnaryExpression>> => Expression::Unary(UnaryExpression {
-        operator: UnaryOperator::AddressOf, operand
+ParenExpression<E>: Expression = {
+    "(" <Spanned<E>> ")" => Expression::Parenthesized(ParenthesizedExpression {
+        expression: <>
     }),
 };
 
-SingularExpression: Expression = {
-    <expression: WithSpan<PrimaryExpression>> <components: ComponentOrSwizzleSpecifier?> => match components {
-        Some(components) => apply_components(expression.0, expression.1, components),
-        None => expression.0
-    },
+NamedComponentExpression<E>: Expression = {
+    <base: Spanned<E>> "." <component: MemberIdent> => Expression::NamedComponent(NamedComponentExpression {
+            base, component
+    }),
 };
 
-// XXX: this production rule is used for statements preceded by attributes (wesl `@if` extension).
-// because this sentence is not LR: `@attribute(x) (y) = z`.
+IndexingExpression<E>: Expression = {
+    <base: Spanned<E>> "[" <index: Spanned<Expression>> "]" => Expression::Indexing(IndexingExpression {
+            base, index
+    }),
+};
+
+UnaryExpression<E>: Expression = {
+    <operator: UnaryOperator> <operand: Spanned<E>> => Expression::Unary(UnaryExpression {
+        operator, operand
+    }),
+};
+
+UnaryOperator: UnaryOperator = {
+    "-" => UnaryOperator::Negation,
+    "!" => UnaryOperator::LogicalNegation,
+    "~" => UnaryOperator::BitwiseComplement,
+    "*" => UnaryOperator::Indirection,
+    "&" => UnaryOperator::AddressOf,
+};
+
+CoreLhsExpression: Expression = {
+};
+
+// This production rule guarantees that it doesn't start with `(`.
+// We need it because this sentence is not LR: `@attribute(x) (y) = z`.
 // so we only allow attributes on statements that don't start with `(`.
 // see https://github.com/webgpu-tools/wesl-rs/issues/162
 LhsExpressionNoParen: Expression = {
-    #[cfg(not(feature = "imports"))]
-    <l: @L> <ident: Ident> <r: @R> <components: ComponentOrSwizzleSpecifier?> => {
-        let span = (l..r).into();
-        let expression = Expression::TypeOrIdentifier(TypeExpression { ident, template_args: None });
-        match components {
-            Some(components) => apply_components(expression, span, components),
-            None => expression
-        }
-    },
-    #[cfg(feature = "imports")]
-    <l: @L> <path: ModulePath?> <ident: Ident> <r: @R> <components: ComponentOrSwizzleSpecifier?> => {
-        let span = (l..r).into();
-        let expression = Expression::TypeOrIdentifier(TypeExpression { path, ident, template_args: None });
-        match components {
-            Some(components) => apply_components(expression, span, components),
-            None => expression
-        }
-    },
+    #[precedence(level="0")]
+    TemplateElaboratedIdent => Expression::TypeOrIdentifier(<>),
+    CallExpression,
+    NamedComponentExpression<LhsExpressionNoParen>,
+    IndexingExpression<LhsExpressionNoParen>,
+
+    #[precedence(level="1")]
     "*" <operand: Spanned<LhsExpression>> => Expression::Unary(UnaryExpression {
         operator: UnaryOperator::Indirection, operand
     }),
@@ -688,28 +605,20 @@ LhsExpressionNoParen: Expression = {
         operator: UnaryOperator::AddressOf, operand
     }),
 };
+
+// This production rule guarantees that it starts with `(`.
 LhsExpressionParen: Expression = {
-    <l: @L> "(" <expression: Spanned<LhsExpression>> ")" <r: @R> <components: ComponentOrSwizzleSpecifier?> => {
-        let span = (l..r).into();
-        let expression = Expression::Parenthesized(ParenthesizedExpression { expression });
-        match components {
-            Some(components) => apply_components(expression, span, components),
-            None => expression
-        }
-    },
+    ParenExpression<LhsExpressionNoParen>,
+    NamedComponentExpression<LhsExpressionParen>,
+    IndexingExpression<LhsExpressionParen>,
 };
 
 LhsExpression: Expression = {
-    LhsExpressionNoParen => <>,
-    LhsExpressionParen => <>,
+    LhsExpressionNoParen,
+    LhsExpressionParen,
 };
 
-MultiplicativeExpression: Expression = {
-    UnaryExpression,
-    <left: Spanned<MultiplicativeExpression>> <operator: MultiplicativeOperator> <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-        operator, left, right
-    }),
-};
+MultiplicativeExpression<E1, E2>: Expression = BinaryExpression<MultiplicativeOperator, E1, E2>;
 
 MultiplicativeOperator: BinaryOperator = {
     "*" => BinaryOperator::Multiplication,
@@ -717,13 +626,10 @@ MultiplicativeOperator: BinaryOperator = {
     "%" => BinaryOperator::Remainder,
 };
 
-AdditiveExpression: Expression = {
-    MultiplicativeExpression,
-    <left: Spanned<AdditiveExpression>> <operator: AdditiveOperator> <right: Spanned<MultiplicativeExpression>> => Expression::Binary(BinaryExpression {
-        operator, left, right
-    }),
+AdditiveExpression<E1, E2>: Expression = {
+    BinaryExpression<AdditiveOperator, E1, E2>,
     // this handles the special case `x = 5--7` which must be parsed as `x = 5 - (-7)`
-    <left: Spanned<AdditiveExpression>> <l: @L> "--" <right: Spanned<MultiplicativeExpression>> => {
+    <left: Spanned<E1>> <l: @L> "--" <right: Spanned<E2>> => {
         let outer_span = Span::new((l+1)..right.span().range().end);
         let right = Spanned::new(Expression::Unary(UnaryExpression {
             operator: UnaryOperator::Negation, operand: right,
@@ -739,95 +645,92 @@ AdditiveOperator: BinaryOperator = {
     "-" => BinaryOperator::Subtraction,
 };
 
-ShiftExpression: Expression = {
-    AdditiveExpression,
-    <left: Spanned<UnaryExpression>> "<<" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::ShiftLeft, left, right
-    }),
-    <left: Spanned<UnaryExpression>> ">>" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::ShiftRight, left, right
-    }),
+ShiftExpression<E1, E2>: Expression = BinaryExpression<ShiftOperator, E1, E2>;
+
+ShiftOperator: BinaryOperator = {
+    "<<" => BinaryOperator::ShiftLeft,
+    ">>" => BinaryOperator::ShiftRight,
+}
+
+RelationalExpression<E1, E2>: Expression = BinaryExpression<RelationalOperator, E1, E2>;
+
+RelationalOperator: BinaryOperator = {
+    "<" => BinaryOperator::LessThan,
+    ">" => BinaryOperator::GreaterThan,
+    "<=" => BinaryOperator::LessThanEqual,
+    ">=" => BinaryOperator::GreaterThanEqual,
+    "==" => BinaryOperator::Equality,
+    "!=" => BinaryOperator::Inequality,
 };
 
-RelationalExpression: Expression = {
-    ShiftExpression,
-    <left: Spanned<ShiftExpression>> "<" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::LessThan, left, right
-    }),
-    <left: Spanned<ShiftExpression>> ">" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::GreaterThan, left, right
-    }),
-    <left: Spanned<ShiftExpression>> "<=" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::LessThanEqual, left, right
-    }),
-    <left: Spanned<ShiftExpression>> ">=" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::GreaterThanEqual, left, right
-    }),
-    <left: Spanned<ShiftExpression>> "==" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::Equality, left, right
-    }),
-    <left: Spanned<ShiftExpression>> "!=" <right: Spanned<ShiftExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::Inequality, left, right
-    }),
+ShortCircuitExpression<E>: Expression = SelfAssociativeBinaryExpression<ShortCircuitOperator, E>;
+
+ShortCircuitOperator: BinaryOperator = {
+    "&&" => BinaryOperator::ShortCircuitAnd,
+    "||" => BinaryOperator::ShortCircuitOr,
 };
 
-ShortCircuitAndExpression: Expression = {
-    RelationalExpression,
-    <left: Spanned<ShortCircuitAndExpression>> "&&" <right: Spanned<RelationalExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::ShortCircuitAnd, left, right
-    }),
- };
+BitwiseExpression<E>: Expression = SelfAssociativeBinaryExpression<BitwiseOperator, E>;
 
-ShortCircuitOrExpression: Expression = {
-    RelationalExpression,
-    <left: Spanned<ShortCircuitOrExpression>> "||" <right: Spanned<RelationalExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::ShortCircuitOr, left, right
-    }),
- };
-
-BinaryOrExpression: Expression = {
-    UnaryExpression,
-    <left: Spanned<BinaryOrExpression>> "|" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::BitwiseOr, left, right
-    }),
+BitwiseOperator: BinaryOperator = {
+    "|" => BinaryOperator::BitwiseOr,
+    "&" => BinaryOperator::BitwiseAnd,
+    "^" => BinaryOperator::BitwiseXor,
 };
 
-BinaryAndExpression: Expression = {
-    UnaryExpression,
-    <left: Spanned<BinaryAndExpression>> "&" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::BitwiseAnd, left, right
-    }),
-};
+// ExpressionXYZ rules take one or two <Expression> template parameters because of how complex precedence and associativity is in WGSL.
+// See explanatory GitHub comment:
+// https://github.com/lalrpop/lalrpop/issues/951#issuecomment-2476984972
+//
+// Below, we hand-roll lalrpop's #[precedence] and #[assoc] markers, because the following constraints are otherwise not representable:
+// * BinaryAnd, BinaryOr and BinaryXor associate with Unary and themselves, but not with each other.
+// * Same with ShortCircuitAnd and ShortCircuitOr: they associate with Relational and themselves, but not with each other.
+// * Relational associates with both Shift and Additive (so they are in the same group), but Additive associates with Multiplicative whereas Shift associates with Unary.
 
-BinaryXorExpression: Expression = {
-    UnaryExpression,
-    <left: Spanned<BinaryXorExpression>> "^" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::BitwiseXor, left, right
-    }),
-};
+ExpressionPrimary: Expression = {
+    IdentExpression,
+    LiteralExpression,
+    CallExpression,
+    ParenExpression<Expression>,
+    NamedComponentExpression<ExpressionPrimary>,
+    IndexingExpression<ExpressionPrimary>,
+}
 
-BitwiseExpression: Expression = {
-    <left: Spanned<BinaryAndExpression>> "&" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::BitwiseAnd, left, right
-    }),
-    <left: Spanned<BinaryOrExpression>> "|" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::BitwiseOr, left, right
-    }),
-    <left: Spanned<BinaryXorExpression>> "^" <right: Spanned<UnaryExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::BitwiseXor, left, right
-    }),
-};
+ExpressionUnary: Expression = {
+    UnaryExpression<ExpressionUnary>,
+    ExpressionPrimary,
+}
+
+ExpressionMultiplicative: Expression = {
+    MultiplicativeExpression<ExpressionMultiplicative, ExpressionUnary>,
+    ExpressionUnary,
+}
+
+ExpressionAdditive: Expression = {
+    AdditiveExpression<ExpressionAdditive, ExpressionMultiplicative>,
+    ExpressionMultiplicative,
+}
+
+ExpressionShift: Expression = {
+    ShiftExpression<ExpressionUnary, ExpressionUnary>,
+    ExpressionAdditive,
+}
+
+ExpressionRelational: Expression = {
+    RelationalExpression<ExpressionRelational, ExpressionShift>,
+    ExpressionShift,
+}
 
 Expression: Expression = {
-    RelationalExpression,
-    <left: Spanned<ShortCircuitOrExpression>> "||" <right: Spanned<RelationalExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::ShortCircuitOr, left, right
-    }),
-    <left: Spanned<ShortCircuitAndExpression>> "&&" <right: Spanned<RelationalExpression>> => Expression::Binary(BinaryExpression {
-        operator: BinaryOperator::ShortCircuitAnd, left, right
-    }),
-    BitwiseExpression,
+    ShortCircuitExpression<ExpressionRelational>,
+    BitwiseExpression<ExpressionUnary>,
+    ExpressionRelational,
 };
+
+// operand nodes for the flat operator chains above.
+ExpressionUnaryNode: ExpressionNode = Spanned<ExpressionUnary>;
+RelationalNode: ExpressionNode = Spanned<ExpressionRelational>;
+
 
 ExpressionNode: ExpressionNode = Spanned<Expression>;
 
@@ -836,7 +739,7 @@ ExpressionNode: ExpressionNode = Spanned<Expression>;
 
 
 CompoundStatement: CompoundStatement = {
-    <attributes: AttributeNode*> "{" <statements: StatementNode*> "}" => CompoundStatement {
+    <attributes: Attributes> "{" <statements: StatementNode*> "}" => CompoundStatement {
         attributes, statements
     },
 };
@@ -859,10 +762,10 @@ AssignmentStatement: AssignmentStatement = {
 
 #[cfg(feature = "attributes")]
 AssignmentStatement: AssignmentStatement = {
-    <attributes: AttributeNode*> <lhs: Spanned<LhsExpressionNoParen>> "=" <rhs: ExpressionNode> => AssignmentStatement {
+    <attributes: Attributes> <lhs: Spanned<LhsExpressionNoParen>> "=" <rhs: ExpressionNode> => AssignmentStatement {
         attributes, operator: AssignmentOperator::Equal, lhs, rhs
     },
-    <attributes: AttributeNode*> <lhs: Spanned<LhsExpressionNoParen>> <operator: CompoundAssignmentOperator> <rhs: ExpressionNode> => AssignmentStatement {
+    <attributes: Attributes> <lhs: Spanned<LhsExpressionNoParen>> <operator: CompoundAssignmentOperator> <rhs: ExpressionNode> => AssignmentStatement {
         attributes, operator, lhs, rhs
     },
     <lhs: Spanned<LhsExpressionParen>> "=" <rhs: ExpressionNode> => AssignmentStatement {
@@ -871,7 +774,7 @@ AssignmentStatement: AssignmentStatement = {
     <lhs: Spanned<LhsExpressionParen>> <operator: CompoundAssignmentOperator> <rhs: ExpressionNode> => AssignmentStatement {
         attributes: vec![], operator, lhs, rhs
     },
-    <attributes: AttributeNode*> <l: @L> "_" <r: @R> "=" <rhs: ExpressionNode> => {
+    <attributes: Attributes> <l: @L> "_" <r: @R> "=" <rhs: ExpressionNode> => {
         let lhs = Expression::TypeOrIdentifier(Ident::new("_".to_string()).into());
         let span = (l..r).into();
         let lhs = Spanned::new(lhs, span);
@@ -898,7 +801,7 @@ IncrementStatement: IncrementStatement = {
         expression
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> <expression: Spanned<LhsExpressionNoParen>> "++" => IncrementStatement {
+    <attributes: Attributes> <expression: Spanned<LhsExpressionNoParen>> "++" => IncrementStatement {
         attributes, expression
     },
     #[cfg(feature = "attributes")]
@@ -913,7 +816,7 @@ DecrementStatement: DecrementStatement = {
         expression
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> <expression: Spanned<LhsExpressionNoParen>> "--" => DecrementStatement {
+    <attributes: Attributes> <expression: Spanned<LhsExpressionNoParen>> "--" => DecrementStatement {
         attributes, expression
     },
     #[cfg(feature = "attributes")]
@@ -923,7 +826,7 @@ DecrementStatement: DecrementStatement = {
 };
 
 IfStatement: IfStatement = {
-    <attributes: AttributeNode*> <if_clause: IfClause> <else_if_clauses: ElseIfClause*> <else_clause: ElseClause?> => IfStatement {
+    <attributes: Attributes> <if_clause: IfClause> <else_if_clauses: ElseIfClause*> <else_clause: ElseClause?> => IfStatement {
         attributes, if_clause, else_if_clauses, else_clause
     },
 };
@@ -955,7 +858,7 @@ ElseClause: ElseClause = {
 }
 
 SwitchStatement: SwitchStatement = {
-    <attributes: AttributeNode*> "switch" <expression: ExpressionNode> <body: SwitchBody> => {
+    <attributes: Attributes> "switch" <expression: ExpressionNode> <body: SwitchBody> => {
         let (body_attributes, clauses) = body;
         SwitchStatement {
             attributes, expression, body_attributes, clauses
@@ -964,7 +867,7 @@ SwitchStatement: SwitchStatement = {
 };
 
 SwitchBody: (Vec<AttributeNode>, Vec<SwitchClause>) = {
-    <AttributeNode*> "{" <SwitchClause+> "}",
+    <Attributes> "{" <SwitchClause+> "}",
 };
 
 SwitchClause: SwitchClause = {
@@ -978,7 +881,7 @@ CaseClause: SwitchClause = {
         case_selectors, body
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "case" <case_selectors: CaseSelectors> ":"? <body: CompoundStatement> => SwitchClause {
+    <attributes: Attributes> "case" <case_selectors: CaseSelectors> ":"? <body: CompoundStatement> => SwitchClause {
         attributes, case_selectors, body
     },
 };
@@ -989,7 +892,7 @@ DefaultAloneClause: SwitchClause = {
         case_selectors: vec![CaseSelector::Default], body
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "default" ":"? <body: CompoundStatement> => SwitchClause {
+    <attributes: Attributes> "default" ":"? <body: CompoundStatement> => SwitchClause {
         attributes, case_selectors: vec![CaseSelector::Default], body
     },
 };
@@ -1004,7 +907,7 @@ CaseSelector: CaseSelector = {
 };
 
 LoopStatement: LoopStatement = {
-    <attributes: AttributeNode*> "loop" <body_attributes: AttributeNode*> "{" <statements: StatementNode*> <continuing: ContinuingStatement?> "}" => {
+    <attributes: Attributes> "loop" <body_attributes: Attributes> "{" <statements: StatementNode*> <continuing: ContinuingStatement?> "}" => {
         let body = CompoundStatement { attributes: body_attributes, statements };
         LoopStatement {
             attributes, body, continuing
@@ -1013,7 +916,7 @@ LoopStatement: LoopStatement = {
 };
 
 ForStatement: ForStatement = {
-     <attributes: AttributeNode*> "for" "(" <header: ForHeader> ")" <body: CompoundStatement> => {
+     <attributes: Attributes> "for" "(" <header: ForHeader> ")" <body: CompoundStatement> => {
         let (initializer, condition, update) = header;
         ForStatement {
             attributes, initializer, condition, update, body
@@ -1052,7 +955,7 @@ ForUpdate: StatementNode = {
 };
 
 WhileStatement: WhileStatement = {
-    <attributes: AttributeNode*> "while" <condition: ExpressionNode> <body: CompoundStatement> => WhileStatement {
+    <attributes: Attributes> "while" <condition: ExpressionNode> <body: CompoundStatement> => WhileStatement {
         attributes, condition, body
     },
 };
@@ -1061,7 +964,7 @@ BreakStatement: BreakStatement = {
     #[cfg(not(feature = "attributes"))]
     "break" => BreakStatement {},
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "break" => BreakStatement {
+    <attributes: Attributes> "break" => BreakStatement {
         attributes
     },
 };
@@ -1072,7 +975,7 @@ BreakIfStatement: BreakIfStatement = {
         expression
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "break" "if" <expression: ExpressionNode> ";" => BreakIfStatement {
+    <attributes: Attributes> "break" "if" <expression: ExpressionNode> ";" => BreakIfStatement {
         attributes, expression
     },
 };
@@ -1081,7 +984,7 @@ ContinueStatement: ContinueStatement = {
     #[cfg(not(feature = "attributes"))]
     "continue" => ContinueStatement {},
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "continue" => ContinueStatement {
+    <attributes: Attributes> "continue" => ContinueStatement {
         attributes
     },
 };
@@ -1090,7 +993,7 @@ ContinuingStatement: ContinuingStatement = {
     #[cfg(not(feature = "attributes"))]
     "continuing" <ContinuingCompoundStatement>,
     #[cfg(feature = "attributes")]
-    <AttributeNode*> "continuing" <ContinuingCompoundStatement> => {
+    <Attributes> "continuing" <ContinuingCompoundStatement> => {
         let (attributes, mut statement) = (<>);
         statement.attributes = attributes;
         statement
@@ -1099,12 +1002,12 @@ ContinuingStatement: ContinuingStatement = {
 
 ContinuingCompoundStatement: ContinuingStatement = {
     #[cfg(not(feature = "attributes"))]
-    <attributes: AttributeNode*> "{" <statements: StatementNode*> <break_if: BreakIfStatement?> "}" => {
+    <attributes: Attributes> "{" <statements: StatementNode*> <break_if: BreakIfStatement?> "}" => {
         let body = CompoundStatement { attributes, statements };
         ContinuingStatement { body, break_if }
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "{" <statements: StatementNode*> <break_if: BreakIfStatement?> "}" => {
+    <attributes: Attributes> "{" <statements: StatementNode*> <break_if: BreakIfStatement?> "}" => {
         let body = CompoundStatement { attributes, statements };
         ContinuingStatement { attributes: Vec::new(), body, break_if }
     },
@@ -1116,7 +1019,7 @@ ReturnStatement: ReturnStatement = {
         expression
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "return" <expression: ExpressionNode?> => ReturnStatement {
+    <attributes: Attributes> "return" <expression: ExpressionNode?> => ReturnStatement {
         attributes, expression
     },
 };
@@ -1125,7 +1028,7 @@ DiscardStatement: DiscardStatement = {
     #[cfg(not(feature = "attributes"))]
     "discard" => DiscardStatement {},
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "discard" => DiscardStatement {
+    <attributes: Attributes> "discard" => DiscardStatement {
         attributes
     },
 };
@@ -1136,7 +1039,7 @@ FuncCallStatement: FunctionCallStatement = {
         call
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> <call: CallPhrase> => FunctionCallStatement {
+    <attributes: Attributes> <call: CallPhrase> => FunctionCallStatement {
         attributes, call
     },
 }
@@ -1147,7 +1050,7 @@ ConstAssertStatement: ConstAssertStatement = {
         expression
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "const_assert" <expression: ExpressionNode> => ConstAssertStatement {
+    <attributes: Attributes> "const_assert" <expression: ExpressionNode> => ConstAssertStatement {
         attributes, expression
     },
 };
@@ -1182,14 +1085,14 @@ VariableUpdatingStatement: Statement = {
 // https://www.w3.org/TR/WGSL/#functions
 
 FunctionDecl: Function = {
-    <attributes: AttributeNode*> <header: FunctionHeader> <body: CompoundStatement> => {
+    <attributes: Attributes> <header: FunctionHeader> <body: CompoundStatement> => {
         let (ident, parameters, return_attributes, return_type) = header;
         Function { attributes, ident, parameters, return_attributes, return_type, body }
     },
 };
 
 FunctionHeader: (Ident, Vec<FormalParameter>, Vec<AttributeNode>, Option<TypeExpression>) = {
-    "fn" <ident: Ident> "(" <parameters: ParamList?> ")" <ret: ("->" <AttributeNode*> <TemplateElaboratedIdent>)?> => {
+    "fn" <ident: Ident> "(" <parameters: ParamList?> ")" <ret: ("->" <Attributes> <TemplateElaboratedIdent>)?> => {
         let (return_attributes, return_type) = ret.map(|(return_attributes, return_type)| {
             (return_attributes, Some(return_type))
         }).unwrap_or_default();
@@ -1203,14 +1106,14 @@ ParamList: Vec<FormalParameter> = {
 };
 
 Param: FormalParameter = {
-    <attributes: AttributeNode*> <ident: Ident> ":" <ty: TypeSpecifier> => FormalParameter {
+    <attributes: Attributes> <ident: Ident> ":" <ty: TypeSpecifier> => FormalParameter {
         attributes, ident, ty
     },
 };
 
 #[cfg(feature = "condcomp")]
 CompoundGlobalDecl: CompoundGlobalDeclaration = {
-    <attributes: AttributeNode*> "{" <body: GlobalDeclarationNode*> "}" => CompoundGlobalDeclaration {
+    <attributes: Attributes> "{" <body: GlobalDeclarationNode*> "}" => CompoundGlobalDeclaration {
         attributes, body
     },
 };
@@ -1233,7 +1136,7 @@ Attribute: Attribute = {
     },
 };
 
-AttributeNode: AttributeNode = Spanned<Attribute>;
+Attributes: Vec<AttributeNode> = Spanned<Attribute>*;
 
 DiagnosticControl: (DiagnosticSeverity, String) = {
     "(" <SeverityControlName> "," <DiagnosticRuleName> ","? ")",
@@ -1284,7 +1187,7 @@ ImportStatement: ImportStatement = {
         ImportStatement { path, content }
     },
     #[cfg(feature = "attributes")]
-    <attributes: AttributeNode*> "import" <path: ModulePath?> <content: ImportContent> ";" => {
+    <attributes: Attributes> "import" <path: ModulePath?> <content: ImportContent> ";" => {
         ImportStatement { attributes, path, content }
     },
 };

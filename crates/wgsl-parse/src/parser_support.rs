@@ -4,13 +4,40 @@ use std::str::FromStr;
 
 use itertools::Itertools;
 
-use crate::{
-    error::ParseError,
-    span::{Span, Spanned},
-    syntax::*,
-};
+use crate::{error::ParseError, span::Span, syntax::*};
 
 type E = ParseError;
+
+/// Make operator chains left-associative and check that they contain all the same operator.
+///
+/// WGSL forbids mixing bitwise operators (`&`, `|`, `^`) and short-circuit operators (`&&`, `||`):
+/// `a & b & c` is valid, but `a & b | c` is a syntax error.
+///
+/// We parse a flat operator chain in the grammar, and use this helper function to turn
+/// the flat list into a left-associative tree, while ensuring that all operators in the
+/// chain are the same.
+pub fn fold_same_operator(
+    mut left: ExpressionNode,
+    right_chain: Vec<(BinaryOperator, ExpressionNode)>,
+) -> Result<Expression, E> {
+    if right_chain.is_empty() {
+        return Ok(left.into_inner());
+    }
+    let first_op = right_chain[0].0;
+    for (operator, right) in right_chain {
+        if operator != first_op {
+            return Err(E::MixedBinaryOperators(first_op, operator));
+        }
+        let span = left.span().extend(right.span());
+        let expr = Expression::Binary(BinaryExpression {
+            operator,
+            left,
+            right,
+        });
+        left = ExpressionNode::new(expr, span);
+    }
+    Ok(left.into_inner())
+}
 
 // HACK: parsing entrypoints.
 // see: https://github.com/lalrpop/lalrpop/issues/65#issuecomment-516769995
@@ -24,32 +51,6 @@ pub enum ParseEntryPoint {
     Statement(Statement),
     #[cfg(feature = "imports")]
     ImportStatement(ImportStatement),
-}
-
-pub(crate) enum Component {
-    Named(Ident),
-    Index(ExpressionNode),
-}
-
-pub(crate) fn apply_components(
-    expr: Expression,
-    span: Span,
-    components: Vec<Spanned<Component>>,
-) -> Expression {
-    components
-        .into_iter()
-        .fold((expr, span), |(base, base_span), comp| {
-            let component_span = comp.span();
-            let base = Spanned::new(base, base_span);
-            let expression = match comp.into_inner() {
-                Component::Named(component) => {
-                    Expression::NamedComponent(NamedComponentExpression { base, component })
-                }
-                Component::Index(index) => Expression::Indexing(IndexingExpression { base, index }),
-            };
-            (expression, base_span.extend(component_span))
-        })
-        .0
 }
 
 impl FromStr for DeclarationKind {

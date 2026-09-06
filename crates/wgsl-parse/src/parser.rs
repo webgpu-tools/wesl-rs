@@ -10,15 +10,11 @@ use lalrpop_util::lalrpop_mod;
 
 lalrpop_mod!(
     #[allow(clippy::all, reason = "generated code")]
-    wgsl
-);
-lalrpop_mod!(
-    #[allow(clippy::all, reason = "generated code")]
-    wgsl_recognize
+    grammar
 );
 
 pub use crate::parser_support::ParseEntryPoint;
-use wgsl::EntryPointParser;
+use grammar::EntryPointParser;
 
 macro_rules! parse {
     ($source:expr, $token:ident, $entrypoint:ident) => {{
@@ -50,15 +46,6 @@ pub fn parse_tokens(
 /// Identical to [`TranslationUnit::from_str`].
 pub fn parse_str(source: &str) -> Result<TranslationUnit, Error> {
     parse!(source, EntryPointTranslationUnit, TranslationUnit)
-}
-
-/// Test whether a string represent a valid WGSL module ([`TranslationUnit`]).
-///
-/// Warning: it does not take WESL extensions into account.
-pub fn recognize_str(source: &str) -> Result<(), Error> {
-    let lexer = Lexer::new(source);
-    let parser = wgsl_recognize::TranslationUnitParser::new();
-    parser.parse(lexer).map_err(Into::into)
 }
 
 pub fn recognize_template_list(lexer: impl TokenIterator) -> Result<(), Error> {
@@ -117,5 +104,81 @@ impl FromStr for crate::syntax::ImportStatement {
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
         parse!(source, EntryPointImportStatement, ImportStatement)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn expect_err<T: FromStr + std::fmt::Display>(expr: &str)
+    where
+        <T as FromStr>::Err: std::fmt::Debug,
+    {
+        let parsed = T::from_str(expr);
+        assert!(
+            parsed.is_err(),
+            "case `{expr}`: expected Err, got Ok({})",
+            parsed.unwrap()
+        );
+    }
+
+    fn expect_ok<T: FromStr + std::fmt::Debug>(expr: &str)
+    where
+        <T as FromStr>::Err: std::fmt::Display,
+    {
+        let parsed = T::from_str(expr);
+        assert!(
+            parsed.is_ok(),
+            "case `{expr}`: expected Ok, got Err({})",
+            parsed.unwrap_err()
+        );
+    }
+
+    #[test]
+    fn operator_prec_assoc() {
+        // failure cases from the WGSL spec
+        expect_ok::<Expression>("x & (y ^ (z | w))"); // Invalid: x & y ^ z | w
+        expect_ok::<Expression>("(x + y) << (z >= w)"); // Invalid: x + y << z >= w
+        expect_ok::<Expression>("x < (y > z)"); // Invalid: x < y > z
+        expect_ok::<Expression>("x && (y || z)"); // Invalid: x && y || z
+        expect_err::<Expression>("x & y ^ z | w");
+        expect_err::<Expression>("x + y << z >= w");
+        expect_err::<Expression>("x < y > z");
+        expect_err::<Expression>("x && y || z");
+        // more cases
+        expect_ok::<Expression>("x && y && z");
+        expect_ok::<Expression>("x || y || z");
+        expect_ok::<Expression>("x & y & z");
+        expect_ok::<Expression>("x ^ y ^ z");
+        expect_ok::<Expression>("x | y | z");
+        expect_err::<Expression>("x >> y >> z");
+        expect_err::<Expression>("x << y << z");
+        expect_ok::<Expression>("x && y < z && &w");
+        expect_ok::<Expression>("x & -y & &z");
+    }
+
+    #[test]
+    fn lhs_expression() {
+        expect_ok::<Statement>("(x) = 1;");
+        expect_ok::<Statement>("(*x) += 1;");
+        expect_ok::<Statement>("&(*x) += 1;");
+        expect_ok::<Statement>("x[0] = 1;");
+        expect_ok::<Statement>("x.y[0] = 1;");
+        expect_ok::<Statement>("x[0].y = 1;");
+
+        if cfg!(feature = "attributes") {
+            expect_ok::<Statement>("@if(true) x = 1;");
+            expect_ok::<Statement>("@if(true) &(*x) += 1;");
+            expect_err::<Statement>("@if(true) (*x) += 1;");
+        } else {
+            expect_err::<Statement>("@if(true) x = 1;");
+        }
+
+        if cfg!(feature = "imports") {
+            expect_ok::<Statement>("x::y = 1;");
+        } else {
+            expect_err::<Statement>("x::y = 1;");
+        }
     }
 }

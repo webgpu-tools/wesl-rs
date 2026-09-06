@@ -17,5 +17,5 @@ mod tokrepr;
 pub use ::tokrepr::TokRepr;
 
 pub use error::Error;
-pub use parser::{parse_str, recognize_str};
+pub use parser::parse_str;
 pub use syntax_impl::SyntaxNode;

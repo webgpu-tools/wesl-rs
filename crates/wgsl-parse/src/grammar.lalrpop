@@ -311,6 +311,12 @@ TemplateArgCommaList: Vec<TemplateArg> = {
 
 TemplateArgExpression: TemplateArg = {
     ExpressionNode => TemplateArg { expression: <> },
+    WithSpan<"private"> => {
+        let (_, span) = <>;
+        TemplateArg {
+            expression: Spanned::new(Expression::TypeOrIdentifier(Ident::new("private".to_string()).into()), span)
+        }
+    }
 };
 
 // 4. DIRECTIVES

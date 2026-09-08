@@ -137,13 +137,13 @@ pub fn bitcast_t(tplt_ty: &Type, e: &Instance) -> Result<Instance, E> {
             } else {
                 #[cfg(feature = "naga-ext")]
                 if matches!(**ty, Type::I64 | Type::U64 | Type::F64) {
-                    return Err(E::Todo(format!("`bitcast` with 64-bit type")));
+                    return Err(E::Todo("`bitcast` with 64-bit type".to_string()));
                 }
                 Err(size_err)
             }
         }
         #[cfg(feature = "naga-ext")]
-        Type::I64 | Type::U64 | Type::F64 => Err(E::Todo(format!("`bitcast` with 64-bit type"))),
+        Type::I64 | Type::U64 | Type::F64 => Err(E::Todo("`bitcast` with 64-bit type".to_string())),
         _ => Err(E::Builtin("invalid `bitcast` template")),
     }
 }
@@ -693,9 +693,9 @@ pub fn frexp(e: &Instance) -> Result<Instance, E> {
     }
     match e {
         Instance::Literal(l) => match l {
-            LiteralInstance::Bool(_) => Err(E::Todo(format!("frexp with bool input"))),
+            LiteralInstance::Bool(_) => Err(E::Todo("frexp with bool input".to_string())),
             LiteralInstance::AbstractInt(_) => {
-                Err(E::Todo(format!("frexp with AbstractInt input")))
+                Err(E::Todo("frexp with AbstractInt input".to_string()))
             }
             LiteralInstance::AbstractFloat(n) => {
                 let (fract, exp) = frexp(*n);
@@ -704,8 +704,8 @@ pub fn frexp(e: &Instance) -> Result<Instance, E> {
                     LiteralInstance::AbstractInt(exp as i64).into(),
                 ))
             }
-            LiteralInstance::I32(_) => Err(E::Todo(format!("frexp with i32 input"))),
-            LiteralInstance::U32(_) => Err(E::Todo(format!("frexp with u32 input"))),
+            LiteralInstance::I32(_) => Err(E::Todo("frexp with i32 input".to_string())),
+            LiteralInstance::U32(_) => Err(E::Todo("frexp with u32 input".to_string())),
             LiteralInstance::F32(n) => {
                 let (fract, exp) = frexp(*n as f64);
                 Ok(make_frexp_inst(
@@ -721,9 +721,9 @@ pub fn frexp(e: &Instance) -> Result<Instance, E> {
                 ))
             }
             #[cfg(feature = "naga-ext")]
-            LiteralInstance::I64(_) => Err(E::Todo(format!("frexp with i64 input"))),
+            LiteralInstance::I64(_) => Err(E::Todo("frexp with i64 input".to_string())),
             #[cfg(feature = "naga-ext")]
-            LiteralInstance::U64(_) => Err(E::Todo(format!("frexp with u64 input"))),
+            LiteralInstance::U64(_) => Err(E::Todo("frexp with u64 input".to_string())),
             #[cfg(feature = "naga-ext")]
             LiteralInstance::F64(n) => {
                 let (fract, exp) = frexp(*n);

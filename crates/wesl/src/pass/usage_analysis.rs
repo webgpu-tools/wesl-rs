@@ -3,6 +3,7 @@ use wgsl_parse::{SyntaxNode, syntax::*};
 
 use crate::pass::{Imports, Visit, flatten_imports, imported_item_path};
 
+#[derive(Clone)]
 pub struct Module {
     pub syntax: TranslationUnit,
     pub path: ModulePath,

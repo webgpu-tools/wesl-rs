@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use wgsl_parse::syntax::{Ident, ModulePath, TranslationUnit, Visibility};
 
 use crate::{
-    error::{Error, ImportError},
-    pass::{self, Module, UsedItems, usage_analysis::UsageError},
+    error::Error,
+    pass::{self, Module, UsedItems},
 };
 
 pub struct CompileResult {
@@ -64,7 +64,7 @@ pub trait CompilerDriver: Sized {
         already_used: &mut UsedItems,
         to_analyze: &mut UsedItems,
     ) -> Result<(), Error> {
-        pass::module_usage_analysis(module, already_used, to_analyze);
+        pass::module_usage_analysis(module, already_used, to_analyze)?;
         Ok(())
     }
 
@@ -85,21 +85,8 @@ pub trait CompilerDriver: Sized {
         already_used: &mut UsedItems,
         to_analyze: &mut UsedItems,
     ) -> Result<(), Error> {
-        let res = pass::usage_analysis(module, decl_name, min_vis, already_used, to_analyze);
-
-        match res {
-            Ok(()) => Ok(()),
-            Err(UsageError::NotFound) => {
-                Err(ImportError::MissingDecl(module.path.clone(), decl_name.to_string()).into())
-            }
-            Err(UsageError::Visibility(decl_vis)) => Err(ImportError::Visibility(
-                module.path.clone(),
-                decl_name.to_string(),
-                decl_vis,
-                min_vis,
-            )
-            .into()),
-        }
+        pass::usage_analysis(module, decl_name, min_vis, already_used, to_analyze)?;
+        Ok(())
     }
 
     /// Get the [`TranslationUnit`] for a module at a given path.

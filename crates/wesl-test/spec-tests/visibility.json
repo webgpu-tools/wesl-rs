@@ -19,11 +19,11 @@
 	},
 	{
 		"name": "reverse-import-private-decl",
-		"desc": "another module cannot import a private direction in the current module",
+		"desc": "another module cannot import a private declaration in the current module",
 		"kind": "modules",
-		"code": "private const y = 3;",
+		"code": "private const y = 3; private const z = package::m1::x;",
 		"modules": {
-			"package::m1": "import package::y; const x = y;"
+			"package::m1": "const x = package::y;"
 		},
 		"expect": "fail"
 	},

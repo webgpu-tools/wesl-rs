@@ -501,7 +501,7 @@ pub fn retarget_modules(modules: &mut [Module], used_items: &UsedItems, resolver
             right.split_first_mut().unwrap(/* SAFETY: the 1st element exists at index i */);
         let other_modules = left.iter().chain(right.iter());
 
-        let Some(module_used_items) = used_items.get(&module.path) else {
+        let Some(module_used_items) = used_items.get_module(&module.path) else {
             debug_assert!(false, "missing module {} in retarget_idents", module.path);
             continue;
         };

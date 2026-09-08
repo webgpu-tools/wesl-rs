@@ -1,7 +1,10 @@
 use std::collections::{HashMap, hash_map::Entry};
 use wgsl_parse::{SyntaxNode, syntax::*};
 
-use crate::pass::{Imports, Visit, flatten_imports, imported_item_path};
+use crate::{
+    error::UsageError,
+    pass::{Imports, Visit, flatten_imports, imported_item_path},
+};
 
 pub struct Module {
     pub syntax: TranslationUnit,
@@ -48,7 +51,7 @@ impl UsedItems {
         }
     }
 
-    pub fn get(&self, path: &ModulePath) -> Option<&HashMap<Ident, Visibility>> {
+    pub fn get_module(&self, path: &ModulePath) -> Option<&HashMap<Ident, Visibility>> {
         self.used_items.get(path)
     }
 
@@ -62,11 +65,12 @@ impl UsedItems {
             .and_then(|items| items.get(ident).copied())
     }
 
-    pub fn get_name(&self, path: &ModulePath, name: &str) -> Option<Visibility> {
+    pub fn get_name(&self, path: &ModulePath, name: &str) -> Option<(Ident, Visibility)> {
         self.used_items.get(path).and_then(|items| {
             items
                 .iter()
-                .find_map(|(ident, vis)| (&**ident.name() == name).then_some(*vis))
+                .find(|(ident, _vis)| &**ident.name() == name)
+                .map(|(ident, vis)| (ident.clone(), *vis))
         })
     }
 
@@ -123,9 +127,9 @@ pub fn module_usage_analysis(
     module: &Module,
     already_used: &mut UsedItems,
     to_analyze: &mut UsedItems,
-) {
+) -> Result<(), UsageError> {
     if already_used.contains_module(&module.path) {
-        return;
+        return Ok(());
     }
 
     already_used.insert_module(module.path.clone(), Default::default());
@@ -136,14 +140,10 @@ pub fn module_usage_analysis(
         .filter(|decl| decl.is_const_assert());
 
     for decl in const_asserts {
-        decl_usage_analysis(module, decl, already_used, to_analyze);
+        decl_usage_analysis(module, decl, already_used, to_analyze)?;
     }
-}
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum UsageError {
-    NotFound,
-    Visibility(Visibility),
+    Ok(())
 }
 
 /// Find declaration names which a local declaration depends on.
@@ -166,9 +166,14 @@ pub fn usage_analysis(
     already_used: &mut UsedItems,
     to_analyze: &mut UsedItems,
 ) -> Result<(), UsageError> {
-    if let Some(decl_vis) = already_used.get_name(&module.path, decl_name) {
+    if let Some((decl_ident, decl_vis)) = already_used.get_name(&module.path, decl_name) {
         if decl_vis < min_vis {
-            return Err(UsageError::Visibility(decl_vis));
+            return Err(UsageError::Visibility {
+                orig: None,
+                decl: (module.path.clone(), decl_ident),
+                min_vis,
+                decl_vis,
+            });
         }
     } else {
         if let Some(decl) = module.syntax.global_declarations.iter().find(|decl| {
@@ -177,23 +182,39 @@ pub fn usage_analysis(
         }) {
             // we found a declaration with the right name, let's analyze it.
             if decl.visibility() < min_vis {
-                return Err(UsageError::Visibility(decl.visibility()));
+                return Err(UsageError::Visibility {
+                    orig: None,
+                    decl: (
+                        module.path.clone(),
+                        decl.ident().unwrap(/* SAFETY: condition of the outer if */),
+                    ),
+                    min_vis,
+                    decl_vis: decl.visibility(),
+                });
             } else {
-                decl_usage_analysis(module, decl, already_used, to_analyze);
+                decl_usage_analysis(module, decl, already_used, to_analyze)?;
             }
-        } else if let Some((_, item)) = module
+        } else if let Some((decl_ident, item)) = module
             .imports
             .iter()
             .find(|(ident, _)| *ident.name() == decl_name)
         {
             // there is no declaration with this name, but there is a re-export.
             if item.visibility < min_vis {
-                return Err(UsageError::Visibility(item.visibility));
+                return Err(UsageError::Visibility {
+                    orig: None,
+                    decl: (module.path.clone(), decl_ident.clone()),
+                    min_vis,
+                    decl_vis: item.visibility,
+                });
             } else {
                 to_analyze.insert_ident(item.path.clone(), item.ident.clone(), item.visibility);
             }
         } else {
-            return Err(UsageError::NotFound);
+            return Err(UsageError::NotFound(
+                module.path.clone(),
+                decl_name.to_string(),
+            ));
         }
     }
     Ok(())
@@ -205,27 +226,40 @@ fn decl_usage_analysis(
     decl: &GlobalDeclaration,
     already_used: &mut UsedItems,
     to_analyze: &mut UsedItems,
-) {
+) -> Result<(), UsageError> {
     if decl.ident().is_some_and(|ident| {
         !already_used.insert_ident(module.path.clone(), ident, decl.visibility())
     }) {
         // the ident has already been analyzed.
-        return;
+        return Ok(());
     }
+
+    // inside visit_rec below we can't simply exit the function so we mutate this instead.
+    let mut res = Ok(());
 
     Visit::<TypeExpression>::visit_rec(decl, &mut |ty_expr| {
         // if this ident refers an imported item, we add it to the list of used items.
         if let Some((import_path, import_ident)) =
             imported_item_path(ty_expr, &module.path, &module.imports)
-            && already_used
-                .get_name(&import_path, &ty_expr.ident.name())
-                .is_none()
         {
             let min_vis = match import_path.origin {
                 PathOrigin::Absolute | PathOrigin::Relative(_) => Visibility::Package,
                 PathOrigin::Package(_) => Visibility::Public,
             };
-            to_analyze.insert_ident(import_path, import_ident, min_vis);
+            if let Some((decl_ident, decl_vis)) =
+                already_used.get_name(&import_path, &ty_expr.ident.name())
+            {
+                if decl_vis < min_vis {
+                    res = Err(UsageError::Visibility {
+                        orig: decl.ident().map(|ident| (module.path.clone(), ident)),
+                        decl: (import_path, decl_ident),
+                        min_vis,
+                        decl_vis,
+                    });
+                }
+            } else {
+                to_analyze.insert_ident(import_path, import_ident, min_vis);
+            }
         }
         // this ident refers a local declaration, we analyze it recursively.
         else {
@@ -237,9 +271,13 @@ fn decl_usage_analysis(
                 .iter()
                 .find(|decl| decl.ident().is_some_and(|ident| ident == ty_expr.ident));
 
-            if let Some(decl) = decl {
-                decl_usage_analysis(module, decl, already_used, to_analyze);
+            if let Some(decl) = decl
+                && let Err(err) = decl_usage_analysis(module, decl, already_used, to_analyze)
+            {
+                res = Err(err);
             }
         }
     });
+
+    res
 }

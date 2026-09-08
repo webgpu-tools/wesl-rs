@@ -66,12 +66,27 @@ pub enum ImportError {
     DuplicateSymbol(String),
     #[error("{0}")]
     ResolveError(#[from] ResolveError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum UsageError {
     #[error("module `{0}` has no declaration `{1}`")]
-    MissingDecl(ModulePath, String),
+    NotFound(ModulePath, String),
     #[error(
-        "`{0}::{1}` is declared with `{2}` visibility, but another module tried to import it with `{3}` visibility"
+        "`{decl_path}::{decl_name}` is declared with `{decl_vis}` visibility, but {orig} imports it with `{min_vis}` visibility",
+        decl_path = .decl.0,
+        decl_name = .decl.1,
+        orig = .orig
+            .as_ref()
+            .map(|(path, name)| format!("`{path}::{name}`"))
+            .unwrap_or("another declaration".to_string())
     )]
-    Visibility(ModulePath, String, Visibility, Visibility),
+    Visibility {
+        orig: Option<(ModulePath, Ident)>,
+        decl: (ModulePath, Ident),
+        min_vis: Visibility,
+        decl_vis: Visibility,
+    },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -105,6 +120,8 @@ pub enum Error {
     ResolveError(#[from] ResolveError),
     #[error("{0}")]
     ImportError(#[from] ImportError),
+    #[error("{0}")]
+    UsageError(#[from] UsageError),
     #[error("{0}")]
     CondCompError(#[from] CondCompError),
     #[error("{0}")]
@@ -175,6 +192,12 @@ impl From<ImportError> for Diagnostic<Error> {
     }
 }
 
+impl From<UsageError> for Diagnostic<Error> {
+    fn from(error: UsageError) -> Self {
+        Self::new(error.into())
+    }
+}
+
 impl From<CondCompError> for Diagnostic<Error> {
     fn from(error: CondCompError) -> Self {
         Self::new(error.into())
@@ -200,6 +223,7 @@ impl From<Error> for Diagnostic<Error> {
             Error::ParseError(e) => e.into(),
             Error::ResolveError(e) => e.into(),
             Error::ImportError(e) => e.into(),
+            Error::UsageError(e) => e.into(),
             Error::Error(e) => e,
             Error::ValidateError(e) => e.into(),
             Error::CondCompError(e) => e.into(),
@@ -474,6 +498,15 @@ impl Diagnostic<Error> {
             },
             Error::ResolveError(_) => {}
             Error::ImportError(_) => {}
+            Error::UsageError(e) => match e {
+                UsageError::NotFound(_, _) => todo!(),
+                UsageError::Visibility { orig, decl, .. } => {
+                    if let Some((_, id)) = orig {
+                        unmangle_id(id, sourcemap, mangler);
+                    }
+                    unmangle_id(&mut decl.1, sourcemap, mangler);
+                }
+            },
             Error::CondCompError(e) => match e {
                 CondCompError::InvalidExpression(expr) => unmangle_expr(expr, sourcemap, mangler),
                 CondCompError::InvalidFeatureFlag(_)

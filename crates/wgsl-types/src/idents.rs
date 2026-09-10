@@ -240,7 +240,7 @@ pub const BUILTIN_ENUMERANT_NAMES: &[&str] = &[
     #[cfg(feature = "naga-ext")]
     "rgb10a2unorm",
     #[cfg(feature = "naga-ext")]
-    "rg11b10float",
+    "rg11b10ufloat",
     #[cfg(feature = "naga-ext")]
     "r64uint",
     #[cfg(feature = "naga-ext")]

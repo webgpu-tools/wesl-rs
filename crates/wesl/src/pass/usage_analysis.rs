@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 use wgsl_parse::{SyntaxNode, syntax::*};
 
-use crate::pass::{Imports, Visit, flatten_imports, imported_item_path};
+use crate::pass::{Imports, Visit, flatten_imports, imported_item_path, is_host_visible};
 
 #[derive(Clone)]
 pub struct Module {
@@ -103,7 +103,8 @@ impl UsedItems {
 
 /// Find declarations used in external modules which this module depends on, no matter what.
 ///
-/// Currently, only items referenced by module-scope `const_assert`s are always included.
+/// Currently, items referenced by module-scope `const_assert`s and by host-visible
+/// declarations are always included.
 ///
 /// See [`usage_analysis`].
 pub fn module_usage_analysis(
@@ -116,13 +117,13 @@ pub fn module_usage_analysis(
     }
 
     already_used.insert_module(module.path.clone(), Default::default());
-    let const_asserts = module
+    let always_included = module
         .syntax
         .global_declarations
         .iter()
-        .filter(|decl| decl.is_const_assert());
+        .filter(|decl| decl.is_const_assert() || is_host_visible(decl));
 
-    for decl in const_asserts {
+    for decl in always_included {
         decl_usage_analysis(module, decl, already_used, to_analyze);
     }
 }

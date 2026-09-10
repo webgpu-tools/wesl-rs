@@ -12,6 +12,13 @@ const c1 = 1;
 
 const c2: u32 = 2;
 
+override o1: f32;
+
+override o2 = 0;
+
+@id(10)
+override o3: u32 = 0;
+
 const_assert (c1 < c2);
 
 const_assert c1 == 1;

@@ -18,9 +18,9 @@ const package_util__1INTERNAL_SCALE: f32 = 2.0;
 
 const package_util_ops__1OPS_BASE: f32 = 4.0;
 
-override package_gfx_exposure: f32 = 1.0;
+override exposure: f32 = 1.0;
 
-override package_gfx_gain: f32 = package_gfx_exposure * 2.0;
+override gain: f32 = exposure * 2.0;
 
 override root_boost: f32 = 1.0;
 
@@ -103,7 +103,7 @@ fn package__1cycle_b_pong(x: f32) -> f32 {
 }
 
 fn package_gfx_tonemap(c: vec2f) -> f32 {
-    return package_util_cross2(c, vec2f(package_util_EPSILON)) * package_gfx_gain;
+    return package_util_cross2(c, vec2f(package_util_EPSILON)) * gain;
 }
 
 fn package_legacy__1legacy_fn(x: f32) -> f32 {

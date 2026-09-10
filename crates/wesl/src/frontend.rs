@@ -633,6 +633,16 @@ impl CompilerDriver for CompilationPass<'_> {
 
         let mut module = pass::link(modules, self.options.strip.then_some(used_items));
 
+        let mut host_visible = HashSet::new();
+        for decl in &module.global_declarations {
+            if pass::is_host_visible(decl)
+                && let Some(ident) = decl.ident()
+                && !host_visible.insert(ident.name().to_string())
+            {
+                return Err(ImportError::DuplicateSymbol(ident.name().to_string()).into());
+            }
+        }
+
         if self.options.lower {
             pass::lower(&mut module)?;
         }
@@ -649,4 +659,34 @@ impl CompilerDriver for CompilationPass<'_> {
 fn test_send_sync() {
     fn assert_send_sync<T: Send + Sync>() {}
     assert_send_sync::<Compiler<()>>();
+}
+
+#[test]
+fn duplicate_override_across_modules() {
+    let mut resolver = crate::resolver::VirtualResolver::new();
+    resolver.add_module(
+        "package::a".parse().unwrap(),
+        "override X: u32 = 1u; fn a() -> u32 { return X; }".into(),
+    );
+    resolver.add_module(
+        "package::b".parse().unwrap(),
+        "override X: u32 = 2u; fn b() -> u32 { return X; }".into(),
+    );
+    resolver.add_module(
+        "package::main".parse().unwrap(),
+        "import package::{a::a, b::b}; fn main() -> u32 { return a() + b(); }".into(),
+    );
+    let options = CompileOptions {
+        keep_main: true,
+        ..Default::default()
+    };
+    let result = Compiler::new_with_resolver(options, resolver)
+        .compile_module(&"package::main".parse().unwrap());
+    match result {
+        Err(err) => assert!(
+            err.to_string().contains("duplicate declaration of `X`"),
+            "{err}"
+        ),
+        Ok(_) => panic!("expected a duplicate declaration error"),
+    }
 }

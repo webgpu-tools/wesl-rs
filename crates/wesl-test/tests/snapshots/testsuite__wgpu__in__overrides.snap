@@ -2,6 +2,8 @@
 source: crates/wesl-test/tests/testsuite.rs
 expression: res.syntax.to_string()
 ---
+override auto_conversion: u32 = 0;
+
 override depth: f32;
 
 @id(1300)
@@ -11,6 +13,13 @@ override gain: f32;
 override has_point_light: bool = true;
 
 override height: f32 = 2 * depth;
+
+override inferred_f32: f32 = 2.718;
+
+@id(1200)
+override specular_param: f32 = 2.3;
+
+override width: f32 = 0.0;
 
 var<private> gain_x_10: f32 = gain * 10.0;
 

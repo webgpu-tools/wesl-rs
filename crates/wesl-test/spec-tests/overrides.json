@@ -1,0 +1,20 @@
+[
+    {
+        "name": "keep-override-name-in-imported-module",
+        "weslSrc": {
+            "./main.wgsl": "import package::m1::taps; fn main() { let t = taps(); }",
+            "./m1.wgsl": "override TAPS: u32 = 4u; fn taps() -> u32 { return TAPS; }"
+        },
+        "expectedWgsl": "fn main() { let t = taps(); } override TAPS: u32 = 4u; fn taps() -> u32 { return TAPS; }",
+        "underscoreWgsl": "fn main() { let t = package_m1_taps(); } override TAPS: u32 = 4u; fn package_m1_taps() -> u32 { return TAPS; }"
+    },
+    {
+        "name": "keep-unused-override",
+        "weslSrc": {
+            "./main.wgsl": "import package::m1::foo; fn main() { foo(); }",
+            "./m1.wgsl": "const BASE: u32 = 2u; override UNUSED: u32 = BASE; fn foo() { } fn bar() { }"
+        },
+        "expectedWgsl": "fn main() { foo(); } const BASE: u32 = 2u; override UNUSED: u32 = BASE; fn foo() { }",
+        "underscoreWgsl": "fn main() { package_m1_foo(); } const package_m1_BASE: u32 = 2u; override UNUSED: u32 = package_m1_BASE; fn package_m1_foo() { }"
+    }
+]

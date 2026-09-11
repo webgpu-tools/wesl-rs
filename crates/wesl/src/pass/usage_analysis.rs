@@ -150,6 +150,7 @@ pub fn usage_analysis(
             decl_usage_analysis(module, decl, already_used, to_analyze);
         } else if let Some((_, item)) = module
             .imports
+            .idents
             .iter()
             .find(|(ident, _)| *ident.name() == decl_name)
             && item.public

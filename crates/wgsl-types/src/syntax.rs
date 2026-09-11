@@ -136,7 +136,7 @@ pub enum TexelFormat {
     #[cfg(feature = "naga-ext")]
     Rgb10a2Unorm,
     #[cfg(feature = "naga-ext")]
-    Rg11b10Float,
+    Rg11b10Ufloat,
     #[cfg(feature = "naga-ext")]
     R64Uint,
     #[cfg(feature = "naga-ext")]
@@ -521,7 +521,7 @@ impl TexelFormat {
             #[cfg(feature = "naga-ext")]
             TexelFormat::Rgb10a2Unorm => SampledType::F32,
             #[cfg(feature = "naga-ext")]
-            TexelFormat::Rg11b10Float => SampledType::F32,
+            TexelFormat::Rg11b10Ufloat => SampledType::F32,
             #[cfg(feature = "naga-ext")]
             TexelFormat::R64Uint => SampledType::U64,
             #[cfg(feature = "naga-ext")]
@@ -591,7 +591,7 @@ impl TexelFormat {
             #[cfg(feature = "naga-ext")]
             TexelFormat::Rgb10a2Unorm => 4,
             #[cfg(feature = "naga-ext")]
-            TexelFormat::Rg11b10Float => 3,
+            TexelFormat::Rg11b10Ufloat => 3,
             #[cfg(feature = "naga-ext")]
             TexelFormat::R64Uint => 1,
             #[cfg(feature = "naga-ext")]
@@ -708,7 +708,7 @@ impl FromStr for TexelFormat {
             #[cfg(feature = "naga-ext")]
             "rgb10a2unorm" => Ok(Self::Rgb10a2Unorm),
             #[cfg(feature = "naga-ext")]
-            "rg11b10float" => Ok(Self::Rg11b10Float),
+            "rg11b10ufloat" => Ok(Self::Rg11b10Ufloat),
             #[cfg(feature = "naga-ext")]
             "r64uint" => Ok(Self::R64Uint),
             #[cfg(feature = "naga-ext")]
@@ -975,7 +975,7 @@ impl Display for TexelFormat {
             #[cfg(feature = "naga-ext")]
             TexelFormat::Rgb10a2Unorm => write!(f, "rgb10a2unorm"),
             #[cfg(feature = "naga-ext")]
-            TexelFormat::Rg11b10Float => write!(f, "rg11b10float"),
+            TexelFormat::Rg11b10Ufloat => write!(f, "rg11b10ufloat"),
             #[cfg(feature = "naga-ext")]
             TexelFormat::R64Uint => write!(f, "r64uint"),
             #[cfg(feature = "naga-ext")]

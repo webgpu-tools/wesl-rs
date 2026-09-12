@@ -123,6 +123,9 @@ impl CompileResult {
         let _ = self.syntax.exec(&mut ctx)?;
 
         let inst = exec_entrypoint(entry_fn, inputs, &mut ctx).map_err(|e| {
+            if let Some(span) = ctx.source.user_decl_span(entrypoint) {
+                ctx.set_err_span_ctx(span);
+            }
             if let Some(sourcemap) = &self.sourcemap {
                 Diagnostic::from(e).with_ctx(&ctx).with_sourcemap(sourcemap)
             } else {

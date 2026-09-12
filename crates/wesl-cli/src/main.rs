@@ -19,7 +19,7 @@ use wesl::{
 };
 
 // adapted from clap cookbook: https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
-fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error + Send + Sync + 'static>>
+fn parse_key_val_opt<T, U>(s: &str) -> Result<(T, U), Box<dyn Error + Send + Sync + 'static>>
 where
     T: FromStr,
     T::Err: Error + Send + Sync + 'static,
@@ -31,6 +31,22 @@ where
         Ok((s[..pos].parse()?, s[pos + 1..].parse()?))
     } else {
         Ok((s.parse()?, U::default()))
+    }
+}
+
+// adapted from clap cookbook: https://docs.rs/clap/latest/clap/_derive/_cookbook/typed_derive/index.html
+fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error + Send + Sync + 'static>>
+where
+    T: FromStr,
+    T::Err: Error + Send + Sync + 'static,
+    U: FromStr,
+    U::Err: Error + Send + Sync + 'static,
+{
+    let pos = s.find('=');
+    if let Some(pos) = pos {
+        Ok((s[..pos].parse()?, s[pos + 1..].parse()?))
+    } else {
+        Err(format!("missing equal sign after `{s}`").into())
     }
 }
 
@@ -165,7 +181,7 @@ struct CompOptsArgs {
     #[arg(long)]
     keep_main: bool,
     /// Set a conditional compilation feature flag. Can be repeated
-    #[arg(short='D', long, value_name="NAME | NAME=[enable, disable, keep, error]", value_parser = parse_key_val::<String, ClapFeature>)]
+    #[arg(short='D', long, value_name="NAME | NAME=[enable, disable, keep, error]", value_parser = parse_key_val_opt::<String, ClapFeature>)]
     feature: Vec<(String, ClapFeature)>,
     /// Default behavior for unspecified conditional compilation features
     #[arg(long, default_value = "disable")]
@@ -375,6 +391,12 @@ struct ExecArgs {
     /// Pipeline-overridable constants.
     #[arg(long = "override", value_name="NAME=EXPRESSION", value_parser = parse_key_val::<String, String>)]
     overrides: Vec<(String, String)>,
+    /// Builtin inputs, accessed with `@builtin(name)` in shader entry points.
+    #[arg(long = "builtin", value_name="NAME=EXPRESSION", value_parser = parse_key_val::<String, String>)]
+    builtins: Vec<(String, String)>,
+    /// values for I/O locations, accessed with `@location(id)` in shader entry points.
+    #[arg(long = "location", value_name="INDEX=EXPRESSION", value_parser = parse_key_val::<u32, String>)]
+    user_inputs: Vec<(u32, String)>,
     /// Output as binary (WGSL memory representation) for storable types
     #[arg(short, long = "out-binary")]
     binary: bool,
@@ -636,8 +658,6 @@ fn run(cli: Cli) -> Result<(), CliError> {
                 .map(|input| run_compile(&args.options, input))
                 .unwrap_or_else(|| Ok(CompileResult::default()))?;
 
-            let inputs = Inputs::new_zero_initialized();
-
             let resources = args
                 .resources
                 .iter()
@@ -651,6 +671,21 @@ fn run(cli: Cli) -> Result<(), CliError> {
                     Ok((name.to_string(), eval_expr(expr, &comp.syntax)?))
                 })
                 .collect::<Result<_, _>>()?;
+
+            let mut inputs = Inputs::new_zero_initialized();
+
+            inputs.user_defined = args
+                .user_inputs
+                .iter()
+                .map(|(index, expr)| -> Result<(u32, Instance), CliError> {
+                    Ok((*index, eval_expr(expr, &comp.syntax)?))
+                })
+                .collect::<Result<_, _>>()?;
+
+            for (name, expr) in &args.builtins {
+                let inst = eval_expr(expr, &comp.syntax)?;
+                inputs.builtins.insert(name.to_string(), inst);
+            }
 
             let exec = comp.exec(&args.entrypoint, inputs, resources, overrides)?;
 

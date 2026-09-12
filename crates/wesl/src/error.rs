@@ -475,7 +475,7 @@ impl Diagnostic<Error> {
                 Instance::Atomic(inst) => {
                     unmangle_inst(inst.inner_mut(), sourcemap, mangler);
                 }
-                Instance::Deferred(ty) => unmangle_ty(ty, sourcemap, mangler),
+                Instance::Opaque(ty) => unmangle_ty(ty, sourcemap, mangler),
                 Instance::Literal(_) | Instance::Vec(_) | Instance::Mat(_) => {}
             }
         }
@@ -614,6 +614,7 @@ impl Diagnostic<Error> {
                 EvalError::DecrType(ty) => unmangle_ty(ty, sourcemap, mangler),
                 EvalError::ConstAssertFailure(expr) => unmangle_expr(expr, sourcemap, mangler),
                 EvalError::Todo(_)
+                | EvalError::Unreachable
                 | EvalError::MissingTemplate(_)
                 | EvalError::NotWrite
                 | EvalError::NotRead

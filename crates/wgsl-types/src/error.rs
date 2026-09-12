@@ -8,6 +8,7 @@ use crate::{
 #[derive(Clone, Debug)]
 pub enum Error {
     Todo(String),
+    Unreachable,
 
     // types & templates
     NotScalar(Type),
@@ -58,6 +59,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Error::Todo(v) => write!(fmt, "not implemented: `{v}`"),
+            Error::Unreachable => write!(fmt, "unreachable code detected"),
             Error::NotScalar(ty) => write!(fmt, "expected a scalar type, got `{ty}`"),
             Error::NotConstructible(ty) => write!(fmt, "`{ty}` is not constructible"),
             Error::SampledType(ty) => write!(

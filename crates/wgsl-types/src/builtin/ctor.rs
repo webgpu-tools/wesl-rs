@@ -12,13 +12,16 @@
 //! * Type aliases must be resolved: WGSL allows calling functions with the name of the alias.
 
 use itertools::Itertools;
-use num_traits::{FromPrimitive, One, ToPrimitive, Zero};
+use num_traits::{One, ToPrimitive, Zero};
 
 use crate::{
     CallSignature, Error, ShaderStage,
     conv::{Convert, convert_all, convert_all_inner_to, convert_all_to, convert_all_ty},
     f16,
-    inst::{ArrayInstance, Instance, LiteralInstance, MatInstance, StructInstance, VecInstance},
+    inst::{
+        ArrayInstance, AtomicInstance, Instance, LiteralInstance, MatInstance, StructInstance,
+        VecInstance,
+    },
     tplt::{ArrayTemplate, MatTemplate, TpltParam, VecTemplate},
     ty::{StructType, Ty, Type},
 };
@@ -52,9 +55,8 @@ pub fn array_t(tplt_ty: &Type, tplt_n: usize, args: &[Instance]) -> Result<Insta
     let args = args
         .iter()
         .map(|a| {
-            a.convert_to(tplt_ty).ok_or_else(|| {
-                E::ParamType(Type::Array(Box::new(tplt_ty.clone()), Some(tplt_n)), a.ty())
-            })
+            a.convert_to(tplt_ty)
+                .ok_or_else(|| E::ParamType(tplt_ty.clone(), a.ty()))
         })
         .collect::<Result<Vec<_>, _>>()?;
 
@@ -69,11 +71,11 @@ pub fn array_t(tplt_ty: &Type, tplt_n: usize, args: &[Instance]) -> Result<Insta
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#array-builtin>
 pub fn array(args: &[Instance]) -> Result<Instance, E> {
-    let args = convert_all(args).ok_or(E::Builtin("array elements are incompatible"))?;
-
     if args.is_empty() {
         return Err(E::Builtin("array constructor expects at least 1 argument"));
     }
+
+    let args = convert_all(args).ok_or(E::Builtin("array elements are incompatible"))?;
 
     Ok(ArrayInstance::new(args, false).into())
 }
@@ -94,7 +96,6 @@ pub fn bool(a1: &Instance) -> Result<Instance, E> {
 /// `i32()` constructor.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#i32-builtin>
-// TODO: check that "If T is a floating point type, e is converted to i32, rounding towards zero."
 pub fn i32(a1: &Instance) -> Result<Instance, E> {
     match a1 {
         Instance::Literal(l) => {
@@ -105,7 +106,7 @@ pub fn i32(a1: &Instance) -> Result<Instance, E> {
                 LiteralInstance::I32(n) => Some(*n),           // identity operation
                 LiteralInstance::U32(n) => Some(*n as i32),    // reinterpretation of bits
                 LiteralInstance::F32(n) => Some((*n as i32).min(2147483520)), // rounding towards 0 AND representable in f32
-                LiteralInstance::F16(n) => Some((f16::to_f32(*n) as i32).min(65504)), // rounding towards 0 AND representable in f16
+                LiteralInstance::F16(n) => Some((f16::to_f32(*n) as i32).clamp(-65504, 65504)), // rounding towards 0 AND representable in f16
                 #[cfg(feature = "naga-ext")]
                 LiteralInstance::I64(n) => n.to_i32(), // identity if representable
                 #[cfg(feature = "naga-ext")]
@@ -151,25 +152,42 @@ pub fn u32(a1: &Instance) -> Result<Instance, E> {
 /// `f32()` constructor.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#f32-builtin>
-pub fn f32(a1: &Instance, _stage: ShaderStage) -> Result<Instance, E> {
+pub fn f32(a1: &Instance, stage: ShaderStage) -> Result<Instance, E> {
     match a1 {
         Instance::Literal(l) => {
             let val = match l {
-                LiteralInstance::Bool(n) => Some(n.then_some(f32::one()).unwrap_or(f32::zero())),
-                LiteralInstance::AbstractInt(n) => n.to_f32(), // implicit conversion
-                LiteralInstance::AbstractFloat(n) => n.to_f32(), // implicit conversion
-                LiteralInstance::I32(n) => Some(*n as f32),    // scalar to float (never overflows)
-                LiteralInstance::U32(n) => Some(*n as f32),    // scalar to float (never overflows)
-                LiteralInstance::F32(n) => Some(*n),           // identity operation
+                LiteralInstance::Bool(n) => Some(n.then_some(1f32).unwrap_or(0f32)),
+                LiteralInstance::AbstractInt(n) => Some(*n as f32), // i64 never leaves f32's finite range
+                LiteralInstance::AbstractFloat(n) => {
+                    // shader-creation error if overflows f32's finite range during const-eval.
+                    let range = f32::MIN as f64..=f32::MAX as f64;
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
+                    } else {
+                        Some(*n as f32)
+                    }
+                }
+                LiteralInstance::I32(n) => Some(*n as f32), // i32 never leaves f32's finite range
+                LiteralInstance::U32(n) => Some(*n as f32), // u32 never leaves f32's finite range
+                LiteralInstance::F32(n) => Some(*n),        // identity operation
                 LiteralInstance::F16(n) => Some(f16::to_f32(*n)), // exactly representable
                 #[cfg(feature = "naga-ext")]
-                LiteralInstance::I64(n) => n.to_f32(), // implicit conversion
+                LiteralInstance::I64(n) => Some(*n as f32), // i64 never leaves f32's finite range
                 #[cfg(feature = "naga-ext")]
-                LiteralInstance::U64(n) => n.to_f32(), // implicit conversion
+                LiteralInstance::U64(n) => Some(*n as f32), // u64 never leaves f32's finite range
                 #[cfg(feature = "naga-ext")]
-                LiteralInstance::F64(n) => n.to_f32(), // implicit conversion
+                LiteralInstance::F64(n) => {
+                    // shader-creation error if overflows f32's finite range during const-eval.
+                    let range = f32::MIN as f64..=f32::MAX as f64;
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
+                    } else {
+                        Some(*n as f32)
+                    }
+                }
             }
             .ok_or(E::ConvOverflow(*l, Type::F32))?;
+
             Ok(LiteralInstance::F32(val).into())
         }
         _ => Err(E::Builtin("f32 constructor expects a scalar argument")),
@@ -185,44 +203,46 @@ pub fn f16(a1: &Instance, stage: ShaderStage) -> Result<Instance, E> {
             let val = match l {
                 LiteralInstance::Bool(n) => Some(n.then_some(f16::one()).unwrap_or(f16::zero())),
                 LiteralInstance::AbstractInt(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        let range = -65504..=65504;
-                        range.contains(n).then_some(f16::from_f32(*n as f32))
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = f16::MIN.to_i64().unwrap()..=f16::MAX.to_i64().unwrap();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n as f32))
                     }
                 }
                 LiteralInstance::AbstractFloat(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        let range = -65504.0..=65504.0;
-                        range.contains(n).then_some(f16::from_f32(*n as f32))
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = f16::MIN.to_f64()..=f16::MAX.to_f64();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n as f32))
                     }
                 }
                 LiteralInstance::I32(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        f16::from_i32(*n)
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = f16::MIN.to_i32().unwrap()..=f16::MAX.to_i32().unwrap();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n as f32))
                     }
                 }
                 LiteralInstance::U32(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        f16::from_u32(*n)
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = 0..=f16::MAX.to_u32().unwrap();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n as f32))
                     }
                 }
                 LiteralInstance::F32(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        let range = -65504.0..=65504.0;
-                        range.contains(n).then_some(f16::from_f32(*n))
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = f16::MIN.to_f32()..=f16::MAX.to_f32();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n))
                     }
@@ -230,29 +250,30 @@ pub fn f16(a1: &Instance, stage: ShaderStage) -> Result<Instance, E> {
                 LiteralInstance::F16(n) => Some(*n), // identity operation
                 #[cfg(feature = "naga-ext")]
                 LiteralInstance::I64(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        let range = -65504..=65504;
-                        range.contains(n).then_some(f16::from_f32(*n as f32))
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = f16::MIN.to_i64().unwrap()..=f16::MAX.to_i64().unwrap();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n as f32))
                     }
                 }
                 #[cfg(feature = "naga-ext")]
                 LiteralInstance::U64(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        f16::from_u64(*n)
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = 0..=f16::MAX.to_u64().unwrap();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n as f32))
                     }
                 }
                 #[cfg(feature = "naga-ext")]
                 LiteralInstance::F64(n) => {
-                    // scalar to float (can overflow)
-                    if stage == ShaderStage::Const {
-                        let range = -65504.0..=65504.0;
-                        range.contains(n).then_some(f16::from_f32(*n as f32))
+                    // shader-creation error if overflows f16's finite range during const-eval.
+                    let range = f16::MIN.to_f64()..=f16::MAX.to_f64();
+                    if stage == ShaderStage::Const && !range.contains(n) {
+                        None
                     } else {
                         Some(f16::from_f32(*n as f32))
                     }
@@ -268,6 +289,7 @@ pub fn f16(a1: &Instance, stage: ShaderStage) -> Result<Instance, E> {
 /// `i64()` constructor (naga extension).
 ///
 /// TODO: This built-in is not implemented!
+#[cfg(feature = "naga-ext")]
 pub fn i64(_a1: &Instance) -> Result<Instance, E> {
     Err(E::Todo("i64".to_string()))
 }
@@ -275,6 +297,7 @@ pub fn i64(_a1: &Instance) -> Result<Instance, E> {
 /// `u64()` constructor (naga extension).
 ///
 /// TODO: This built-in is not implemented!
+#[cfg(feature = "naga-ext")]
 pub fn u64(_a1: &Instance) -> Result<Instance, E> {
     Err(E::Todo("u64".to_string()))
 }
@@ -282,11 +305,14 @@ pub fn u64(_a1: &Instance) -> Result<Instance, E> {
 /// `f64()` constructor (naga extension).
 ///
 /// TODO: This built-in is not implemented!
+#[cfg(feature = "naga-ext")]
 pub fn f64(_a1: &Instance, _stage: ShaderStage) -> Result<Instance, E> {
     Err(E::Todo("f64".to_string()))
 }
 
 /// `matCxR<T>()` constructor.
+///
+/// Expects `tplt_ty` to be valid (a float).
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#mat2x2-builtin>
 pub fn mat_t(
@@ -335,7 +361,12 @@ pub fn mat_t(
             convert_all_to(args, &ty).ok_or(E::Builtin("matrix components are incompatible"))?;
 
         // overload 2: mat from column vectors
-        if ty.is_vec() {
+        if let Type::Vec(n, _) = ty {
+            if n as usize != r {
+                return Err(E::Builtin(
+                    "column vector dimension does not match matrix row dimension",
+                ));
+            }
             if args.len() != c {
                 return Err(E::ParamCount(format!("mat{c}x{r}"), c, args.len()));
             }
@@ -420,6 +451,8 @@ pub fn mat(c: usize, r: usize, args: &[Instance]) -> Result<Instance, E> {
 
 /// `vecN<T>()` constructor.
 ///
+/// Expects `tplt_ty` to be valid (a scalar).
+///
 /// Reference: <https://www.w3.org/TR/WGSL/#vec2-builtin>
 pub fn vec_t(
     n: usize,
@@ -449,6 +482,12 @@ pub fn vec_t(
             Type::U32 => |n, _| u32(n),
             Type::F32 => |n, stage| f32(n, stage),
             Type::F16 => |n, stage| f16(n, stage),
+            #[cfg(feature = "naga-ext")]
+            Type::I64 => |n, _| i64(n),
+            #[cfg(feature = "naga-ext")]
+            Type::U64 => |n, _| u64(n),
+            #[cfg(feature = "naga-ext")]
+            Type::F64 => |n, stage| f64(n, stage),
             _ => return Err(E::Builtin("vector type must be a scalar")),
         };
 
@@ -478,7 +517,7 @@ pub fn vec_t(
         let comps = args
             .iter()
             .map(|a| {
-                a.convert_inner_to(tplt_ty)
+                a.convert_to(tplt_ty)
                     .ok_or_else(|| E::ParamType(tplt_ty.clone(), a.ty()))
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -602,6 +641,8 @@ pub fn typecheck_struct_ctor(struct_ty: &StructType, args: &[Type]) -> Result<()
 
 /// Return type of `array<T,N>()` constructor.
 ///
+/// Expects `tplt_ty` to be valid.
+///
 /// Reference: <https://www.w3.org/TR/WGSL/#array-builtin>
 fn array_ctor_ty_t(tplt_ty: &Type, tplt_n: usize, args: &[Type]) -> Result<Type, E> {
     if let Some(arg) = args.iter().find(|arg| !arg.is_convertible_to(tplt_ty)) {
@@ -620,6 +661,8 @@ fn array_ctor_ty(args: &[Type]) -> Result<Type, E> {
 }
 
 /// Return type of `matCxR<T>()` constructor.
+///
+/// Expects `tplt_ty` to be valid (a float).
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#mat2x2-builtin>
 fn mat_ctor_ty_t(c: u8, r: u8, tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
@@ -642,7 +685,12 @@ fn mat_ctor_ty_t(c: u8, r: u8, tplt_ty: &Type, args: &[Type]) -> Result<Type, E>
             .ok_or(E::Conversion(ty.inner_ty(), tplt_ty.clone()))?;
 
         // overload 2: mat from column vectors
-        if ty.is_vec() {
+        if let Type::Vec(n, _) = ty {
+            if n != r {
+                return Err(E::Builtin(
+                    "column vector dimension does not match matrix row dimension",
+                ));
+            }
             if args.len() != c as usize {
                 return Err(E::ParamCount(format!("mat{c}x{r}"), c as usize, args.len()));
             }
@@ -711,6 +759,8 @@ fn mat_ctor_ty(c: u8, r: u8, args: &[Type]) -> Result<Type, E> {
 
 /// Return type of `vecN<T>()` constructor.
 ///
+/// Expects `tplt_ty` to be valid (a scalar).
+///
 /// Reference: <https://www.w3.org/TR/WGSL/#vec2-builtin>
 fn vec_ctor_ty_t(n: u8, tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
     if let [arg] = args {
@@ -721,7 +771,9 @@ fn vec_ctor_ty_t(n: u8, tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
             }
         }
         // overload 2: vec conversion constructor
-        else if arg.is_vec() {
+        else if let Type::Vec(arg_n, _) = arg
+            && n == *arg_n
+        {
             // note: this is an explicit conversion, not automatic conversion
         } else {
             return Err(E::Conversion(arg.clone(), tplt_ty.clone()));
@@ -757,7 +809,9 @@ fn vec_ctor_ty(n: u8, args: &[Type]) -> Result<Type, E> {
         if arg.is_scalar() {
         }
         // overload 2: vec conversion constructor
-        else if arg.is_vec() {
+        else if let Type::Vec(arg_n, _) = arg
+            && n == *arg_n
+        {
             // note: `vecN(e: vecN<S>) -> vecN<S>` is no-op
         } else {
             return Err(E::Builtin(
@@ -803,7 +857,13 @@ fn vec_ctor_ty(n: u8, args: &[Type]) -> Result<Type, E> {
 /// You can type-check a struct constructor call with [`typecheck_struct_ctor`].
 pub fn type_ctor(name: &str, tplt: Option<&[TpltParam]>, args: &[Type]) -> Result<Type, E> {
     match (name, tplt, args) {
-        ("array", Some(t), []) => Ok(ArrayTemplate::parse(t)?.ty()),
+        ("array", Some(t), []) => {
+            let tplt = ArrayTemplate::parse(t)?;
+            tplt.n()
+                .is_some()
+                .then(|| tplt.ty())
+                .ok_or(E::TemplateArgs("array"))
+        }
         ("array", Some(t), a) => {
             let tplt = ArrayTemplate::parse(t)?;
             array_ctor_ty_t(
@@ -888,15 +948,15 @@ impl Instance {
     /// Zero-value initialize an instance of a given type.
     pub fn zero_value(ty: &Type) -> Result<Self, E> {
         match ty {
-            Type::Bool => Ok(LiteralInstance::Bool(false).into()),
-            Type::AbstractInt => Ok(LiteralInstance::AbstractInt(0).into()),
-            Type::AbstractFloat => Ok(LiteralInstance::AbstractFloat(0.0).into()),
-            Type::I32 => Ok(LiteralInstance::I32(0).into()),
-            Type::U32 => Ok(LiteralInstance::U32(0).into()),
-            Type::F32 => Ok(LiteralInstance::F32(0.0).into()),
-            Type::F16 => Ok(LiteralInstance::F16(f16::zero()).into()),
+            Type::Bool
+            | Type::AbstractInt
+            | Type::AbstractFloat
+            | Type::I32
+            | Type::U32
+            | Type::F32
+            | Type::F16 => LiteralInstance::zero_value(ty).map(Into::into),
             Type::Struct(s) => StructInstance::zero_value(s).map(Into::into),
-            Type::Array(a_ty, Some(n)) => ArrayInstance::zero_value(*n, a_ty).map(Into::into),
+            Type::Array(a_ty, Some(n)) => ArrayInstance::zero_value(a_ty, *n).map(Into::into),
             Type::Array(_, None) => Err(E::NotConstructible(ty.clone())),
             Type::Vec(n, v_ty) => VecInstance::zero_value(*n, v_ty).map(Into::into),
             Type::Mat(c, r, m_ty) => MatInstance::zero_value(*c, *r, m_ty).map(Into::into),
@@ -908,17 +968,33 @@ impl Instance {
             | Type::Unknown => Err(E::NotConstructible(ty.clone())),
 
             #[cfg(feature = "naga-ext")]
-            Type::I64 => Ok(LiteralInstance::I64(0).into()),
+            Type::I64 | Type::U64 | Type::F64 => LiteralInstance::zero_value(ty).map(Into::into),
             #[cfg(feature = "naga-ext")]
-            Type::U64 => Ok(LiteralInstance::U64(0).into()),
-            #[cfg(feature = "naga-ext")]
-            Type::F64 => Ok(LiteralInstance::F64(0.0).into()),
-            #[cfg(feature = "naga-ext")]
-            Type::BindingArray(_, _) => Err(E::NotConstructible(ty.clone())),
-            #[cfg(feature = "naga-ext")]
-            Type::RayQuery(_) => Err(E::NotConstructible(ty.clone())),
-            #[cfg(feature = "naga-ext")]
-            Type::AccelerationStructure(_) => Err(E::NotConstructible(ty.clone())),
+            Type::BindingArray(_, _) | Type::RayQuery(_) | Type::AccelerationStructure(_) => {
+                Err(E::NotConstructible(ty.clone()))
+            }
+        }
+    }
+
+    /// For types that are not *constructible*, but are *storable*, there is no zero-value,
+    /// but it is possible to initialize a variable storing an instance of the type.
+    ///
+    /// In practice, these types are only atomics and composite of atomics (array and struct)
+    /// in the `workgroup` address space.
+    ///
+    /// There are other non-constructible, storable types, but they live in host-managed
+    /// address spaces:
+    ///
+    /// * textures and samplers in the `handle` address space.
+    /// * runtime-sized arrays in the `storage` address space.
+    pub fn storable_zero_value(ty: &Type) -> Result<Self, E> {
+        match ty {
+            Type::Struct(s) => StructInstance::storable_zero_value(s).map(Into::into),
+            Type::Array(a_ty, Some(n)) => {
+                ArrayInstance::storable_zero_value(a_ty, *n).map(Into::into)
+            }
+            Type::Atomic(a_ty) => AtomicInstance::storable_zero_value(a_ty).map(Into::into),
+            _ => Self::zero_value(ty),
         }
     }
 }
@@ -959,12 +1035,33 @@ impl StructInstance {
 
         Ok(StructInstance::new(s.clone(), members))
     }
+
+    /// See [`Instance::storable_zero_value`].
+    pub fn storable_zero_value(s: &StructType) -> Result<Self, E> {
+        let members = s
+            .members
+            .iter()
+            .map(|mem| {
+                let val = Instance::storable_zero_value(&mem.ty)?;
+                Ok(val)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(StructInstance::new(s.clone(), members))
+    }
 }
 
 impl ArrayInstance {
     /// Zero-value initialize an `array` instance.
-    pub fn zero_value(n: usize, ty: &Type) -> Result<Self, E> {
+    pub fn zero_value(ty: &Type, n: usize) -> Result<Self, E> {
         let zero = Instance::zero_value(ty)?;
+        let comps = (0..n).map(|_| zero.clone()).collect_vec();
+        Ok(ArrayInstance::new(comps, false))
+    }
+
+    /// See [`Instance::storable_zero_value`].
+    pub fn storable_zero_value(ty: &Type, n: usize) -> Result<Self, E> {
+        let zero = Instance::storable_zero_value(ty)?;
         let comps = (0..n).map(|_| zero.clone()).collect_vec();
         Ok(ArrayInstance::new(comps, false))
     }
@@ -986,5 +1083,13 @@ impl MatInstance {
         let zero_col = Instance::Vec(VecInstance::new((0..r).map(|_| zero.clone()).collect_vec()));
         let comps = (0..c).map(|_| zero_col.clone()).collect_vec();
         Ok(MatInstance::from_cols(comps))
+    }
+}
+
+impl AtomicInstance {
+    /// See [`Instance::storable_zero_value`].
+    pub fn storable_zero_value(ty: &Type) -> Result<Self, E> {
+        let zero = Instance::zero_value(ty)?;
+        Ok(AtomicInstance::new(zero))
     }
 }

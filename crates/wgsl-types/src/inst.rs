@@ -56,9 +56,10 @@ pub enum Instance {
     Ptr(PtrInstance),
     Ref(RefInstance),
     Atomic(AtomicInstance),
-    /// For instances that cannot be computed currently, we store the type.
-    /// TODO: remove this
-    Deferred(Type),
+    /// This variant is used to refer to currently unreachable instances, including
+    /// instances of *opaque* types, such as textures and samplers, and instances that
+    /// cannot be computed yet.
+    Opaque(Type),
 }
 
 impl Instance {
@@ -112,7 +113,7 @@ from_enum!(Instance::Mat(MatInstance));
 from_enum!(Instance::Ptr(PtrInstance));
 from_enum!(Instance::Ref(RefInstance));
 from_enum!(Instance::Atomic(AtomicInstance));
-from_enum!(Instance::Deferred(Type));
+from_enum!(Instance::Opaque(Type));
 
 // Transitive `From` implementations.
 // They have to be implemented manually unfortunately.

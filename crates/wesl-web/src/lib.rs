@@ -145,6 +145,12 @@ pub struct ExecOptions {
     #[serde(default)]
     #[tsify(type = "{ [name: string]: string }")]
     pub overrides: HashMap<String, String>,
+    #[serde(default)]
+    #[tsify(type = "{ [name: string]: string }")]
+    pub builtins: HashMap<String, String>,
+    #[serde(default)]
+    #[tsify(type = "{ [index: number]: string }")]
+    pub user_inputs: HashMap<u32, String>,
 }
 
 #[derive(Tsify, Clone, Debug, Serialize, Deserialize)]
@@ -281,8 +287,8 @@ fn parse_binding(
     ))
 }
 
-fn parse_override(src: &str, module: &TranslationUnit) -> Result<Instance, CliError> {
-    let mut ctx = wesl::eval::Context::new(module);
+fn eval_expr(src: &str, wgsl: &TranslationUnit) -> Result<Instance, CliError> {
+    let mut ctx = wesl::eval::Context::new(wgsl);
     let expr = src
         .parse::<syntax::Expression>()
         .map_err(|e| wesl::error::Diagnostic::from(e).with_source(src.to_string()))?;
@@ -404,8 +410,6 @@ fn run_impl(args: Command) -> Result<RunResult, Error> {
                 run_compile(args.compile.clone()).map_err(|e| wesl_err_to_diagnostic(e, None))?;
 
             let resources = (|| -> Result<_, CliError> {
-                let inputs = Inputs::new_zero_initialized();
-
                 let resources = args
                     .resources
                     .iter()
@@ -416,9 +420,24 @@ fn run_impl(args: Command) -> Result<RunResult, Error> {
                     .overrides
                     .iter()
                     .map(|(name, expr)| -> Result<(String, Instance), CliError> {
-                        Ok((name.to_string(), parse_override(expr, &comp.syntax)?))
+                        Ok((name.to_string(), eval_expr(expr, &comp.syntax)?))
                     })
                     .collect::<Result<_, _>>()?;
+
+                let mut inputs = Inputs::new_zero_initialized();
+
+                inputs.user_defined = args
+                    .user_inputs
+                    .iter()
+                    .map(|(index, expr)| -> Result<(u32, Instance), CliError> {
+                        Ok((*index, eval_expr(expr, &comp.syntax)?))
+                    })
+                    .collect::<Result<_, _>>()?;
+
+                for (name, expr) in &args.builtins {
+                    let inst = eval_expr(expr, &comp.syntax)?;
+                    inputs.builtins.insert(name.to_string(), inst);
+                }
 
                 let exec = comp.exec(&args.entrypoint, inputs, resources, overrides)?;
 

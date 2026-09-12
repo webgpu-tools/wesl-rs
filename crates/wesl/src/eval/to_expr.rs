@@ -26,7 +26,7 @@ impl ToExpr for Instance {
             Instance::Array(inst) => inst.to_expr(ctx),
             Instance::Vec(inst) => inst.to_expr(ctx),
             Instance::Mat(inst) => inst.to_expr(ctx),
-            Instance::Ptr(_) | Instance::Ref(_) | Instance::Atomic(_) | Instance::Deferred(_) => {
+            Instance::Ptr(_) | Instance::Ref(_) | Instance::Atomic(_) | Instance::Opaque(_) => {
                 Err(E::NotConstructible(self.ty()))
             }
         }

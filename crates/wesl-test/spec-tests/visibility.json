@@ -1,0 +1,195 @@
+[
+	{
+		"name": "private-decl-same-module",
+		"desc": "use of a private declaration in the same module",
+		"kind": "modules",
+		"code": "private const x: u32 = 3; const y = x; public const z = x; fn foo() { let w = x; }",
+		"expect": "pass",
+		"result": "const x: u32 = 3; const y = x; const z = x; fn foo() { let w = x; }"
+	},
+	{
+		"name": "import-private-decl",
+		"desc": "cannot import a private declaration from a different module",
+		"kind": "modules",
+		"code": "import package::m1::x; const y = x;",
+		"modules": {
+			"package::m1": "private const x: u32 = 3;"
+		},
+		"expect": "fail"
+	},
+	{
+		"name": "reverse-import-private-decl",
+		"desc": "another module cannot import a private declaration in the current module",
+		"kind": "modules",
+		"code": "private const y = 3; private const z = package::m1::x;",
+		"modules": {
+			"package::m1": "const x = package::y;"
+		},
+		"expect": "fail"
+	},
+	{
+		"name": "import-private-decl-inline",
+		"desc": "cannot inline-import a private declaration from a different module",
+		"kind": "modules",
+		"code": "const y = package::m1::x;",
+		"modules": {
+			"package::m1": "private const x: u32 = 3;"
+		},
+		"expect": "fail"
+	},
+	{
+		"name": "cross-package-import-public-decl",
+		"desc": "import a public declaration from a different package",
+		"kind": "modules",
+		"code": "import foo::m1::x; const y = x;",
+		"modules": {
+			"foo::m1": "public const x: u32 = 3;"
+		},
+		"expect": "pass",
+		"result": "const foo_m1_x: u32 = 3; const y = foo_m1_x;"
+	},
+	{
+		"name": "cross-package-import-public-decl-inline",
+		"desc": "inline-import a public declaration from a different package",
+		"kind": "modules",
+		"code": "const y = foo::m1::x;",
+		"modules": {
+			"foo::m1": "public const x: u32 = 3;"
+		},
+		"expect": "pass",
+		"result": "const foo_m1_x: u32 = 3; const y = foo_m1_x;"
+	},
+	{
+		"name": "cross-package-import-package-decl",
+		"desc": "cannot import a package-visible declaration from a different package",
+		"kind": "modules",
+		"code": "import foo::m1::x; const y = x;",
+		"modules": {
+			"foo::m1": "const x: u32 = 3;"
+		},
+		"expect": "fail"
+	},
+	{
+		"name": "cross-package-import-package-decl-inline",
+		"desc": "cannot import a package-visible declaration from a different package",
+		"kind": "modules",
+		"code": "const y = foo::m1::x;",
+		"modules": {
+			"foo::m1": "const x: u32 = 3;"
+		},
+		"expect": "fail"
+	},
+	{
+		"name": "cross-package-import-private-decl",
+		"desc": "cannot import a private declaration from a different package",
+		"kind": "modules",
+		"code": "import foo::m1::x; const y = x;",
+		"modules": {
+			"foo::m1": "private const x: u32 = 3;"
+		},
+		"expect": "fail"
+	},
+	{
+		"name": "cross-package-import-private-decl-inline",
+		"desc": "cannot import a private declaration from a different package",
+		"kind": "modules",
+		"code": "const y = foo::m1::x;",
+		"modules": {
+			"foo::m1": "private const x: u32 = 3;"
+		},
+		"expect": "fail"
+	},
+	{
+		"name": "public-import-public-decl",
+		"desc": "public-import a public declaration",
+		"kind": "modules",
+		"code": "const y = package::m1::x;",
+		"modules": {
+			"package::m2": "public const x: u32 = 3;",
+			"package::m1": "public import package::m2::x;"
+		},
+		"expect": "pass",
+		"result": "const package_m2_x: u32 = 3; const y = package_m2_x;"
+	},
+	{
+		"name": "public-import-package-decl",
+		"desc": "cannot public-import a package-visible declaration (widens visibility)",
+		"kind": "modules",
+		"code": "const y = package::m1::x;",
+		"modules": {
+			"package::m2": "const x: u32 = 3;",
+			"package::m1": "public import package::m2::x;"
+		},
+		"expect": "fail"
+	},
+	{
+		"name": "package-import-package-decl",
+		"desc": "import a package-visible declaration",
+		"kind": "modules",
+		"code": "const y = package::m1::x;",
+		"modules": {
+			"package::m2": "const x: u32 = 3;",
+			"package::m1": "import package::m2::x;"
+		},
+		"expect": "pass",
+		"result": "const package_m2_x: u32 = 3; const y = package_m2_x;"
+	},
+	{
+		"name": "package-import-private-decl",
+		"desc": "cannot import a private declaration",
+		"kind": "modules",
+		"code": "const y = package::m1::x;",
+		"modules": {
+			"package::m2": "private const x: u32 = 3;",
+			"package::m1": "import package::m2::x;"
+		},
+		"expect": "fail"
+	},
+	{
+		"name": "cross-package-public-import-public-decl",
+		"desc": "use a public import of public declaration from a different package",
+		"kind": "modules",
+		"code": "const y = foo::m1::x;",
+		"modules": {
+			"foo::m2": "public const x: u32 = 3;",
+			"foo::m1": "public import package::m2::x;"
+		},
+		"expect": "pass",
+		"result": "const foo_m2_x: u32 = 3; const y = foo_m2_x;"
+	},
+	{
+		"name": "cross-package-package-import-public-decl",
+		"desc": "cannot use a non-public import of public declaration from a different package",
+		"kind": "modules",
+		"code": "const y = foo::m1::x;",
+		"modules": {
+			"foo::m2": "public const x: u32 = 3;",
+			"foo::m1": "import package::m2::x;"
+		},
+		"expect": "fail"
+	},
+	{
+		"name": "chained-visibility-narrowing",
+		"desc": "two imports narrow the original visibility of a declaration",
+		"kind": "modules",
+		"code": "private import package::m1::x; const y = x;",
+		"modules": {
+			"package::m3": "public const x: u32 = 3;",
+			"package::m2": "public import package::m3::x;",
+			"package::m1": "import package::m2::x;"
+		},
+		"expect": "pass",
+		"result": "const package_m3_x: u32 = 3; const y = package_m3_x;"
+	},
+	{
+		"name": "circular-visibility-requirements",
+		"desc": "private import of a declaration that depends on the current module",
+		"kind": "modules",
+		"code": "private import package::m1::x; const y: u32 = 3; const z = x;",
+		"modules": {
+			"package::m1": "const x = package::y;"
+		},
+		"expect": "pass",
+		"result": "const package_m1_x = y; const y: u32 = 3; const z = package_m1_x;"
+	}
+]

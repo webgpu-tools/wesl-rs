@@ -553,7 +553,7 @@ impl StandardResolver {
     fn generate_constant_module(&self) -> String {
         self.constants
             .iter()
-            .map(|(name, value)| format!("const {name} = {value};"))
+            .map(|(name, value)| format!("public const {name} = {value};"))
             .join("\n")
     }
 }

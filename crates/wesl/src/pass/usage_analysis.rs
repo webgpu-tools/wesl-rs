@@ -1,7 +1,10 @@
-use std::collections::{HashMap, HashSet, hash_map::Entry};
+use std::collections::{HashMap, hash_map::Entry};
 use wgsl_parse::{SyntaxNode, syntax::*};
 
-use crate::pass::{Imports, Visit, flatten_imports, imported_item_path};
+use crate::{
+    error::UsageError,
+    pass::{Imports, Visit, flatten_imports, imported_item_path},
+};
 
 #[derive(Clone)]
 pub struct Module {
@@ -24,7 +27,7 @@ impl Module {
 #[derive(Default, Clone, Debug)]
 pub struct UsedItems {
     /// Module declarations used.
-    used_items: HashMap<ModulePath, HashSet<Ident>>,
+    used_items: HashMap<ModulePath, HashMap<Ident, Visibility>>,
 }
 
 /// Just a convenience
@@ -35,7 +38,7 @@ impl std::fmt::Display for UsedItems {
             writeln!(
                 f,
                 "{path} -> {}",
-                items.iter().map(ToString::to_string).format(", ")
+                items.keys().map(|ident| ident.to_string()).format(", ")
             )?;
         }
         Ok(())
@@ -49,7 +52,7 @@ impl UsedItems {
         }
     }
 
-    pub fn get(&self, path: &ModulePath) -> Option<&HashSet<Ident>> {
+    pub fn get_module(&self, path: &ModulePath) -> Option<&HashMap<Ident, Visibility>> {
         self.used_items.get(path)
     }
 
@@ -57,20 +60,23 @@ impl UsedItems {
         self.used_items.contains_key(path)
     }
 
-    pub fn contains_ident(&self, path: &ModulePath, ident: &Ident) -> bool {
+    pub fn get_ident(&self, path: &ModulePath, ident: &Ident) -> Option<Visibility> {
         self.used_items
             .get(path)
-            .is_some_and(|items| items.contains(ident))
+            .and_then(|items| items.get(ident).copied())
     }
 
-    pub fn contains_name(&self, path: &ModulePath, name: &str) -> bool {
-        self.used_items
-            .get(path)
-            .is_some_and(|items| items.iter().any(|ident| &**ident.name() == name))
+    pub fn get_name(&self, path: &ModulePath, name: &str) -> Option<(Ident, Visibility)> {
+        self.used_items.get(path).and_then(|items| {
+            items
+                .iter()
+                .find(|(ident, _vis)| &**ident.name() == name)
+                .map(|(ident, vis)| (ident.clone(), *vis))
+        })
     }
 
     /// Returns true if inserted.
-    pub fn insert_module(&mut self, path: ModulePath, idents: HashSet<Ident>) -> bool {
+    pub fn insert_module(&mut self, path: ModulePath, idents: HashMap<Ident, Visibility>) -> bool {
         match self.used_items.entry(path) {
             Entry::Occupied(_) => false,
             Entry::Vacant(entry) => {
@@ -81,10 +87,22 @@ impl UsedItems {
     }
 
     /// Returns true if inserted.
-    pub fn insert_ident(&mut self, path: ModulePath, ident: Ident) -> bool {
+    /// Sets the visibility to max(vis, old_vis) if there was an entry.
+    pub fn insert_ident(&mut self, path: ModulePath, ident: Ident, visibility: Visibility) -> bool {
         let entry = self.used_items.entry(path.clone()).or_default();
 
-        entry.insert(ident)
+        match entry.entry(ident) {
+            Entry::Occupied(mut entry) => {
+                if *entry.get() < visibility {
+                    entry.insert(visibility);
+                }
+                false
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(visibility);
+                true
+            }
+        }
     }
 
     /// Returns true if deleted.
@@ -96,7 +114,7 @@ impl UsedItems {
         self.used_items.is_empty()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&ModulePath, &HashSet<Ident>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&ModulePath, &HashMap<Ident, Visibility>)> {
         self.used_items.iter()
     }
 }
@@ -110,9 +128,9 @@ pub fn module_usage_analysis(
     module: &Module,
     already_used: &mut UsedItems,
     to_analyze: &mut UsedItems,
-) {
+) -> Result<(), UsageError> {
     if already_used.contains_module(&module.path) {
-        return;
+        return Ok(());
     }
 
     already_used.insert_module(module.path.clone(), Default::default());
@@ -123,44 +141,84 @@ pub fn module_usage_analysis(
         .filter(|decl| decl.is_const_assert());
 
     for decl in const_asserts {
-        decl_usage_analysis(module, decl, already_used, to_analyze);
+        decl_usage_analysis(module, decl, already_used, to_analyze)?;
     }
+
+    Ok(())
 }
 
 /// Find declaration names which a local declaration depends on.
 ///
-/// Adds *external* referenced idents to the `to_analyze` parameter.
-/// Perform usage analysis recursively with *local* referenced idents, and adds them to `already_used`.
+/// Adds *external* referenced idents to `to_analyze` with their minimum required visibility.
+/// Perform usage analysis recursively with *local* referenced idents, and adds them to `already_used`
+/// with their declaration visibility.
 /// So at the end of the call, `to_analyze` contains incomplete usage analysis which needs to continue
 /// in a separate module. `already_used` contains finished analysis.
 ///
-/// Returns `false` if the declaration is not found.
+/// `min_vis` is the minimum visibility requirement for the declaration.
+///
+/// Returns [`UsageError::NotFound`] if the declaration is not found.
+/// Returns [`UsageError::Visibility`] if the declaration is found, but does not have the
+/// required visibility.
 pub fn usage_analysis(
     module: &Module,
     decl_name: &str,
+    min_vis: Visibility,
     already_used: &mut UsedItems,
     to_analyze: &mut UsedItems,
-) -> bool {
-    if !already_used.contains_name(&module.path, decl_name) {
+) -> Result<(), UsageError> {
+    if let Some((decl_ident, decl_vis)) = already_used.get_name(&module.path, decl_name) {
+        if decl_vis < min_vis {
+            return Err(UsageError::Visibility {
+                orig: None,
+                decl: (module.path.clone(), decl_ident),
+                min_vis,
+                decl_vis,
+            });
+        }
+    } else {
         if let Some(decl) = module.syntax.global_declarations.iter().find(|decl| {
             decl.ident()
                 .is_some_and(|ident| &**ident.name() == decl_name)
         }) {
             // we found a declaration with the right name, let's analyze it.
-            decl_usage_analysis(module, decl, already_used, to_analyze);
-        } else if let Some((_, item)) = module
+            if decl.visibility() < min_vis {
+                return Err(UsageError::Visibility {
+                    orig: None,
+                    decl: (
+                        module.path.clone(),
+                        decl.ident().unwrap(/* SAFETY: condition of the outer if */),
+                    ),
+                    min_vis,
+                    decl_vis: decl.visibility(),
+                });
+            } else {
+                decl_usage_analysis(module, decl, already_used, to_analyze)?;
+            }
+        } else if let Some((decl_ident, item)) = module
             .imports
             .iter()
             .find(|(ident, _)| *ident.name() == decl_name)
-            && item.public
         {
             // there is no declaration with this name, but there is a re-export.
-            to_analyze.insert_ident(item.path.clone(), item.ident.clone());
+            if item.visibility < min_vis {
+                return Err(UsageError::Visibility {
+                    orig: None,
+                    decl: (module.path.clone(), decl_ident.clone()),
+                    min_vis,
+                    decl_vis: item.visibility,
+                });
+            } else {
+                to_analyze.insert_ident(item.path.clone(), item.ident.clone(), item.visibility);
+            }
         } else {
-            return false;
+            return Err(UsageError::NotFound(
+                module.path.clone(),
+                decl_name.to_string(),
+            ));
         }
     }
-    true
+    Ok(())
 }
 
 /// Find identifiers used by a declaration.
@@ -169,22 +227,40 @@ fn decl_usage_analysis(
     decl: &GlobalDeclaration,
     already_used: &mut UsedItems,
     to_analyze: &mut UsedItems,
-) {
-    if decl
-        .ident()
-        .is_some_and(|ident| !already_used.insert_ident(module.path.clone(), ident))
-    {
+) -> Result<(), UsageError> {
+    if decl.ident().is_some_and(|ident| {
+        !already_used.insert_ident(module.path.clone(), ident, decl.visibility())
+    }) {
         // the ident has already been analyzed.
-        return;
+        return Ok(());
     }
+
+    // inside visit_rec below we can't simply exit the function so we mutate this instead.
+    let mut res = Ok(());
 
     Visit::<TypeExpression>::visit_rec(decl, &mut |ty_expr| {
         // if this ident refers an imported item, we add it to the list of used items.
         if let Some((import_path, import_ident)) =
             imported_item_path(ty_expr, &module.path, &module.imports)
-            && !already_used.contains_name(&import_path, &ty_expr.ident.name())
         {
-            to_analyze.insert_ident(import_path, import_ident);
+            let min_vis = match import_path.origin {
+                PathOrigin::Absolute | PathOrigin::Relative(_) => Visibility::Package,
+                PathOrigin::Package(_) => Visibility::Public,
+            };
+            if let Some((decl_ident, decl_vis)) =
+                already_used.get_name(&import_path, &ty_expr.ident.name())
+            {
+                if decl_vis < min_vis {
+                    res = Err(UsageError::Visibility {
+                        orig: decl.ident().map(|ident| (module.path.clone(), ident)),
+                        decl: (import_path, decl_ident),
+                        min_vis,
+                        decl_vis,
+                    });
+                }
+            } else {
+                to_analyze.insert_ident(import_path, import_ident, min_vis);
+            }
         }
         // this ident refers a local declaration, we analyze it recursively.
         else {
@@ -196,9 +272,13 @@ fn decl_usage_analysis(
                 .iter()
                 .find(|decl| decl.ident().is_some_and(|ident| ident == ty_expr.ident));
 
-            if let Some(decl) = decl {
-                decl_usage_analysis(module, decl, already_used, to_analyze);
+            if let Some(decl) = decl
+                && let Err(err) = decl_usage_analysis(module, decl, already_used, to_analyze)
+            {
+                res = Err(err);
             }
         }
     });
+
+    res
 }

@@ -5,6 +5,6 @@ pub static PACKAGE: StaticPackage = StaticPackage {
 };
 pub static MODULE: StaticPackageModule = StaticPackageModule {
     name: "d",
-    source: "const VERSION = 0x020;\n",
+    source: "public const VERSION = 0x020;\n",
     submodules: &[],
 };

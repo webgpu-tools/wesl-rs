@@ -1,6 +1,6 @@
 use wgsl_parse::{SyntaxNode, syntax::TranslationUnit};
 
-use crate::pass::{Module, UsedItems};
+use crate::pass::{self, Module, UsedItems};
 
 /// Merge all declarations into a single module.
 ///
@@ -19,7 +19,7 @@ pub fn link(modules: &[Module], used_items: Option<&UsedItems>) -> TranslationUn
                         decl.is_const_assert()
                             || decl
                                 .ident()
-                                .is_some_and(|id| used_items.contains_ident(&module.path, &id))
+                                .is_some_and(|id| used_items.get_ident(&module.path, &id).is_some())
                     })
                     .cloned(),
             );
@@ -32,10 +32,14 @@ pub fn link(modules: &[Module], used_items: Option<&UsedItems>) -> TranslationUn
             .global_directives
             .extend(module.syntax.global_directives.clone());
     }
+
+    pass::strip_visibility(&mut result);
+
     // TODO: <https://github.com/webgpu-tools/wesl-spec/issues/71>
     // currently the behavior is:
     // * include all directives used (if strip)
     // * include all directives (if not strip)
     result.global_directives.dedup();
+
     result
 }

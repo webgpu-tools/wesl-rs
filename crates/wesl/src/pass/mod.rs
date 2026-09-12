@@ -10,6 +10,7 @@ mod mangle;
 mod retarget_idents;
 mod usage_analysis;
 mod validate;
+mod visibility;
 mod visit;
 
 pub use compile::{compile, compile_async, load_module, load_module_async, main_entry_points};
@@ -22,4 +23,5 @@ pub use mangle::mangle;
 pub use retarget_idents::{retarget_idents, retarget_modules};
 pub use usage_analysis::{Module, UsedItems, module_usage_analysis, usage_analysis};
 pub use validate::{validate_wesl, validate_wgsl};
+pub use visibility::strip_visibility;
 pub use visit::Visit;

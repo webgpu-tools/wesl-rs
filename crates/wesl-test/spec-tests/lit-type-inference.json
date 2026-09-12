@@ -1,263 +1,263 @@
 [
-  {
-    "name": "explicit-typed-u32-literal",
-    "desc": "Tests variable holds an explicitly-typed unsigned integer literal.",
-    "kind": "eval",
-    "code": "@const fn test() -> u32 { var u32_1 = 1u; return u32_1; }",
-    "eval": "test()",
-    "result": "1u",
-    "expect": "pass",
-    "stage": "const"
-  },
-  {
-    "name": "explicit-typed-i32-literal",
-    "desc": "Tests variable holds an explicitly-typed signed integer literal.",
-    "kind": "eval",
-    "code": "@const fn test() -> i32 { var i32_1 = 1i; return i32_1; }",
-    "eval": "test()",
-    "result": "1i",
-    "expect": "pass",
-    "stage": "const"
-  },
-  {
-    "name": "explicit-typed-f32-literal",
-    "desc": "Tests variable holds an explicitly-typed floating point literal.",
-    "kind": "eval",
-    "code": "@const fn test() -> f32 { var f32_1 = 1f; return f32_1; }",
-    "eval": "test()",
-    "result": "1.0f",
-    "expect": "pass",
-    "stage": "const"
-  },
-  {
-    "name": "negate-u32-literal",
-    "desc": "Tests explicitly-typed unsigned integer literal cannot be negated.",
-    "kind": "eval",
-    "code": "@const fn test() -> u32 { var u32_neg = -1u; return u32_neg; }",
-    "eval": "test()",
-    "expect": "fail",
-    "stage": "const"
-  },
-  {
-    "name": "implicit-i32-literal",
-    "desc": "Tests unsuffixed integer literal inferred as i32.",
-    "kind": "eval",
-    "code": "@const fn test() -> i32 { let some_i32 = 1; return some_i32; }",
-    "eval": "test()",
-    "result": "1i",
-    "expect": "pass",
-    "stage": "const"
-  },
-  {
-    "name": "inferred-from-decl-type-i32",
-    "desc": "Tests AbstractInt inferred from declaration type as i32.",
-    "kind": "eval",
-    "code": "@const fn test() -> i32 { var i32_from_type : i32 = 1; return i32_from_type; }",
-    "eval": "test()",
-    "result": "1i",
-    "expect": "pass",
-    "stage": "const"
-  },
-  {
-    "name": "inferred-from-decl-type-u32",
-    "desc": "Tests AbstractInt inferred from declaration type as u32.",
-    "kind": "eval",
-    "code": "@const fn test() -> u32 { var u32_from_type : u32 = 1; return u32_from_type; }",
-    "eval": "test()",
-    "result": "1u",
-    "expect": "pass",
-    "stage": "const"
-  },
-  {
-    "name": "promotion-to-f32",
-    "desc": "Tests unsuffixed integer literal promoted to f32 when needed.",
-    "kind": "eval",
-    "code": "@const fn test() -> f32 { var f32_promotion : f32 = 1; return f32_promotion; }",
-    "eval": "test()",
-    "result": "1.0f",
-    "expect": "pass",
-    "stage": "const"
-  },
-  {
-    "name": "i32-conversion-from-f32",
-    "desc": "Tests invalid conversion from floating point to integer.",
-    "kind": "eval",
-    "code": "@const fn test() -> i32 { var i32_demotion : i32 = 1.0; return i32_demotion; }",
-    "eval": "test()",
-    "expect": "fail",
-    "stage": "const"
-  },
-  {
-    "name": "expression-inferred-u32",
-    "desc": "Tests variable inferred from expression holds u32.",
-    "kind": "eval",
-    "code": "@const fn test() -> u32 { var u32_1 = 1u; var u32_from_expr = 1 + u32_1; return u32_from_expr; }",
-    "eval": "test()",
-    "result": "2u",
-    "expect": "pass",
-    "stage": "const"
-  },
-  {
-    "name": "expression-inferred-i32",
-    "desc": "Tests variable inferred from expression holds i32.",
-    "kind": "eval",
-    "code": "@const fn test() -> i32 { var i32_1 = 1i; var i32_from_expr = 1 + i32_1; return i32_from_expr; }",
-    "eval": "test()",
-    "result": "2i",
-    "expect": "pass",
-    "stage": "const"
-  },
-  {
-    "name": "overflow-check-u32",
-    "desc": "Tests overflow of large unsigned integer.",
-    "kind": "eval",
-    "code": "@const fn test() -> u32 { let u32_too_large : u32 = 1234567890123456890; return u32_too_large; }",
-    "eval": "test()",
-    "expect": "fail",
-    "stage": "const"
-  },
-  {
-    "name": "overflow-check-i32",
-    "desc": "Tests overflow of large signed integer.",
-    "kind": "eval",
-    "code": "@const fn test() -> i32 { let i32_too_large : i32 = 1234567890123456890; return i32_too_large; }",
-    "eval": "test()",
-    "expect": "fail",
-    "stage": "const"
-  },
-  {
-    "name": "valid-large-u32",
-    "desc": "Tests a valid large unsigned integer.",
-    "kind": "eval",
-    "code": "@const fn test() -> u32 { let u32_large : u32 = 2147483649; return u32_large; }",
-    "eval": "test()",
-    "result": "2147483649u",
-    "expect": "pass",
-    "stage": "const"
-  },
-  {
-    "name": "overflow-check-u32-from-i32",
-    "desc": "Tests overflow from unsigned integer conversion to signed integer.",
-    "kind": "eval",
-    "code": "@const fn test() -> i32 { let u32_large : u32 = 2147483649; let i32_large : i32 = u32_large; return i32_large; }",
-    "eval": "test()",
-    "expect": "fail",
-    "stage": "const"
-  },
-  {
-    "name": "out-of-range-f32",
-    "desc": "Tests floating point value out of range.",
-    "kind": "eval",
-    "code": "@const fn test() -> f32 { let f32_out_of_range1 = 0x1p500; return f32_out_of_range1; }",
-    "eval": "test()",
-    "expect": "fail",
-    "stage": "const"
-  },
-  {
-    "name": "representation-check-f32-lost-bits",
-    "desc": "Tests f32 representation issue due to lost bits.",
-    "kind": "eval",
-    "code": "@const fn test() -> f32 { let f32_hex_lost_bits = 0x1.0000000001p0; return f32_hex_lost_bits; }",
-    "eval": "test()",
-    "expect": "fail",
-    "stage": "const",
-    "skip": true,
-    "issue": "67"
-  },
-  {
-    "name": "i32-minimum-value",
-    "desc": "Tests unary negation over abstract int inferred as i32 minimum value.",
-    "kind": "eval",
-    "code": "@const fn test() -> i32 { let i32_min = -2147483648; return i32_min + 1; }",
-    "eval": "test()",
-    "result": "-2147483647i",
-    "expect": "pass",
-    "stage": "const",
-    "note": "the minimum i32 value is not representable with the i suffix"
-  },
-  {
-    "name": "out-of-range-int-literal",
-    "desc": "Tests integer literal value out of range.",
-    "kind": "eval",
-    "code": "@const fn test() -> i32 { let i32_too_large_2 = 2147483648; return i32_too_large_2; }",
-    "eval": "test()",
-    "expect": "fail",
-    "stage": "const"
-  },
-  {
-    "name": "complex-expr-infers-u32",
-    "desc": "Tests complex expression with mixed abstract and concrete int inferred as u32.",
-    "kind": "eval",
-    "code": "@const fn test() -> u32 { var u32_expr4 = 1 + (1 + (1 + (1 + (1u + 1)))); return u32_expr4; }",
-    "eval": "test()",
-    "result": "6u",
-    "expect": "pass",
-    "stage": "const"
-  },
-  {
-    "name": "function-inference-i32",
-    "desc": "Tests inference based on built-in function parameters for integers.",
-    "kind": "eval",
-    "code": "@const fn test() -> i32 { let i32_clamp = clamp(1, -5, 5); return i32_clamp; }",
-    "eval": "test()",
-    "result": "1i",
-    "expect": "pass",
-    "stage": "const"
-  },
-  {
-    "name": "type-rules-violation-float-to-u32",
-    "desc": "Tests invalid conversion from float to u32.",
-    "kind": "eval",
-    "code": "@const fn test() -> u32 { let mismatch : u32 = 1.0; return mismatch; }",
-    "eval": "test()",
-    "expect": "fail",
-    "stage": "const"
-  },
-  {
-    "name": "ambiguous-function-call",
-    "desc": "Tests function call with invalid mixed-sign parameters.",
-    "kind": "eval",
-    "code": "@const fn test() -> u32 { let ambiguous_clamp = clamp(1u, 0, 1i); return 0u; }",
-    "eval": "test()",
-    "expect": "fail",
-    "stage": "const"
-  },
-  {
-    "name": "expression-inference-f32-promotion",
-    "desc": "Tests expression inference promotes result to f32.",
-    "kind": "eval",
-    "code": "@const fn test() -> f32 { let f32_promotion3 = 1f + ((2 + 3) + 4); return f32_promotion3; }",
-    "eval": "test()",
-    "result": "10.0f",
-    "expect": "pass",
-    "stage": "const"
-  },
-  {
-    "name": "overflow-due-to-subtraction",
-    "desc": "Tests overflow due to subtraction with unsigned integer.",
-    "kind": "eval",
-    "code": "@const fn test() -> u32 { let overflow_u32 = (1 - 2) + 1u; return overflow_u32; }",
-    "eval": "test()",
-    "expect": "fail",
-    "stage": "const"
-  },
-  {
-    "name": "in-range-computation",
-    "desc": "Tests computation out of typical range but within valid limits.",
-    "kind": "eval",
-    "code": "@const fn test() -> i32 { let out_and_in_again = (0x1ffffffff / 8); return out_and_in_again; }",
-    "eval": "test()",
-    "result": "1073741823i",
-    "expect": "pass",
-    "stage": "const"
-  },
-  {
-    "name": "out-of-range-computation-u32",
-    "desc": "Tests invalid computation resulting in out-of-range for u32.",
-    "kind": "eval",
-    "code": "@const fn test() -> u32 { let out_of_range = (0x1ffffffff / 8u); return out_of_range; }",
-    "eval": "test()",
-    "expect": "fail",
-    "stage": "const"
-  }
+	{
+		"name": "explicit-typed-u32-literal",
+		"desc": "Tests variable holds an explicitly-typed unsigned integer literal.",
+		"kind": "eval",
+		"code": "@const fn test() -> u32 { var u32_1 = 1u; return u32_1; }",
+		"eval": "test()",
+		"result": "1u",
+		"expect": "pass",
+		"stage": "const"
+	},
+	{
+		"name": "explicit-typed-i32-literal",
+		"desc": "Tests variable holds an explicitly-typed signed integer literal.",
+		"kind": "eval",
+		"code": "@const fn test() -> i32 { var i32_1 = 1i; return i32_1; }",
+		"eval": "test()",
+		"result": "1i",
+		"expect": "pass",
+		"stage": "const"
+	},
+	{
+		"name": "explicit-typed-f32-literal",
+		"desc": "Tests variable holds an explicitly-typed floating point literal.",
+		"kind": "eval",
+		"code": "@const fn test() -> f32 { var f32_1 = 1f; return f32_1; }",
+		"eval": "test()",
+		"result": "1.0f",
+		"expect": "pass",
+		"stage": "const"
+	},
+	{
+		"name": "negate-u32-literal",
+		"desc": "Tests explicitly-typed unsigned integer literal cannot be negated.",
+		"kind": "eval",
+		"code": "@const fn test() -> u32 { var u32_neg = -1u; return u32_neg; }",
+		"eval": "test()",
+		"expect": "fail",
+		"stage": "const"
+	},
+	{
+		"name": "implicit-i32-literal",
+		"desc": "Tests unsuffixed integer literal inferred as i32.",
+		"kind": "eval",
+		"code": "@const fn test() -> i32 { let some_i32 = 1; return some_i32; }",
+		"eval": "test()",
+		"result": "1i",
+		"expect": "pass",
+		"stage": "const"
+	},
+	{
+		"name": "inferred-from-decl-type-i32",
+		"desc": "Tests AbstractInt inferred from declaration type as i32.",
+		"kind": "eval",
+		"code": "@const fn test() -> i32 { var i32_from_type : i32 = 1; return i32_from_type; }",
+		"eval": "test()",
+		"result": "1i",
+		"expect": "pass",
+		"stage": "const"
+	},
+	{
+		"name": "inferred-from-decl-type-u32",
+		"desc": "Tests AbstractInt inferred from declaration type as u32.",
+		"kind": "eval",
+		"code": "@const fn test() -> u32 { var u32_from_type : u32 = 1; return u32_from_type; }",
+		"eval": "test()",
+		"result": "1u",
+		"expect": "pass",
+		"stage": "const"
+	},
+	{
+		"name": "promotion-to-f32",
+		"desc": "Tests unsuffixed integer literal promoted to f32 when needed.",
+		"kind": "eval",
+		"code": "@const fn test() -> f32 { var f32_promotion : f32 = 1; return f32_promotion; }",
+		"eval": "test()",
+		"result": "1.0f",
+		"expect": "pass",
+		"stage": "const"
+	},
+	{
+		"name": "i32-conversion-from-f32",
+		"desc": "Tests invalid conversion from floating point to integer.",
+		"kind": "eval",
+		"code": "@const fn test() -> i32 { var i32_demotion : i32 = 1.0; return i32_demotion; }",
+		"eval": "test()",
+		"expect": "fail",
+		"stage": "const"
+	},
+	{
+		"name": "expression-inferred-u32",
+		"desc": "Tests variable inferred from expression holds u32.",
+		"kind": "eval",
+		"code": "@const fn test() -> u32 { var u32_1 = 1u; var u32_from_expr = 1 + u32_1; return u32_from_expr; }",
+		"eval": "test()",
+		"result": "2u",
+		"expect": "pass",
+		"stage": "const"
+	},
+	{
+		"name": "expression-inferred-i32",
+		"desc": "Tests variable inferred from expression holds i32.",
+		"kind": "eval",
+		"code": "@const fn test() -> i32 { var i32_1 = 1i; var i32_from_expr = 1 + i32_1; return i32_from_expr; }",
+		"eval": "test()",
+		"result": "2i",
+		"expect": "pass",
+		"stage": "const"
+	},
+	{
+		"name": "overflow-check-u32",
+		"desc": "Tests overflow of large unsigned integer.",
+		"kind": "eval",
+		"code": "@const fn test() -> u32 { let u32_too_large : u32 = 1234567890123456890; return u32_too_large; }",
+		"eval": "test()",
+		"expect": "fail",
+		"stage": "const"
+	},
+	{
+		"name": "overflow-check-i32",
+		"desc": "Tests overflow of large signed integer.",
+		"kind": "eval",
+		"code": "@const fn test() -> i32 { let i32_too_large : i32 = 1234567890123456890; return i32_too_large; }",
+		"eval": "test()",
+		"expect": "fail",
+		"stage": "const"
+	},
+	{
+		"name": "valid-large-u32",
+		"desc": "Tests a valid large unsigned integer.",
+		"kind": "eval",
+		"code": "@const fn test() -> u32 { let u32_large : u32 = 2147483649; return u32_large; }",
+		"eval": "test()",
+		"result": "2147483649u",
+		"expect": "pass",
+		"stage": "const"
+	},
+	{
+		"name": "overflow-check-u32-from-i32",
+		"desc": "Tests overflow from unsigned integer conversion to signed integer.",
+		"kind": "eval",
+		"code": "@const fn test() -> i32 { let u32_large : u32 = 2147483649; let i32_large : i32 = u32_large; return i32_large; }",
+		"eval": "test()",
+		"expect": "fail",
+		"stage": "const"
+	},
+	{
+		"name": "out-of-range-f32",
+		"desc": "Tests floating point value out of range.",
+		"kind": "eval",
+		"code": "@const fn test() -> f32 { let f32_out_of_range1 = 0x1p500; return f32_out_of_range1; }",
+		"eval": "test()",
+		"expect": "fail",
+		"stage": "const"
+	},
+	{
+		"name": "representation-check-f32-lost-bits",
+		"desc": "Tests f32 representation issue due to lost bits.",
+		"kind": "eval",
+		"code": "@const fn test() -> f32 { let f32_hex_lost_bits = 0x1.0000000001p0; return f32_hex_lost_bits; }",
+		"eval": "test()",
+		"expect": "fail",
+		"stage": "const",
+		"skip": true,
+		"issue": "67"
+	},
+	{
+		"name": "i32-minimum-value",
+		"desc": "Tests unary negation over abstract int inferred as i32 minimum value.",
+		"kind": "eval",
+		"code": "@const fn test() -> i32 { let i32_min = -2147483648; return i32_min + 1; }",
+		"eval": "test()",
+		"result": "-2147483647i",
+		"expect": "pass",
+		"stage": "const",
+		"note": "the minimum i32 value is not representable with the i suffix"
+	},
+	{
+		"name": "out-of-range-int-literal",
+		"desc": "Tests integer literal value out of range.",
+		"kind": "eval",
+		"code": "@const fn test() -> i32 { let i32_too_large_2 = 2147483648; return i32_too_large_2; }",
+		"eval": "test()",
+		"expect": "fail",
+		"stage": "const"
+	},
+	{
+		"name": "complex-expr-infers-u32",
+		"desc": "Tests complex expression with mixed abstract and concrete int inferred as u32.",
+		"kind": "eval",
+		"code": "@const fn test() -> u32 { var u32_expr4 = 1 + (1 + (1 + (1 + (1u + 1)))); return u32_expr4; }",
+		"eval": "test()",
+		"result": "6u",
+		"expect": "pass",
+		"stage": "const"
+	},
+	{
+		"name": "function-inference-i32",
+		"desc": "Tests inference based on built-in function parameters for integers.",
+		"kind": "eval",
+		"code": "@const fn test() -> i32 { let i32_clamp = clamp(1, -5, 5); return i32_clamp; }",
+		"eval": "test()",
+		"result": "1i",
+		"expect": "pass",
+		"stage": "const"
+	},
+	{
+		"name": "type-rules-violation-float-to-u32",
+		"desc": "Tests invalid conversion from float to u32.",
+		"kind": "eval",
+		"code": "@const fn test() -> u32 { let mismatch : u32 = 1.0; return mismatch; }",
+		"eval": "test()",
+		"expect": "fail",
+		"stage": "const"
+	},
+	{
+		"name": "ambiguous-function-call",
+		"desc": "Tests function call with invalid mixed-sign parameters.",
+		"kind": "eval",
+		"code": "@const fn test() -> u32 { let ambiguous_clamp = clamp(1u, 0, 1i); return 0u; }",
+		"eval": "test()",
+		"expect": "fail",
+		"stage": "const"
+	},
+	{
+		"name": "expression-inference-f32-promotion",
+		"desc": "Tests expression inference promotes result to f32.",
+		"kind": "eval",
+		"code": "@const fn test() -> f32 { let f32_promotion3 = 1f + ((2 + 3) + 4); return f32_promotion3; }",
+		"eval": "test()",
+		"result": "10.0f",
+		"expect": "pass",
+		"stage": "const"
+	},
+	{
+		"name": "overflow-due-to-subtraction",
+		"desc": "Tests overflow due to subtraction with unsigned integer.",
+		"kind": "eval",
+		"code": "@const fn test() -> u32 { let overflow_u32 = (1 - 2) + 1u; return overflow_u32; }",
+		"eval": "test()",
+		"expect": "fail",
+		"stage": "const"
+	},
+	{
+		"name": "in-range-computation",
+		"desc": "Tests computation out of typical range but within valid limits.",
+		"kind": "eval",
+		"code": "@const fn test() -> i32 { let out_and_in_again = (0x1ffffffff / 8); return out_and_in_again; }",
+		"eval": "test()",
+		"result": "1073741823i",
+		"expect": "pass",
+		"stage": "const"
+	},
+	{
+		"name": "out-of-range-computation-u32",
+		"desc": "Tests invalid computation resulting in out-of-range for u32.",
+		"kind": "eval",
+		"code": "@const fn test() -> u32 { let out_of_range = (0x1ffffffff / 8u); return out_of_range; }",
+		"eval": "test()",
+		"expect": "fail",
+		"stage": "const"
+	}
 ]

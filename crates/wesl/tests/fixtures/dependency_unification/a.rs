@@ -5,6 +5,6 @@ pub static PACKAGE: StaticPackage = StaticPackage {
 };
 pub static MODULE: StaticPackageModule = StaticPackageModule {
     name: "a",
-    source: "@publish import c::{ VERSION as C_VERSION };\n@publish import d::{ VERSION as D_VERSION };\nconst VERSION = 0x010;\n",
+    source: "public import c::{ VERSION as C_VERSION };\npublic import d::{ VERSION as D_VERSION };\npublic const VERSION = 0x010;\n",
     submodules: &[],
 };

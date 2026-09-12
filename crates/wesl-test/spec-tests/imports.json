@@ -1,31 +1,31 @@
 [
-    {
-        "name": "dupl-decl",
-        "desc": "two declarations have the same name",
-        "kind": "context",
-        "code": "const foo: u32 = 0; const foo: u32 = 0;",
-        "expect": "fail"
-    },
-    {
-        "name": "dupl-decl-import",
-        "desc": "cannot import the same identifier twice",
-        "kind": "context",
-        "code": "import some::foo; import package::foo;",
-        "expect": "fail"
-    },
-    {
-        "name": "dupl-decl-import-renamed",
-        "desc": "same ident is imported twice, but one is renamed",
-        "kind": "context",
-        "code": "import some::foo as bar; import package::foo;",
-        "expect": "pass"
-    },
-    {
-        "name": "dupl-decl-conflict-local",
-        "desc": "imported ident conflicts with local declaration",
-        "kind": "context",
-        "code": "import some::foo; const foo: u32 = 0;",
-        "expect": "fail",
-        "issue": "117"
-    }
+	{
+		"name": "dupl-decl",
+		"desc": "two declarations have the same name",
+		"kind": "context",
+		"code": "const foo: u32 = 0; const foo: u32 = 0;",
+		"expect": "fail"
+	},
+	{
+		"name": "dupl-decl-import",
+		"desc": "cannot import the same identifier twice",
+		"kind": "context",
+		"code": "import some::foo; import package::foo;",
+		"expect": "fail"
+	},
+	{
+		"name": "dupl-decl-import-renamed",
+		"desc": "same ident is imported twice, but one is renamed",
+		"kind": "context",
+		"code": "import some::foo as bar; import package::foo;",
+		"expect": "pass"
+	},
+	{
+		"name": "dupl-decl-conflict-local",
+		"desc": "imported ident conflicts with local declaration",
+		"kind": "context",
+		"code": "import some::foo; const foo: u32 = 0;",
+		"expect": "fail",
+		"issue": "117"
+	}
 ]

@@ -3,9 +3,7 @@
 // super import: `super` = `package::util` (util.wesl), one level up.
 import super::EPSILON;
 
-// TODO: visibility
-// public fn double(x: f32) -> f32 {
-fn double(x: f32) -> f32 {
+public fn double(x: f32) -> f32 {
     return x * 2.0;
 }
 

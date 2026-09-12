@@ -406,10 +406,23 @@ fn test_module_path_fromstr() {
 }
 
 impl GlobalDeclaration {
-    /// Remove all [`Statement::Void`]
+    /// Remove all [`Statement::Void`].
     pub fn remove_voids(&mut self) {
         if let GlobalDeclaration::Function(decl) = self {
             decl.body.remove_voids();
+        }
+    }
+
+    /// Get the [`Visibility`] of a global declaration.
+    pub fn visibility(&self) -> Visibility {
+        match self {
+            GlobalDeclaration::Declaration(decl) => decl.visibility,
+            GlobalDeclaration::TypeAlias(decl) => decl.visibility,
+            GlobalDeclaration::Struct(decl) => decl.visibility,
+            GlobalDeclaration::Function(decl) => decl.visibility,
+            GlobalDeclaration::Void
+            | GlobalDeclaration::ConstAssert(_)
+            | GlobalDeclaration::Compound(_) => Visibility::Private,
         }
     }
 }
@@ -418,6 +431,7 @@ impl TypeAlias {
     pub fn new(ident: Ident, ty: TypeExpression) -> Self {
         Self {
             attributes: Default::default(),
+            visibility: Default::default(),
             ident,
             ty,
         }
@@ -428,6 +442,7 @@ impl Struct {
     pub fn new(ident: Ident) -> Self {
         Self {
             attributes: Default::default(),
+            visibility: Default::default(),
             ident,
             members: Default::default(),
         }
@@ -448,6 +463,7 @@ impl Function {
     pub fn new(ident: Ident) -> Self {
         Self {
             attributes: Default::default(),
+            visibility: Default::default(),
             ident,
             parameters: Default::default(),
             return_attributes: Default::default(),

@@ -8,6 +8,72 @@ use crate::{error::ParseError, span::Span, syntax::*};
 
 type E = ParseError;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DeclarationScope {
+    Module,
+    Function,
+}
+
+pub fn validate_declaration(decl: &Declaration, scope: DeclarationScope) -> Result<(), ParseError> {
+    // check for required initializers
+    if matches!(decl.kind, DeclarationKind::Const | DeclarationKind::Let)
+        && decl.initializer.is_none()
+    {
+        return Err(ParseError::InvalidDeclaration(
+            decl.kind,
+            "missing required initializer",
+        ));
+    }
+
+    // check for disallowed initializers
+    if let DeclarationKind::Var(Some((a_s, _))) = decl.kind {
+        let initializer_disallowed = match a_s {
+            AddressSpace::Function | AddressSpace::Private => false,
+            AddressSpace::Workgroup
+            | AddressSpace::Uniform
+            | AddressSpace::Storage
+            | AddressSpace::Handle
+            | AddressSpace::Immediate => true,
+            #[cfg(feature = "naga-ext")]
+            AddressSpace::TaskPayload
+            | AddressSpace::RayPayload
+            | AddressSpace::IncomingRayPayload => true,
+        };
+        if initializer_disallowed && decl.initializer.is_some() {
+            return Err(ParseError::InvalidDeclaration(
+                decl.kind,
+                "unexpected initializer",
+            ));
+        }
+    }
+
+    // check for declaration scope
+    match scope {
+        DeclarationScope::Module => match decl.kind {
+            DeclarationKind::Let | DeclarationKind::Var(Some((AddressSpace::Function, _))) => {
+                return Err(ParseError::InvalidDeclaration(
+                    decl.kind,
+                    "not allowed in module scope",
+                ));
+            }
+            DeclarationKind::Const | DeclarationKind::Override | DeclarationKind::Var(_) => {}
+        },
+        DeclarationScope::Function => match decl.kind {
+            DeclarationKind::Const
+            | DeclarationKind::Let
+            | DeclarationKind::Var(None | Some((AddressSpace::Function, _))) => {}
+            DeclarationKind::Override | DeclarationKind::Var(_) => {
+                return Err(ParseError::InvalidDeclaration(
+                    decl.kind,
+                    "not allowed in functions",
+                ));
+            }
+        },
+    }
+
+    Ok(())
+}
+
 /// Make operator chains left-associative and check that they contain all the same operator.
 ///
 /// WGSL forbids mixing bitwise operators (`&`, `|`, `^`) and short-circuit operators (`&&`, `||`):
@@ -266,7 +332,6 @@ pub(crate) fn parse_attribute(
             Some(expr) => Ok(Attribute::IncomingPayload(expr)),
             None => Err(E::Attribute("incoming_payload", "expected 1 arguments")),
         },
-        "publish" => Ok(Attribute::Publish),
         "if" => match one_arg(args) {
             Some(expr) => Ok(Attribute::If(expr)),
             None => Err(E::Attribute("if", "expected 1 argument")),

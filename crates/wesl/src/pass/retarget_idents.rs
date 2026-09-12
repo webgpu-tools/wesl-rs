@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet, hash_map::Entry},
+    collections::{HashMap, hash_map::Entry},
     rc::Rc,
 };
 
@@ -411,7 +411,7 @@ pub fn retarget_modules(modules: &mut [Module], used_items: &UsedItems, resolver
         ty: &mut TypeExpression,
         module_path: &ModulePath,
         module_imports: &Imports,
-        module_idents: &HashSet<Ident>,
+        module_idents: &HashMap<Ident, Visibility>,
         other_modules: impl IntoIterator<Item = &'a Module> + Clone + 'a,
         resolver: &impl Resolver,
     ) {
@@ -439,7 +439,7 @@ pub fn retarget_modules(modules: &mut [Module], used_items: &UsedItems, resolver
                 // module is not stored in `other_modules`.
                 if import_path == *module_path {
                     if let Some(ident) = module_idents
-                        .iter()
+                        .keys()
                         .find(|ident| *ident.name() == *import_ident.name())
                         .cloned()
                     {
@@ -450,7 +450,6 @@ pub fn retarget_modules(modules: &mut [Module], used_items: &UsedItems, resolver
                     } else if let Some((_, item)) = module_imports
                         .iter()
                         .find(|(ident, _)| *ident.name() == *ty.ident.name())
-                        && item.public
                     {
                         // there is no declaration with this name, but there is a re-export.
                         // we loop again with a new path and ident to look up.
@@ -479,7 +478,6 @@ pub fn retarget_modules(modules: &mut [Module], used_items: &UsedItems, resolver
                         .imports
                         .iter()
                         .find(|(ident, _)| *ident.name() == *import_ident.name())
-                        && item.public
                     {
                         // there is no declaration with this name, but there is a re-export.
                         // we loop again with a new path and ident to look up.
@@ -503,7 +501,7 @@ pub fn retarget_modules(modules: &mut [Module], used_items: &UsedItems, resolver
             right.split_first_mut().unwrap(/* SAFETY: the 1st element exists at index i */);
         let other_modules = left.iter().chain(right.iter());
 
-        let Some(module_used_items) = used_items.get(&module.path) else {
+        let Some(module_used_items) = used_items.get_module(&module.path) else {
             debug_assert!(false, "missing module {} in retarget_idents", module.path);
             continue;
         };
@@ -511,7 +509,7 @@ pub fn retarget_modules(modules: &mut [Module], used_items: &UsedItems, resolver
         for decl in &mut module.syntax.global_declarations {
             // we only retarget used declarations. Other declarations are not checked.
             if let Some(ident) = decl.ident()
-                && !module_used_items.contains(&ident)
+                && !module_used_items.contains_key(&ident)
             {
                 continue;
             }

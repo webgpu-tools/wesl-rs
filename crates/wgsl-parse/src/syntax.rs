@@ -94,12 +94,24 @@ impl std::hash::Hash for Ident {
     }
 }
 
+/// WESL visibility extension
+#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, IsVariant)]
+pub enum Visibility {
+    Private,
+    #[default]
+    Package,
+    Public,
+}
+
 /// WESL imports extension
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ImportStatement {
     pub attributes: Attributes,
+    pub visibility: Visibility,
     pub path: Option<ModulePath>,
     pub content: ImportContent,
 }
@@ -211,6 +223,7 @@ pub type GlobalDeclarationNode = Spanned<GlobalDeclaration>;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Declaration {
     pub attributes: Attributes,
+    pub visibility: Visibility,
     pub kind: DeclarationKind,
     pub ident: Ident,
     pub ty: Option<TypeExpression>,
@@ -233,6 +246,7 @@ pub enum DeclarationKind {
 pub struct TypeAlias {
     /// WESL extension
     pub attributes: Attributes,
+    pub visibility: Visibility,
     pub ident: Ident,
     pub ty: TypeExpression,
 }
@@ -243,6 +257,7 @@ pub struct TypeAlias {
 pub struct Struct {
     /// WESL extension
     pub attributes: Attributes,
+    pub visibility: Visibility,
     pub ident: Ident,
     pub members: Vec<StructMemberNode>,
 }
@@ -263,6 +278,7 @@ pub type StructMemberNode = Spanned<StructMember>;
 #[derive(Clone, Debug, PartialEq)]
 pub struct Function {
     pub attributes: Attributes,
+    pub visibility: Visibility,
     pub ident: Ident,
     pub parameters: Vec<FormalParameter>,
     pub return_attributes: Attributes,
@@ -356,8 +372,6 @@ pub enum Attribute {
     Fragment,
     Compute,
 
-    /// WESL extension
-    Publish,
     /// WESL extension
     If(ExpressionNode),
     /// WESL extension

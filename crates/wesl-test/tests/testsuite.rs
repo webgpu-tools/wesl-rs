@@ -68,6 +68,9 @@ fn main() {
         "spec-tests/imports.json",
         "spec-tests/circular.json",
         "spec-tests/types.json",
+        "spec-tests/dead-code.json",
+        "spec-tests/condcomp-flatten.json",
+        "spec-tests/visibility.json",
     ];
     for path in spec_tests {
         tests.extend({
@@ -113,8 +116,6 @@ fn main() {
     let testsuite_tests = [
         "wesl-testsuite/src/test-cases-json/importCases.json",
         "wesl-testsuite/src/test-cases-json/conditionalTranslationCases.json",
-        "spec-tests/dead-code.json",
-        "spec-tests/condcomp-flatten.json",
     ];
     for path in testsuite_tests {
         tests.extend({
@@ -369,6 +370,47 @@ fn json_case(case: &Test) -> Result<(), libtest_mimic::Failed> {
                 (Ok(()), Expectation::Fail) => Err("expected Fail, got Pass".into()),
                 (Err(e), Expectation::Pass) => {
                     Err(format!("expected Pass, got Fail (`{e}`)").into())
+                }
+            }
+        }
+        TestKind::Modules { modules, result } => {
+            let mut resolver = VirtualResolver::new();
+
+            for (path, file) in modules {
+                let path = ModulePath::from_str(path)?;
+                resolver.add_module(path, file.into());
+            }
+
+            let main_module = ModulePath::new_root();
+            resolver.add_module(main_module.clone(), case.code.clone().into());
+
+            let compile_options = CompileOptions {
+                keep_main: true,
+                ..Default::default()
+            };
+
+            let res =
+                Compiler::new_with_resolver(compile_options, resolver).compile_module(&main_module);
+
+            let expect = result
+                .as_ref()
+                .map(|expect| expect.parse::<TranslationUnit>())
+                .transpose()?;
+
+            match (res, expect) {
+                (Err(_), None) => Ok(()),
+                (Ok(mut res), Some(mut expect)) => {
+                    res.syntax.sort_declarations();
+                    expect.sort_declarations();
+                    if res.to_string() != expect.to_string() {
+                        Err(format!("expected `{expect}`, got `{res}`").into())
+                    } else {
+                        Ok(())
+                    }
+                }
+                (Ok(res), None) => Err(format!("expected Fail, got Pass (`{res}`)").into()),
+                (Err(err), Some(expect)) => {
+                    Err(format!("expected `{expect}`, got Fail (`{err}`)").into())
                 }
             }
         }

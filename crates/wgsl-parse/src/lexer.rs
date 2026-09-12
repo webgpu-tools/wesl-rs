@@ -487,6 +487,14 @@ pub enum Token {
     #[regex(r#"0[xX][\da-fA-F]+[pP][+-]?\d+lf"#, parse_hex_f64)]
     F64(f64),
 
+    // extension: wesl-visibility
+    // https://github.com/webgpu-tools/wesl-spec/blob/main/visibility.md
+    // date: 2026-09-06, hash: af8236a875332f672a0fc5bcc4f9a034aec4f1ee
+    #[token("public")]
+    KwPublic,
+    #[token("private")]
+    KwPrivate,
+
     // extension: wesl-imports
     // https://github.com/webgpu-tools/wesl-spec/blob/imports-update/Imports.md
     // date: 2025-01-18, hash: 2db8e7f681087db6bdcd4a254963deb5c0159775
@@ -718,13 +726,16 @@ impl Display for Token {
             Token::U64(n) => write!(f, "{n}lu"),
             Token::F64(n) => write!(f, "{n}lf"),
 
+            Token::KwPublic => f.write_str("public"),
+            Token::KwPrivate => f.write_str("private"),
+
             // wesl import extension
-            Token::SymColonColon => write!(f, "::"),
-            Token::KwSelf => write!(f, "self"),
-            Token::KwSuper => write!(f, "super"),
-            Token::KwPackage => write!(f, "package"),
-            Token::KwAs => write!(f, "as"),
-            Token::KwImport => write!(f, "import"),
+            Token::SymColonColon => f.write_str("::"),
+            Token::KwSelf => f.write_str("self"),
+            Token::KwSuper => f.write_str("super"),
+            Token::KwPackage => f.write_str("package"),
+            Token::KwAs => f.write_str("as"),
+            Token::KwImport => f.write_str("import"),
         }
     }
 }

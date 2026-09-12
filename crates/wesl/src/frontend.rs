@@ -15,7 +15,7 @@ use wgsl_parse::{
 
 use crate::{
     SyntaxUtil,
-    error::{Diagnostic, Error, ImportError, ResolveError},
+    error::{Diagnostic, Error, ResolveError, UsageError},
     mangler::{self, Mangler},
     pass::{self, CompilerDriver, Features, Module, UsedItems},
     resolver::{Constants, Resolver, StandardResolver},
@@ -569,7 +569,7 @@ impl CompilerDriver for CompilationPass<'_> {
             keep.iter()
                 .map(|name| {
                     main_module.decl_ident(name).ok_or_else(|| {
-                        ImportError::MissingDecl(self.main_path.clone(), name.to_string()).into()
+                        UsageError::NotFound(self.main_path.clone(), name.to_string()).into()
                     })
                 })
                 .collect::<Result<HashSet<Ident>, Error>>()
@@ -586,14 +586,20 @@ impl CompilerDriver for CompilationPass<'_> {
         already_used: &mut UsedItems,
         to_analyze: &mut UsedItems,
     ) -> Result<(), Error> {
-        pass::module_usage_analysis(module, already_used, to_analyze);
+        pass::module_usage_analysis(module, already_used, to_analyze)?;
 
         // when strip is disabled, all declarations in the module are included so they
         // must be usage-analyzed.
         if !self.options.strip {
             for decl in &module.syntax.global_declarations {
                 if let Some(ident) = decl.ident() {
-                    self.usage_analysis(module, &ident.name(), already_used, to_analyze)?;
+                    self.usage_analysis(
+                        module,
+                        &ident.name(),
+                        decl.visibility(),
+                        already_used,
+                        to_analyze,
+                    )?;
                 }
             }
         }

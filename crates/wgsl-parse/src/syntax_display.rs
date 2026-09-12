@@ -59,9 +59,24 @@ impl Display for Ident {
     }
 }
 
+impl Display for Visibility {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Visibility::Private => f.write_str("private"),
+            Visibility::Package => f.write_str("package"),
+            Visibility::Public => f.write_str("public"),
+        }
+    }
+}
+
 impl Display for ImportStatement {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", fmt_attrs(&self.attributes, false))?;
+        write!(
+            f,
+            "{}{}",
+            fmt_attrs(&self.attributes, false),
+            fmt_visibility(self.visibility)
+        )?;
         let content = &self.content;
         if let Some(path) = &self.path {
             write!(f, "import {path}::{content};")
@@ -166,7 +181,12 @@ impl Display for GlobalDeclaration {
 
 impl Display for Declaration {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", fmt_attrs(&self.attributes, false))?;
+        write!(
+            f,
+            "{}{}",
+            fmt_attrs(&self.attributes, false),
+            fmt_visibility(self.visibility)
+        )?;
         let kind = &self.kind;
         let name = &self.ident;
         let ty = self
@@ -196,7 +216,12 @@ impl Display for DeclarationKind {
 
 impl Display for TypeAlias {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", fmt_attrs(&self.attributes, false))?;
+        write!(
+            f,
+            "{}{}",
+            fmt_attrs(&self.attributes, false),
+            fmt_visibility(self.visibility)
+        )?;
         let name = &self.ident;
         let ty = &self.ty;
         write!(f, "alias {name} = {ty};")
@@ -205,7 +230,12 @@ impl Display for TypeAlias {
 
 impl Display for Struct {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", fmt_attrs(&self.attributes, false))?;
+        write!(
+            f,
+            "{}{}",
+            fmt_attrs(&self.attributes, false),
+            fmt_visibility(self.visibility)
+        )?;
         let name = &self.ident;
         let members = Indent(self.members.iter().format(",\n"));
         write!(f, "struct {name} {{\n{members}\n}}")
@@ -223,7 +253,12 @@ impl Display for StructMember {
 
 impl Display for Function {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", fmt_attrs(&self.attributes, false))?;
+        write!(
+            f,
+            "{}{}",
+            fmt_attrs(&self.attributes, false),
+            fmt_visibility(self.visibility)
+        )?;
         let name = &self.ident;
         let params = self.parameters.iter().format(", ");
         let ret_ty = self.return_type.iter().format_with("", |ty, f| {
@@ -297,7 +332,6 @@ impl Display for Attribute {
             Attribute::Compute => write!(f, "@compute"),
 
             // wesl extensions
-            Attribute::Publish => write!(f, "@publish"),
             Attribute::If(e1) => write!(f, "@if({e1})"),
             Attribute::Elif(e1) => write!(f, "@elif({e1})"),
             Attribute::Else => write!(f, "@else"),
@@ -356,6 +390,14 @@ fn fmt_attrs(attrs: &[AttributeNode], inline: bool) -> impl fmt::Display + '_ {
             "\n"
         };
         write!(f, "{print}{suffix}")
+    })
+}
+
+fn fmt_visibility(vis: Visibility) -> impl fmt::Display {
+    FormatFn(move |f| match vis {
+        Visibility::Public => f.write_str("public "),
+        Visibility::Package => Ok(()),
+        Visibility::Private => f.write_str("private "),
     })
 }
 

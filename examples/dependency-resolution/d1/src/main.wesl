@@ -1,1 +1,1 @@
-const VERSION = 0x010;
+public const VERSION = 0x010;

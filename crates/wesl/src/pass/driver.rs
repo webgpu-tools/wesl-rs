@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
-use wgsl_parse::syntax::{Ident, ModulePath, TranslationUnit};
+use wgsl_parse::syntax::{Ident, ModulePath, TranslationUnit, Visibility};
 
 use crate::{
-    error::{Error, ImportError},
+    error::Error,
     pass::{self, Module, UsedItems},
 };
 
@@ -64,31 +64,28 @@ pub trait CompilerDriver: Sized {
         already_used: &mut UsedItems,
         to_analyze: &mut UsedItems,
     ) -> Result<(), Error> {
-        pass::module_usage_analysis(module, already_used, to_analyze);
+        pass::module_usage_analysis(module, already_used, to_analyze)?;
         Ok(())
     }
 
     /// Find declaration names which a local declaration depends on.
     ///
-    /// Adds *external* referenced idents to the `to_analyze` parameter.
-    /// Perform usage analysis recursively with *local* referenced idents, and adds them to `already_used`.
+    /// Adds *external* referenced idents to `to_analyze` with their minimum required visibility.
+    /// Perform usage analysis recursively with *local* referenced idents, and adds them to `already_used`
+    /// with their declaration visibility.
     /// So at the end of the call, `to_analyze` contains incomplete usage analysis which needs to continue
     /// in a separate module. `already_used` contains finished analysis.
+    ///
+    /// `min_vis` is the minimum visibility requirement for the declaration.
     fn usage_analysis(
         &self,
         module: &Module,
         decl_name: &str,
+        min_vis: Visibility,
         already_used: &mut UsedItems,
         to_analyze: &mut UsedItems,
     ) -> Result<(), Error> {
-        let found = pass::usage_analysis(module, decl_name, already_used, to_analyze);
-
-        if !found {
-            return Err(
-                ImportError::MissingDecl(module.path.clone(), decl_name.to_string()).into(),
-            );
-        }
-
+        pass::usage_analysis(module, decl_name, min_vis, already_used, to_analyze)?;
         Ok(())
     }
 

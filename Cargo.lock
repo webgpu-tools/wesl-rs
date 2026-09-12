@@ -105,7 +105,7 @@ checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 [[package]]
 name = "bevy-wgsl"
 version = "0.1.0"
-source = "git+https://github.com/webgpu-tools/bevy-wgsl?rev=9325bb623217d4b303e29fb47dfc39ac91d94af7#9325bb623217d4b303e29fb47dfc39ac91d94af7"
+source = "git+https://github.com/webgpu-tools/bevy-wgsl?rev=d02ef1eb62fba2d28e044a2c514b7c8a039b836b#d02ef1eb62fba2d28e044a2c514b7c8a039b836b"
 dependencies = [
  "wesl",
  "wesl-core",

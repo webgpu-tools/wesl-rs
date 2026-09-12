@@ -4,7 +4,12 @@ use std::str::FromStr;
 
 #[cfg(feature = "naga-ext")]
 use crate::tplt::AccelerationStructureTags;
-use crate::{Error, Instance, inst::*, syntax::*};
+use crate::{
+    Error, Instance,
+    arena::{Arena, Id},
+    inst::*,
+    syntax::*,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructMemberType {

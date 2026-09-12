@@ -5,6 +5,7 @@ mod display;
 mod error;
 mod mem;
 
+pub mod arena;
 pub mod builtin;
 pub mod conv;
 pub mod idents;

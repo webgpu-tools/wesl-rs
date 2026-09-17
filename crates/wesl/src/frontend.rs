@@ -253,7 +253,7 @@ pub async fn compile_async(
     if options.sourcemap {
         let sourcemapper = SourceMapper::new(main_path.clone(), &resolver, &mangler);
         let mut pass = CompilationPass::new(main_path, options, &sourcemapper, &sourcemapper);
-        let res = CompilerDriver::compile(&mut pass);
+        let res = CompilerDriver::compile_async(&mut pass).await;
         let sourcemap = sourcemapper.finish();
         let res = res.map_err(|e| Diagnostic::from(e).with_sourcemap(&sourcemap))?;
 

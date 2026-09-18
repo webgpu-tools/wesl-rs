@@ -50,7 +50,7 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
     let main_entrypoints = driver
         .main_entry_points(&main_module)?
         .into_iter()
-        .map(|ident| (ident, Visibility::Private)) // No visibility requirements for entry points
+        .map(|ident: Ident| (ident, Visibility::Private)) // No visibility requirements for entry points
         .collect::<HashMap<Ident, Visibility>>();
 
     let mut modules = Vec::new();

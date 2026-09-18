@@ -7,6 +7,7 @@ use crate::{
     inst::{Instance, LiteralInstance},
     syntax::{AccessMode, AddressSpace, Enumerant, SampledType, TexelFormat},
     ty::{TextureType, Ty, Type},
+    ty_context::TyContext,
 };
 
 /// A single template parameter.
@@ -118,12 +119,12 @@ impl VecTemplate {
     pub fn new_unchecked(ty: Type) -> Self {
         Self { ty }
     }
-    pub fn parse(tplt: &[TpltParam]) -> Result<VecTemplate, E> {
+    pub fn parse(tplt: &[TpltParam], context: &TyContext) -> Result<VecTemplate, E> {
         let ty = match tplt {
             [TpltParam::Type(ty)] => Ok(ty.clone()),
             _ => Err(E::TemplateArgs("vector")),
         }?;
-        if ty.is_scalar() && ty.is_concrete() {
+        if ty.is_scalar() && ty.is_concrete(context) {
             Ok(VecTemplate { ty })
         } else {
             Err(Error::Builtin("vector template type must be a scalar"))
@@ -169,7 +170,7 @@ pub struct PtrTemplate {
 }
 
 impl PtrTemplate {
-    pub fn parse(tplt: &[TpltParam]) -> Result<PtrTemplate, E> {
+    pub fn parse(tplt: &[TpltParam], context: &TyContext) -> Result<PtrTemplate, E> {
         let mut it = tplt.iter();
         match (
             it.next().cloned(),
@@ -183,7 +184,7 @@ impl PtrTemplate {
                 access,
                 None,
             ) => {
-                if !ty.is_storable() {
+                if !ty.is_storable(context) {
                     return Err(Error::Builtin("pointer type must be storable"));
                 }
                 let access = match access {

@@ -1,7 +1,7 @@
 use crate::error::{Diagnostic, Error};
-use crate::eval::{Context, Exec, Lower, mark_functions_const};
+use crate::eval::{mark_functions_const, Context, Exec, Lower};
 use crate::pass::Visit;
-use wgsl_parse::{SyntaxNode, syntax::*};
+use wgsl_parse::{syntax::*, SyntaxNode};
 
 /// Performs conversions on the final syntax tree to make it more compatible with WGSL
 /// implementations like Naga, catch errors early and perform optimizations.
@@ -28,12 +28,14 @@ pub fn lower(module: &mut TranslationUnit) -> Result<(), Error> {
         })
     }
 
+    use wgsl_types::ty_context::TyContext;
     mark_functions_const(module);
 
     // we want to drop wesl2 at the end of the block for idents use_count
     {
         let module2 = module.clone();
-        let mut ctx = Context::new(&module2);
+        let ty_context = TyContext::default();
+        let mut ctx = Context::new(&module2, &ty_context);
         module
             .exec(&mut ctx) // populate the ctx with module-scope declarations
             .map_err(|e| Diagnostic::from(e).with_ctx(&ctx))?;

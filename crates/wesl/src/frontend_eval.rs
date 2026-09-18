@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use wgsl_parse::syntax::{self, TranslationUnit};
-use wgsl_types::{Instance, ShaderStage, inst::RefInstance};
+use wgsl_types::{Instance, ShaderStage, inst::RefInstance, ty, ty_context::TyContext};
 
 use crate::{
     CompileResult,
@@ -55,7 +55,7 @@ impl EvalResult<'_> {
     // TODO: make context non-mut
     /// Convert the result instance to its in-memory representation.
     pub fn to_buffer(&mut self) -> Option<Vec<u8>> {
-        self.inst.to_buffer()
+        self.inst.to_buffer(&self.ctx.ty_context)
     }
 }
 
@@ -77,11 +77,15 @@ impl CompileResult {
     ///
     /// The user-defined `@const` attribute is non-standard.
     /// See issue [#46](https://github.com/webgpu-tools/wesl-spec/issues/46#issuecomment-2389531479).
-    pub fn eval<'a>(&'a self, source: &str) -> Result<EvalResult<'a>, Error> {
+    pub fn eval<'a>(
+        &'a self,
+        source: &str,
+        ty_context: &'a TyContext,
+    ) -> Result<EvalResult<'a>, Error> {
         let expr = source
             .parse::<syntax::Expression>()
             .map_err(|e| Error::Error(Diagnostic::from(e).with_source(source.to_string())))?;
-        let (inst, ctx) = eval(&expr, &self.syntax);
+        let (inst, ctx) = eval(&expr, &self.syntax, ty_context);
         let inst = inst.map_err(|e| {
             Diagnostic::from(e)
                 .with_source(source.to_string())
@@ -111,8 +115,9 @@ impl CompileResult {
         inputs: Inputs,
         bindings: HashMap<(u32, u32), RefInstance>,
         overrides: HashMap<String, Instance>,
+        ty_context: &'a TyContext,
     ) -> Result<ExecResult<'a>, Error> {
-        let mut ctx = Context::new(&self.syntax);
+        let mut ctx = Context::new(&self.syntax, ty_context);
         ctx.add_bindings(bindings);
         ctx.add_overrides(overrides);
         ctx.set_stage(ShaderStage::Exec);
@@ -143,12 +148,12 @@ impl CompileResult {
 /// const-expressions.
 ///
 /// Not all builtin `@const` WGSL functions are supported yet.
-pub fn eval_str(expr: &str) -> Result<Instance, Error> {
+pub fn eval_str(expr: &str, ty_context: &TyContext) -> Result<Instance, Error> {
     let expr = expr
         .parse::<syntax::Expression>()
         .map_err(|e| Error::Error(Diagnostic::from(e).with_source(expr.to_string())))?;
     let module = TranslationUnit::default();
-    let (inst, ctx) = eval(&expr, &module);
+    let (inst, ctx) = eval(&expr, &module, ty_context);
     inst.map_err(|e| {
         Error::Error(
             Diagnostic::from(e)
@@ -167,8 +172,9 @@ pub fn eval_str(expr: &str) -> Result<Instance, Error> {
 pub fn eval<'s>(
     expr: &syntax::Expression,
     wgsl: &'s TranslationUnit,
+    ty_context: &'s TyContext,
 ) -> (Result<Instance, EvalError>, Context<'s>) {
-    let mut ctx = Context::new(wgsl);
+    let mut ctx = Context::new(wgsl, ty_context);
     let res = wgsl.exec(&mut ctx).and_then(|_| expr.eval(&mut ctx));
     (res, ctx)
 }
@@ -179,8 +185,9 @@ pub fn exec<'s>(
     wgsl: &'s TranslationUnit,
     bindings: HashMap<(u32, u32), RefInstance>,
     overrides: HashMap<String, Instance>,
+    ty_context: &'s TyContext,
 ) -> (Result<Option<Instance>, EvalError>, Context<'s>) {
-    let mut ctx = Context::new(wgsl);
+    let mut ctx = Context::new(wgsl, ty_context);
     ctx.add_bindings(bindings);
     ctx.add_overrides(overrides);
     ctx.set_stage(ShaderStage::Exec);

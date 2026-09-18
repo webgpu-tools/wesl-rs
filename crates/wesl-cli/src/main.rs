@@ -12,7 +12,9 @@ use std::{
 use wesl::{
     CompileOptions, CompileResult, Compiler, Feature, Features, ManglerKind,
     error::Diagnostic,
-    eval::{Eval, EvalAttrs, Inputs, Instance, LiteralInstance, RefInstance, Ty, ty_eval_ty},
+    eval::{
+        Eval, EvalAttrs, Inputs, Instance, LiteralInstance, RefInstance, Ty, TyContext, ty_eval_ty,
+    },
     package::PackageBuilder,
     resolver::{Router, StandardResolver, VirtualResolver},
     syntax::{self, AccessMode, AddressSpace, ModulePath, PathOrigin, TranslationUnit},
@@ -483,8 +485,9 @@ fn run_compile(
 fn parse_binding(
     b: &Binding,
     module: &TranslationUnit,
+    ty_context: &TyContext,
 ) -> Result<((u32, u32), RefInstance), CliError> {
-    let mut ctx = wesl::eval::Context::new(module);
+    let mut ctx = wesl::eval::Context::new(module, ty_context);
 
     let ty_expr = module
         .global_declarations
@@ -523,13 +526,13 @@ fn parse_binding(
         BindingType::ReadWrite => todo!(),
         BindingType::ReadOnly => todo!(),
     };
-    let inst = Instance::from_buffer(&b.data, &ty).ok_or_else(|| {
+    let inst = Instance::from_buffer(&b.data, &ty, &ctx.ty_context()).ok_or_else(|| {
         CliError::ResourceIncompatible(
             b.group,
             b.binding,
             b.data.len() as u32,
             ty.clone(),
-            ty.size_of().unwrap_or_default(),
+            ty.size_of(&ctx.ty_context()).unwrap_or_default(),
         )
     })?;
     Ok((
@@ -538,8 +541,12 @@ fn parse_binding(
     ))
 }
 
-fn eval_expr(src: &str, module: &TranslationUnit) -> Result<Instance, CliError> {
-    let mut ctx = wesl::eval::Context::new(module);
+fn eval_expr(
+    src: &str,
+    module: &TranslationUnit,
+    ty_context: &TyContext,
+) -> Result<Instance, CliError> {
+    let mut ctx = wesl::eval::Context::new(module, ty_context);
     let expr = src
         .parse::<syntax::Expression>()
         .map_err(|e| Diagnostic::from(e).with_source(src.to_string()))?;
@@ -637,11 +644,12 @@ fn run(cli: Cli) -> Result<(), CliError> {
             let comp = file_or_source(args.file)
                 .map(|input| run_compile(&args.options, input))
                 .unwrap_or_else(|| Ok(CompileResult::default()))?;
-            let eval = comp.eval(&args.expr)?;
+            let ty_context = TyContext::default();
+            let eval = comp.eval(&args.expr, &ty_context)?;
             if args.binary {
                 let buf = eval
                     .inst
-                    .to_buffer()
+                    .to_buffer(eval.ctx.ty_context())
                     .ok_or_else(|| CliError::NotStorable(eval.inst.ty()))?;
                 std::io::stdout().write_all(buf.as_slice()).unwrap();
             } else {
@@ -652,42 +660,45 @@ fn run(cli: Cli) -> Result<(), CliError> {
             let comp = file_or_source(args.file)
                 .map(|input| run_compile(&args.options, input))
                 .unwrap_or_else(|| Ok(CompileResult::default()))?;
-
+            let ty_context = TyContext::default();
             let resources = args
                 .resources
                 .iter()
-                .map(|b| parse_binding(b, &comp.syntax))
+                .map(|b| parse_binding(b, &comp.syntax, &ty_context))
                 .collect::<Result<_, _>>()?;
 
             let overrides = args
                 .overrides
                 .iter()
                 .map(|(name, expr)| -> Result<(String, Instance), CliError> {
-                    Ok((name.to_string(), eval_expr(expr, &comp.syntax)?))
+                    Ok((
+                        name.to_string(),
+                        eval_expr(expr, &comp.syntax, &ty_context)?,
+                    ))
                 })
                 .collect::<Result<_, _>>()?;
 
-            let mut inputs = Inputs::new_zero_initialized();
+            let mut inputs = Inputs::new_zero_initialized(&ty_context);
 
             inputs.user_defined = args
                 .user_inputs
                 .iter()
                 .map(|(index, expr)| -> Result<(u32, Instance), CliError> {
-                    Ok((*index, eval_expr(expr, &comp.syntax)?))
+                    Ok((*index, eval_expr(expr, &comp.syntax, &ty_context)?))
                 })
                 .collect::<Result<_, _>>()?;
 
             for (name, expr) in &args.builtins {
-                let inst = eval_expr(expr, &comp.syntax)?;
+                let inst = eval_expr(expr, &comp.syntax, &ty_context)?;
                 inputs.builtins.insert(name.to_string(), inst);
             }
 
-            let exec = comp.exec(&args.entrypoint, inputs, resources, overrides)?;
+            let exec = comp.exec(&args.entrypoint, inputs, resources, overrides, &ty_context)?;
 
             if let Some(inst) = &exec.inst {
                 if args.binary {
                     let buf = inst
-                        .to_buffer()
+                        .to_buffer(exec.ctx.ty_context())
                         .ok_or_else(|| CliError::NotStorable(inst.ty()))?;
                     std::io::stdout().write_all(buf.as_slice()).unwrap();
                 } else {
@@ -710,7 +721,7 @@ fn run(cli: Cli) -> Result<(), CliError> {
             for (group, binding, inst) in resources {
                 if args.binary {
                     let buf = inst
-                        .to_buffer()
+                        .to_buffer(exec.ctx.ty_context())
                         .ok_or_else(|| CliError::NotStorable(inst.ty()))?;
                     std::io::stdout().write_all(buf.as_slice()).unwrap();
                 } else {

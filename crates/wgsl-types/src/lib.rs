@@ -13,6 +13,7 @@ pub mod inst;
 pub mod syntax;
 pub mod tplt;
 pub mod ty;
+pub mod ty_context;
 
 pub use error::Error;
 pub use inst::Instance;

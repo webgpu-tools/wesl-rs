@@ -716,9 +716,9 @@ pub fn fract(e: &Instance, stage: ShaderStage, context: &TyContext) -> Result<In
 /// TODO: This built-in is only partially implemented.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#frexp-builtin>
-pub fn frexp(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+pub fn frexp(e: &Instance, context: &mut TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`frexp` expects a float or vector of float argument");
-    fn make_frexp_inst(fract: Instance, exp: Instance, context: &TyContext) -> Instance {
+    fn make_frexp_inst(fract: Instance, exp: Instance, context: &mut TyContext) -> Instance {
         Instance::Struct(StructInstance::new(
             frexp_struct_type(&fract.ty(), context).unwrap(),
             vec![fract, exp],
@@ -1560,7 +1560,7 @@ pub fn atomicCompareExchangeWeak(
     atomic_ptr: &Instance,
     cmp: &Instance,
     v: &Instance,
-    context: &TyContext,
+    context: &mut TyContext,
 ) -> Result<Instance, E> {
     let old_value = atomicLoad(atomic_ptr, context)?;
 
@@ -1579,7 +1579,7 @@ pub fn atomicCompareExchangeWeak(
         atomicStore(atomic_ptr, &v, context)?;
     }
     Ok(Instance::Struct(StructInstance::new(
-        atomic_compare_exchange_struct_type(&old_value.ty()),
+        atomic_compare_exchange_struct_type(&old_value.ty(), context),
         vec![old_value, LiteralInstance::Bool(exchanged).into()],
         context,
     )))

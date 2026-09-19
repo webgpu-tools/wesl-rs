@@ -63,7 +63,7 @@ pub fn call_builtin_fn(
     tplt: Option<&[TpltParam]>,
     args: &[Instance],
     stage: ShaderStage,
-    context: &TyContext,
+    context: &mut TyContext,
 ) -> Result<Option<Instance>, E> {
     match (name, tplt, args) {
         // constructors

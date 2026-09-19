@@ -31,7 +31,7 @@ pub fn type_builtin_fn(
     name: &str,
     tplt: Option<&[TpltParam]>,
     args: &[Type],
-    context: &TyContext,
+    context: &mut TyContext,
 ) -> Result<Option<Type>, E> {
     let err = || {
         E::Signature(CallSignature {
@@ -96,7 +96,7 @@ pub fn type_builtin_fn(
         ("max", [a1, a2]) => max(a1, a2, context).map(Some),
         ("min", [a1, a2]) => min(a1, a2, context).map(Some),
         ("mix", [a1, a2, a3]) => mix(a1, a2, a3, context).map(Some),
-        ("modf", [a]) => modf(a).map(Some),
+        ("modf", [a]) => modf(a, context).map(Some),
         ("normalize", [a]) => normalize(a).map(Some),
         ("pow", [a1, a2]) => pow(a1, a2, context).map(Some),
         ("quantizeToF16", [a]) => quantizeToF16(a, context).map(Some),
@@ -292,9 +292,13 @@ pub fn type_builtin_fn(
         #[cfg(feature = "naga-ext")]
         ("rayQueryTerminate", [a]) => rayQueryTerminate(a).map(|()| None),
         #[cfg(feature = "naga-ext")]
-        ("rayQueryGetCommittedIntersection", [a]) => rayQueryGetCommittedIntersection(a).map(Some),
+        ("rayQueryGetCommittedIntersection", [a]) => {
+            rayQueryGetCommittedIntersection(a, context).map(Some)
+        }
         #[cfg(feature = "naga-ext")]
-        ("rayQueryGetCandidateIntersection", [a]) => rayQueryGetCandidateIntersection(a).map(Some),
+        ("rayQueryGetCandidateIntersection", [a]) => {
+            rayQueryGetCandidateIntersection(a, context).map(Some)
+        }
         #[cfg(feature = "naga-ext")]
         ("getCommittedHitVertexPositions", [a]) => getCommittedHitVertexPositions(a).map(Some),
         #[cfg(feature = "naga-ext")]
@@ -339,7 +343,7 @@ pub(crate) fn frexp_struct_name(ty: &Type) -> Option<&'static str> {
     }
 }
 
-pub(crate) fn frexp_struct_type(ty: &Type, context: &TyContext) -> Option<StructType> {
+pub(crate) fn frexp_struct_type(ty: &Type, context: &mut TyContext) -> Option<StructType> {
     frexp_struct_name(ty).map(|name| {
         let exp_inner_ty = if ty.is_abstract(context) {
             Type::AbstractInt
@@ -389,7 +393,10 @@ pub(crate) fn modf_struct_name(ty: &Type) -> Option<&'static str> {
     }
 }
 
-pub(crate) fn atomic_compare_exchange_struct_type(ty: &Type) -> StructType {
+pub(crate) fn atomic_compare_exchange_struct_type(
+    ty: &Type,
+    context: &mut TyContext,
+) -> StructType {
     StructType {
         name: "__atomic_compare_exchange_result".to_string(),
         members: vec![
@@ -399,7 +406,7 @@ pub(crate) fn atomic_compare_exchange_struct_type(ty: &Type) -> StructType {
     }
 }
 
-pub(crate) fn modf_struct_type(ty: &Type) -> Option<StructType> {
+pub(crate) fn modf_struct_type(ty: &Type, context: &mut TyContext) -> Option<StructType> {
     modf_struct_name(ty).map(|name| StructType {
         name: name.to_string(),
         members: vec![
@@ -411,7 +418,7 @@ pub(crate) fn modf_struct_type(ty: &Type) -> Option<StructType> {
 
 #[cfg(feature = "naga-ext")]
 #[allow(unused)]
-pub(crate) fn ray_desc_struct_type() -> StructType {
+pub(crate) fn ray_desc_struct_type(context: &mut TyContext) -> StructType {
     StructType {
         name: "RayDesc".to_string(),
         members: vec![
@@ -426,7 +433,7 @@ pub(crate) fn ray_desc_struct_type() -> StructType {
 }
 
 #[cfg(feature = "naga-ext")]
-pub(crate) fn ray_intersection_struct_type() -> StructType {
+pub(crate) fn ray_intersection_struct_type(context: &mut TyContext) -> StructType {
     StructType {
         name: "RayIntersection".to_string(),
         members: vec![
@@ -931,7 +938,7 @@ pub fn fract(e: &Type) -> Result<Type, E> {
 /// TODO: This built-in is only partially implemented.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#frexp-builtin>
-pub fn frexp(e: &Type, context: &TyContext) -> Result<Type, E> {
+pub fn frexp(e: &Type, context: &mut TyContext) -> Result<Type, E> {
     if inner_is_float(e) {
         Ok(frexp_struct_type(e, context).unwrap().into())
     } else {
@@ -1085,9 +1092,9 @@ pub fn mix(e1: &Type, e2: &Type, e3: &Type, context: &TyContext) -> Result<Type,
 /// `modf()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#modf-builtin>
-pub fn modf(e: &Type) -> Result<Type, E> {
+pub fn modf(e: &Type, context: &mut TyContext) -> Result<Type, E> {
     if inner_is_float(e) {
-        Ok(modf_struct_type(e).unwrap().into())
+        Ok(modf_struct_type(e, context).unwrap().into())
     } else {
         Err(E::Builtin(
             "`modf` expects a float scalar or vector argument",
@@ -2113,7 +2120,7 @@ pub fn atomicCompareExchangeWeak(
     e1: &Type,
     e2: &Type,
     e3: &Type,
-    context: &TyContext,
+    context: &mut TyContext,
 ) -> Result<Type, E> {
     let Type::Ptr(a_s, ptr_ty, a_m) = e1 else {
         return Err(E::Builtin(
@@ -2146,7 +2153,7 @@ pub fn atomicCompareExchangeWeak(
             "`atomicCompareExchangeWeak` 3rd argument is incompatible with the atomic pointer type",
         ))
     } else {
-        Ok(atomic_compare_exchange_struct_type(ty).into())
+        Ok(atomic_compare_exchange_struct_type(ty, context).into())
     }
 }
 
@@ -2755,12 +2762,12 @@ pub fn rayQueryTerminate(rq: &Type) -> Result<(), E> {
 
 /// `rayQueryGetCommittedIntersection()` `naga` built-in function.
 #[cfg(feature = "naga-ext")]
-pub fn rayQueryGetCommittedIntersection(e: &Type) -> Result<Type, E> {
+pub fn rayQueryGetCommittedIntersection(e: &Type, context: &mut TyContext) -> Result<Type, E> {
     if matches!(
         e,
         Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
     ) {
-        Ok(ray_intersection_struct_type().into())
+        Ok(ray_intersection_struct_type(context).into())
     } else {
         Err(E::Builtin(
             "`rayQueryGetCommittedIntersection` expects a pointer to `ray_query` argument",
@@ -2770,12 +2777,12 @@ pub fn rayQueryGetCommittedIntersection(e: &Type) -> Result<Type, E> {
 
 /// `rayQueryGetCandidateIntersection()` `naga` built-in function.
 #[cfg(feature = "naga-ext")]
-pub fn rayQueryGetCandidateIntersection(e: &Type) -> Result<Type, E> {
+pub fn rayQueryGetCandidateIntersection(e: &Type, context: &mut TyContext) -> Result<Type, E> {
     if matches!(
         e,
         Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
     ) {
-        Ok(ray_intersection_struct_type().into())
+        Ok(ray_intersection_struct_type(context).into())
     } else {
         Err(E::Builtin(
             "`rayQueryGetCandidateIntersection` expects a pointer to `ray_query` argument",

@@ -423,7 +423,7 @@ impl EvalTy for FunctionCallExpression {
                 GlobalDeclaration::Struct(decl) => decl.eval_ty(ctx),
                 GlobalDeclaration::Function(decl) => {
                     if decl.body.contains_attribute(&ATTR_INTRINSIC) {
-                        type_builtin_fn(&name, tplt.as_deref(), &args, &ctx.ty_context)?
+                        type_builtin_fn(&name, tplt.as_deref(), &args, &mut ctx.ty_context)?
                             .ok_or_else(|| E::Void(decl.ident.to_string()))
                     } else {
                         // TODO: check argument types

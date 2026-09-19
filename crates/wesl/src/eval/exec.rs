@@ -645,8 +645,13 @@ fn exec_fn(
     }
 
     if decl.body.contains_attribute(&ATTR_INTRINSIC) {
-        let call_res =
-            call_builtin_fn(&fn_name, tplt.as_deref(), &args, ctx.stage, &ctx.ty_context)?;
+        let call_res = call_builtin_fn(
+            &fn_name,
+            tplt.as_deref(),
+            &args,
+            ctx.stage,
+            &mut ctx.ty_context,
+        )?;
         return Ok(call_res);
     }
 
@@ -736,8 +741,13 @@ impl Exec for FunctionCall {
                 Err(E::NotCallable(fn_name))
             }
         } else if is_ctor(&fn_name) {
-            let call_res =
-                call_builtin_fn(&fn_name, tplt.as_deref(), &args, ctx.stage, &ctx.ty_context)?;
+            let call_res = call_builtin_fn(
+                &fn_name,
+                tplt.as_deref(),
+                &args,
+                ctx.stage,
+                &mut ctx.ty_context,
+            )?;
             Ok(Flow::Return(call_res))
         } else {
             Err(E::UnknownFunction(fn_name))

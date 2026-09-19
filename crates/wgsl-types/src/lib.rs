@@ -39,3 +39,13 @@ pub enum ShaderStage {
     /// Shader execution
     Exec,
 }
+
+/// Insertion-order-preserving hash set (`IndexSet<K>`), but with the same
+/// hasher as `FastHashSet<K>` (faster but not resilient to DoS attacks).
+pub type FastIndexSet<K> =
+    indexmap::IndexSet<K, core::hash::BuildHasherDefault<rustc_hash::FxHasher>>;
+
+/// Insertion-order-preserving hash map (`IndexMap<K, V>`), but with the same
+/// hasher as `FastHashMap<K, V>` (faster but not resilient to DoS attacks).
+pub type FastIndexMap<K, V> =
+    indexmap::IndexMap<K, V, core::hash::BuildHasherDefault<rustc_hash::FxHasher>>;

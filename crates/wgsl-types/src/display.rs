@@ -11,32 +11,30 @@ use crate::{
     syntax::Enumerant,
     tplt::TpltParam,
     ty::{SamplerType, TextureType, Ty, Type},
-    ty_context::{TyContext, WithContext},
+    ty_context::{DisplayWithContext, TyContext},
 };
 
-impl Display for WithContext<'_, TpltParam> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.value {
-            TpltParam::Type(ty) => write!(f, "{}", self.context.display(ty)),
-            TpltParam::Instance(inst) => write!(f, "{}", self.context.display(inst)),
+impl DisplayWithContext for TpltParam {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, context: &TyContext) -> std::fmt::Result {
+        match self {
+            TpltParam::Type(ty) => write!(f, "{}", context.display(ty)),
+            TpltParam::Instance(inst) => write!(f, "{}", context.display(inst)),
             TpltParam::Enumerant(name) => write!(f, "{name}"),
         }
     }
 }
 
-impl Display for WithContext<'_, CallSignature> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = &self.value.name;
-        let tplt = self.value.tplt.as_ref().map(|tplt| {
-            tplt.iter()
-                .map(|param| self.context.display(param))
-                .format(", ")
-        });
+impl DisplayWithContext for CallSignature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, context: &TyContext) -> std::fmt::Result {
+        let name = &self.name;
+        let tplt = self
+            .tplt
+            .as_ref()
+            .map(|tplt| tplt.iter().map(|param| context.display(param)).format(", "));
         let args = self
-            .value
             .args
             .iter()
-            .map(|arg| self.context.display(arg))
+            .map(|arg| context.display(arg))
             .format(", ");
 
         if let Some(tplt) = tplt {
@@ -47,18 +45,18 @@ impl Display for WithContext<'_, CallSignature> {
     }
 }
 
-impl Display for WithContext<'_, Instance> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.value {
+impl DisplayWithContext for Instance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, context: &TyContext) -> std::fmt::Result {
+        match self {
             Instance::Literal(inst) => write!(f, "{inst}"),
-            Instance::Struct(inst) => write!(f, "{}", self.context.display(inst)),
-            Instance::Array(inst) => write!(f, "{}", self.context.display(inst)),
-            Instance::Vec(inst) => write!(f, "{}", self.context.display(inst)),
-            Instance::Mat(inst) => write!(f, "{}", self.context.display(inst)),
-            Instance::Ptr(inst) => write!(f, "{}", self.context.display(inst)),
-            Instance::Ref(inst) => write!(f, "{}", self.context.display(inst)),
-            Instance::Atomic(inst) => write!(f, "{}", self.context.display(inst)),
-            Instance::Opaque(ty) => write!(f, "__opaque<{}>", self.context.display(ty)),
+            Instance::Struct(inst) => write!(f, "{}", context.display(inst)),
+            Instance::Array(inst) => write!(f, "{}", context.display(inst)),
+            Instance::Vec(inst) => write!(f, "{}", context.display(inst)),
+            Instance::Mat(inst) => write!(f, "{}", context.display(inst)),
+            Instance::Ptr(inst) => write!(f, "{}", context.display(inst)),
+            Instance::Ref(inst) => write!(f, "{}", context.display(inst)),
+            Instance::Atomic(inst) => write!(f, "{}", context.display(inst)),
+            Instance::Opaque(ty) => write!(f, "__opaque<{}>", context.display(ty)),
         }
     }
 }
@@ -83,49 +81,46 @@ impl Display for LiteralInstance {
     }
 }
 
-impl Display for WithContext<'_, StructInstance> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = &self.value.ty.name;
+impl DisplayWithContext for StructInstance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, context: &TyContext) -> std::fmt::Result {
+        let name = &context[self.ty].name;
         let comps = self
-            .value
             .members
             .iter()
-            .map(|inst| format!("{}", self.context.display(inst)))
+            .map(|inst| format!("{}", context.display(inst)))
             .format(", ");
         write!(f, "{name}({comps})")
     }
 }
 
-impl Display for WithContext<'_, ArrayInstance> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl DisplayWithContext for ArrayInstance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, context: &TyContext) -> std::fmt::Result {
         let comps = self
-            .value
             .iter()
-            .map(|inst| format!("{}", self.context.display(inst)))
+            .map(|inst| format!("{}", context.display(inst)))
             .format(", ");
         write!(f, "array({comps})")
     }
 }
 
-impl Display for WithContext<'_, VecInstance> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let n = self.value.n();
+impl DisplayWithContext for VecInstance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, context: &TyContext) -> std::fmt::Result {
+        let n = self.n();
         let comps = self
-            .value
             .iter()
-            .map(|inst| format!("{}", self.context.display(inst)))
+            .map(|inst| format!("{}", context.display(inst)))
             .format(", ");
         write!(f, "vec{n}({comps})")
     }
 }
 
-impl Display for WithContext<'_, MatInstance> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let c = self.value.c();
-        let r = self.value.r();
+impl DisplayWithContext for MatInstance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, context: &TyContext) -> std::fmt::Result {
+        let c = self.c();
+        let r = self.r();
         let comps = (0..c)
-            .map(|i| self.value.col(i).unwrap())
-            .map(|inst| format!("{}", self.context.display(inst)))
+            .map(|i| self.col(i).unwrap())
+            .map(|inst| format!("{}", context.display(inst)))
             .format(", ");
         write!(f, "mat{c}x{r}({comps})")
     }
@@ -143,54 +138,32 @@ impl Display for Enumerant {
     }
 }
 
-impl PtrInstance {
-    pub fn with_context<'a>(&'a self, context: &'a TyContext) -> WithContext<'a, PtrInstance> {
-        WithContext {
-            value: self,
-            context,
-        }
-    }
-}
-
-impl Display for WithContext<'_, PtrInstance> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let space = &self.value.ptr.space;
-        let ty = &self.value.ptr.ty;
-        let access = &self.value.ptr.access;
-        let val = self
-            .value
-            .ptr
-            .read(self.context)
-            .expect("invalid reference");
+impl DisplayWithContext for PtrInstance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, context: &TyContext) -> std::fmt::Result {
+        let space = &self.ptr.space;
+        let ty = &self.ptr.ty;
+        let access = &self.ptr.access;
+        let val = self.ptr.read(context).expect("invalid reference");
         write!(
             f,
             "ptr<{space}, {}, {access}>({})",
-            self.context.display(ty),
-            self.context.display::<Instance>(&val)
+            context.display(ty),
+            context.display::<Instance>(&val)
         )
     }
 }
 
-impl RefInstance {
-    pub fn with_context<'a>(&'a self, context: &'a TyContext) -> WithContext<'a, RefInstance> {
-        WithContext {
-            value: self,
-            context,
-        }
-    }
-}
-
-impl Display for WithContext<'_, RefInstance> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let space = &self.value.space;
-        let ty = &self.value.ty;
-        let access = &self.value.access;
-        let val = self.value.read(self.context).expect("invalid reference");
+impl DisplayWithContext for RefInstance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, context: &TyContext) -> std::fmt::Result {
+        let space = &self.space;
+        let ty = &self.ty;
+        let access = &self.access;
+        let val = self.read(context).expect("invalid reference");
         write!(
             f,
             "ref<{space}, {}, {access}>({})",
-            self.context.display(ty),
-            self.context.display::<Instance>(&val)
+            context.display(ty),
+            context.display::<Instance>(&val)
         )
     }
 }
@@ -215,22 +188,22 @@ impl Display for MemView {
     }
 }
 
-impl Display for WithContext<'_, AtomicInstance> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let ty = &self.value.inner_ty();
-        let val = self.value.inner();
+impl DisplayWithContext for AtomicInstance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, context: &TyContext) -> std::fmt::Result {
+        let ty = &self.inner_ty();
+        let val = self.inner();
         write!(
             f,
             "atomic<{}>({})",
-            self.context.display(ty),
-            self.context.display(val)
+            context.display(ty),
+            context.display(val)
         )
     }
 }
 
-impl Display for WithContext<'_, Type> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match &self.value {
+impl DisplayWithContext for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, context: &TyContext) -> std::fmt::Result {
+        match &self {
             Type::Bool => write!(f, "bool"),
             Type::AbstractInt => write!(f, "AbstractInt"),
             Type::AbstractFloat => write!(f, "AbstractFloat"),
@@ -238,24 +211,20 @@ impl Display for WithContext<'_, Type> {
             Type::U32 => write!(f, "u32"),
             Type::F32 => write!(f, "f32"),
             Type::F16 => write!(f, "f16"),
-            Type::Struct(s) => write!(f, "{}", s.name),
+            Type::Struct(s) => write!(f, "{}", context[*s].name),
             Type::Array(ty, Some(n)) => {
-                write!(f, "array<{}, {n}>", self.context.display(ty.as_ref()))
+                write!(f, "array<{}, {n}>", context.display(ty.as_ref()))
             }
-            Type::Array(ty, None) => write!(f, "array<{}>", self.context.display(ty.as_ref())),
-            Type::Vec(n, ty) => write!(f, "vec{n}<{}>", self.context.display(ty.as_ref())),
-            Type::Mat(m, n, ty) => write!(f, "mat{m}x{n}<{}>", self.context.display(ty.as_ref())),
-            Type::Atomic(ty) => write!(f, "atomic<{}>", self.context.display(ty.as_ref())),
-            Type::Ptr(a_s, ty, a_m) => write!(
-                f,
-                "ptr<{a_s}, {}, {a_m}>",
-                self.context.display(ty.as_ref())
-            ),
-            Type::Ref(a_s, ty, a_m) => write!(
-                f,
-                "ref<{a_s}, {}, {a_m}>",
-                self.context.display(ty.as_ref())
-            ),
+            Type::Array(ty, None) => write!(f, "array<{}>", context.display(ty.as_ref())),
+            Type::Vec(n, ty) => write!(f, "vec{n}<{}>", context.display(ty.as_ref())),
+            Type::Mat(m, n, ty) => write!(f, "mat{m}x{n}<{}>", context.display(ty.as_ref())),
+            Type::Atomic(ty) => write!(f, "atomic<{}>", context.display(ty.as_ref())),
+            Type::Ptr(a_s, ty, a_m) => {
+                write!(f, "ptr<{a_s}, {}, {a_m}>", context.display(ty.as_ref()))
+            }
+            Type::Ref(a_s, ty, a_m) => {
+                write!(f, "ref<{a_s}, {}, {a_m}>", context.display(ty.as_ref()))
+            }
             Type::Texture(texture_type) => texture_type.fmt(f),
             Type::Sampler(sampler_type) => sampler_type.fmt(f),
             Type::Unknown => write!(f, "unknown"),
@@ -266,14 +235,12 @@ impl Display for WithContext<'_, Type> {
             #[cfg(feature = "naga-ext")]
             Type::F64 => write!(f, "f64"),
             #[cfg(feature = "naga-ext")]
-            Type::BindingArray(ty, Some(n)) => write!(
-                f,
-                "binding_array<{}, {n}>",
-                self.context.display(ty.as_ref())
-            ),
+            Type::BindingArray(ty, Some(n)) => {
+                write!(f, "binding_array<{}, {n}>", context.display(ty.as_ref()))
+            }
             #[cfg(feature = "naga-ext")]
             Type::BindingArray(ty, None) => {
-                write!(f, "binding_array<{}>", self.context.display(ty.as_ref()))
+                write!(f, "binding_array<{}>", context.display(ty.as_ref()))
             }
             #[cfg(feature = "naga-ext")]
             Type::RayQuery(None) => write!(f, "ray_query"),

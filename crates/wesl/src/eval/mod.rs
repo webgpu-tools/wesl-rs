@@ -191,7 +191,7 @@ pub struct Context<'s> {
     pub(crate) scope: Scope<Instance>,
     pub(crate) resources: HashMap<(u32, u32), RefInstance>,
     pub(crate) overrides: HashMap<String, Instance>,
-    pub(crate) ty_context: &'s TyContext,
+    pub(crate) ty_context: &'s mut TyContext,
     pub(crate) kind: ScopeKind,
     pub(crate) stage: ShaderStage,
     pub(crate) err_decl: Option<String>,
@@ -199,7 +199,7 @@ pub struct Context<'s> {
 }
 
 impl<'s> Context<'s> {
-    pub fn new(source: &'s TranslationUnit, ty_context: &'s TyContext) -> Self {
+    pub fn new(source: &'s TranslationUnit, ty_context: &'s mut TyContext) -> Self {
         Self {
             source,
             scope: Default::default(),

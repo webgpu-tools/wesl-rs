@@ -34,8 +34,8 @@ pub fn lower(module: &mut TranslationUnit) -> Result<(), Error> {
     // we want to drop wesl2 at the end of the block for idents use_count
     {
         let module2 = module.clone();
-        let ty_context = TyContext::default();
-        let mut ctx = Context::new(&module2, &ty_context);
+        let mut ty_context = TyContext::default();
+        let mut ctx = Context::new(&module2, &mut ty_context);
         module
             .exec(&mut ctx) // populate the ctx with module-scope declarations
             .map_err(|e| Diagnostic::from(e).with_ctx(&ctx))?;

@@ -164,7 +164,7 @@ impl EvalTy for NamedComponentExpression {
         fn eval_mem_ty(mem_ty: Type, mem_name: &str, context: &TyContext) -> Result<Type, E> {
             match mem_ty {
                 Type::Struct(s) => {
-                    let m = s
+                    let m = context[s]
                         .members
                         .iter()
                         .find(|m| m.name == *mem_name)
@@ -391,7 +391,7 @@ impl EvalTy for Struct {
             })
             .collect::<Result<_, E>>()?;
 
-        Ok(Type::Struct(Box::new(StructType {
+        Ok(Type::Struct(ctx.ty_context.struct_arena.add(StructType {
             name: self.ident.to_string(),
             members,
         })))

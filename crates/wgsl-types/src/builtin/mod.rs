@@ -312,7 +312,7 @@ pub fn call_ctor(
         (Type::U32, [a1]) => ctor::u32(a1),
         (Type::F32, [a1]) => ctor::f32(a1, stage),
         (Type::F16, [a1]) => ctor::f16(a1, stage),
-        (Type::Struct(ty), a) => struct_ctor(ty, a, context).map(Instance::from),
+        (Type::Struct(ty), a) => struct_ctor(*ty, a, context).map(Instance::from),
         (Type::Array(ty, n), a) => ctor::array_t(ty, n.unwrap_or(a.len()), a, context),
         (Type::Vec(n, ty), a) => ctor::vec_t(*n as usize, ty, a, stage, context),
         (Type::Mat(c, r, ty), a) => ctor::mat_t(*c as usize, *r as usize, ty, a, stage, context),

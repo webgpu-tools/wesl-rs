@@ -6,7 +6,7 @@ use std::str::FromStr;
 use crate::tplt::AccelerationStructureTags;
 use crate::{
     Error, Instance,
-    arena::{Arena, Id},
+    arena::{ Id},
     inst::*,
     syntax::*,
     ty_context::TyContext,
@@ -274,7 +274,7 @@ pub enum Type {
     U32,
     F32,
     F16,
-    Struct(Box<StructType>),
+    Struct(Id<StructType>),
     Array(Box<Type>, Option<usize>),
     Vec(u8, Box<Type>),
     Mat(u8, u8, Box<Type>),
@@ -370,9 +370,10 @@ impl Type {
             Type::Array(ty, _) | Type::Vec(_, ty) | Type::Mat(_, _, ty) => ty.is_abstract(context),
             // there are a couple internal structs with abstract members:
             // __frexp_result_xxx and __ldexp_result_xxx
-            Type::Struct(s) if s.name.starts_with("__") => {
-                s.members.iter().any(|m| m.ty.is_abstract(context))
-            }
+            Type::Struct(s) if context[*s].name.starts_with("__") => context[*s]
+                .members
+                .iter()
+                .any(|m| m.ty.is_abstract(context)),
             _ => false,
         }
     }
@@ -448,7 +449,7 @@ impl Type {
         }
     }
 
-    pub fn unwrap_struct(self) -> Box<StructType> {
+    pub fn unwrap_struct(self) -> Id<StructType> {
         match self {
             Type::Struct(ty) => ty,
             val => panic!("called `Type::unwrap_struct()` on a `{val:?}` value"),
@@ -566,7 +567,7 @@ impl Ty for LiteralInstance {
 
 impl Ty for StructInstance {
     fn ty(&self) -> Type {
-        Type::Struct(Box::new(self.ty.clone()))
+        Type::Struct(self.ty)
     }
 }
 

@@ -8,7 +8,9 @@ use std::{
 };
 
 use crate::{
-    Error, f16,
+    Error,
+    arena::Id,
+    f16,
     syntax::{AccessMode, AddressSpace},
     ty::{StructType, Ty, Type},
     ty_context::TyContext,
@@ -330,7 +332,7 @@ impl LiteralInstance {
 /// Reference: <https://www.w3.org/TR/WGSL/#struct-types>
 #[derive(Clone, Debug, PartialEq)]
 pub struct StructInstance {
-    pub ty: StructType,
+    pub ty: Id<StructType>,
     pub members: Vec<Instance>,
 }
 
@@ -340,9 +342,9 @@ impl StructInstance {
     /// # Panics
     /// * if there is not the right number of members
     /// * if the members are not of the right type
-    pub fn new(ty: StructType, members: Vec<Instance>, context: &TyContext) -> Self {
-        assert_eq!(ty.members.len(), members.len());
-        for (m, m_ty) in members.iter().zip(&ty.members) {
+    pub fn new(ty: Id<StructType>, members: Vec<Instance>, context: &TyContext) -> Self {
+        assert_eq!(context[ty].members.len(), members.len());
+        for (m, m_ty) in members.iter().zip(&context[ty].members) {
             assert_eq!(m_ty.ty, m.ty());
         }
 
@@ -352,14 +354,14 @@ impl StructInstance {
     pub fn member(&self, name: &str, context: &TyContext) -> Option<&Instance> {
         self.members
             .iter()
-            .zip(&self.ty.members)
+            .zip(&context[self.ty].members)
             .find_map(|(inst, m_ty)| (m_ty.name == name).then_some(inst))
     }
     /// Get a `struct` member value by name.
     pub fn member_mut(&mut self, name: &str, context: &TyContext) -> Option<&mut Instance> {
         self.members
             .iter_mut()
-            .zip(&self.ty.members)
+            .zip(&context[self.ty].members)
             .find_map(|(inst, m_ty)| (m_ty.name == name).then_some(inst))
     }
     // pub fn iter_members(&self) -> impl Iterator<Item = &(String, Instance)> {

@@ -431,10 +431,11 @@ impl Diagnostic<Error> {
             match mangled {
                 // TODO unmangle components!
                 Type::Struct(s) => {
-                    unmangle_name(&mut s.name, sourcemap, mangler);
-                    for m in s.members.iter_mut() {
-                        unmangle_ty(&mut m.ty, sourcemap, mangler, context);
-                    }
+                    // TODO: Unmangle structs
+                    // unmangle_name(&mut context[*s].name, sourcemap, mangler);
+                    // for m in context[*s].members.iter_mut() {
+                    //     unmangle_ty(&mut m.ty, sourcemap, mangler, context);
+                    // }
                 }
                 Type::Array(ty, _) => unmangle_ty(&mut *ty, sourcemap, mangler, context),
                 Type::Atomic(ty) => unmangle_ty(&mut *ty, sourcemap, mangler, context),
@@ -453,7 +454,8 @@ impl Diagnostic<Error> {
             use wgsl_types::inst::Instance;
             match mangled {
                 Instance::Struct(inst) => {
-                    unmangle_name(&mut inst.ty.name, sourcemap, mangler);
+                    // TODO: Unmangle structs
+                    // unmangle_name(&mut context[inst.ty].name, sourcemap, mangler);
                     for inst in inst.members.iter_mut() {
                         unmangle_inst(inst, sourcemap, mangler, context);
                     }

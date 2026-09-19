@@ -2,7 +2,7 @@ use crate::{
     CallSignature, Type,
     inst::LiteralInstance,
     syntax::{BinaryOperator, UnaryOperator},
-    ty_context::WithContext,
+    ty_context::{DisplayWithContext, TyContext},
 };
 
 /// The global error struct.
@@ -56,23 +56,21 @@ pub enum Error {
     ParamType(Type, Type),
 }
 
-impl std::fmt::Display for WithContext<'_, Error> {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self.value {
+impl DisplayWithContext for Error {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter, context: &TyContext) -> std::fmt::Result {
+        match self {
             Error::Todo(v) => write!(fmt, "not implemented: `{v}`"),
             Error::Unreachable => write!(fmt, "unreachable code detected"),
-            Error::NotScalar(ty) => write!(
-                fmt,
-                "expected a scalar type, got `{}`",
-                self.context.display(ty)
-            ),
+            Error::NotScalar(ty) => {
+                write!(fmt, "expected a scalar type, got `{}`", context.display(ty))
+            }
             Error::NotConstructible(ty) => {
-                write!(fmt, "`{}` is not constructible", self.context.display(ty))
+                write!(fmt, "`{}` is not constructible", context.display(ty))
             }
             Error::SampledType(ty) => write!(
                 fmt,
                 "invalid sampled type, expected `i32`, `u32` or `f32`, got `{}`",
-                self.context.display(ty)
+                context.display(ty)
             ),
             Error::UnknownType(ty) => {
                 write!(fmt, "unknown type `{ty}`")
@@ -87,8 +85,8 @@ impl std::fmt::Display for WithContext<'_, Error> {
                 write!(
                     fmt,
                     "cannot write a `{}` to a reference to `{}`",
-                    self.context.display(new_ty),
-                    self.context.display(ty)
+                    context.display(new_ty),
+                    context.display(ty)
                 )
             }
             Error::NotWrite => write!(fmt, "attempt to write to a read-only reference"),
@@ -100,46 +98,44 @@ impl std::fmt::Display for WithContext<'_, Error> {
                 write!(
                     fmt,
                     "cannot convert from `{}` to `{}`",
-                    self.context.display(from_ty),
-                    self.context.display(to_ty)
+                    context.display(from_ty),
+                    context.display(to_ty)
                 )
             }
             Error::ConvOverflow(literal, ty) => {
                 write!(
                     fmt,
                     "overflow while converting `{literal}` to `{}`",
-                    self.context.display(ty)
+                    context.display(ty)
                 )
             }
-            Error::Component(ty, name) => write!(
-                fmt,
-                "`{}` has no component `{name}`",
-                self.context.display(ty)
-            ),
+            Error::Component(ty, name) => {
+                write!(fmt, "`{}` has no component `{name}`", context.display(ty))
+            }
             Error::NotIndexable(ty) => {
-                write!(fmt, "`{}` cannot be indexed", self.context.display(ty))
+                write!(fmt, "`{}` cannot be indexed", context.display(ty))
             }
             Error::OutOfBounds(index, ty, num_components) => write!(
                 fmt,
                 "index `{index}` is out-of-bounds for `{}` of `{num_components}` components",
-                self.context.display(ty)
+                context.display(ty)
             ),
             Error::Unary(op, ty) => write!(
                 fmt,
                 "cannot use unary operator `{op}` on type `{}`",
-                self.context.display(ty)
+                context.display(ty)
             ),
             Error::Binary(op, left_ty, right_ty) => write!(
                 fmt,
                 "cannot use binary operator `{op}` with operands `{}` and `{}`",
-                self.context.display(left_ty),
-                self.context.display(right_ty)
+                context.display(left_ty),
+                context.display(right_ty)
             ),
             Error::CompwiseBinary(ty_1, ty_2) => write!(
                 fmt,
                 "cannot apply component-wise binary operation on operands `{}` and `{}`",
-                self.context.display(ty_1),
-                self.context.display(ty_2)
+                context.display(ty_1),
+                context.display(ty_2)
             ),
             Error::AddOverflow => write!(fmt, "attempt to add with overflow"),
             Error::SubOverflow => write!(fmt, "attempt to subtract with overflow"),
@@ -161,7 +157,7 @@ impl std::fmt::Display for WithContext<'_, Error> {
                 write!(
                     fmt,
                     "invalid function call signature: `{}`",
-                    self.context.display(call_signature)
+                    context.display(call_signature)
                 )
             }
             Error::Builtin(name) => write!(fmt, "{name}"),
@@ -173,8 +169,8 @@ impl std::fmt::Display for WithContext<'_, Error> {
             Error::ParamType(expected_ty, actual_ty) => write!(
                 fmt,
                 "invalid parameter type, expected `{}`, got `{}`",
-                self.context.display(expected_ty),
-                self.context.display(actual_ty)
+                context.display(expected_ty),
+                context.display(actual_ty)
             ),
         }
     }

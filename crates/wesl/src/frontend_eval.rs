@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use wgsl_parse::syntax::{self, TranslationUnit};
-use wgsl_types::{Instance, ShaderStage, inst::RefInstance, ty, ty_context::TyContext};
+use wgsl_types::{Instance, ShaderStage, inst::RefInstance, ty_context::TyContext};
 
 use crate::{
     CompileResult,
@@ -61,7 +61,7 @@ impl EvalResult<'_> {
 
 impl std::fmt::Display for EvalResult<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.inst.fmt(f)
+        self.ctx.ty_context.display(&self.inst).fmt(f)
     }
 }
 
@@ -80,7 +80,7 @@ impl CompileResult {
     pub fn eval<'a>(
         &'a self,
         source: &str,
-        ty_context: &'a TyContext,
+        ty_context: &'a mut TyContext,
     ) -> Result<EvalResult<'a>, Error> {
         let expr = source
             .parse::<syntax::Expression>()
@@ -115,7 +115,7 @@ impl CompileResult {
         inputs: Inputs,
         bindings: HashMap<(u32, u32), RefInstance>,
         overrides: HashMap<String, Instance>,
-        ty_context: &'a TyContext,
+        ty_context: &'a mut TyContext,
     ) -> Result<ExecResult<'a>, Error> {
         let mut ctx = Context::new(&self.syntax, ty_context);
         ctx.add_bindings(bindings);
@@ -148,7 +148,7 @@ impl CompileResult {
 /// const-expressions.
 ///
 /// Not all builtin `@const` WGSL functions are supported yet.
-pub fn eval_str(expr: &str, ty_context: &TyContext) -> Result<Instance, Error> {
+pub fn eval_str(expr: &str, ty_context: &mut TyContext) -> Result<Instance, Error> {
     let expr = expr
         .parse::<syntax::Expression>()
         .map_err(|e| Error::Error(Diagnostic::from(e).with_source(expr.to_string())))?;
@@ -172,7 +172,7 @@ pub fn eval_str(expr: &str, ty_context: &TyContext) -> Result<Instance, Error> {
 pub fn eval<'s>(
     expr: &syntax::Expression,
     wgsl: &'s TranslationUnit,
-    ty_context: &'s TyContext,
+    ty_context: &'s mut TyContext,
 ) -> (Result<Instance, EvalError>, Context<'s>) {
     let mut ctx = Context::new(wgsl, ty_context);
     let res = wgsl.exec(&mut ctx).and_then(|_| expr.eval(&mut ctx));
@@ -185,7 +185,7 @@ pub fn exec<'s>(
     wgsl: &'s TranslationUnit,
     bindings: HashMap<(u32, u32), RefInstance>,
     overrides: HashMap<String, Instance>,
-    ty_context: &'s TyContext,
+    ty_context: &'s mut TyContext,
 ) -> (Result<Option<Instance>, EvalError>, Context<'s>) {
     let mut ctx = Context::new(wgsl, ty_context);
     ctx.add_bindings(bindings);

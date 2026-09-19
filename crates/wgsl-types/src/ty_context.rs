@@ -30,3 +30,15 @@ pub struct WithContext<'a, T> {
     pub value: &'a T,
     pub context: &'a TyContext,
 }
+
+/// Custom display trait that includes a context.
+/// Workaround for the orphan rule.
+pub trait DisplayWithContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, context: &TyContext) -> std::fmt::Result;
+}
+
+impl<T: DisplayWithContext> std::fmt::Display for WithContext<'_, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        T::fmt(self.value, f, self.context)
+    }
+}

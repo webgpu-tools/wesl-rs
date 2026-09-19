@@ -79,7 +79,7 @@ impl Instance {
                 .map(|buf| LiteralInstance::F64(f64::from_le_bytes(buf)).into()),
             Type::Struct(s) => {
                 let mut offset = 0;
-                let members = s
+                let members = context[*s]
                     .members
                     .iter()
                     .map(|m| {
@@ -100,7 +100,7 @@ impl Instance {
                         Some(inst)
                     })
                     .collect::<Option<Vec<_>>>()?;
-                Some(StructInstance::new((**s).clone(), members, context).into())
+                Some(StructInstance::new(*s, members, context).into())
             }
             Type::Array(ty, Some(n)) => {
                 let mut offset = 0;
@@ -211,7 +211,12 @@ impl StructInstance {
     /// Returns `None` if the type is not host-shareable.
     fn to_buffer(&self, context: &TyContext) -> Option<Vec<u8>> {
         let mut buf = Vec::new();
-        for (i, (inst, m)) in self.members.iter().zip(&self.ty.members).enumerate() {
+        for (i, (inst, m)) in self
+            .members
+            .iter()
+            .zip(&context[self.ty].members)
+            .enumerate()
+        {
             let len = buf.len() as u32;
             let size = m.size.or_else(|| m.ty.min_size_of(context))?;
 
@@ -320,7 +325,7 @@ impl Type {
             #[cfg(feature = "naga-ext")]
             Type::F64 => Some(8),
             Type::Struct(s) => {
-                let past_last_mem = s
+                let past_last_mem = context[*s]
                     .members
                     .iter()
                     .map(|m| {
@@ -392,7 +397,7 @@ impl Type {
             Type::U64 => Some(8),
             #[cfg(feature = "naga-ext")]
             Type::F64 => Some(8),
-            Type::Struct(s) => s
+            Type::Struct(s) => context[*s]
                 .members
                 .iter()
                 // TODO: check valid align attr

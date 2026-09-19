@@ -9,6 +9,7 @@
 
 #![allow(non_snake_case)]
 
+use crate::arena::Id;
 use crate::ty_context::TyContext;
 use crate::{
     CallSignature, Error,
@@ -343,7 +344,7 @@ pub(crate) fn frexp_struct_name(ty: &Type) -> Option<&'static str> {
     }
 }
 
-pub(crate) fn frexp_struct_type(ty: &Type, context: &mut TyContext) -> Option<StructType> {
+pub(crate) fn frexp_struct_type(ty: &Type, context: &mut TyContext) -> Option<Id<StructType>> {
     frexp_struct_name(ty).map(|name| {
         let exp_inner_ty = if ty.is_abstract(context) {
             Type::AbstractInt
@@ -354,13 +355,13 @@ pub(crate) fn frexp_struct_type(ty: &Type, context: &mut TyContext) -> Option<St
             Type::Vec(n, _) => Type::Vec(*n, Box::new(exp_inner_ty)),
             _ => exp_inner_ty,
         };
-        StructType {
+        context.struct_arena.add(StructType {
             name: name.to_string(),
             members: vec![
                 StructMemberType::new("fract".to_string(), ty.clone()),
                 StructMemberType::new("exp".to_string(), exp_ty),
             ],
-        }
+        })
     })
 }
 
@@ -396,30 +397,32 @@ pub(crate) fn modf_struct_name(ty: &Type) -> Option<&'static str> {
 pub(crate) fn atomic_compare_exchange_struct_type(
     ty: &Type,
     context: &mut TyContext,
-) -> StructType {
-    StructType {
+) -> Id<StructType> {
+    context.struct_arena.add(StructType {
         name: "__atomic_compare_exchange_result".to_string(),
         members: vec![
             StructMemberType::new("old_value".to_string(), ty.clone()),
             StructMemberType::new("exchanged".to_string(), Type::Bool),
         ],
-    }
+    })
 }
 
-pub(crate) fn modf_struct_type(ty: &Type, context: &mut TyContext) -> Option<StructType> {
-    modf_struct_name(ty).map(|name| StructType {
-        name: name.to_string(),
-        members: vec![
-            StructMemberType::new("fract".to_string(), ty.clone()),
-            StructMemberType::new("whole".to_string(), ty.clone()),
-        ],
+pub(crate) fn modf_struct_type(ty: &Type, context: &mut TyContext) -> Option<Id<StructType>> {
+    modf_struct_name(ty).map(|name| {
+        context.struct_arena.add(StructType {
+            name: name.to_string(),
+            members: vec![
+                StructMemberType::new("fract".to_string(), ty.clone()),
+                StructMemberType::new("whole".to_string(), ty.clone()),
+            ],
+        })
     })
 }
 
 #[cfg(feature = "naga-ext")]
 #[allow(unused)]
-pub(crate) fn ray_desc_struct_type(context: &mut TyContext) -> StructType {
-    StructType {
+pub(crate) fn ray_desc_struct_type(context: &mut TyContext) -> Id<StructType> {
+    context.struct_arena.add(StructType {
         name: "RayDesc".to_string(),
         members: vec![
             StructMemberType::new("flags".to_string(), Type::U32),
@@ -429,12 +432,12 @@ pub(crate) fn ray_desc_struct_type(context: &mut TyContext) -> StructType {
             StructMemberType::new("origin".to_string(), Type::Vec(3, Box::new(Type::F32))),
             StructMemberType::new("dir".to_string(), Type::Vec(3, Box::new(Type::F32))),
         ],
-    }
+    })
 }
 
 #[cfg(feature = "naga-ext")]
-pub(crate) fn ray_intersection_struct_type(context: &mut TyContext) -> StructType {
-    StructType {
+pub(crate) fn ray_intersection_struct_type(context: &mut TyContext) -> Id<StructType> {
+    context.struct_arena.add(StructType {
         name: "RayIntersection".to_string(),
         members: vec![
             StructMemberType::new("kind".to_string(), Type::U32),
@@ -458,7 +461,7 @@ pub(crate) fn ray_intersection_struct_type(context: &mut TyContext) -> StructTyp
                 Type::Mat(4, 3, Box::new(Type::F32)),
             ),
         ],
-    }
+    })
 }
 
 // utility predicates for `T or vecN<T>` constraints.
@@ -940,9 +943,7 @@ pub fn fract(e: &Type) -> Result<Type, E> {
 /// Reference: <https://www.w3.org/TR/WGSL/#frexp-builtin>
 pub fn frexp(e: &Type, context: &mut TyContext) -> Result<Type, E> {
     if inner_is_float(e) {
-        Ok(Type::Struct(Box::new(
-            frexp_struct_type(e, context).unwrap(),
-        )))
+        Ok(Type::Struct(frexp_struct_type(e, context).unwrap()))
     } else {
         Err(E::Builtin(
             "`frexp` expects a float scalar or vector argument",
@@ -1096,9 +1097,7 @@ pub fn mix(e1: &Type, e2: &Type, e3: &Type, context: &TyContext) -> Result<Type,
 /// Reference: <https://www.w3.org/TR/WGSL/#modf-builtin>
 pub fn modf(e: &Type, context: &mut TyContext) -> Result<Type, E> {
     if inner_is_float(e) {
-        Ok(Type::Struct(Box::new(
-            modf_struct_type(e, context).unwrap(),
-        )))
+        Ok(Type::Struct(modf_struct_type(e, context).unwrap()))
     } else {
         Err(E::Builtin(
             "`modf` expects a float scalar or vector argument",
@@ -2157,9 +2156,9 @@ pub fn atomicCompareExchangeWeak(
             "`atomicCompareExchangeWeak` 3rd argument is incompatible with the atomic pointer type",
         ))
     } else {
-        Ok(Type::Struct(Box::new(atomic_compare_exchange_struct_type(
+        Ok(Type::Struct(atomic_compare_exchange_struct_type(
             ty, context,
-        ))))
+        )))
     }
 }
 
@@ -2692,7 +2691,7 @@ pub fn rayQueryInitialize(
         rq,
         Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
     ) && matches!(accel_struct, Type::AccelerationStructure(_))
-        && matches!(ray_desc, Type::Struct(s) if s.name == "RayDesc")
+        && matches!(ray_desc, Type::Struct(s) if context[*s].name == "RayDesc")
     {
         Ok(())
     } else {
@@ -2773,9 +2772,7 @@ pub fn rayQueryGetCommittedIntersection(e: &Type, context: &mut TyContext) -> Re
         e,
         Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
     ) {
-        Ok(Type::Struct(Box::new(ray_intersection_struct_type(
-            context,
-        ))))
+        Ok(Type::Struct(ray_intersection_struct_type(context)))
     } else {
         Err(E::Builtin(
             "`rayQueryGetCommittedIntersection` expects a pointer to `ray_query` argument",
@@ -2790,9 +2787,7 @@ pub fn rayQueryGetCandidateIntersection(e: &Type, context: &mut TyContext) -> Re
         e,
         Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
     ) {
-        Ok(Type::Struct(Box::new(ray_intersection_struct_type(
-            context,
-        ))))
+        Ok(Type::Struct(ray_intersection_struct_type(context)))
     } else {
         Err(E::Builtin(
             "`rayQueryGetCandidateIntersection` expects a pointer to `ray_query` argument",
@@ -2850,7 +2845,7 @@ pub fn traceRay(
     context: &TyContext,
 ) -> Result<(), E> {
     if matches!(accel_struct, Type::AccelerationStructure(_))
-        && matches!(ray_desc, Type::Struct(s) if s.name == "RayDesc")
+        && matches!(ray_desc, Type::Struct(s) if context[*s].name == "RayDesc")
         && matches!(
             payload,
             Type::Ptr(

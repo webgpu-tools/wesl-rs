@@ -16,6 +16,7 @@ use num_traits::{One, ToPrimitive, Zero};
 
 use crate::{
     CallSignature, Error, ShaderStage,
+    arena::Id,
     conv::{Convert, convert_all, convert_all_inner_to, convert_all_to, convert_all_ty},
     f16,
     inst::{
@@ -597,7 +598,7 @@ pub fn vec(n: usize, args: &[Instance], context: &TyContext) -> Result<Instance,
 
 /// User-defined struct constructor.
 pub fn struct_ctor(
-    struct_ty: &StructType,
+    struct_ty: Id<StructType>,
     args: &[Instance],
     context: &TyContext,
 ) -> Result<StructInstance, E> {
@@ -605,15 +606,15 @@ pub fn struct_ctor(
         return StructInstance::zero_value(struct_ty, context);
     }
 
-    if args.len() != struct_ty.members.len() {
+    if args.len() != context[struct_ty].members.len() {
         return Err(E::ParamCount(
-            struct_ty.name.clone(),
-            struct_ty.members.len(),
+            context[struct_ty].name.clone(),
+            context[struct_ty].members.len(),
             args.len(),
         ));
     }
 
-    let members = struct_ty
+    let members = context[struct_ty]
         .members
         .iter()
         .zip(args)
@@ -625,7 +626,7 @@ pub fn struct_ctor(
         })
         .collect::<Result<Vec<_>, E>>()?;
 
-    Ok(StructInstance::new(struct_ty.clone(), members, context))
+    Ok(StructInstance::new(struct_ty, members, context))
 }
 
 /// Check a struct constructor call signature.
@@ -1030,7 +1031,7 @@ impl Instance {
             | Type::U32
             | Type::F32
             | Type::F16 => LiteralInstance::zero_value(ty).map(Into::into),
-            Type::Struct(s) => StructInstance::zero_value(s, context).map(Into::into),
+            Type::Struct(s) => StructInstance::zero_value(*s, context).map(Into::into),
             Type::Array(a_ty, Some(n)) => {
                 ArrayInstance::zero_value(a_ty, *n, context).map(Into::into)
             }
@@ -1066,7 +1067,7 @@ impl Instance {
     /// * runtime-sized arrays in the `storage` address space.
     pub fn storable_zero_value(ty: &Type, context: &TyContext) -> Result<Self, E> {
         match ty {
-            Type::Struct(s) => StructInstance::storable_zero_value(s, context).map(Into::into),
+            Type::Struct(s) => StructInstance::storable_zero_value(*s, context).map(Into::into),
             Type::Array(a_ty, Some(n)) => {
                 ArrayInstance::storable_zero_value(a_ty, *n, context).map(Into::into)
             }
@@ -1102,8 +1103,8 @@ impl LiteralInstance {
 
 impl StructInstance {
     /// Zero-value initialize a `struct` instance.
-    pub fn zero_value(s: &StructType, context: &TyContext) -> Result<Self, E> {
-        let members = s
+    pub fn zero_value(s: Id<StructType>, context: &TyContext) -> Result<Self, E> {
+        let members = context[s]
             .members
             .iter()
             .map(|mem| {
@@ -1112,12 +1113,12 @@ impl StructInstance {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(StructInstance::new(s.clone(), members, context))
+        Ok(StructInstance::new(s, members, context))
     }
 
     /// See [`Instance::storable_zero_value`].
-    pub fn storable_zero_value(s: &StructType, context: &TyContext) -> Result<Self, E> {
-        let members = s
+    pub fn storable_zero_value(s: Id<StructType>, context: &TyContext) -> Result<Self, E> {
+        let members = context[s]
             .members
             .iter()
             .map(|mem| {
@@ -1126,7 +1127,7 @@ impl StructInstance {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(StructInstance::new(s.clone(), members, context))
+        Ok(StructInstance::new(s, members, context))
     }
 }
 

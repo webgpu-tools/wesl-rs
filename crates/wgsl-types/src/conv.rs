@@ -139,7 +139,7 @@ impl LiteralInstance {
 }
 
 impl Convert for LiteralInstance {
-    fn convert_to(&self, ty: &Type, context: &TyContext) -> Option<Self> {
+    fn convert_to(&self, ty: &Type, _context: &TyContext) -> Option<Self> {
         if ty == &self.ty() {
             return Some(*self);
         }
@@ -232,26 +232,26 @@ impl Convert for StructInstance {
         if &self.ty() == ty {
             Some(self.clone())
         } else if let Type::Struct(s2) = ty {
-            let s1 = &self.ty;
-            if s1.name.starts_with("__") && s2.name.starts_with("__") {
+            let s1 = self.ty;
+            if context[s1].name.starts_with("__") && context[*s2].name.starts_with("__") {
                 // this is a struct type conversion of built-in types.
                 // __frexp_result_* or __modf_result_*
                 // TODO: here we just assume that s2 is a variant of s1. We should
                 // check.
-                if s2.name.ends_with("f32") {
+                if context[*s2].name.ends_with("f32") {
                     let members = self
                         .members
                         .iter()
                         .map(|inst| inst.convert_inner_to(&Type::F32, context))
                         .collect::<Option<Vec<_>>>()?;
-                    Some(StructInstance::new((**s2).clone(), members, context))
-                } else if s2.name.ends_with("f16") {
+                    Some(StructInstance::new(*s2, members, context))
+                } else if context[*s2].name.ends_with("f16") {
                     let members = self
                         .members
                         .iter()
                         .map(|inst| inst.convert_inner_to(&Type::F16, context))
                         .collect::<Option<Vec<_>>>()?;
-                    Some(StructInstance::new((**s2).clone(), members, context))
+                    Some(StructInstance::new(*s2, members, context))
                 } else {
                     None
                 }
@@ -317,10 +317,10 @@ pub fn conversion_rank(ty1: &Type, ty2: &Type, context: &TyContext) -> Option<u3
         (Type::AbstractFloat, Type::F16) => Some(2),
         // frexp and modf
         (Type::Struct(s1), Type::Struct(s2)) => {
-            if s1.name.starts_with("__") && s1.name.ends_with("abstract") {
-                if s2.name.ends_with("f32") {
+            if context[*s1].name.starts_with("__") && context[*s1].name.ends_with("abstract") {
+                if context[*s2].name.ends_with("f32") {
                     Some(1)
-                } else if s2.name.ends_with("f16") {
+                } else if context[*s2].name.ends_with("f16") {
                     Some(2)
                 } else {
                     None

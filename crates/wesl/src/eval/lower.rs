@@ -106,7 +106,7 @@ impl<T: Lower> Lower for Spanned<T> {
 impl Lower for Expression {
     fn lower(&mut self, ctx: &mut Context) -> Result<(), E> {
         match self.eval_value(ctx) {
-            Ok(inst) if !matches!(&inst, Instance::Struct(s) if s.ty.name.starts_with("__")) => {
+            Ok(inst) if !matches!(&inst, Instance::Struct(s) if ctx.ty_context[s.ty].name.starts_with("__")) => {
                 *self = inst.to_expr(ctx)?
             }
             // These are supposed to be the only acceptable errors when evaluating valid code.
@@ -225,7 +225,7 @@ impl Lower for Declaration {
         };
 
         if ty.is_concrete(&ctx.ty_context)
-            && !matches!(&ty, Type::Struct(s) if s.name.starts_with("__"))
+            && !matches!(&ty, Type::Struct(s) if ctx.ty_context[*s].name.starts_with("__"))
         {
             self.ty = Some(ty.to_expr(ctx)?.unwrap_type_or_identifier());
         }

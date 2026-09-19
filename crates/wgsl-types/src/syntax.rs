@@ -202,45 +202,51 @@ pub enum BuiltinValue {
     Position,
     FrontFacing,
     FragDepth,
+    PrimitiveIndex, // requires WGSL extension primitive_index
     SampleIndex,
     SampleMask,
     LocalInvocationId,
     LocalInvocationIndex,
     GlobalInvocationId,
+    GlobalInvocationIndex, // requires WGSL extension linear_indexing
     WorkgroupId,
+    WorkgroupIndex, // requires WGSL extension linear_indexing
     NumWorkgroups,
     SubgroupInvocationId, // requires WGSL extension subgroups
     SubgroupSize,         // requires WGSL extension subgroups
-    #[cfg(feature = "naga-ext")]
-    SubgroupId, // requires WGSL extension subgroups
-    #[cfg(feature = "naga-ext")]
-    NumSubgroups, // requires WGSL extension subgroups
-    #[cfg(feature = "naga-ext")]
-    PrimitiveIndex,
-    #[cfg(feature = "naga-ext")]
-    Barycentric,
-    /// requires WGSL extension barycentric
-    #[cfg(feature = "naga-ext")]
-    BarycentricNoPerspective,
-    /// requires WGSL extension barycentric
+    SubgroupId,           // requires WGSL extension subgroups and subgroup_id
+    NumSubgroups,         // requires WGSL extension subgroups and subgroup_id
+
+    // naga extensions below. Reference:
+    // https://github.com/gfx-rs/wgpu/blob/trunk/naga/src/front/wgsl/parse/conv.rs
     #[cfg(feature = "naga-ext")]
     ViewIndex,
+    #[cfg(feature = "naga-ext")]
+    DrawIndex,
+    #[cfg(feature = "naga-ext")]
+    Barycentric,
+    #[cfg(feature = "naga-ext")]
+    BarycentricNoPerspective,
 
     // Mesh shaders
     #[cfg(feature = "naga-ext")]
-    MeshTaskSize,
+    CullPrimitive,
     #[cfg(feature = "naga-ext")]
-    Vertices,
+    PointIndex,
     #[cfg(feature = "naga-ext")]
-    Primitives,
-    #[cfg(feature = "naga-ext")]
-    VertexCount,
-    #[cfg(feature = "naga-ext")]
-    PrimitiveCount,
+    LineIndices,
     #[cfg(feature = "naga-ext")]
     TriangleIndices,
     #[cfg(feature = "naga-ext")]
-    CullPrimitive,
+    MeshTaskSize,
+    #[cfg(feature = "naga-ext")]
+    VertexCount,
+    #[cfg(feature = "naga-ext")]
+    Vertices,
+    #[cfg(feature = "naga-ext")]
+    PrimitiveCount,
+    #[cfg(feature = "naga-ext")]
+    Primitives,
 
     // Ray tracing pipelines
     /// `vec3<u32>`, available in all ray tracing stages.
@@ -282,6 +288,8 @@ pub enum BuiltinValue {
     /// `u32`, available in the `any_hit` and `closest_hit` stages.
     #[cfg(feature = "naga-ext")]
     HitKind,
+    #[cfg(feature = "naga-ext")]
+    HitBarycentrics,
 }
 
 /// Diagnostic Severity Control Names.
@@ -757,41 +765,49 @@ impl FromStr for BuiltinValue {
             "position" => Ok(Self::Position),
             "front_facing" => Ok(Self::FrontFacing),
             "frag_depth" => Ok(Self::FragDepth),
+            "primitive_index" => Ok(Self::PrimitiveIndex),
             "sample_index" => Ok(Self::SampleIndex),
             "sample_mask" => Ok(Self::SampleMask),
             "local_invocation_id" => Ok(Self::LocalInvocationId),
             "local_invocation_index" => Ok(Self::LocalInvocationIndex),
             "global_invocation_id" => Ok(Self::GlobalInvocationId),
+            "global_invocation_index" => Ok(Self::GlobalInvocationIndex),
             "workgroup_id" => Ok(Self::WorkgroupId),
+            "workgroup_index" => Ok(Self::WorkgroupIndex),
             "num_workgroups" => Ok(Self::NumWorkgroups),
             "subgroup_invocation_id" => Ok(Self::SubgroupInvocationId),
             "subgroup_size" => Ok(Self::SubgroupSize),
-            #[cfg(feature = "naga-ext")]
             "subgroup_id" => Ok(Self::SubgroupId),
-            #[cfg(feature = "naga-ext")]
             "num_subgroups" => Ok(Self::NumSubgroups),
+
             #[cfg(feature = "naga-ext")]
-            "primitive_index" => Ok(Self::PrimitiveIndex),
+            "view_index" => Ok(Self::ViewIndex),
+            #[cfg(feature = "naga-ext")]
+            "draw_index" => Ok(Self::DrawIndex),
             #[cfg(feature = "naga-ext")]
             "barycentric" => Ok(Self::Barycentric),
             #[cfg(feature = "naga-ext")]
             "barycentric_no_perspective" => Ok(Self::BarycentricNoPerspective),
+
             #[cfg(feature = "naga-ext")]
-            "view_index" => Ok(Self::ViewIndex),
+            "cull_primitive" => Ok(Self::CullPrimitive),
             #[cfg(feature = "naga-ext")]
-            "mesh_task_size" => Ok(Self::MeshTaskSize),
+            "point_index" => Ok(Self::PointIndex),
             #[cfg(feature = "naga-ext")]
-            "vertices" => Ok(Self::Vertices),
-            #[cfg(feature = "naga-ext")]
-            "primitives" => Ok(Self::Primitives),
-            #[cfg(feature = "naga-ext")]
-            "vertex_count" => Ok(Self::VertexCount),
-            #[cfg(feature = "naga-ext")]
-            "primitive_count" => Ok(Self::PrimitiveCount),
+            "line_indices" => Ok(Self::LineIndices),
             #[cfg(feature = "naga-ext")]
             "triangle_indices" => Ok(Self::TriangleIndices),
             #[cfg(feature = "naga-ext")]
-            "cull_primitive" => Ok(Self::CullPrimitive),
+            "mesh_task_size" => Ok(Self::MeshTaskSize),
+            #[cfg(feature = "naga-ext")]
+            "vertex_count" => Ok(Self::VertexCount),
+            #[cfg(feature = "naga-ext")]
+            "vertices" => Ok(Self::Vertices),
+            #[cfg(feature = "naga-ext")]
+            "primitive_count" => Ok(Self::PrimitiveCount),
+            #[cfg(feature = "naga-ext")]
+            "primitives" => Ok(Self::Primitives),
+
             #[cfg(feature = "naga-ext")]
             "ray_invocation_id" => Ok(Self::RayInvocationId),
             #[cfg(feature = "naga-ext")]
@@ -818,6 +834,9 @@ impl FromStr for BuiltinValue {
             "world_to_object" => Ok(Self::WorldToObject),
             #[cfg(feature = "naga-ext")]
             "hit_kind" => Ok(Self::HitKind),
+            #[cfg(feature = "naga-ext")]
+            "hit_barycentrics" => Ok(Self::HitBarycentrics),
+
             _ => Err(()),
         }
     }
@@ -1004,41 +1023,49 @@ impl Display for BuiltinValue {
             Self::Position => write!(f, "position"),
             Self::FrontFacing => write!(f, "front_facing"),
             Self::FragDepth => write!(f, "frag_depth"),
+            Self::PrimitiveIndex => write!(f, "primitive_index"),
             Self::SampleIndex => write!(f, "sample_index"),
             Self::SampleMask => write!(f, "sample_mask"),
             Self::LocalInvocationId => write!(f, "local_invocation_id"),
             Self::LocalInvocationIndex => write!(f, "local_invocation_index"),
             Self::GlobalInvocationId => write!(f, "global_invocation_id"),
+            Self::GlobalInvocationIndex => write!(f, "global_invocation_index"),
             Self::WorkgroupId => write!(f, "workgroup_id"),
+            Self::WorkgroupIndex => write!(f, "workgroup_index"),
             Self::NumWorkgroups => write!(f, "num_workgroups"),
             Self::SubgroupInvocationId => write!(f, "subgroup_invocation_id"),
             Self::SubgroupSize => write!(f, "subgroup_size"),
-            #[cfg(feature = "naga-ext")]
             Self::SubgroupId => write!(f, "subgroup_id"),
-            #[cfg(feature = "naga-ext")]
             Self::NumSubgroups => write!(f, "num_subgroups"),
+
             #[cfg(feature = "naga-ext")]
-            Self::PrimitiveIndex => write!(f, "primitive_index"),
+            Self::ViewIndex => write!(f, "view_index"),
+            #[cfg(feature = "naga-ext")]
+            Self::DrawIndex => write!(f, "draw_index"),
             #[cfg(feature = "naga-ext")]
             Self::Barycentric => write!(f, "barycentric"),
             #[cfg(feature = "naga-ext")]
             Self::BarycentricNoPerspective => write!(f, "barycentric_no_perspective"),
+
             #[cfg(feature = "naga-ext")]
-            Self::ViewIndex => write!(f, "view_index"),
+            Self::CullPrimitive => write!(f, "cull_primitive"),
             #[cfg(feature = "naga-ext")]
-            Self::MeshTaskSize => write!(f, "mesh_task_size"),
+            Self::PointIndex => write!(f, "point_index"),
             #[cfg(feature = "naga-ext")]
-            Self::Vertices => write!(f, "vertices"),
-            #[cfg(feature = "naga-ext")]
-            Self::Primitives => write!(f, "primitives"),
-            #[cfg(feature = "naga-ext")]
-            Self::VertexCount => write!(f, "vertex_count"),
-            #[cfg(feature = "naga-ext")]
-            Self::PrimitiveCount => write!(f, "primitive_count"),
+            Self::LineIndices => write!(f, "line_indices"),
             #[cfg(feature = "naga-ext")]
             Self::TriangleIndices => write!(f, "triangle_indices"),
             #[cfg(feature = "naga-ext")]
-            Self::CullPrimitive => write!(f, "cull_primitive"),
+            Self::MeshTaskSize => write!(f, "mesh_task_size"),
+            #[cfg(feature = "naga-ext")]
+            Self::VertexCount => write!(f, "vertex_count"),
+            #[cfg(feature = "naga-ext")]
+            Self::Vertices => write!(f, "vertices"),
+            #[cfg(feature = "naga-ext")]
+            Self::PrimitiveCount => write!(f, "primitive_count"),
+            #[cfg(feature = "naga-ext")]
+            Self::Primitives => write!(f, "primitives"),
+
             #[cfg(feature = "naga-ext")]
             Self::RayInvocationId => write!(f, "ray_invocation_id"),
             #[cfg(feature = "naga-ext")]
@@ -1065,6 +1092,8 @@ impl Display for BuiltinValue {
             Self::WorldToObject => write!(f, "world_to_object"),
             #[cfg(feature = "naga-ext")]
             Self::HitKind => write!(f, "hit_kind"),
+            #[cfg(feature = "naga-ext")]
+            Self::HitBarycentrics => write!(f, "hit_barycentrics"),
         }
     }
 }

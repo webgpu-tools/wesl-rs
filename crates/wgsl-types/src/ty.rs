@@ -37,12 +37,6 @@ pub struct StructType {
     pub members: Vec<StructMemberType>,
 }
 
-impl From<StructType> for Type {
-    fn from(value: StructType) -> Self {
-        Self::Struct(Box::new(value))
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum TextureType {
     // sampled
@@ -572,7 +566,7 @@ impl Ty for LiteralInstance {
 
 impl Ty for StructInstance {
     fn ty(&self) -> Type {
-        self.ty.clone().into()
+        Type::Struct(Box::new(self.ty.clone()))
     }
 }
 

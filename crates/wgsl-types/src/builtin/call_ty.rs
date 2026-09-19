@@ -940,7 +940,9 @@ pub fn fract(e: &Type) -> Result<Type, E> {
 /// Reference: <https://www.w3.org/TR/WGSL/#frexp-builtin>
 pub fn frexp(e: &Type, context: &mut TyContext) -> Result<Type, E> {
     if inner_is_float(e) {
-        Ok(frexp_struct_type(e, context).unwrap().into())
+        Ok(Type::Struct(Box::new(
+            frexp_struct_type(e, context).unwrap(),
+        )))
     } else {
         Err(E::Builtin(
             "`frexp` expects a float scalar or vector argument",
@@ -1094,7 +1096,9 @@ pub fn mix(e1: &Type, e2: &Type, e3: &Type, context: &TyContext) -> Result<Type,
 /// Reference: <https://www.w3.org/TR/WGSL/#modf-builtin>
 pub fn modf(e: &Type, context: &mut TyContext) -> Result<Type, E> {
     if inner_is_float(e) {
-        Ok(modf_struct_type(e, context).unwrap().into())
+        Ok(Type::Struct(Box::new(
+            modf_struct_type(e, context).unwrap(),
+        )))
     } else {
         Err(E::Builtin(
             "`modf` expects a float scalar or vector argument",
@@ -2153,7 +2157,9 @@ pub fn atomicCompareExchangeWeak(
             "`atomicCompareExchangeWeak` 3rd argument is incompatible with the atomic pointer type",
         ))
     } else {
-        Ok(atomic_compare_exchange_struct_type(ty, context).into())
+        Ok(Type::Struct(Box::new(atomic_compare_exchange_struct_type(
+            ty, context,
+        ))))
     }
 }
 
@@ -2767,7 +2773,9 @@ pub fn rayQueryGetCommittedIntersection(e: &Type, context: &mut TyContext) -> Re
         e,
         Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
     ) {
-        Ok(ray_intersection_struct_type(context).into())
+        Ok(Type::Struct(Box::new(ray_intersection_struct_type(
+            context,
+        ))))
     } else {
         Err(E::Builtin(
             "`rayQueryGetCommittedIntersection` expects a pointer to `ray_query` argument",
@@ -2782,7 +2790,9 @@ pub fn rayQueryGetCandidateIntersection(e: &Type, context: &mut TyContext) -> Re
         e,
         Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
     ) {
-        Ok(ray_intersection_struct_type(context).into())
+        Ok(Type::Struct(Box::new(ray_intersection_struct_type(
+            context,
+        ))))
     } else {
         Err(E::Builtin(
             "`rayQueryGetCandidateIntersection` expects a pointer to `ray_query` argument",

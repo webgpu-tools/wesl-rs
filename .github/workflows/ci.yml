@@ -82,6 +82,24 @@ jobs:
         with:
           toolchain: ${{ env.STABLE_TOOLCHAIN }}
           components: rustfmt, clippy
+      - name: Check for duplicate wesl versions
+        run: |
+          python - <<'PY'
+          import sys
+          import tomllib
+          from pathlib import Path
+
+          packages = tomllib.loads(Path("Cargo.lock").read_text())["package"]
+          wesl_packages = [package for package in packages if package["name"] == "wesl"]
+          versions = sorted(package["version"] for package in wesl_packages)
+          if len(wesl_packages) > 1:
+              print("Cargo.lock contains multiple wesl versions: " + ", ".join(versions))
+              sys.exit(1)
+          if not wesl_packages:
+              print("Cargo.lock does not contain the workspace wesl package")
+              sys.exit(1)
+          print(f"Cargo.lock contains one wesl version: {versions[0]}")
+          PY
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Clippy

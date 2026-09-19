@@ -5,7 +5,7 @@ use wgsl_types::{Instance, ShaderStage, inst::RefInstance, ty_context::TyContext
 
 use crate::{
     CompileResult,
-    error::{Diagnostic, Error},
+    error::Diagnostic,
     eval::{Context, Eval, EvalError, Exec, Inputs, SyntaxUtil, exec_entrypoint},
 };
 
@@ -81,21 +81,21 @@ impl CompileResult {
         &'a self,
         source: &str,
         ty_context: &'a mut TyContext,
-    ) -> Result<EvalResult<'a>, Error> {
+    ) -> Result<EvalResult<'a>, Diagnostic> {
         let expr = source
             .parse::<syntax::Expression>()
-            .map_err(|e| Error::Error(Diagnostic::from(e).with_source(source.to_string())))?;
+            .map_err(|e| Diagnostic::new(e.into()).with_source(source.to_string()))?;
         let (inst, ctx) = eval(&expr, &self.syntax, ty_context);
         let inst = inst.map_err(|e| {
-            Diagnostic::from(e)
+            Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
                 .with_source(source.to_string())
                 .with_ctx(&ctx)
         });
 
         let inst = if let Some(sourcemap) = &self.sourcemap {
-            inst.map_err(|e| Error::Error(e.with_sourcemap(sourcemap)))
+            inst.map_err(|e| e.with_sourcemap(sourcemap))
         } else {
-            inst.map_err(Error::Error)
+            inst
         }?;
 
         let res = EvalResult { inst, ctx };
@@ -116,25 +116,35 @@ impl CompileResult {
         bindings: HashMap<(u32, u32), RefInstance>,
         overrides: HashMap<String, Instance>,
         ty_context: &'a mut TyContext,
-    ) -> Result<ExecResult<'a>, Error> {
+    ) -> Result<ExecResult<'a>, Diagnostic> {
         let mut ctx = Context::new(&self.syntax, ty_context);
         ctx.add_bindings(bindings);
         ctx.add_overrides(overrides);
         ctx.set_stage(ShaderStage::Exec);
 
         let entry_fn = SyntaxUtil::decl_function(ctx.source, entrypoint)
-            .ok_or_else(|| EvalError::UnknownFunction(entrypoint.to_string()))?;
+            .ok_or_else(|| EvalError::UnknownFunction(entrypoint.to_string()))
+            .map_err(|e| {
+                Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+                    .with_ctx(&ctx)
+            })?;
 
-        let _ = self.syntax.exec(&mut ctx)?;
+        let _ = self.syntax.exec(&mut ctx).map_err(|e| {
+            Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+                .with_ctx(&ctx)
+        })?;
 
         let inst = exec_entrypoint(entry_fn, inputs, &mut ctx).map_err(|e| {
             if let Some(span) = ctx.source.user_decl_span(entrypoint) {
                 ctx.set_err_span_ctx(span);
             }
             if let Some(sourcemap) = &self.sourcemap {
-                Diagnostic::from(e).with_ctx(&ctx).with_sourcemap(sourcemap)
+                Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+                    .with_ctx(&ctx)
+                    .with_sourcemap(sourcemap)
             } else {
-                Diagnostic::from(e).with_ctx(&ctx)
+                Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+                    .with_ctx(&ctx)
             }
         })?;
 
@@ -148,18 +158,16 @@ impl CompileResult {
 /// const-expressions.
 ///
 /// Not all builtin `@const` WGSL functions are supported yet.
-pub fn eval_str(expr: &str, ty_context: &mut TyContext) -> Result<Instance, Error> {
+pub fn eval_str(expr: &str, ty_context: &mut TyContext) -> Result<Instance, Diagnostic> {
     let expr = expr
         .parse::<syntax::Expression>()
-        .map_err(|e| Error::Error(Diagnostic::from(e).with_source(expr.to_string())))?;
+        .map_err(|e| Diagnostic::new(e.into()).with_source(expr.to_string()))?;
     let module = TranslationUnit::default();
     let (inst, ctx) = eval(&expr, &module, ty_context);
     inst.map_err(|e| {
-        Error::Error(
-            Diagnostic::from(e)
-                .with_source(expr.to_string())
-                .with_ctx(&ctx),
-        )
+        Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+            .with_source(expr.to_string())
+            .with_ctx(&ctx)
     })
 }
 

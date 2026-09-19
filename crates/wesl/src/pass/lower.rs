@@ -1,7 +1,6 @@
-use crate::error::{Diagnostic, Error};
-use crate::eval::{mark_functions_const, Context, Exec, Lower};
-use crate::pass::Visit;
-use wgsl_parse::{syntax::*, SyntaxNode};
+use crate::{error::Diagnostic, pass::Visit};
+
+use wgsl_parse::syntax::*;
 
 /// Performs conversions on the final syntax tree to make it more compatible with WGSL
 /// implementations like Naga, catch errors early and perform optimizations.
@@ -18,7 +17,7 @@ use wgsl_parse::{syntax::*, SyntaxNode};
 /// be available in the future:
 /// * make variable types explicit
 /// * remove unused variables / code with no side-effects
-pub fn lower(module: &mut TranslationUnit) -> Result<(), Error> {
+pub fn lower(module: &mut TranslationUnit) -> Result<(), Diagnostic> {
     module.imports.clear();
 
     for attrs in Visit::<Attributes>::visit_mut(module) {
@@ -38,10 +37,14 @@ pub fn lower(module: &mut TranslationUnit) -> Result<(), Error> {
         let mut ctx = Context::new(&module2, &mut ty_context);
         module
             .exec(&mut ctx) // populate the ctx with module-scope declarations
-            .map_err(|e| Diagnostic::from(e).with_ctx(&ctx))?;
-        module
-            .lower(&mut ctx)
-            .map_err(|e| Diagnostic::from(e).with_ctx(&ctx))?;
+            .map_err(|e| {
+                Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+                    .with_ctx(&ctx)
+            })?;
+        module.lower(&mut ctx).map_err(|e| {
+            Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+                .with_ctx(&ctx)
+        })?;
     }
 
     // remove `@const` attributes.

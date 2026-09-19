@@ -1,6 +1,7 @@
 use crate::FastIndexSet;
 
 /// An append-only arena
+#[derive(Clone)]
 pub struct Arena<T> {
     items: Vec<T>,
 }
@@ -34,6 +35,7 @@ impl<T> std::ops::Index<Id<T>> for Arena<T> {
 
 /// An append-only arena with unique elements.
 /// Lookups are direct index lookups and require no hashing.
+#[derive(Debug, Clone)]
 pub struct UniqueArena<T> {
     items: FastIndexSet<T>,
 }

@@ -7,7 +7,7 @@ use wgsl_parse::{
     span::Span,
     syntax::{Expression, Ident, ModulePath, Visibility},
 };
-use wgsl_types::ty_context::TyContext;
+use wgsl_types::ty_context::{DisplayWithContext, TyContext};
 
 use crate::eval::EvalError;
 use crate::{Mangler, sourcemap::SourceMap};
@@ -41,7 +41,7 @@ pub enum ResolveError {
     #[error("attempt to access path `{0}`, which escapes the package root path `{1}`")]
     FileEscapesRoot(PathBuf, PathBuf),
     #[error("{0}")]
-    Error(#[from] Diagnostic<Error>),
+    Custom(String),
 }
 
 /// WESL or WGSL Validation error.
@@ -110,7 +110,7 @@ pub enum TomlError {
 }
 
 /// Any WESL error.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 pub enum Error {
     #[error("{0}")]
     ParseError(#[from] wgsl_parse::Error),
@@ -126,12 +126,81 @@ pub enum Error {
     CondCompError(#[from] CondCompError),
     #[error("{0}")]
     TomlError(#[from] TomlError),
-    #[error("{0}")]
-    EvalError(#[from] EvalError),
-    #[error("{0}")]
-    Error(#[from] Diagnostic<Error>),
-    #[error("{0}")]
+    #[error("{}", .1.display(.0))]
+    EvalError(EvalError, Box<TyContext>),
     Custom(String),
+}
+
+impl std::error::Error for Error {}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::ParseError(err) => err.fmt(f),
+            Error::ValidateError(err) => err.fmt(f),
+            Error::ResolveError(err) => err.fmt(f),
+            Error::ImportError(err) => err.fmt(f),
+            Error::UsageError(err) => err.fmt(f),
+            Error::CondCompError(err) => err.fmt(f),
+            Error::TomlError(err) => err.fmt(f),
+            #[cfg(feature = "eval")]
+            Error::EvalError(err, context) => err.fmt(f, context),
+            Error::Custom(msg) => write!(f, "{}", msg),
+        }
+    }
+}
+
+impl DisplayWithContext for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, context: &TyContext) -> std::fmt::Result {
+        match self {
+            Error::ParseError(err) => err.fmt(f),
+            Error::ValidateError(err) => err.fmt(f),
+            Error::ResolveError(err) => err.fmt(f),
+            Error::ImportError(err) => err.fmt(f),
+            Error::UsageError(err) => err.fmt(f),
+            Error::CondCompError(err) => err.fmt(f),
+            Error::TomlError(err) => err.fmt(f),
+            #[cfg(feature = "eval")]
+            Error::EvalError(err, _) => err.fmt(f, context),
+            Error::Custom(msg) => write!(f, "{}", msg),
+        }
+    }
+}
+
+impl From<wgsl_parse::Error> for Error {
+    fn from(source: wgsl_parse::Error) -> Self {
+        Error::ParseError(source)
+    }
+}
+impl From<ValidateError> for Error {
+    fn from(source: ValidateError) -> Self {
+        Error::ValidateError(source)
+    }
+}
+impl From<ResolveError> for Error {
+    fn from(source: ResolveError) -> Self {
+        Error::ResolveError(source)
+    }
+}
+impl From<ImportError> for Error {
+    fn from(source: ImportError) -> Self {
+        Error::ImportError(source)
+    }
+}
+impl From<UsageError> for Error {
+    fn from(source: UsageError) -> Self {
+        Error::UsageError(source)
+    }
+}
+impl From<CondCompError> for Error {
+    fn from(source: CondCompError) -> Self {
+        Error::CondCompError(source)
+    }
+}
+impl From<TomlError> for Error {
+    fn from(source: TomlError) -> Self {
+        Error::TomlError(source)
+    }
 }
 
 /// Error diagnostics. Display user-friendly error snippets with `Display`.
@@ -139,8 +208,8 @@ pub enum Error {
 /// A diagnostic is a wrapper around an error with extra contextual metadata: the source,
 /// the declaration name, the span, ...
 #[derive(Debug)]
-pub struct Diagnostic<E = Error> {
-    pub error: Box<E>,
+pub struct Diagnostic {
+    pub error: Box<Error>,
     pub detail: Box<Detail>,
 }
 
@@ -154,7 +223,7 @@ pub struct Detail {
     pub span: Option<Span>,
 }
 
-impl From<wgsl_parse::Error> for Diagnostic<Error> {
+impl From<wgsl_parse::Error> for Diagnostic {
     fn from(error: wgsl_parse::Error) -> Self {
         let span = error.span;
         let mut res = Self::new(Error::ParseError(error));
@@ -163,26 +232,19 @@ impl From<wgsl_parse::Error> for Diagnostic<Error> {
     }
 }
 
-impl From<ValidateError> for Diagnostic<Error> {
+impl From<ValidateError> for Diagnostic {
     fn from(error: ValidateError) -> Self {
         Self::new(error.into())
     }
 }
 
-impl From<ResolveError> for Diagnostic<Error> {
+impl From<ResolveError> for Diagnostic {
     fn from(error: ResolveError) -> Self {
-        match error {
-            ResolveError::Io(_)
-            | ResolveError::FileNotFound(_, _)
-            | ResolveError::ModuleNotFound(_, _)
-            | ResolveError::FilesystemNotSupported
-            | ResolveError::FileEscapesRoot(_, _) => Self::new(error.into()),
-            ResolveError::Error(e) => e,
-        }
+        Self::new(error.into())
     }
 }
 
-impl From<ImportError> for Diagnostic<Error> {
+impl From<ImportError> for Diagnostic {
     fn from(error: ImportError) -> Self {
         match error {
             ImportError::ResolveError(e) => Self::from(e),
@@ -191,50 +253,33 @@ impl From<ImportError> for Diagnostic<Error> {
     }
 }
 
-impl From<UsageError> for Diagnostic<Error> {
+impl From<UsageError> for Diagnostic {
     fn from(error: UsageError) -> Self {
         Self::new(error.into())
     }
 }
 
-impl From<CondCompError> for Diagnostic<Error> {
+impl From<CondCompError> for Diagnostic {
     fn from(error: CondCompError) -> Self {
         Self::new(error.into())
     }
 }
 
-impl From<TomlError> for Diagnostic<Error> {
+impl From<TomlError> for Diagnostic {
     fn from(error: TomlError) -> Self {
         Self::new(error.into())
     }
 }
 
-impl From<EvalError> for Diagnostic<Error> {
-    fn from(error: EvalError) -> Self {
-        Self::new(error.into())
-    }
-}
-
-impl From<Error> for Diagnostic<Error> {
+impl From<Error> for Diagnostic {
     fn from(error: Error) -> Self {
-        match error {
-            Error::ParseError(e) => e.into(),
-            Error::ResolveError(e) => e.into(),
-            Error::ImportError(e) => e.into(),
-            Error::UsageError(e) => e.into(),
-            Error::Error(e) => e,
-            Error::ValidateError(e) => e.into(),
-            Error::CondCompError(e) => e.into(),
-            Error::TomlError(e) => e.into(),
-            Error::EvalError(e) => e.into(),
-            Error::Custom(_) => Self::new(error),
-        }
+        Diagnostic::new(error)
     }
 }
 
-impl<E> Diagnostic<E> {
+impl Diagnostic {
     /// Create an empty diagnostic from an error. No metadata is attached.
-    fn new(error: E) -> Diagnostic<E> {
+    pub fn new(error: Error) -> Diagnostic {
         Self {
             error: Box::new(error),
             detail: Box::new(Detail {
@@ -342,7 +387,7 @@ impl<E> Diagnostic<E> {
     }
 }
 
-impl Diagnostic<Error> {
+impl Diagnostic {
     /// XXX: this function has issues when the main module identifiers are not mangled.
     /// unmangle any mangled identifiers in the error.
     ///
@@ -430,7 +475,7 @@ impl Diagnostic<Error> {
             use wgsl_types::ty::Type;
             match mangled {
                 // TODO unmangle components!
-                Type::Struct(s) => {
+                Type::Struct(_s) => {
                     // TODO: Unmangle structs
                     // unmangle_name(&mut context[*s].name, sourcemap, mangler);
                     // for m in context[*s].members.iter_mut() {
@@ -516,7 +561,7 @@ impl Diagnostic<Error> {
             Error::TomlError(_) => {}
             // #[cfg(feature = "generics")]
             // Error::GenericsError(_) => {}
-            Error::EvalError(e) => match e {
+            Error::EvalError(e, _) => match e {
                 EvalError::NotScalar(ty) => unmangle_ty(ty, sourcemap, mangler, context),
                 EvalError::NotConstructible(ty) => unmangle_ty(ty, sourcemap, mangler, context),
                 EvalError::Type(ty1, ty2) => {
@@ -656,7 +701,6 @@ impl Diagnostic<Error> {
                 | EvalError::FlowInFunction(_)
                 | EvalError::FlowInModule(_) => {}
             },
-            Error::Error(_) => {}
             Error::Custom(_) => {}
         };
 
@@ -664,10 +708,10 @@ impl Diagnostic<Error> {
     }
 }
 
-impl<E: std::error::Error> Diagnostic<E> {
+impl Diagnostic {
     fn render_snippet(&self, renderer: &annotate_snippets::Renderer) -> String {
         use annotate_snippets::*;
-        let msg = format!("{}", self.error);
+        let msg = format!("{}", &self.error);
         let title = Level::ERROR.primary_title(&msg);
         let mut group = Group::with_title(title);
 
@@ -720,9 +764,9 @@ impl<E: std::error::Error> Diagnostic<E> {
     }
 }
 
-impl<E: std::error::Error> std::error::Error for Diagnostic<E> {}
+impl std::error::Error for Diagnostic {}
 
-impl<E: std::error::Error> Display for Diagnostic<E> {
+impl Display for Diagnostic {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // AutoStream::choice may return `AlwaysAnsi`, `Always` or `Never`.
         // It never returns `Auto`.
@@ -739,14 +783,14 @@ impl<E: std::error::Error> Display for Diagnostic<E> {
 
 /// Wrapper type that provides forces a colored/non-colored output.
 #[derive(Debug)]
-pub struct ColoredDiagnostic<'a, E>(&'a Diagnostic<E>, bool);
+pub struct ColoredDiagnostic<'a>(&'a Diagnostic, bool);
 
-impl<E> Diagnostic<E> {
+impl Diagnostic {
     /// A [`std::fmt::Display`] adapter to get a colored output (with ANSI codes).
     ///
     /// Diagnostics auto-detect if colors are supported using `anstream`.
     /// With this adapter, you can force a colored or non-colored output.
-    pub fn colored(&self, colored: bool) -> ColoredDiagnostic<'_, E> {
+    pub fn colored(&self, colored: bool) -> ColoredDiagnostic<'_> {
         ColoredDiagnostic(self, colored)
     }
 }
@@ -756,14 +800,14 @@ impl Error {
     ///
     /// Diagnostics provide better-looking error messages.
     /// Use [`Diagnostic::colored`] to get a colored output similar to Rust's compiler errors.
-    pub fn diagnostic(self) -> Diagnostic<Error> {
-        Diagnostic::from(self)
+    pub fn diagnostic(self) -> Diagnostic {
+        Diagnostic::new(self)
     }
 }
 
-impl<E: std::error::Error> std::error::Error for ColoredDiagnostic<'_, E> {}
+impl std::error::Error for ColoredDiagnostic<'_> {}
 
-impl<E: std::error::Error> std::fmt::Display for ColoredDiagnostic<'_, E> {
+impl std::fmt::Display for ColoredDiagnostic<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.1 {
             write!(f, "{}", self.0.render_colored())

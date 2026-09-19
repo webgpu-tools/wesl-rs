@@ -2,8 +2,7 @@ use crate::{
     arena::{Id, UniqueArena},
     ty::StructType,
 };
-
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct TyContext {
     pub struct_arena: UniqueArena<StructType>,
 }
@@ -13,6 +12,12 @@ impl TyContext {
         WithContext {
             value,
             context: self,
+        }
+    }
+
+    pub fn clone_for_error(&self) -> TyContext {
+        Self {
+            struct_arena: self.struct_arena.clone(),
         }
     }
 }

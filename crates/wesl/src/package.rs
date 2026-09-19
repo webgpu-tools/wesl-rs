@@ -310,23 +310,22 @@ impl PackageBuilder {
 }
 
 impl PackageModule {
-    fn validate(&self, parent_path: ModulePath) -> Result<(), Error> {
+    fn validate(&self, parent_path: ModulePath) -> Result<(), Diagnostic> {
         let mut path = parent_path.clone();
         path.push(&self.name);
 
         eprintln!("INFO: validate {path}");
 
-        let to_diagnostic = |e: Error| {
-            Diagnostic::from(e)
+        let mut module: TranslationUnit = self.source.parse().map_err(|e: wgsl_parse::Error| {
+            Diagnostic::new(Error::ParseError(e))
                 .with_module_path(path.clone(), None)
                 .with_source(self.source.clone())
-        };
-        let mut module: TranslationUnit = self
-            .source
-            .parse()
-            .map_err(|e: wgsl_parse::Error| to_diagnostic(e.into()))?;
+        })?;
         pass::retarget_idents(&mut module);
-        pass::validate_wesl(&module).map_err(|e| to_diagnostic(e.into()))?;
+        pass::validate_wesl(&module).map_err(|e| {
+            e.with_module_path(path.clone(), None)
+                .with_source(self.source.clone())
+        })?;
         for module in &self.submodules {
             module.validate(path.clone())?;
         }
@@ -336,7 +335,7 @@ impl PackageModule {
 
 impl Package {
     /// Run [validation][pass::validate_wesl] on each of the scanned files.
-    pub fn validate(self) -> Result<Self, Error> {
+    pub fn validate(self) -> Result<Self, Diagnostic> {
         self.root.validate(ModulePath::new_root())?;
         Ok(self)
     }

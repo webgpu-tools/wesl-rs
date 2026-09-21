@@ -6,7 +6,7 @@ use crate::{
     inst::{LiteralInstance, MatInstance, MemView, PtrInstance, RefInstance, VecInstance},
     syntax::{AddressSpace, BinaryOperator, UnaryOperator},
     ty::{Ty, Type},
-    ty_context::TyContext,
+    ty_ctx::TyContext,
 };
 
 use num_traits::{WrappingNeg, WrappingShl};

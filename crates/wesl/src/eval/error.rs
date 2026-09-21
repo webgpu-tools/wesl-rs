@@ -3,7 +3,7 @@ use wgsl_types::{
     CallSignature, ShaderStage,
     inst::{Instance, LiteralInstance, MemView},
     ty::Type,
-    ty_context::{DisplayWithContext, TyContext},
+    ty_ctx::{DisplayWithContext, TyContext},
 };
 
 use super::{Flow, ScopeKind};

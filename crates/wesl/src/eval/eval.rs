@@ -5,7 +5,7 @@ use wgsl_types::{
     f16,
     inst::{Instance, LiteralInstance, RefInstance, VecInstance},
     ty::{Ty, Type},
-    ty_context::TyContext,
+    ty_ctx::TyContext,
 };
 
 use super::{Context, EvalError, Exec, Flow, ScopeKind, SyntaxUtil};
@@ -16,7 +16,7 @@ pub trait Eval {
     fn eval(&self, ctx: &mut Context) -> Result<Instance, E>;
 
     fn eval_value(&self, ctx: &mut Context) -> Result<Instance, E> {
-        Ok(self.eval(ctx)?.loaded(ctx.ty_context)?)
+        Ok(self.eval(ctx)?.loaded(ctx.ty_ctx)?)
     }
 }
 
@@ -90,7 +90,7 @@ impl Eval for NamedComponentExpression {
             v: &VecInstance,
             comp: &str,
             r: Option<&RefInstance>,
-            ty_context: &TyContext,
+            ty_ctx: &TyContext,
         ) -> Result<Instance, E> {
             if !check_swizzle(comp) {
                 return Err(E::Swizzle(comp.to_string()));
@@ -107,7 +107,7 @@ impl Eval for NamedComponentExpression {
                 .collect_vec();
             if let [i] = indices.as_slice() {
                 if let Some(r) = r {
-                    Ok(Instance::Ref(r.view_index(*i, ty_context)?))
+                    Ok(Instance::Ref(r.view_index(*i, ty_ctx)?))
                 } else {
                     v.get(*i)
                         .cloned()
@@ -126,18 +126,18 @@ impl Eval for NamedComponentExpression {
             }
         }
 
-        fn inst_comp(base: Instance, comp: &str, ty_context: &TyContext) -> Result<Instance, E> {
+        fn inst_comp(base: Instance, comp: &str, ty_ctx: &TyContext) -> Result<Instance, E> {
             match &base {
                 Instance::Struct(s) => {
                     let val = s
-                        .member(comp, ty_context)
+                        .member(comp, ty_ctx)
                         .ok_or_else(|| E::Component(s.ty(), comp.to_string()))?;
                     Ok(val.clone())
                 }
-                Instance::Vec(v) => vec_comp(v, comp, None, ty_context),
-                Instance::Ref(r) => match &*r.read(ty_context)? {
-                    Instance::Struct(_) => Ok(r.view_member(comp.to_string(), ty_context)?.into()),
-                    Instance::Vec(v) => vec_comp(v, comp, Some(r), ty_context),
+                Instance::Vec(v) => vec_comp(v, comp, None, ty_ctx),
+                Instance::Ref(r) => match &*r.read(ty_ctx)? {
+                    Instance::Struct(_) => Ok(r.view_member(comp.to_string(), ty_ctx)?.into()),
+                    Instance::Vec(v) => vec_comp(v, comp, Some(r), ty_ctx),
                     _ => Err(E::Component(base.ty(), comp.to_string())),
                 },
                 _ => Err(E::Component(base.ty(), comp.to_string())),
@@ -145,17 +145,13 @@ impl Eval for NamedComponentExpression {
         }
 
         let base = self.base.eval(ctx)?;
-        inst_comp(base, &self.component.name(), ctx.ty_context)
+        inst_comp(base, &self.component.name(), ctx.ty_ctx)
     }
 }
 
 impl Eval for IndexingExpression {
     fn eval(&self, ctx: &mut Context) -> Result<Instance, E> {
-        fn index_inst(
-            base: &Instance,
-            index: usize,
-            ty_context: &TyContext,
-        ) -> Result<Instance, E> {
+        fn index_inst(base: &Instance, index: usize, ty_ctx: &TyContext) -> Result<Instance, E> {
             match base {
                 Instance::Vec(v) => v
                     .get(index)
@@ -169,7 +165,7 @@ impl Eval for IndexingExpression {
                     .get(index)
                     .cloned()
                     .ok_or_else(|| E::OutOfBounds(index, a.ty(), a.n())),
-                Instance::Ref(r) => Ok(r.view_index(index, ty_context)?.into()),
+                Instance::Ref(r) => Ok(r.view_index(index, ty_ctx)?.into()),
                 _ => Err(E::NotIndexable(base.ty())),
             }
         }
@@ -183,7 +179,7 @@ impl Eval for IndexingExpression {
             _ => Err(E::Index(index.ty())),
         }?;
 
-        index_inst(&base, index, ctx.ty_context)
+        index_inst(&base, index, ctx.ty_ctx)
     }
 }
 
@@ -234,7 +230,7 @@ impl Eval for BinaryExpression {
             }
         } else {
             let rhs = self.right.eval_value(ctx)?;
-            call_binary_op(self.operator, &lhs, &rhs, ctx.stage, ctx.ty_context).map_err(Into::into)
+            call_binary_op(self.operator, &lhs, &rhs, ctx.stage, ctx.ty_ctx).map_err(Into::into)
         }
     }
 }

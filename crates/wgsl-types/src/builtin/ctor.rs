@@ -25,7 +25,7 @@ use crate::{
     },
     tplt::{ArrayTemplate, MatTemplate, TpltParam, VecTemplate},
     ty::{StructType, Ty, Type},
-    ty_context::TyContext,
+    ty_ctx::TyContext,
 };
 
 type E = Error;

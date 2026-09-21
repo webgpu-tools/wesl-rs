@@ -9,7 +9,7 @@ use crate::{
         VecInstance,
     },
     ty::{Ty, Type},
-    ty_context::TyContext,
+    ty_ctx::TyContext,
 };
 
 impl Instance {

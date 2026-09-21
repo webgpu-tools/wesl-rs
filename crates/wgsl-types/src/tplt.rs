@@ -7,7 +7,7 @@ use crate::{
     inst::{Instance, LiteralInstance},
     syntax::{AccessMode, AddressSpace, Enumerant, SampledType, TexelFormat},
     ty::{TextureType, Ty, Type},
-    ty_context::TyContext,
+    ty_ctx::TyContext,
 };
 
 /// A single template parameter.

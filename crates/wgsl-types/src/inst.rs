@@ -13,7 +13,7 @@ use crate::{
     f16,
     syntax::{AccessMode, AddressSpace},
     ty::{StructType, Ty, Type},
-    ty_context::TyContext,
+    ty_ctx::TyContext,
 };
 
 type E = Error;

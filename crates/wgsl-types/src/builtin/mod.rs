@@ -44,7 +44,7 @@ use crate::{
         TpltParam, VecTemplate,
     },
     ty::{SamplerType, TextureType, Ty, Type},
-    ty_context::TyContext,
+    ty_ctx::TyContext,
 };
 
 type E = Error;

@@ -2,7 +2,7 @@ use crate::{
     CallSignature, Type,
     inst::LiteralInstance,
     syntax::{BinaryOperator, UnaryOperator},
-    ty_context::{DisplayWithContext, TyContext},
+    ty_ctx::{DisplayWithContext, TyContext},
 };
 
 /// The global error struct.

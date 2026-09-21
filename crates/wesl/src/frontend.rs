@@ -223,7 +223,7 @@ pub fn compile(
         let mut pass = CompilationPass::new(main_path, options, &sourcemapper, &sourcemapper);
         let res = CompilerDriver::compile(&mut pass);
         let sourcemap = sourcemapper.finish();
-        let res = res.map_err(|e| Diagnostic::from(e).with_sourcemap(&sourcemap))?;
+        let res = res.map_err(|e| e.with_sourcemap(&sourcemap))?;
 
         Ok(CompileResult {
             syntax: res.syntax,
@@ -256,7 +256,7 @@ pub async fn compile_async(
         let mut pass = CompilationPass::new(main_path, options, &sourcemapper, &sourcemapper);
         let res = CompilerDriver::compile_async(&mut pass).await;
         let sourcemap = sourcemapper.finish();
-        let res = res.map_err(|e| Diagnostic::from(e).with_sourcemap(&sourcemap))?;
+        let res = res.map_err(|e| e.with_sourcemap(&sourcemap))?;
 
         Ok(CompileResult {
             syntax: res.syntax,
@@ -418,10 +418,7 @@ impl<R: Resolver> Compiler<R> {
     ///
     /// Can panic if [`ModulePath::from_path`] fails.
     // TODO: we don't want that panic.
-    pub fn compile(
-        &self,
-        fs_main_path: impl AsRef<Path>,
-    ) -> Result<CompileResult, Diagnostic> {
+    pub fn compile(&self, fs_main_path: impl AsRef<Path>) -> Result<CompileResult, Diagnostic> {
         let main_path = main_module_path(fs_main_path.as_ref(), &self.resolver)?;
         compile(&main_path, &self.options, &self.resolver)
     }

@@ -151,7 +151,7 @@ impl std::fmt::Display for Error {
 }
 
 impl DisplayWithContext for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, context: &TyContext) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, _context: &TyContext) -> std::fmt::Result {
         match self {
             Error::ParseError(err) => err.fmt(f),
             Error::ValidateError(err) => err.fmt(f),
@@ -161,7 +161,7 @@ impl DisplayWithContext for Error {
             Error::CondCompError(err) => err.fmt(f),
             Error::TomlError(err) => err.fmt(f),
             #[cfg(feature = "eval")]
-            Error::EvalError(err, _) => err.fmt(f, context),
+            Error::EvalError(err, _) => err.fmt(f, _context),
             Error::Custom(msg) => write!(f, "{}", msg),
         }
     }
@@ -468,9 +468,9 @@ impl Diagnostic {
 
         fn unmangle_ty(
             mangled: &mut wgsl_types::ty::Type,
-            sourcemap: Option<&impl SourceMap>,
-            mangler: Option<&impl Mangler>,
-            context: &TyContext,
+            _sourcemap: Option<&impl SourceMap>,
+            _mangler: Option<&impl Mangler>,
+            _context: &TyContext,
         ) {
             use wgsl_types::ty::Type;
             match mangled {
@@ -482,10 +482,10 @@ impl Diagnostic {
                     //     unmangle_ty(&mut m.ty, sourcemap, mangler, context);
                     // }
                 }
-                Type::Array(ty, _) => unmangle_ty(&mut *ty, sourcemap, mangler, context),
-                Type::Atomic(ty) => unmangle_ty(&mut *ty, sourcemap, mangler, context),
-                Type::Ptr(_, ty, _) => unmangle_ty(&mut *ty, sourcemap, mangler, context),
-                Type::Ref(_, ty, _) => unmangle_ty(&mut *ty, sourcemap, mangler, context),
+                Type::Array(ty, _) => unmangle_ty(&mut *ty, _sourcemap, _mangler, _context),
+                Type::Atomic(ty) => unmangle_ty(&mut *ty, _sourcemap, _mangler, _context),
+                Type::Ptr(_, ty, _) => unmangle_ty(&mut *ty, _sourcemap, _mangler, _context),
+                Type::Ref(_, ty, _) => unmangle_ty(&mut *ty, _sourcemap, _mangler, _context),
                 _ => (),
             }
         }
@@ -711,7 +711,7 @@ impl Diagnostic {
 impl Diagnostic {
     fn render_snippet(&self, renderer: &annotate_snippets::Renderer) -> String {
         use annotate_snippets::*;
-        let msg = format!("{}", &self.error);
+        let msg = format!("{}", self.error);
         let title = Level::ERROR.primary_title(&msg);
         let mut group = Group::with_title(title);
 

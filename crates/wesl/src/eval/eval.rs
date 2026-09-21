@@ -16,7 +16,7 @@ pub trait Eval {
     fn eval(&self, ctx: &mut Context) -> Result<Instance, E>;
 
     fn eval_value(&self, ctx: &mut Context) -> Result<Instance, E> {
-        Ok(self.eval(ctx)?.loaded(&ctx.ty_context)?)
+        Ok(self.eval(ctx)?.loaded(ctx.ty_context)?)
     }
 }
 
@@ -145,7 +145,7 @@ impl Eval for NamedComponentExpression {
         }
 
         let base = self.base.eval(ctx)?;
-        inst_comp(base, &self.component.name(), &ctx.ty_context)
+        inst_comp(base, &self.component.name(), ctx.ty_context)
     }
 }
 
@@ -183,7 +183,7 @@ impl Eval for IndexingExpression {
             _ => Err(E::Index(index.ty())),
         }?;
 
-        index_inst(&base, index, &ctx.ty_context)
+        index_inst(&base, index, ctx.ty_context)
     }
 }
 
@@ -234,8 +234,7 @@ impl Eval for BinaryExpression {
             }
         } else {
             let rhs = self.right.eval_value(ctx)?;
-            call_binary_op(self.operator, &lhs, &rhs, ctx.stage, &ctx.ty_context)
-                .map_err(Into::into)
+            call_binary_op(self.operator, &lhs, &rhs, ctx.stage, ctx.ty_context).map_err(Into::into)
         }
     }
 }

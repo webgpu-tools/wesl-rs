@@ -66,7 +66,7 @@ impl ToExpr for StructInstance {
                 .members
                 .iter()
                 .map(|m| {
-                    self.member(&m.ident.name(), &ctx.ty_context)
+                    self.member(&m.ident.name(), ctx.ty_context)
                         .expect("struct member not found")
                         .to_expr(ctx)
                         .map(Spanned::from)

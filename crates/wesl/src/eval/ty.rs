@@ -139,9 +139,9 @@ pub fn ty_eval_ty(expr: &TypeExpression, ctx: &mut Context) -> Result<Type, E> {
             .iter()
             .map(|arg| eval_tplt_arg(arg, ctx))
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(builtin_type(name, Some(&tplt), &ctx.ty_context)?)
+        Ok(builtin_type(name, Some(&tplt), ctx.ty_context)?)
     } else {
-        Ok(builtin_type(name, None, &ctx.ty_context)?)
+        Ok(builtin_type(name, None, ctx.ty_context)?)
     }
 }
 
@@ -168,9 +168,7 @@ impl EvalTy for NamedComponentExpression {
                         .members
                         .iter()
                         .find(|m| m.name == *mem_name)
-                        .ok_or_else(|| {
-                            E::Component(Type::Struct(s.clone()), mem_name.to_string())
-                        })?;
+                        .ok_or_else(|| E::Component(Type::Struct(s), mem_name.to_string()))?;
                     Ok(m.ty.clone())
                 }
                 Type::Vec(_, ty) => {
@@ -276,11 +274,11 @@ impl EvalTy for BinaryExpression {
         let (inner, ty1, ty2) = if matches!(self.operator, BinOp::ShiftLeft | BinOp::ShiftRight) {
             (ty1.inner_ty(), ty1, ty2)
         } else {
-            let inner = convert_ty(&ty1.inner_ty(), &ty2.inner_ty(), &ctx.ty_context)
+            let inner = convert_ty(&ty1.inner_ty(), &ty2.inner_ty(), ctx.ty_context)
                 .ok_or_else(|| E::Binary(self.operator, ty1.clone(), ty2.clone()))?
                 .clone();
-            let ty1 = ty1.convert_inner_to(&inner, &ctx.ty_context).unwrap();
-            let ty2 = ty2.convert_inner_to(&inner, &ctx.ty_context).unwrap();
+            let ty1 = ty1.convert_inner_to(&inner, ctx.ty_context).unwrap();
+            let ty2 = ty2.convert_inner_to(&inner, ctx.ty_context).unwrap();
             (inner, ty1, ty2)
         };
 
@@ -423,7 +421,7 @@ impl EvalTy for FunctionCallExpression {
                 GlobalDeclaration::Struct(decl) => decl.eval_ty(ctx),
                 GlobalDeclaration::Function(decl) => {
                     if decl.body.contains_attribute(&ATTR_INTRINSIC) {
-                        type_builtin_fn(&name, tplt.as_deref(), &args, &mut ctx.ty_context)?
+                        type_builtin_fn(&name, tplt.as_deref(), &args, ctx.ty_context)?
                             .ok_or_else(|| E::Void(decl.ident.to_string()))
                     } else {
                         // TODO: check argument types

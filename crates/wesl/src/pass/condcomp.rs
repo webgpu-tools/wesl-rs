@@ -212,7 +212,7 @@ fn eval_if_attr(
     let span = node.span();
     eval_if_attr_impl(node, prev, features).map_err(|e| {
         if let Some(span) = span {
-            Diagnostic::from(e).with_span(span)
+            e.with_span(span)
         } else {
             e
         }

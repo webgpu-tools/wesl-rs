@@ -428,10 +428,10 @@ enum CliError {
         size: u32,
         ty: wesl::eval::Type,
         ty_size: u32,
-        context: TyContext,
+        context: Box<TyContext>,
     },
     #[error("Could not convert instance to buffer (type `{}` is not storable)", .1.display(.0))]
-    NotStorable(wesl::eval::Type, TyContext),
+    NotStorable(wesl::eval::Type, Box<TyContext>),
     #[error("{0}")]
     WeslError(#[from] wesl::error::Error),
     #[error("{0}")]
@@ -515,7 +515,7 @@ fn parse_binding(
 
     let ty = ty_eval_ty(&ty_expr, &mut ctx).map_err(|e| {
         Diagnostic::new(wesl::Error::EvalError(
-            e.into(),
+            e,
             ctx.ty_context().clone_for_error(),
         ))
         .with_ctx(&ctx)
@@ -537,13 +537,13 @@ fn parse_binding(
         BindingType::ReadWrite => todo!(),
         BindingType::ReadOnly => todo!(),
     };
-    let inst = Instance::from_buffer(&b.data, &ty, &ctx.ty_context()).ok_or_else(|| {
+    let inst = Instance::from_buffer(&b.data, &ty, ctx.ty_context()).ok_or_else(|| {
         CliError::ResourceIncompatible {
             group_id: b.group,
             binding_id: b.binding,
             size: b.data.len() as u32,
             ty: ty.clone(),
-            ty_size: ty.size_of(&ctx.ty_context()).unwrap_or_default(),
+            ty_size: ty.size_of(ctx.ty_context()).unwrap_or_default(),
             context: ctx.ty_context().clone_for_error(),
         }
     })?;

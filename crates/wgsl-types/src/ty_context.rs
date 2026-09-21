@@ -15,10 +15,10 @@ impl TyContext {
         }
     }
 
-    pub fn clone_for_error(&self) -> TyContext {
-        Self {
+    pub fn clone_for_error(&self) -> Box<TyContext> {
+        Box::new(Self {
             struct_arena: self.struct_arena.clone(),
-        }
+        })
     }
 }
 

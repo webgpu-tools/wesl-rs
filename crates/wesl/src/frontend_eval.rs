@@ -55,7 +55,7 @@ impl EvalResult<'_> {
     // TODO: make context non-mut
     /// Convert the result instance to its in-memory representation.
     pub fn to_buffer(&mut self) -> Option<Vec<u8>> {
-        self.inst.to_buffer(&self.ctx.ty_context)
+        self.inst.to_buffer(self.ctx.ty_context)
     }
 }
 

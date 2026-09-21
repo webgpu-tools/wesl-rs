@@ -7,7 +7,7 @@ use wgsl_types::{
     syntax::{AccessMode, AddressSpace},
     tplt::TpltParam,
     ty::{Ty, Type},
-    ty_context::TyContext,
+    ty_ctx::TyContext,
 };
 
 use crate::eval::PRELUDE;
@@ -256,63 +256,49 @@ impl Exec for AssignmentStatement {
             match self.operator {
                 AssignmentOperator::Equal => {
                     let rhs = rhs
-                        .convert_to(&r.ty, ctx.ty_context)
+                        .convert_to(&r.ty, ctx.ty_ctx)
                         .ok_or_else(|| E::AssignType(rhs.ty(), r.ty.clone()))?;
-                    r.write(rhs, ctx.ty_context)?;
+                    r.write(rhs, ctx.ty_ctx)?;
                 }
                 AssignmentOperator::PlusEqual => {
-                    let val = r
-                        .read(ctx.ty_context)?
-                        .op_add(&rhs, ctx.stage, ctx.ty_context)?;
-                    r.write(val, ctx.ty_context)?;
+                    let val = r.read(ctx.ty_ctx)?.op_add(&rhs, ctx.stage, ctx.ty_ctx)?;
+                    r.write(val, ctx.ty_ctx)?;
                 }
                 AssignmentOperator::MinusEqual => {
-                    let val = r
-                        .read(ctx.ty_context)?
-                        .op_sub(&rhs, ctx.stage, ctx.ty_context)?;
-                    r.write(val, ctx.ty_context)?;
+                    let val = r.read(ctx.ty_ctx)?.op_sub(&rhs, ctx.stage, ctx.ty_ctx)?;
+                    r.write(val, ctx.ty_ctx)?;
                 }
                 AssignmentOperator::TimesEqual => {
-                    let val = r
-                        .read(ctx.ty_context)?
-                        .op_mul(&rhs, ctx.stage, ctx.ty_context)?;
-                    r.write(val, ctx.ty_context)?;
+                    let val = r.read(ctx.ty_ctx)?.op_mul(&rhs, ctx.stage, ctx.ty_ctx)?;
+                    r.write(val, ctx.ty_ctx)?;
                 }
                 AssignmentOperator::DivisionEqual => {
-                    let val = r
-                        .read(ctx.ty_context)?
-                        .op_div(&rhs, ctx.stage, ctx.ty_context)?;
-                    r.write(val, ctx.ty_context)?;
+                    let val = r.read(ctx.ty_ctx)?.op_div(&rhs, ctx.stage, ctx.ty_ctx)?;
+                    r.write(val, ctx.ty_ctx)?;
                 }
                 AssignmentOperator::ModuloEqual => {
-                    let val = r
-                        .read(ctx.ty_context)?
-                        .op_rem(&rhs, ctx.stage, ctx.ty_context)?;
-                    r.write(val, ctx.ty_context)?;
+                    let val = r.read(ctx.ty_ctx)?.op_rem(&rhs, ctx.stage, ctx.ty_ctx)?;
+                    r.write(val, ctx.ty_ctx)?;
                 }
                 AssignmentOperator::AndEqual => {
-                    let val = r.read(ctx.ty_context)?.op_bitand(&rhs, ctx.ty_context)?;
-                    r.write(val, ctx.ty_context)?;
+                    let val = r.read(ctx.ty_ctx)?.op_bitand(&rhs, ctx.ty_ctx)?;
+                    r.write(val, ctx.ty_ctx)?;
                 }
                 AssignmentOperator::OrEqual => {
-                    let val = r.read(ctx.ty_context)?.op_bitor(&rhs, ctx.ty_context)?;
-                    r.write(val, ctx.ty_context)?;
+                    let val = r.read(ctx.ty_ctx)?.op_bitor(&rhs, ctx.ty_ctx)?;
+                    r.write(val, ctx.ty_ctx)?;
                 }
                 AssignmentOperator::XorEqual => {
-                    let val = r.read(ctx.ty_context)?.op_bitxor(&rhs, ctx.ty_context)?;
-                    r.write(val, ctx.ty_context)?;
+                    let val = r.read(ctx.ty_ctx)?.op_bitxor(&rhs, ctx.ty_ctx)?;
+                    r.write(val, ctx.ty_ctx)?;
                 }
                 AssignmentOperator::ShiftRightAssign => {
-                    let val = r
-                        .read(ctx.ty_context)?
-                        .op_shr(&rhs, ctx.stage, ctx.ty_context)?;
-                    r.write(val, ctx.ty_context)?;
+                    let val = r.read(ctx.ty_ctx)?.op_shr(&rhs, ctx.stage, ctx.ty_ctx)?;
+                    r.write(val, ctx.ty_ctx)?;
                 }
                 AssignmentOperator::ShiftLeftAssign => {
-                    let val = r
-                        .read(ctx.ty_context)?
-                        .op_shl(&rhs, ctx.stage, ctx.ty_context)?;
-                    r.write(val, ctx.ty_context)?;
+                    let val = r.read(ctx.ty_ctx)?.op_shl(&rhs, ctx.stage, ctx.ty_ctx)?;
+                    r.write(val, ctx.ty_ctx)?;
                 }
             }
             Ok(Flow::Next)
@@ -326,7 +312,7 @@ impl Exec for IncrementStatement {
     fn exec(&self, ctx: &mut Context) -> Result<Flow, E> {
         let expr = self.expression.eval(ctx)?;
         if let Instance::Ref(r) = expr {
-            let mut r = r.read_write(ctx.ty_context)?;
+            let mut r = r.read_write(ctx.ty_ctx)?;
             match &*r {
                 Instance::Literal(LiteralInstance::I32(n)) => {
                     let val = n.checked_add(1).ok_or(E::IncrOverflow)?;
@@ -350,7 +336,7 @@ impl Exec for DecrementStatement {
     fn exec(&self, ctx: &mut Context) -> Result<Flow, E> {
         let expr = self.expression.eval(ctx)?;
         if let Instance::Ref(r) = expr {
-            let mut r = r.read_write(ctx.ty_context)?;
+            let mut r = r.read_write(ctx.ty_ctx)?;
             match &*r {
                 Instance::Literal(LiteralInstance::I32(n)) => {
                     let val = n.checked_sub(1).ok_or(E::DecrOverflow)?;
@@ -425,7 +411,7 @@ impl Exec for SwitchStatement {
                     CaseSelector::Expression(e) => {
                         let e = with_stage!(ctx, ShaderStage::Const, { e.eval_value(ctx) })?;
                         let e = e
-                            .convert_to(&ty, ctx.ty_context)
+                            .convert_to(&ty, ctx.ty_ctx)
                             .ok_or_else(|| E::Conversion(e.ty(), ty.clone()))?;
                         if e == expr {
                             let flow = clause.body.exec(ctx)?;
@@ -645,8 +631,7 @@ fn exec_fn(
     }
 
     if decl.body.contains_attribute(&ATTR_INTRINSIC) {
-        let call_res =
-            call_builtin_fn(&fn_name, tplt.as_deref(), &args, ctx.stage, ctx.ty_context)?;
+        let call_res = call_builtin_fn(&fn_name, tplt.as_deref(), &args, ctx.stage, ctx.ty_ctx)?;
         return Ok(call_res);
     }
 
@@ -670,7 +655,7 @@ fn exec_fn(
             .zip(&decl.parameters)
             .map(|(arg, param)| {
                 let param_ty = ty_eval_ty(&param.ty, ctx)?;
-                arg.convert_to(&param_ty, ctx.ty_context)
+                arg.convert_to(&param_ty, ctx.ty_ctx)
                     .ok_or_else(|| E::ParamType(param_ty.clone(), arg.ty()))
             })
             .collect::<Result<Vec<_>, _>>()
@@ -694,7 +679,7 @@ fn exec_fn(
     match (flow, ret_ty) {
         (flow @ (Flow::Break | Flow::Continue), _) => Err(E::FlowInFunction(flow)),
         (Flow::Return(Some(inst)), Some(ret_ty)) => inst
-            .convert_to(&ret_ty, ctx.ty_context)
+            .convert_to(&ret_ty, ctx.ty_ctx)
             .ok_or(E::ReturnType(inst.ty(), fn_name.clone(), ret_ty))
             .map(Into::into)
             .inspect_err(|_| ctx.set_err_decl_ctx(fn_name)),
@@ -730,14 +715,14 @@ impl Exec for FunctionCall {
                 exec_fn(decl, tplt, args, ctx).map(Flow::Return)
             } else if let GlobalDeclaration::Struct(decl) = decl {
                 let struct_ty = decl.eval_ty(ctx)?.unwrap_struct();
-                let inst = struct_ctor(struct_ty, &args, ctx.ty_context)?;
+                let inst = struct_ctor(struct_ty, &args, ctx.ty_ctx)?;
                 Ok(Flow::Return(Some(Instance::from(inst))))
             } else {
                 Err(E::NotCallable(fn_name))
             }
         } else if is_ctor(&fn_name) {
             let call_res =
-                call_builtin_fn(&fn_name, tplt.as_deref(), &args, ctx.stage, ctx.ty_context)?;
+                call_builtin_fn(&fn_name, tplt.as_deref(), &args, ctx.stage, ctx.ty_ctx)?;
             Ok(Flow::Return(call_res))
         } else {
             Err(E::UnknownFunction(fn_name))
@@ -864,7 +849,7 @@ pub fn exec_entrypoint(
                 Err(E::InvalidEntrypointParam(p.ident.to_string()))
             }?;
 
-            inst.convert_to(&param_ty, ctx.ty_context)
+            inst.convert_to(&param_ty, ctx.ty_ctx)
                 .ok_or_else(|| E::ParamType(param_ty, inst.ty()))
         })
         .collect::<Result<Vec<_>, _>>()
@@ -893,7 +878,7 @@ pub fn exec_entrypoint(
     match (flow, ret_ty) {
         (flow @ (Flow::Break | Flow::Continue), _) => Err(E::FlowInFunction(flow)),
         (Flow::Return(Some(inst)), Some(ret_ty)) => inst
-            .convert_to(&ret_ty, ctx.ty_context)
+            .convert_to(&ret_ty, ctx.ty_ctx)
             .ok_or(E::ReturnType(inst.ty(), fn_name.clone(), ret_ty))
             .map(Some)
             .inspect_err(|_| ctx.set_err_decl_ctx(fn_name)),
@@ -934,7 +919,7 @@ impl Exec for Declaration {
                 if self.kind.is_const() {
                     ty // only const declarations can be of abstract type.
                 } else {
-                    ty.concretize(ctx.ty_context)
+                    ty.concretize(ctx.ty_ctx)
                 }
             }
             (Some(ty), _) => ty_eval_ty(ty, ctx)?,
@@ -945,7 +930,7 @@ impl Exec for Declaration {
                 .as_ref()
                 .map(|init| {
                     let inst = with_stage!(ctx, stage, { init.eval_value(ctx) })?;
-                    inst.convert_to(&ty, ctx.ty_context)
+                    inst.convert_to(&ty, ctx.ty_ctx)
                         .ok_or_else(|| E::Conversion(inst.ty(), ty.clone()))
                 })
                 .transpose()
@@ -964,7 +949,7 @@ impl Exec for Declaration {
                 }
                 let inst = init(ctx, ctx.stage)?
                     .map(Ok)
-                    .unwrap_or_else(|| Instance::zero_value(&ty, ctx.ty_context))?;
+                    .unwrap_or_else(|| Instance::zero_value(&ty, ctx.ty_ctx))?;
 
                 RefInstance::new(inst, AddressSpace::Function, AccessMode::ReadWrite).into()
             }
@@ -972,7 +957,7 @@ impl Exec for Declaration {
                 if ctx.stage == ShaderStage::Const {
                     Instance::Opaque(ty)
                 } else if let Some(inst) = ctx.overridable(&self.ident.name()) {
-                    inst.convert_to(&ty, ctx.ty_context)
+                    inst.convert_to(&ty, ctx.ty_ctx)
                         .ok_or_else(|| E::Conversion(inst.ty(), ty))?
                 } else if let Some(inst) = init(ctx, ShaderStage::Override)? {
                     inst
@@ -999,7 +984,7 @@ impl Exec for Declaration {
                             let inst = if let Some(inst) = init(ctx, ShaderStage::Override)? {
                                 inst
                             } else {
-                                Instance::zero_value(&ty, ctx.ty_context)?
+                                Instance::zero_value(&ty, ctx.ty_ctx)?
                             };
 
                             RefInstance::new(inst, a_s, a_m).into()
@@ -1054,7 +1039,7 @@ impl Exec for Declaration {
                             // the initial value for a workgroup variable is the zero-value.
                             // except for atomics and composite types containing atomics,
                             // which are not constructible, but are storable.
-                            let inst = Instance::storable_zero_value(&ty, ctx.ty_context)?;
+                            let inst = Instance::storable_zero_value(&ty, ctx.ty_ctx)?;
                             RefInstance::new(inst, a_s, a_m).into()
                         }
                         AddressSpace::Handle => todo!("handle address space"),

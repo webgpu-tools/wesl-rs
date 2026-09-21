@@ -10,7 +10,7 @@
 #![allow(non_snake_case)]
 
 use crate::arena::Id;
-use crate::ty_context::TyContext;
+use crate::ty_ctx::TyContext;
 use crate::{
     CallSignature, Error,
     conv::{Convert, convert_all_ty, convert_ty},

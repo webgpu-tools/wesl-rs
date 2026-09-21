@@ -87,10 +87,10 @@ The eval/exec implementation is tested with the [WebGPU Conformance Test Suite][
 ```rust
 # #[cfg(feature = "eval")] { // feature-gate
 # use wesl::{Compiler, resolver::VirtualResolver, eval_str, eval::TyContext};
-# let mut ty_context = TyContext::default();
+# let mut ty_ctx = TyContext::default();
 // ...standalone expression
-let wgsl_expr = eval_str("abs(3 - 5)", &mut ty_context).unwrap();
-assert_eq!(ty_context.display(&wgsl_expr).to_string(), "2");
+let wgsl_expr = eval_str("abs(3 - 5)", &mut ty_ctx).unwrap();
+assert_eq!(ty_ctx.display(&wgsl_expr).to_string(), "2");
 
 // ...expression using declarations in a WESL file
 let source = "const my_const = 4; @const fn my_fn(v: u32) -> u32 { return v * 10; }";
@@ -102,7 +102,7 @@ let source = "const my_const = 4; @const fn my_fn(v: u32) -> u32 { return v * 10
 #
 let wgsl_expr = compiler
     .compile("main.wgsl").unwrap()
-    .eval("my_fn(my_const) + 2", &mut ty_context).unwrap()
+    .eval("my_fn(my_const) + 2", &mut ty_ctx).unwrap()
     .to_string();
 assert_eq!(wgsl_expr, "42u");
 # } // end feature-gate

@@ -498,9 +498,9 @@ fn run_compile(
 fn parse_binding(
     b: &Binding,
     module: &TranslationUnit,
-    ty_context: &mut TyContext,
+    ty_ctx: &mut TyContext,
 ) -> Result<((u32, u32), RefInstance), CliError> {
-    let mut ctx = wesl::eval::Context::new(module, ty_context);
+    let mut ctx = wesl::eval::Context::new(module, ty_ctx);
 
     let ty_expr = module
         .global_declarations
@@ -519,12 +519,9 @@ fn parse_binding(
         .ok_or(CliError::ResourceNotFound(b.group, b.binding))?;
 
     let ty = ty_eval_ty(&ty_expr, &mut ctx).map_err(|e| {
-        Diagnostic::new(wesl::Error::EvalError(
-            e,
-            ctx.ty_context().clone_for_error(),
-        ))
-        .with_ctx(&ctx)
-        .with_source(ty_expr.to_string())
+        Diagnostic::new(wesl::Error::EvalError(e, ctx.ty_ctx().clone_for_error()))
+            .with_ctx(&ctx)
+            .with_source(ty_expr.to_string())
     })?;
     let (storage, access) = match b.kind {
         BindingType::Uniform => (AddressSpace::Uniform, AccessMode::Read),
@@ -542,14 +539,14 @@ fn parse_binding(
         BindingType::ReadWrite => todo!(),
         BindingType::ReadOnly => todo!(),
     };
-    let inst = Instance::from_buffer(&b.data, &ty, ctx.ty_context()).ok_or_else(|| {
+    let inst = Instance::from_buffer(&b.data, &ty, ctx.ty_ctx()).ok_or_else(|| {
         CliError::ResourceIncompatible {
             group_id: b.group,
             binding_id: b.binding,
             size: b.data.len() as u32,
             ty: ty.clone(),
-            ty_size: ty.size_of(ctx.ty_context()).unwrap_or_default(),
-            context: ctx.ty_context().clone_for_error(),
+            ty_size: ty.size_of(ctx.ty_ctx()).unwrap_or_default(),
+            context: ctx.ty_ctx().clone_for_error(),
         }
     })?;
     Ok((
@@ -561,19 +558,16 @@ fn parse_binding(
 fn eval_expr(
     src: &str,
     module: &TranslationUnit,
-    ty_context: &mut TyContext,
+    ty_ctx: &mut TyContext,
 ) -> Result<Instance, CliError> {
-    let mut ctx = wesl::eval::Context::new(module, ty_context);
+    let mut ctx = wesl::eval::Context::new(module, ty_ctx);
     let expr = src
         .parse::<syntax::Expression>()
         .map_err(|e| Diagnostic::new(e.into()).with_source(src.to_string()))?;
     let inst = expr.eval_value(&mut ctx).map_err(|e| {
-        Diagnostic::new(wesl::Error::EvalError(
-            e,
-            ctx.ty_context().clone_for_error(),
-        ))
-        .with_ctx(&ctx)
-        .with_source(src.to_string())
+        Diagnostic::new(wesl::Error::EvalError(e, ctx.ty_ctx().clone_for_error()))
+            .with_ctx(&ctx)
+            .with_source(src.to_string())
     })?;
     Ok(inst)
 }
@@ -664,26 +658,26 @@ fn run(cli: Cli) -> Result<(), CliError> {
             let comp = file_or_source(args.file)
                 .map(|input| run_compile(&args.options, input))
                 .unwrap_or_else(|| Ok(CompileResult::default()))?;
-            let mut ty_context = TyContext::default();
-            let eval = comp.eval(&args.expr, &mut ty_context)?;
+            let mut ty_ctx = TyContext::default();
+            let eval = comp.eval(&args.expr, &mut ty_ctx)?;
             if args.binary {
-                let buf = eval.inst.to_buffer(eval.ctx.ty_context()).ok_or_else(|| {
-                    CliError::NotStorable(eval.inst.ty(), eval.ctx.ty_context().clone_for_error())
+                let buf = eval.inst.to_buffer(eval.ctx.ty_ctx()).ok_or_else(|| {
+                    CliError::NotStorable(eval.inst.ty(), eval.ctx.ty_ctx().clone_for_error())
                 })?;
                 std::io::stdout().write_all(buf.as_slice()).unwrap();
             } else {
-                println!("{}", eval.ctx.ty_context().display(&eval.inst))
+                println!("{}", eval.ctx.ty_ctx().display(&eval.inst))
             }
         }
         Command::Exec(args) => {
             let comp = file_or_source(args.file)
                 .map(|input| run_compile(&args.options, input))
                 .unwrap_or_else(|| Ok(CompileResult::default()))?;
-            let mut ty_context = TyContext::default();
+            let mut ty_ctx = TyContext::default();
             let resources = args
                 .resources
                 .iter()
-                .map(|b| parse_binding(b, &comp.syntax, &mut ty_context))
+                .map(|b| parse_binding(b, &comp.syntax, &mut ty_ctx))
                 .collect::<Result<_, _>>()?;
 
             let overrides = args
@@ -692,42 +686,36 @@ fn run(cli: Cli) -> Result<(), CliError> {
                 .map(|(name, expr)| -> Result<(String, Instance), CliError> {
                     Ok((
                         name.to_string(),
-                        eval_expr(expr, &comp.syntax, &mut ty_context)?,
+                        eval_expr(expr, &comp.syntax, &mut ty_ctx)?,
                     ))
                 })
                 .collect::<Result<_, _>>()?;
 
-            let mut inputs = Inputs::new_zero_initialized(&ty_context);
+            let mut inputs = Inputs::new_zero_initialized(&ty_ctx);
 
             inputs.user_defined = args
                 .user_inputs
                 .iter()
                 .map(|(index, expr)| -> Result<(u32, Instance), CliError> {
-                    Ok((*index, eval_expr(expr, &comp.syntax, &mut ty_context)?))
+                    Ok((*index, eval_expr(expr, &comp.syntax, &mut ty_ctx)?))
                 })
                 .collect::<Result<_, _>>()?;
 
             for (name, expr) in &args.builtins {
-                let inst = eval_expr(expr, &comp.syntax, &mut ty_context)?;
+                let inst = eval_expr(expr, &comp.syntax, &mut ty_ctx)?;
                 inputs.builtins.insert(name.to_string(), inst);
             }
 
-            let exec = comp.exec(
-                &args.entrypoint,
-                inputs,
-                resources,
-                overrides,
-                &mut ty_context,
-            )?;
+            let exec = comp.exec(&args.entrypoint, inputs, resources, overrides, &mut ty_ctx)?;
 
             if let Some(inst) = &exec.inst {
                 if args.binary {
-                    let buf = inst.to_buffer(exec.ctx.ty_context()).ok_or_else(|| {
-                        CliError::NotStorable(inst.ty(), exec.ctx.ty_context().clone_for_error())
+                    let buf = inst.to_buffer(exec.ctx.ty_ctx()).ok_or_else(|| {
+                        CliError::NotStorable(inst.ty(), exec.ctx.ty_ctx().clone_for_error())
                     })?;
                     std::io::stdout().write_all(buf.as_slice()).unwrap();
                 } else {
-                    println!("return: {}", exec.ctx.ty_context().display(inst));
+                    println!("return: {}", exec.ctx.ty_ctx().display(inst));
                 }
             } else if !args.binary {
                 println!("return: void")
@@ -738,21 +726,21 @@ fn run(cli: Cli) -> Result<(), CliError> {
                 .iter()
                 .filter_map(|r| {
                     let inst = exec.resource(r.group, r.binding)?.clone();
-                    let inst = inst.read(exec.ctx.ty_context()).ok()?.to_owned();
+                    let inst = inst.read(exec.ctx.ty_ctx()).ok()?.to_owned();
                     Some((r.group, r.binding, inst))
                 })
                 .collect::<Vec<_>>();
 
             for (group, binding, inst) in resources {
                 if args.binary {
-                    let buf = inst.to_buffer(exec.ctx.ty_context()).ok_or_else(|| {
-                        CliError::NotStorable(inst.ty(), exec.ctx.ty_context().clone_for_error())
+                    let buf = inst.to_buffer(exec.ctx.ty_ctx()).ok_or_else(|| {
+                        CliError::NotStorable(inst.ty(), exec.ctx.ty_ctx().clone_for_error())
                     })?;
                     std::io::stdout().write_all(buf.as_slice()).unwrap();
                 } else {
                     println!(
                         "resource: group={group} binding={binding} value={}",
-                        exec.ctx.ty_context().display(&inst)
+                        exec.ctx.ty_ctx().display(&inst)
                     )
                 }
             }

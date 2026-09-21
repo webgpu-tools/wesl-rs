@@ -27,7 +27,7 @@ use crate::{
         AtomicInstance, LiteralInstance, MatInstance, RefInstance, StructInstance, VecInstance,
     },
     ty::{Ty, Type},
-    ty_context::TyContext,
+    ty_ctx::TyContext,
 };
 
 use super::{Compwise, atomic_compare_exchange_struct_type, frexp_struct_type};

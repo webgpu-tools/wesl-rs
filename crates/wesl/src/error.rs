@@ -7,7 +7,7 @@ use wgsl_parse::{
     span::Span,
     syntax::{Expression, Ident, ModulePath, Visibility},
 };
-use wgsl_types::ty_context::{DisplayWithContext, TyContext};
+use wgsl_types::ty_ctx::{DisplayWithContext, TyContext};
 
 #[cfg(feature = "eval")]
 use crate::eval::EvalError;

@@ -278,12 +278,9 @@ fn parse_binding(
         .ok_or(CliError::ResourceNotFound(b.group, b.binding))?;
 
     let ty = ty_eval_ty(&ty_expr, &mut ctx).map_err(|e| {
-        wesl::error::Diagnostic::new(wesl::Error::EvalError(
-            e,
-            ctx.ty_context().clone_for_error(),
-        ))
-        .with_ctx(&ctx)
-        .with_source(ty_expr.to_string())
+        wesl::error::Diagnostic::new(wesl::Error::EvalError(e, ctx.ty_ctx().clone_for_error()))
+            .with_ctx(&ctx)
+            .with_source(ty_expr.to_string())
     })?;
     let (storage, access) = match b.kind {
         BindingType::Uniform => (AddressSpace::Uniform, AccessMode::Read),
@@ -301,13 +298,13 @@ fn parse_binding(
         BindingType::ReadWrite => todo!(),
         BindingType::ReadOnly => todo!(),
     };
-    let inst = Instance::from_buffer(&b.data, &ty, &ctx.ty_context()).ok_or_else(|| {
+    let inst = Instance::from_buffer(&b.data, &ty, &ctx.ty_ctx()).ok_or_else(|| {
         CliError::ResourceIncompatible(
             b.group,
             b.binding,
             b.data.len() as u32,
             ty.clone(),
-            ty.size_of(&ctx.ty_context()).unwrap_or_default(),
+            ty.size_of(&ctx.ty_ctx()).unwrap_or_default(),
         )
     })?;
     Ok((
@@ -319,19 +316,16 @@ fn parse_binding(
 fn eval_expr(
     src: &str,
     wgsl: &TranslationUnit,
-    ty_context: &mut TyContext,
+    ty_ctx: &mut TyContext,
 ) -> Result<Instance, CliError> {
-    let mut ctx = wesl::eval::Context::new(wgsl, ty_context);
+    let mut ctx = wesl::eval::Context::new(wgsl, ty_ctx);
     let expr = src
         .parse::<syntax::Expression>()
         .map_err(|e| wesl::error::Diagnostic::from(e).with_source(src.to_string()))?;
     let inst = expr.eval_value(&mut ctx).map_err(|e| {
-        wesl::error::Diagnostic::new(wesl::Error::EvalError(
-            e,
-            ctx.ty_context().clone_for_error(),
-        ))
-        .with_ctx(&ctx)
-        .with_source(src.to_string())
+        wesl::error::Diagnostic::new(wesl::Error::EvalError(e, ctx.ty_ctx().clone_for_error()))
+            .with_ctx(&ctx)
+            .with_source(src.to_string())
     })?;
     Ok(inst)
 }
@@ -433,23 +427,23 @@ fn run_impl(args: Command) -> Result<RunResult, Error> {
         Command::Eval(args) => {
             let comp =
                 run_compile(args.compile.clone()).map_err(|e| wesl_err_to_diagnostic(e, None))?;
-            let mut ty_context = TyContext::default();
+            let mut ty_ctx = TyContext::default();
             let eval = comp
-                .eval(&args.expression, &mut ty_context)
+                .eval(&args.expression, &mut ty_ctx)
                 .map_err(|e| wesl_err_to_diagnostic(e, Some(comp.to_string())))?;
 
-            Ok(RunResult::Eval(eval.inst, ty_context))
+            Ok(RunResult::Eval(eval.inst, ty_ctx))
         }
         Command::Exec(args) => {
             let comp =
                 run_compile(args.compile.clone()).map_err(|e| wesl_err_to_diagnostic(e, None))?;
-            let mut ty_context = TyContext::default();
+            let mut ty_ctx = TyContext::default();
 
             let resources = (|| -> Result<_, CliError> {
                 let resources = args
                     .resources
                     .iter()
-                    .map(|b| parse_binding(b, &comp.syntax, &mut ty_context))
+                    .map(|b| parse_binding(b, &comp.syntax, &mut ty_ctx))
                     .collect::<Result<_, _>>()?;
 
                 let overrides = args
@@ -458,33 +452,28 @@ fn run_impl(args: Command) -> Result<RunResult, Error> {
                     .map(|(name, expr)| -> Result<(String, Instance), CliError> {
                         Ok((
                             name.to_string(),
-                            eval_expr(expr, &comp.syntax, &mut ty_context)?,
+                            eval_expr(expr, &comp.syntax, &mut ty_ctx)?,
                         ))
                     })
                     .collect::<Result<_, _>>()?;
 
-                let mut inputs = Inputs::new_zero_initialized(&ty_context);
+                let mut inputs = Inputs::new_zero_initialized(&ty_ctx);
 
                 inputs.user_defined = args
                     .user_inputs
                     .iter()
                     .map(|(index, expr)| -> Result<(u32, Instance), CliError> {
-                        Ok((*index, eval_expr(expr, &comp.syntax, &mut ty_context)?))
+                        Ok((*index, eval_expr(expr, &comp.syntax, &mut ty_ctx)?))
                     })
                     .collect::<Result<_, _>>()?;
 
                 for (name, expr) in &args.builtins {
-                    let inst = eval_expr(expr, &comp.syntax, &mut ty_context)?;
+                    let inst = eval_expr(expr, &comp.syntax, &mut ty_ctx)?;
                     inputs.builtins.insert(name.to_string(), inst);
                 }
 
-                let exec = comp.exec(
-                    &args.entrypoint,
-                    inputs,
-                    resources,
-                    overrides,
-                    &mut ty_context,
-                )?;
+                let exec =
+                    comp.exec(&args.entrypoint, inputs, resources, overrides, &mut ty_ctx)?;
 
                 let resources = args
                     .resources
@@ -495,19 +484,19 @@ fn run_impl(args: Command) -> Result<RunResult, Error> {
                             .ok_or(CliError::ResourceNotFound(r.group, r.binding))?
                             .clone();
                         let inst = inst
-                            .read(&exec.ctx.ty_context())
+                            .read(&exec.ctx.ty_ctx())
                             .map_err(|e| {
                                 CliError::Diagnostic(wesl::error::Diagnostic::new(
                                     wesl::Error::EvalError(
                                         e.into(),
-                                        exec.ctx.ty_context().clone_for_error(),
+                                        exec.ctx.ty_ctx().clone_for_error(),
                                     ),
                                 ))
                             })?
                             .to_owned();
                         let mut res = r.clone();
                         res.data = inst
-                            .to_buffer(exec.ctx.ty_context())
+                            .to_buffer(exec.ctx.ty_ctx())
                             .ok_or_else(|| CliError::NotStorable(inst.ty()))?
                             .into_boxed_slice();
                         Ok(res)
@@ -518,7 +507,7 @@ fn run_impl(args: Command) -> Result<RunResult, Error> {
             })()
             .map_err(|e| Error {
                 source: Some(comp.to_string()),
-                message: ty_context.display(&e).to_string(),
+                message: ty_ctx.display(&e).to_string(),
                 diagnostics: Vec::new(),
             })?;
 
@@ -560,7 +549,7 @@ pub fn run(
                 Ok(source.into())
             }
             RunResult::Dump(wgsl) => Ok(wgsl.serialize(&serializer).unwrap()),
-            RunResult::Eval(inst, ty_context) => Ok(ty_context.display(&inst).to_string().into()),
+            RunResult::Eval(inst, ty_ctx) => Ok(ty_ctx.display(&inst).to_string().into()),
             RunResult::Exec(resources) => Ok(resources.serialize(&serializer).unwrap()),
         },
         Err(e) => Err(e.serialize(&serializer).unwrap()),

@@ -11,7 +11,7 @@ use crate::{
     syntax::Enumerant,
     tplt::TpltParam,
     ty::{SamplerType, TextureType, Ty, Type},
-    ty_context::{DisplayWithContext, TyContext},
+    ty_ctx::{DisplayWithContext, TyContext},
 };
 
 impl DisplayWithContext for TpltParam {

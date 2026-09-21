@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use wgsl_parse::syntax::{self, TranslationUnit};
-use wgsl_types::{Instance, ShaderStage, inst::RefInstance, ty_context::TyContext};
+use wgsl_types::{Instance, ShaderStage, inst::RefInstance, ty_ctx::TyContext};
 
 use crate::{
     CompileResult,
@@ -55,13 +55,13 @@ impl EvalResult<'_> {
     // TODO: make context non-mut
     /// Convert the result instance to its in-memory representation.
     pub fn to_buffer(&mut self) -> Option<Vec<u8>> {
-        self.inst.to_buffer(self.ctx.ty_context)
+        self.inst.to_buffer(self.ctx.ty_ctx)
     }
 }
 
 impl std::fmt::Display for EvalResult<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.ctx.ty_context.display(&self.inst).fmt(f)
+        self.ctx.ty_ctx.display(&self.inst).fmt(f)
     }
 }
 
@@ -80,14 +80,14 @@ impl CompileResult {
     pub fn eval<'a>(
         &'a self,
         source: &str,
-        ty_context: &'a mut TyContext,
+        ty_ctx: &'a mut TyContext,
     ) -> Result<EvalResult<'a>, Diagnostic> {
         let expr = source
             .parse::<syntax::Expression>()
             .map_err(|e| Diagnostic::new(e.into()).with_source(source.to_string()))?;
-        let (inst, ctx) = eval(&expr, &self.syntax, ty_context);
+        let (inst, ctx) = eval(&expr, &self.syntax, ty_ctx);
         let inst = inst.map_err(|e| {
-            Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+            Diagnostic::new(crate::Error::EvalError(e, ctx.ty_ctx.clone_for_error()))
                 .with_source(source.to_string())
                 .with_ctx(&ctx)
         });
@@ -115,9 +115,9 @@ impl CompileResult {
         inputs: Inputs,
         bindings: HashMap<(u32, u32), RefInstance>,
         overrides: HashMap<String, Instance>,
-        ty_context: &'a mut TyContext,
+        ty_ctx: &'a mut TyContext,
     ) -> Result<ExecResult<'a>, Diagnostic> {
-        let mut ctx = Context::new(&self.syntax, ty_context);
+        let mut ctx = Context::new(&self.syntax, ty_ctx);
         ctx.add_bindings(bindings);
         ctx.add_overrides(overrides);
         ctx.set_stage(ShaderStage::Exec);
@@ -125,13 +125,12 @@ impl CompileResult {
         let entry_fn = SyntaxUtil::decl_function(ctx.source, entrypoint)
             .ok_or_else(|| EvalError::UnknownFunction(entrypoint.to_string()))
             .map_err(|e| {
-                Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+                Diagnostic::new(crate::Error::EvalError(e, ctx.ty_ctx.clone_for_error()))
                     .with_ctx(&ctx)
             })?;
 
         let _ = self.syntax.exec(&mut ctx).map_err(|e| {
-            Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
-                .with_ctx(&ctx)
+            Diagnostic::new(crate::Error::EvalError(e, ctx.ty_ctx.clone_for_error())).with_ctx(&ctx)
         })?;
 
         let inst = exec_entrypoint(entry_fn, inputs, &mut ctx).map_err(|e| {
@@ -139,11 +138,11 @@ impl CompileResult {
                 ctx.set_err_span_ctx(span);
             }
             if let Some(sourcemap) = &self.sourcemap {
-                Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+                Diagnostic::new(crate::Error::EvalError(e, ctx.ty_ctx.clone_for_error()))
                     .with_ctx(&ctx)
                     .with_sourcemap(sourcemap)
             } else {
-                Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+                Diagnostic::new(crate::Error::EvalError(e, ctx.ty_ctx.clone_for_error()))
                     .with_ctx(&ctx)
             }
         })?;
@@ -158,14 +157,14 @@ impl CompileResult {
 /// const-expressions.
 ///
 /// Not all builtin `@const` WGSL functions are supported yet.
-pub fn eval_str(expr: &str, ty_context: &mut TyContext) -> Result<Instance, Diagnostic> {
+pub fn eval_str(expr: &str, ty_ctx: &mut TyContext) -> Result<Instance, Diagnostic> {
     let expr = expr
         .parse::<syntax::Expression>()
         .map_err(|e| Diagnostic::new(e.into()).with_source(expr.to_string()))?;
     let module = TranslationUnit::default();
-    let (inst, ctx) = eval(&expr, &module, ty_context);
+    let (inst, ctx) = eval(&expr, &module, ty_ctx);
     inst.map_err(|e| {
-        Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+        Diagnostic::new(crate::Error::EvalError(e, ctx.ty_ctx.clone_for_error()))
             .with_source(expr.to_string())
             .with_ctx(&ctx)
     })
@@ -180,9 +179,9 @@ pub fn eval_str(expr: &str, ty_context: &mut TyContext) -> Result<Instance, Diag
 pub fn eval<'s>(
     expr: &syntax::Expression,
     wgsl: &'s TranslationUnit,
-    ty_context: &'s mut TyContext,
+    ty_ctx: &'s mut TyContext,
 ) -> (Result<Instance, EvalError>, Context<'s>) {
-    let mut ctx = Context::new(wgsl, ty_context);
+    let mut ctx = Context::new(wgsl, ty_ctx);
     let res = wgsl.exec(&mut ctx).and_then(|_| expr.eval(&mut ctx));
     (res, ctx)
 }
@@ -193,9 +192,9 @@ pub fn exec<'s>(
     wgsl: &'s TranslationUnit,
     bindings: HashMap<(u32, u32), RefInstance>,
     overrides: HashMap<String, Instance>,
-    ty_context: &'s mut TyContext,
+    ty_ctx: &'s mut TyContext,
 ) -> (Result<Option<Instance>, EvalError>, Context<'s>) {
-    let mut ctx = Context::new(wgsl, ty_context);
+    let mut ctx = Context::new(wgsl, ty_ctx);
     ctx.add_bindings(bindings);
     ctx.add_overrides(overrides);
     ctx.set_stage(ShaderStage::Exec);

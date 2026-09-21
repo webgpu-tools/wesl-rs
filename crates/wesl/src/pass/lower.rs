@@ -42,22 +42,22 @@ pub fn lower(module: &mut TranslationUnit) -> Result<(), Diagnostic> {
         use crate::error::Diagnostic;
         use crate::eval::{Context, Exec, Lower, mark_functions_const};
         use wgsl_parse::SyntaxNode;
-        use wgsl_types::ty_context::TyContext;
+        use wgsl_types::ty_ctx::TyContext;
         mark_functions_const(module);
 
         // we want to drop wesl2 at the end of the block for idents use_count
         {
             let module2 = module.clone();
-            let mut ty_context = TyContext::default();
-            let mut ctx = Context::new(&module2, &mut ty_context);
+            let mut ty_ctx = TyContext::default();
+            let mut ctx = Context::new(&module2, &mut ty_ctx);
             module
                 .exec(&mut ctx) // populate the ctx with module-scope declarations
                 .map_err(|e| {
-                    Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+                    Diagnostic::new(crate::Error::EvalError(e, ctx.ty_ctx.clone_for_error()))
                         .with_ctx(&ctx)
                 })?;
             module.lower(&mut ctx).map_err(|e| {
-                Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+                Diagnostic::new(crate::Error::EvalError(e, ctx.ty_ctx.clone_for_error()))
                     .with_ctx(&ctx)
             })?;
         }

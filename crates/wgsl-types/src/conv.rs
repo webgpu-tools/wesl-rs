@@ -13,7 +13,7 @@ use crate::{
     inst::{ArrayInstance, LiteralInstance, MatInstance, StructInstance, VecInstance},
     syntax::AccessMode,
     ty::{Ty, Type},
-    ty_context::TyContext,
+    ty_ctx::TyContext,
 };
 
 pub trait Convert: Sized + Clone + Ty {

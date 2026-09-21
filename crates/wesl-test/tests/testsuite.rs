@@ -334,14 +334,14 @@ fn json_case(case: &Test) -> Result<(), libtest_mimic::Failed> {
         TestKind::Eval { eval, result } => {
             let module = case.code.parse::<TranslationUnit>()?;
             let expr = eval.parse::<Expression>()?;
-            let mut ty_context = TyContext::default();
-            let (eval_inst, _) = wesl::eval(&expr, &module, &mut ty_context);
+            let mut ty_ctx = TyContext::default();
+            let (eval_inst, _) = wesl::eval(&expr, &module, &mut ty_ctx);
             let expect = result
                 .as_ref()
                 .map(|expect| -> Result<_, wesl::Error> {
                     let expr = expect.parse::<Expression>()?;
-                    let (expect_inst, _) = wesl::eval(&expr, &module, &mut ty_context);
-                    expect_inst.map_err(|e| wesl::Error::EvalError(e, ty_context.clone_for_error()))
+                    let (expect_inst, _) = wesl::eval(&expr, &module, &mut ty_ctx);
+                    expect_inst.map_err(|e| wesl::Error::EvalError(e, ty_ctx.clone_for_error()))
                 })
                 .transpose()?;
             match (eval_inst, expect) {
@@ -350,8 +350,8 @@ fn json_case(case: &Test) -> Result<(), libtest_mimic::Failed> {
                     if inst != expect {
                         Err(format!(
                             "expected `{}`, got `{}`",
-                            ty_context.display(&expect),
-                            ty_context.display(&inst)
+                            ty_ctx.display(&expect),
+                            ty_ctx.display(&inst)
                         )
                         .into())
                     } else {
@@ -359,12 +359,12 @@ fn json_case(case: &Test) -> Result<(), libtest_mimic::Failed> {
                     }
                 }
                 (Ok(inst), None) => {
-                    Err(format!("expected Fail, got Pass (`{}`)", ty_context.display(&inst)).into())
+                    Err(format!("expected Fail, got Pass (`{}`)", ty_ctx.display(&inst)).into())
                 }
                 (Err(err), Some(expect)) => Err(format!(
                     "expected `{}`, got Fail (`{}`)",
-                    ty_context.display(&expect),
-                    ty_context.display(&err),
+                    ty_ctx.display(&expect),
+                    ty_ctx.display(&err),
                 )
                 .into()),
             }

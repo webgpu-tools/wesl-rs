@@ -11,7 +11,7 @@ type E = EvalError;
 use wgsl_parse::{SyntaxNode, span::Spanned, syntax::*};
 use wgsl_types::{
     ShaderStage, builtin::builtin_type, syntax::Enumerant, tplt::TpltParam, ty::StructMemberType,
-    ty_context::TyContext,
+    ty_ctx::TyContext,
 };
 
 pub fn eval_tplt_arg(tplt: &TemplateArg, ctx: &mut Context) -> Result<TpltParam, E> {
@@ -139,9 +139,9 @@ pub fn ty_eval_ty(expr: &TypeExpression, ctx: &mut Context) -> Result<Type, E> {
             .iter()
             .map(|arg| eval_tplt_arg(arg, ctx))
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(builtin_type(name, Some(&tplt), ctx.ty_context)?)
+        Ok(builtin_type(name, Some(&tplt), ctx.ty_ctx)?)
     } else {
-        Ok(builtin_type(name, None, ctx.ty_context)?)
+        Ok(builtin_type(name, None, ctx.ty_ctx)?)
     }
 }
 
@@ -191,13 +191,13 @@ impl EvalTy for NamedComponentExpression {
                 // struct and vec member access from references yield references,
                 // *except* for vec swizzles which load the value.
                 if ty.is_vec() && mem_name.len() > 1 {
-                    eval_mem_ty(*ty, &mem_name, ctx.ty_context)
+                    eval_mem_ty(*ty, &mem_name, ctx.ty_ctx)
                 } else {
-                    let mem_ty = eval_mem_ty(*ty, &mem_name, ctx.ty_context)?;
+                    let mem_ty = eval_mem_ty(*ty, &mem_name, ctx.ty_ctx)?;
                     Ok(Type::Ref(a_s, Box::new(mem_ty), a_m))
                 }
             }
-            ty => eval_mem_ty(ty, &mem_name, ctx.ty_context),
+            ty => eval_mem_ty(ty, &mem_name, ctx.ty_ctx),
         }
     }
 }
@@ -274,11 +274,11 @@ impl EvalTy for BinaryExpression {
         let (inner, ty1, ty2) = if matches!(self.operator, BinOp::ShiftLeft | BinOp::ShiftRight) {
             (ty1.inner_ty(), ty1, ty2)
         } else {
-            let inner = convert_ty(&ty1.inner_ty(), &ty2.inner_ty(), ctx.ty_context)
+            let inner = convert_ty(&ty1.inner_ty(), &ty2.inner_ty(), ctx.ty_ctx)
                 .ok_or_else(|| E::Binary(self.operator, ty1.clone(), ty2.clone()))?
                 .clone();
-            let ty1 = ty1.convert_inner_to(&inner, ctx.ty_context).unwrap();
-            let ty2 = ty2.convert_inner_to(&inner, ctx.ty_context).unwrap();
+            let ty1 = ty1.convert_inner_to(&inner, ctx.ty_ctx).unwrap();
+            let ty2 = ty2.convert_inner_to(&inner, ctx.ty_ctx).unwrap();
             (inner, ty1, ty2)
         };
 
@@ -361,11 +361,11 @@ impl EvalTy for BinaryExpression {
                 ty1
             }
             BinOp::ShiftLeft | BinOp::ShiftRight
-                if ty1.is_integer() && ty2.is_convertible_to(&Type::U32, ctx.ty_context)
+                if ty1.is_integer() && ty2.is_convertible_to(&Type::U32, ctx.ty_ctx)
                     || ty1.is_vec()
                         && ty2.is_vec()
                         && ty1.inner_ty().is_integer()
-                        && ty2.inner_ty().is_convertible_to(&Type::U32, ctx.ty_context) =>
+                        && ty2.inner_ty().is_convertible_to(&Type::U32, ctx.ty_ctx) =>
             {
                 ty1
             }
@@ -389,7 +389,7 @@ impl EvalTy for Struct {
             })
             .collect::<Result<_, E>>()?;
 
-        Ok(Type::Struct(ctx.ty_context.struct_arena.add(StructType {
+        Ok(Type::Struct(ctx.ty_ctx.struct_arena.add(StructType {
             name: self.ident.to_string(),
             members,
         })))
@@ -421,7 +421,7 @@ impl EvalTy for FunctionCallExpression {
                 GlobalDeclaration::Struct(decl) => decl.eval_ty(ctx),
                 GlobalDeclaration::Function(decl) => {
                     if decl.body.contains_attribute(&ATTR_INTRINSIC) {
-                        type_builtin_fn(&name, tplt.as_deref(), &args, ctx.ty_context)?
+                        type_builtin_fn(&name, tplt.as_deref(), &args, ctx.ty_ctx)?
                             .ok_or_else(|| E::Void(decl.ident.to_string()))
                     } else {
                         // TODO: check argument types
@@ -435,7 +435,7 @@ impl EvalTy for FunctionCallExpression {
                 _ => Err(E::NotCallable(ty.to_string())),
             }
         } else if is_ctor(&ty.ident.name()) {
-            let res_ty = type_ctor(&name, tplt.as_deref(), &args, ctx.ty_context)?;
+            let res_ty = type_ctor(&name, tplt.as_deref(), &args, ctx.ty_ctx)?;
             Ok(res_ty)
         } else {
             Err(E::UnknownFunction(ty.ident.to_string()))

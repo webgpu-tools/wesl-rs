@@ -154,6 +154,9 @@ struct CompOptsArgs {
     /// Disable conditional compilation
     #[arg(long)]
     no_cond_comp: bool,
+    /// Disable visibility (public and private keywords)
+    #[arg(long)]
+    no_visibility: bool,
     /// Enable generics
     #[arg(long)]
     generics: bool,
@@ -220,6 +223,7 @@ impl TryFrom<&CompOptsArgs> for CompileOptions {
         Ok(Self {
             imports: !opts.no_imports,
             condcomp: !opts.no_cond_comp,
+            visibility: !opts.no_visibility,
             generics: opts.generics,
             strip: !opts.no_strip,
             lower: opts.lower,

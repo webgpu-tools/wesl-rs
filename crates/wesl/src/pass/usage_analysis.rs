@@ -128,6 +128,7 @@ pub fn module_usage_analysis(
     module: &Module,
     already_used: &mut UsedItems,
     to_analyze: &mut UsedItems,
+    ignore_visibility: bool,
 ) -> Result<(), UsageError> {
     if already_used.contains_module(&module.path) {
         return Ok(());
@@ -141,7 +142,7 @@ pub fn module_usage_analysis(
         .filter(|decl| decl.is_const_assert());
 
     for decl in const_asserts {
-        decl_usage_analysis(module, decl, already_used, to_analyze)?;
+        decl_usage_analysis(module, decl, already_used, to_analyze, ignore_visibility)?;
     }
 
     Ok(())
@@ -166,9 +167,10 @@ pub fn usage_analysis(
     min_vis: Visibility,
     already_used: &mut UsedItems,
     to_analyze: &mut UsedItems,
+    ignore_visibility: bool,
 ) -> Result<(), UsageError> {
     if let Some((decl_ident, decl_vis)) = already_used.get_name(&module.path, decl_name) {
-        if decl_vis < min_vis {
+        if !ignore_visibility && decl_vis < min_vis {
             return Err(UsageError::Visibility {
                 orig: None,
                 decl: (module.path.clone(), decl_ident),
@@ -193,7 +195,7 @@ pub fn usage_analysis(
                     decl_vis: decl.visibility(),
                 });
             } else {
-                decl_usage_analysis(module, decl, already_used, to_analyze)?;
+                decl_usage_analysis(module, decl, already_used, to_analyze, ignore_visibility)?;
             }
         } else if let Some((decl_ident, item)) = module
             .imports
@@ -201,7 +203,7 @@ pub fn usage_analysis(
             .find(|(ident, _)| *ident.name() == decl_name)
         {
             // there is no declaration with this name, but there is a re-export.
-            if item.visibility < min_vis {
+            if !ignore_visibility && item.visibility < min_vis {
                 return Err(UsageError::Visibility {
                     orig: None,
                     decl: (module.path.clone(), decl_ident.clone()),
@@ -227,6 +229,7 @@ fn decl_usage_analysis(
     decl: &GlobalDeclaration,
     already_used: &mut UsedItems,
     to_analyze: &mut UsedItems,
+    ignore_visibility: bool,
 ) -> Result<(), UsageError> {
     if decl.ident().is_some_and(|ident| {
         !already_used.insert_ident(module.path.clone(), ident, decl.visibility())
@@ -250,7 +253,7 @@ fn decl_usage_analysis(
             if let Some((decl_ident, decl_vis)) =
                 already_used.get_name(&import_path, &ty_expr.ident.name())
             {
-                if decl_vis < min_vis {
+                if !ignore_visibility && decl_vis < min_vis {
                     res = Err(UsageError::Visibility {
                         orig: decl.ident().map(|ident| (module.path.clone(), ident)),
                         decl: (import_path, decl_ident),
@@ -273,7 +276,8 @@ fn decl_usage_analysis(
                 .find(|decl| decl.ident().is_some_and(|ident| ident == ty_expr.ident));
 
             if let Some(decl) = decl
-                && let Err(err) = decl_usage_analysis(module, decl, already_used, to_analyze)
+                && let Err(err) =
+                    decl_usage_analysis(module, decl, already_used, to_analyze, ignore_visibility)
             {
                 res = Err(err);
             }

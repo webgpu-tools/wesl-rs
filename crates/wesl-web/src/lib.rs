@@ -70,6 +70,7 @@ pub struct CompileOptions {
     pub sourcemap: bool,
     pub imports: bool,
     pub condcomp: bool,
+    pub visibility: bool,
     pub generics: bool,
     pub strip: bool,
     pub lower: bool,
@@ -204,6 +205,7 @@ fn run_compile(args: CompileOptions) -> Result<CompileResult, wesl::Error> {
     let comp = Compiler::new(wesl::CompileOptions {
         imports: args.imports,
         condcomp: args.condcomp,
+        visibility: args.visibility,
         generics: args.generics,
         strip: args.strip,
         lower: args.lower,

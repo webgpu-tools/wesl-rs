@@ -100,6 +100,7 @@ pub struct WeslResolverOptions {
 pub struct WeslCompileOptions {
     pub imports: bool,
     pub condcomp: bool,
+    pub visibility: bool,
     pub generics: bool,
     pub strip: bool,
     pub lower: bool,
@@ -244,6 +245,7 @@ impl From<&WeslCompileOptions> for wesl::CompileOptions {
         wesl::CompileOptions {
             imports: options.imports,
             condcomp: options.condcomp,
+            visibility: options.visibility,
             generics: options.generics,
             strip: options.strip,
             lower: options.lower,

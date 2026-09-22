@@ -10,7 +10,7 @@ use std::{
 use wesl_core::StaticPackage;
 use wgsl_parse::{
     SyntaxNode,
-    syntax::{Ident, ModulePath, PathOrigin, TranslationUnit},
+    syntax::{Ident, ModulePath, PathOrigin, TranslationUnit, Visibility},
 };
 
 use crate::{
@@ -36,6 +36,11 @@ pub struct CompileOptions {
     ///
     /// See [`Self::features`] to enable/disable each feature flag.
     pub condcomp: bool,
+    /// Toggle [WESL Visibility](https://github.com/webgpu-tools/wesl-spec/blob/main/Visibility.md)
+    ///
+    /// When disabled, WESL simply ignores `public` and `private` keywords on declarations and treats
+    /// all declarations as public.
+    pub visibility: bool,
     /// Toggle generics. Generics are super experimental, don't expect anything from it.
     ///
     /// Requires the `generics` crate feature flag.
@@ -127,6 +132,7 @@ impl Default for CompileOptions {
         Self {
             imports: true,
             condcomp: true,
+            visibility: true,
             generics: false,
             strip: true,
             lower: false,
@@ -586,7 +592,7 @@ impl CompilerDriver for CompilationPass<'_> {
         already_used: &mut UsedItems,
         to_analyze: &mut UsedItems,
     ) -> Result<(), Error> {
-        pass::module_usage_analysis(module, already_used, to_analyze)?;
+        pass::module_usage_analysis(module, already_used, to_analyze, !self.options.visibility)?;
 
         // when strip is disabled, all declarations in the module are included so they
         // must be usage-analyzed.
@@ -604,6 +610,25 @@ impl CompilerDriver for CompilationPass<'_> {
             }
         }
 
+        Ok(())
+    }
+
+    fn usage_analysis(
+        &self,
+        module: &Module,
+        decl_name: &str,
+        min_vis: Visibility,
+        already_used: &mut UsedItems,
+        to_analyze: &mut UsedItems,
+    ) -> Result<(), Error> {
+        pass::usage_analysis(
+            module,
+            decl_name,
+            min_vis,
+            already_used,
+            to_analyze,
+            !self.options.visibility,
+        )?;
         Ok(())
     }
 

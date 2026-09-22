@@ -82,6 +82,7 @@ typedef struct WeslBoolMap {
 typedef struct WeslCompileOptions {
   bool imports;
   bool condcomp;
+  bool visibility;
   bool generics;
   bool strip;
   bool lower;

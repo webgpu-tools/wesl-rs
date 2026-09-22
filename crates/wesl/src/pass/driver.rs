@@ -64,7 +64,7 @@ pub trait CompilerDriver: Sized {
         already_used: &mut UsedItems,
         to_analyze: &mut UsedItems,
     ) -> Result<(), Error> {
-        pass::module_usage_analysis(module, already_used, to_analyze)?;
+        pass::module_usage_analysis(module, already_used, to_analyze, false)?;
         Ok(())
     }
 
@@ -85,7 +85,7 @@ pub trait CompilerDriver: Sized {
         already_used: &mut UsedItems,
         to_analyze: &mut UsedItems,
     ) -> Result<(), Error> {
-        pass::usage_analysis(module, decl_name, min_vis, already_used, to_analyze)?;
+        pass::usage_analysis(module, decl_name, min_vis, already_used, to_analyze, false)?;
         Ok(())
     }
 

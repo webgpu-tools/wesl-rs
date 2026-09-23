@@ -360,26 +360,30 @@ impl Compiler<()> {
         resolver
     }
 
-    // TODO: implement and validate wesl-toml semantics.
     fn root_and_main(&self, path: &Path) -> Result<(PathBuf, ModulePath), Error> {
-        let toml_cfg = if let Some(filename) = path.file_name()
-            && filename == "wesl.toml"
+        let (pkg_root_dir, main_path) = if let Some(file_name) = path.file_name()
+            && file_name == "wesl.toml"
         {
-            Some(crate::toml_cfg::WeslToml::from_file(path)?)
+            let cfg = crate::toml_cfg::WeslToml::from_file(path)?;
+            let root = path
+                .parent()
+                .unwrap(/* SAFETY: cannot fail if `file_name` succeeds */)
+                .join(&cfg.package.root);
+            let main = ModulePath::new_root();
+            (root, main)
+        } else if let Some(name) = path.file_stem()
+            && !path.is_dir()
+        {
+            let root = path.parent().unwrap(/* SAFETY: cannot fail if `file_name` succeeds */).to_path_buf();
+            let main = ModulePath::new(
+                PathOrigin::Absolute,
+                vec![name.to_string_lossy().to_string()],
+            );
+            (root, main)
         } else {
-            None
-        };
-
-        let pkg_root_dir = if let Some(cfg) = &toml_cfg {
-            path.parent().unwrap(/* SAFETY: cannot fail if `file_name` succeeds */).join(&cfg.package.root)
-        } else {
-            path.to_path_buf()
-        };
-
-        let main_path = if pkg_root_dir.is_file() {
-            ModulePath::new_root()
-        } else {
-            ModulePath::new(PathOrigin::Absolute, vec!["package".to_string()])
+            let root = path.to_path_buf();
+            let main = ModulePath::new_root();
+            (root, main)
         };
 
         Ok((pkg_root_dir, main_path))

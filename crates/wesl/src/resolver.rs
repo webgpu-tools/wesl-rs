@@ -153,6 +153,10 @@ impl FileResolver {
         }
         let mut fs_path = self.pkg_root_dir.to_path_buf();
         fs_path.extend(&path.components);
+        if path.is_root() {
+            // the root module path (package) corresponds to the special file `package.wesl` in the root directory.
+            fs_path.push("package");
+        }
         fs_path.set_extension(self.extension);
         if fs_path.exists() {
             Ok(fs_path)

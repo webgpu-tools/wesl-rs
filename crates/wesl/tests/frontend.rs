@@ -107,6 +107,60 @@ fn compile_wgsl_strip() {
     insta::assert_snapshot!(result.syntax.to_string());
 }
 
+/// same as test `compile_wesl_toml` below, except the path provided is a directory,
+/// so it doesn't use the toml file and instead looks for a `package.wesl` file
+/// in the directory as both the main module and the root path.
+#[test]
+fn compile_wesl_directory() {
+    let test_path = fixtures_dir().join("compile_wesl/shaders");
+
+    let mut compiler = Compiler::default();
+
+    compiler.options.lower = false;
+    compiler.options.strip = false;
+    compiler.options.mangle_main = true;
+
+    let mut constants = Constants::new();
+    constants.set("PI", std::f64::consts::PI);
+    constants.set("TRUE", true);
+    compiler.options.constants = constants;
+
+    compiler.options.dependencies = vec![&package_random::PACKAGE];
+    let mut result = compiler
+        .compile(&test_path)
+        .inspect_err(|e| eprintln!("{e}"))
+        .unwrap();
+    result.syntax.sort_declarations(); // normalize for comparison
+    insta::assert_snapshot!(result.syntax.to_string());
+}
+
+/// same as test `compile_wesl_toml` below, except the path provided is a file,
+/// so it doesn't use the toml file and sets the provided path as the main module,
+/// and the parent directory as the root path.
+#[test]
+fn compile_wesl_file() {
+    let test_path = fixtures_dir().join("compile_wesl/shaders/package.wesl");
+
+    let mut compiler = Compiler::default();
+
+    compiler.options.lower = false;
+    compiler.options.strip = false;
+    compiler.options.mangle_main = true;
+
+    let mut constants = Constants::new();
+    constants.set("PI", std::f64::consts::PI);
+    constants.set("TRUE", true);
+    compiler.options.constants = constants;
+
+    compiler.options.dependencies = vec![&package_random::PACKAGE];
+    let mut result = compiler
+        .compile(&test_path)
+        .inspect_err(|e| eprintln!("{e}"))
+        .unwrap();
+    result.syntax.sort_declarations(); // normalize for comparison
+    insta::assert_snapshot!(result.syntax.to_string());
+}
+
 #[test]
 fn compile_wesl_toml_feat1() {
     let test_path = fixtures_dir().join("compile_wesl/wesl.toml");

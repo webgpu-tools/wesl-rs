@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use wgsl_parse::syntax::{Ident, ModulePath, TranslationUnit, Visibility};
 
 use crate::{
-    error::Error,
+    error::{Diagnostic, Error},
     pass::{self, Module, UsedItems},
 };
 
@@ -92,7 +92,7 @@ pub trait CompilerDriver: Sized {
     /// Get the [`TranslationUnit`] for a module at a given path.
     ///
     /// This function is called only once per module path.
-    fn load_module(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error>;
+    fn load_module(&mut self, path: &ModulePath) -> Result<TranslationUnit, Diagnostic>;
 
     /// Assemble the list of loaded module into a final output.
     ///
@@ -102,12 +102,12 @@ pub trait CompilerDriver: Sized {
         &self,
         modules: &mut Vec<Module>,
         used_items: &UsedItems,
-    ) -> Result<TranslationUnit, Error>;
+    ) -> Result<TranslationUnit, Diagnostic>;
 
     /// Run the compilation pipeline.
     ///
     /// See standalone default implementation in [`pass::compile`].
-    fn compile(&mut self) -> Result<CompileResult, Error> {
+    fn compile(&mut self) -> Result<CompileResult, Diagnostic> {
         pass::compile(self)
     }
 
@@ -115,12 +115,12 @@ pub trait CompilerDriver: Sized {
     fn load_module_async(
         &mut self,
         path: &ModulePath,
-    ) -> impl Future<Output = Result<TranslationUnit, Error>> {
+    ) -> impl Future<Output = Result<TranslationUnit, Diagnostic>> {
         async { self.load_module(path) }
     }
 
     /// Async version of [`Self::compile`].
-    fn compile_async(&mut self) -> impl Future<Output = Result<CompileResult, Error>> {
+    fn compile_async(&mut self) -> impl Future<Output = Result<CompileResult, Diagnostic>> {
         pass::compile_async(self)
     }
 }

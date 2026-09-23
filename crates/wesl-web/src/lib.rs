@@ -5,7 +5,10 @@ use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 use wesl::{
     CompileResult, Compiler,
-    eval::{Eval, EvalAttrs, Inputs, Instance, RefInstance, Ty, ty_eval_ty},
+    eval::{
+        DisplayWithContext, Eval, EvalAttrs, Inputs, Instance, RefInstance, Ty, TyContext,
+        ty_eval_ty,
+    },
     resolver::VirtualResolver,
     syntax::{self, AccessMode, AddressSpace, TranslationUnit},
 };
@@ -158,20 +161,42 @@ pub struct DumpOptions {
     source: String,
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug)]
 enum CliError {
-    #[error("resource `@group({0}) @binding({1})` not found")]
     ResourceNotFound(u32, u32),
-    #[error(
-        "resource `@group({0}) @binding({1})` ({2} bytes) incompatible with type `{3}` ({4} bytes)"
-    )]
     ResourceIncompatible(u32, u32, u32, wesl::eval::Type, u32),
-    #[error("Could not convert instance to buffer (type `{0}` is not storable)")]
     NotStorable(wesl::eval::Type),
-    #[error("{0}")]
-    Wesl(#[from] wesl::Error),
-    #[error("{0}")]
-    Diagnostic(#[from] wesl::error::Diagnostic),
+    Diagnostic(wesl::error::Diagnostic),
+}
+
+impl DisplayWithContext for CliError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, context: &TyContext) -> std::fmt::Result {
+        match self {
+            CliError::ResourceNotFound(group_id, binding_id) => write!(
+                f,
+                "resource `@group({group_id}) @binding({binding_id})` not found"
+            ),
+            CliError::ResourceIncompatible(group_id, binding_id, size, ty, expected_size) => {
+                write!(
+                    f,
+                    "resource `@group({group_id}) @binding({binding_id})` ({size} bytes) incompatible with type `{}` ({expected_size} bytes)",
+                    context.display(ty)
+                )
+            }
+            CliError::NotStorable(ty) => write!(
+                f,
+                "Could not convert instance to buffer (type `{}` is not storable)",
+                context.display(ty)
+            ),
+            CliError::Diagnostic(diagnostic) => write!(f, "{diagnostic}"),
+        }
+    }
+}
+
+impl From<wesl::error::Diagnostic> for CliError {
+    fn from(diagnostic: wesl::error::Diagnostic) -> Self {
+        CliError::Diagnostic(diagnostic)
+    }
 }
 
 #[derive(Tsify, Serialize, Deserialize)]
@@ -188,7 +213,7 @@ pub struct Error {
     diagnostics: Vec<Diagnostic>,
 }
 
-fn run_compile(args: CompileOptions) -> Result<CompileResult, wesl::Error> {
+fn run_compile(args: CompileOptions) -> Result<CompileResult, wesl::error::Diagnostic> {
     let mut resolver = VirtualResolver::new();
     let main_module_path = args.main.parse().map_err(|e| {
         wesl::Error::Custom(format!("`{}` is not a valid module path: {e}", args.main))
@@ -232,8 +257,9 @@ fn run_compile(args: CompileOptions) -> Result<CompileResult, wesl::Error> {
 fn parse_binding(
     b: &Binding,
     module: &TranslationUnit,
+    context: &mut TyContext,
 ) -> Result<((u32, u32), RefInstance), CliError> {
-    let mut ctx = wesl::eval::Context::new(module);
+    let mut ctx = wesl::eval::Context::new(module, context);
 
     let ty_expr = module
         .global_declarations
@@ -252,9 +278,12 @@ fn parse_binding(
         .ok_or(CliError::ResourceNotFound(b.group, b.binding))?;
 
     let ty = ty_eval_ty(&ty_expr, &mut ctx).map_err(|e| {
-        wesl::error::Diagnostic::from(e)
-            .with_ctx(&ctx)
-            .with_source(ty_expr.to_string())
+        wesl::error::Diagnostic::new(wesl::Error::EvalError(
+            e,
+            ctx.ty_context().clone_for_error(),
+        ))
+        .with_ctx(&ctx)
+        .with_source(ty_expr.to_string())
     })?;
     let (storage, access) = match b.kind {
         BindingType::Uniform => (AddressSpace::Uniform, AccessMode::Read),
@@ -272,13 +301,13 @@ fn parse_binding(
         BindingType::ReadWrite => todo!(),
         BindingType::ReadOnly => todo!(),
     };
-    let inst = Instance::from_buffer(&b.data, &ty).ok_or_else(|| {
+    let inst = Instance::from_buffer(&b.data, &ty, &ctx.ty_context()).ok_or_else(|| {
         CliError::ResourceIncompatible(
             b.group,
             b.binding,
             b.data.len() as u32,
             ty.clone(),
-            ty.size_of().unwrap_or_default(),
+            ty.size_of(&ctx.ty_context()).unwrap_or_default(),
         )
     })?;
     Ok((
@@ -287,15 +316,22 @@ fn parse_binding(
     ))
 }
 
-fn eval_expr(src: &str, wgsl: &TranslationUnit) -> Result<Instance, CliError> {
-    let mut ctx = wesl::eval::Context::new(wgsl);
+fn eval_expr(
+    src: &str,
+    wgsl: &TranslationUnit,
+    ty_context: &mut TyContext,
+) -> Result<Instance, CliError> {
+    let mut ctx = wesl::eval::Context::new(wgsl, ty_context);
     let expr = src
         .parse::<syntax::Expression>()
         .map_err(|e| wesl::error::Diagnostic::from(e).with_source(src.to_string()))?;
     let inst = expr.eval_value(&mut ctx).map_err(|e| {
-        wesl::error::Diagnostic::from(e)
-            .with_ctx(&ctx)
-            .with_source(src.to_string())
+        wesl::error::Diagnostic::new(wesl::Error::EvalError(
+            e,
+            ctx.ty_context().clone_for_error(),
+        ))
+        .with_ctx(&ctx)
+        .with_source(src.to_string())
     })?;
     Ok(inst)
 }
@@ -324,9 +360,8 @@ pub fn init_log(level: &str) {
     }
 }
 
-fn wesl_err_to_diagnostic(e: wesl::Error, source: Option<String>) -> Error {
-    log::debug!("[WESL] error: {e:?}");
-    let d = wesl::error::Diagnostic::from(e);
+fn wesl_err_to_diagnostic(d: wesl::error::Diagnostic, source: Option<String>) -> Error {
+    log::debug!("[WESL] error: {d:?}");
     Error {
         source: source.or_else(|| d.detail.output.clone()),
         #[cfg(feature = "ansi-to-html")]
@@ -384,7 +419,7 @@ fn run_naga(src: &str) -> Result<(), Error> {
 enum RunResult {
     Compile(TranslationUnit),
     Dump(TranslationUnit),
-    Eval(Instance),
+    Eval(Instance, TyContext),
     Exec(Vec<Binding>),
 }
 
@@ -398,48 +433,58 @@ fn run_impl(args: Command) -> Result<RunResult, Error> {
         Command::Eval(args) => {
             let comp =
                 run_compile(args.compile.clone()).map_err(|e| wesl_err_to_diagnostic(e, None))?;
-
+            let mut ty_context = TyContext::default();
             let eval = comp
-                .eval(&args.expression)
+                .eval(&args.expression, &mut ty_context)
                 .map_err(|e| wesl_err_to_diagnostic(e, Some(comp.to_string())))?;
 
-            Ok(RunResult::Eval(eval.inst))
+            Ok(RunResult::Eval(eval.inst, ty_context))
         }
         Command::Exec(args) => {
             let comp =
                 run_compile(args.compile.clone()).map_err(|e| wesl_err_to_diagnostic(e, None))?;
+            let mut ty_context = TyContext::default();
 
             let resources = (|| -> Result<_, CliError> {
                 let resources = args
                     .resources
                     .iter()
-                    .map(|b| parse_binding(b, &comp.syntax))
+                    .map(|b| parse_binding(b, &comp.syntax, &mut ty_context))
                     .collect::<Result<_, _>>()?;
 
                 let overrides = args
                     .overrides
                     .iter()
                     .map(|(name, expr)| -> Result<(String, Instance), CliError> {
-                        Ok((name.to_string(), eval_expr(expr, &comp.syntax)?))
+                        Ok((
+                            name.to_string(),
+                            eval_expr(expr, &comp.syntax, &mut ty_context)?,
+                        ))
                     })
                     .collect::<Result<_, _>>()?;
 
-                let mut inputs = Inputs::new_zero_initialized();
+                let mut inputs = Inputs::new_zero_initialized(&ty_context);
 
                 inputs.user_defined = args
                     .user_inputs
                     .iter()
                     .map(|(index, expr)| -> Result<(u32, Instance), CliError> {
-                        Ok((*index, eval_expr(expr, &comp.syntax)?))
+                        Ok((*index, eval_expr(expr, &comp.syntax, &mut ty_context)?))
                     })
                     .collect::<Result<_, _>>()?;
 
                 for (name, expr) in &args.builtins {
-                    let inst = eval_expr(expr, &comp.syntax)?;
+                    let inst = eval_expr(expr, &comp.syntax, &mut ty_context)?;
                     inputs.builtins.insert(name.to_string(), inst);
                 }
 
-                let exec = comp.exec(&args.entrypoint, inputs, resources, overrides)?;
+                let exec = comp.exec(
+                    &args.entrypoint,
+                    inputs,
+                    resources,
+                    overrides,
+                    &mut ty_context,
+                )?;
 
                 let resources = args
                     .resources
@@ -450,12 +495,19 @@ fn run_impl(args: Command) -> Result<RunResult, Error> {
                             .ok_or(CliError::ResourceNotFound(r.group, r.binding))?
                             .clone();
                         let inst = inst
-                            .read()
-                            .map_err(|e| wesl::Error::EvalError(e.into()))?
+                            .read(&exec.ctx.ty_context())
+                            .map_err(|e| {
+                                CliError::Diagnostic(wesl::error::Diagnostic::new(
+                                    wesl::Error::EvalError(
+                                        e.into(),
+                                        exec.ctx.ty_context().clone_for_error(),
+                                    ),
+                                ))
+                            })?
                             .to_owned();
                         let mut res = r.clone();
                         res.data = inst
-                            .to_buffer()
+                            .to_buffer(exec.ctx.ty_context())
                             .ok_or_else(|| CliError::NotStorable(inst.ty()))?
                             .into_boxed_slice();
                         Ok(res)
@@ -464,13 +516,10 @@ fn run_impl(args: Command) -> Result<RunResult, Error> {
 
                 Ok(resources)
             })()
-            .map_err(|e| match e {
-                CliError::Wesl(e) => wesl_err_to_diagnostic(e, Some(comp.to_string())),
-                e => Error {
-                    source: Some(comp.to_string()),
-                    message: e.to_string(),
-                    diagnostics: Vec::new(),
-                },
+            .map_err(|e| Error {
+                source: Some(comp.to_string()),
+                message: ty_context.display(&e).to_string(),
+                diagnostics: Vec::new(),
             })?;
 
             Ok(RunResult::Exec(resources))
@@ -511,7 +560,7 @@ pub fn run(
                 Ok(source.into())
             }
             RunResult::Dump(wgsl) => Ok(wgsl.serialize(&serializer).unwrap()),
-            RunResult::Eval(inst) => Ok(inst.to_string().into()),
+            RunResult::Eval(inst, ty_context) => Ok(ty_context.display(&inst).to_string().into()),
             RunResult::Exec(resources) => Ok(resources.serialize(&serializer).unwrap()),
         },
         Err(e) => Err(e.serialize(&serializer).unwrap()),

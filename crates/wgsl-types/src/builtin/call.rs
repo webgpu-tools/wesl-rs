@@ -27,6 +27,7 @@ use crate::{
         AtomicInstance, LiteralInstance, MatInstance, RefInstance, StructInstance, VecInstance,
     },
     ty::{Ty, Type},
+    ty_context::TyContext,
 };
 
 use super::{Compwise, atomic_compare_exchange_struct_type, frexp_struct_type};
@@ -43,7 +44,7 @@ type E = Error;
 /// Expects `tplt_ty` to be valid (a numeric scalar or vector).
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#bitcast-builtin>
-pub fn bitcast_t(tplt_ty: &Type, e: &Instance) -> Result<Instance, E> {
+pub fn bitcast_t(tplt_ty: &Type, e: &Instance, context: &TyContext) -> Result<Instance, E> {
     fn lit_bytes(l: &LiteralInstance) -> Result<Vec<u8>, E> {
         match l {
             LiteralInstance::Bool(_) => Err(E::Builtin("bitcast argument cannot be bool")),
@@ -74,8 +75,8 @@ pub fn bitcast_t(tplt_ty: &Type, e: &Instance) -> Result<Instance, E> {
     let e = match inner_ty {
         // there is a special overload `bitcast<u32>(AbstractInt)` which prevents
         // `AbstractInt` from being automatically converted to `i32`, then `u32`.
-        Type::U32 if e.inner_ty().is_abstract_int() => e.convert_inner_to(&Type::U32),
-        _ => e.concretize(),
+        Type::U32 if e.inner_ty().is_abstract_int() => e.convert_inner_to(&Type::U32, context),
+        _ => e.concretize(context),
     };
 
     let bytes = match e {
@@ -188,8 +189,13 @@ pub fn any(e: &Instance) -> Result<Instance, E> {
 /// `select()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#select-builtin>
-pub fn select(f: &Instance, t: &Instance, cond: &Instance) -> Result<Instance, E> {
-    let (f, t) = convert(f, t).ok_or(E::Builtin(
+pub fn select(
+    f: &Instance,
+    t: &Instance,
+    cond: &Instance,
+    context: &TyContext,
+) -> Result<Instance, E> {
+    let (f, t) = convert(f, t, context).ok_or(E::Builtin(
         "`select` 1st and 2nd arguments are incompatible",
     ))?;
 
@@ -232,13 +238,13 @@ pub fn select(f: &Instance, t: &Instance, cond: &Instance) -> Result<Instance, E
 /// `arrayLength()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#arrayLength-builtin>
-pub fn arrayLength(p: &Instance) -> Result<Instance, E> {
+pub fn arrayLength(p: &Instance, context: &TyContext) -> Result<Instance, E> {
     let err = E::Builtin("`arrayLength` expects a pointer to array argument");
     let r = match p {
         Instance::Ptr(p) => RefInstance::from(p.clone()),
         _ => return Err(err),
     };
-    let r = r.read()?;
+    let r = r.read(context)?;
     match &*r {
         Instance::Array(a) => Ok(LiteralInstance::U32(a.n() as u32).into()),
         _ => Err(err),
@@ -251,18 +257,18 @@ pub fn arrayLength(p: &Instance) -> Result<Instance, E> {
 // reference: <https://www.w3.org/TR/WGSL/#numeric-builtin-function>
 
 macro_rules! impl_call_float_unary {
-    ($name:literal, $e:ident, $n:ident => $expr:expr) => {{
+    ($name:literal, $e:ident, $n:ident => $expr:expr, $context:ident) => {{
         const ERR: E = E::Builtin(concat!(
             "`",
             $name,
             "` expects a float or vector of float argument"
         ));
-        fn lit_fn(l: &LiteralInstance) -> Result<LiteralInstance, E> {
+        fn lit_fn(l: &LiteralInstance, context: &TyContext) -> Result<LiteralInstance, E> {
             match l {
                 LiteralInstance::Bool(_) => Err(ERR),
                 LiteralInstance::AbstractInt(_) => {
                     let $n = l
-                        .convert_to(&Type::AbstractFloat)
+                        .convert_to(&Type::AbstractFloat, context)
                         .ok_or(E::Conversion(Type::AbstractInt, Type::AbstractFloat))?
                         .unwrap_abstract_float();
                     Ok(LiteralInstance::from($expr))
@@ -281,8 +287,8 @@ macro_rules! impl_call_float_unary {
             }
         }
         match $e {
-            Instance::Literal(l) => lit_fn(l).map(Into::into),
-            Instance::Vec(v) => v.compwise_unary(lit_fn).map(Into::into),
+            Instance::Literal(l) => lit_fn(l, $context).map(Into::into),
+            Instance::Vec(v) => v.compwise_unary(|l| lit_fn(l, $context)).map(Into::into),
             _ => Err(ERR),
         }
     }};
@@ -323,8 +329,8 @@ pub fn abs(e: &Instance) -> Result<Instance, E> {
 /// NOTE: the function returns NaN as an "indeterminate value" if computed out of domain
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#acos-builtin>
-pub fn acos(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("acos", e, n => n.acos())
+pub fn acos(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("acos", e, n => n.acos(), context)
 }
 
 /// `acosh()` builtin function.
@@ -332,10 +338,10 @@ pub fn acos(e: &Instance) -> Result<Instance, E> {
 /// NOTE: the function returns NaN as an "indeterminate value" if computed out of domain
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#acosh-builtin>
-pub fn acosh(e: &Instance) -> Result<Instance, E> {
+pub fn acosh(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     // TODO: Rust's acosh implementation overflows for inputs close to max_float.
     // it's no big deal, but some cts tests fail because of that.
-    impl_call_float_unary!("acosh", e, n => n.acosh())
+    impl_call_float_unary!("acosh", e, n => n.acosh(), context)
 }
 
 /// `asin()` builtin function.
@@ -343,24 +349,24 @@ pub fn acosh(e: &Instance) -> Result<Instance, E> {
 /// NOTE: the function returns NaN as an "indeterminate value" if computed out of domain
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#asin-builtin>
-pub fn asin(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("asin", e, n => n.asin())
+pub fn asin(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("asin", e, n => n.asin(), context)
 }
 
 /// `asinh()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#asinh-builtin>
-pub fn asinh(e: &Instance) -> Result<Instance, E> {
+pub fn asinh(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     // TODO: Rust's asinh implementation overflows for inputs close to max_float.
     // it's no big deal, but some cts tests fail because of that.
-    impl_call_float_unary!("asinh", e, n => n.asinh())
+    impl_call_float_unary!("asinh", e, n => n.asinh(), context)
 }
 
 /// `atan()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atan-builtin>
-pub fn atan(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("atan", e, n => n.atan())
+pub fn atan(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("atan", e, n => n.atan(), context)
 }
 
 /// `atanh()` builtin function.
@@ -368,24 +374,28 @@ pub fn atan(e: &Instance) -> Result<Instance, E> {
 /// NOTE: the function returns NaN as an "indeterminate value" if computed out of domain
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atanh-builtin>
-pub fn atanh(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("atanh", e, n => n.atanh())
+pub fn atanh(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("atanh", e, n => n.atanh(), context)
 }
 
 /// `atan2()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atan2-builtin>
-pub fn atan2(y: &Instance, x: &Instance) -> Result<Instance, E> {
+pub fn atan2(y: &Instance, x: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`atan2` expects a float or vector of float argument");
-    fn lit_atan2(y: &LiteralInstance, x: &LiteralInstance) -> Result<LiteralInstance, E> {
+    fn lit_atan2(
+        y: &LiteralInstance,
+        x: &LiteralInstance,
+        context: &TyContext,
+    ) -> Result<LiteralInstance, E> {
         match y {
             LiteralInstance::Bool(_) => Err(ERR),
             LiteralInstance::AbstractInt(_) => {
                 let y = y
-                    .convert_to(&Type::AbstractFloat)
+                    .convert_to(&Type::AbstractFloat, context)
                     .ok_or(E::Conversion(Type::AbstractInt, Type::AbstractFloat))?;
                 let x = x
-                    .convert_to(&Type::AbstractFloat)
+                    .convert_to(&Type::AbstractFloat, context)
                     .ok_or(E::Conversion(Type::AbstractInt, Type::AbstractFloat))?;
                 Ok(LiteralInstance::from(
                     y.unwrap_abstract_float().atan2(x.unwrap_abstract_float()),
@@ -406,10 +416,12 @@ pub fn atan2(y: &Instance, x: &Instance) -> Result<Instance, E> {
             LiteralInstance::F64(y) => Ok(LiteralInstance::F64(y.atan2(x.unwrap_f64()))),
         }
     }
-    let (y, x) = convert(y, x).ok_or(E::Builtin("`atan2` arguments are incompatible"))?;
+    let (y, x) = convert(y, x, context).ok_or(E::Builtin("`atan2` arguments are incompatible"))?;
     match (y, x) {
-        (Instance::Literal(y), Instance::Literal(x)) => lit_atan2(&y, &x).map(Into::into),
-        (Instance::Vec(y), Instance::Vec(x)) => y.compwise_binary(&x, lit_atan2).map(Into::into),
+        (Instance::Literal(y), Instance::Literal(x)) => lit_atan2(&y, &x, context).map(Into::into),
+        (Instance::Vec(y), Instance::Vec(x)) => y
+            .compwise_binary(&x, |a, b| lit_atan2(a, b, context))
+            .map(Into::into),
         _ => Err(ERR),
     }
 }
@@ -417,21 +429,26 @@ pub fn atan2(y: &Instance, x: &Instance) -> Result<Instance, E> {
 /// `ceil()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#ceil-builtin>
-pub fn ceil(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("ceil", e, n => n.ceil())
+pub fn ceil(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("ceil", e, n => n.ceil(), context)
 }
 
 /// `clamp()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#clamp>
-pub fn clamp(e: &Instance, low: &Instance, high: &Instance) -> Result<Instance, E> {
+pub fn clamp(
+    e: &Instance,
+    low: &Instance,
+    high: &Instance,
+    context: &TyContext,
+) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`clamp` arguments are incompatible");
     let tys = [e.ty(), low.ty(), high.ty()];
-    let ty = convert_all_ty(&tys).ok_or(ERR)?;
-    let e = e.convert_to(ty).ok_or(ERR)?;
-    let low = low.convert_to(ty).ok_or(ERR)?;
-    let high = high.convert_to(ty).ok_or(ERR)?;
-    min(&max(&e, &low)?, &high)
+    let ty = convert_all_ty(&tys, context).ok_or(ERR)?;
+    let e = e.convert_to(ty, context).ok_or(ERR)?;
+    let low = low.convert_to(ty, context).ok_or(ERR)?;
+    let high = high.convert_to(ty, context).ok_or(ERR)?;
+    min(&max(&e, &low, context)?, &high, context)
 }
 
 /// `cos()` builtin function.
@@ -439,21 +456,21 @@ pub fn clamp(e: &Instance, low: &Instance, high: &Instance) -> Result<Instance, 
 /// NOTE: the function returns NaN as an "indeterminate value" if computed out of domain
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#cos-builtin>
-pub fn cos(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("cos", e, n => n.cos())
+pub fn cos(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("cos", e, n => n.cos(), context)
 }
 
 /// `cosh()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#cosh-builtin>
-pub fn cosh(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("cosh", e, n => n.cosh())
+pub fn cosh(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("cosh", e, n => n.cosh(), context)
 }
 
 /// `countLeadingZeros()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#countLeadingZeros-builtin>
-pub fn countLeadingZeros(e: &Instance) -> Result<Instance, E> {
+pub fn countLeadingZeros(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`countLeadingZeros` expects an integer scalar or vector argument");
     fn lit_leading_zeros(l: &LiteralInstance) -> Result<LiteralInstance, E> {
         match l {
@@ -472,7 +489,7 @@ pub fn countLeadingZeros(e: &Instance) -> Result<Instance, E> {
             LiteralInstance::F64(_) => Err(ERR),
         }
     }
-    match e.concretize() {
+    match e.concretize(context) {
         Some(Instance::Literal(l)) => lit_leading_zeros(&l).map(Into::into),
         Some(Instance::Vec(v)) => v.compwise_unary(lit_leading_zeros).map(Into::into),
         _ => Err(ERR),
@@ -482,7 +499,7 @@ pub fn countLeadingZeros(e: &Instance) -> Result<Instance, E> {
 /// `countOneBits()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#countOneBits-builtin>
-pub fn countOneBits(e: &Instance) -> Result<Instance, E> {
+pub fn countOneBits(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`countOneBits` expects an integer scalar or vector argument");
     fn lit_count_ones(l: &LiteralInstance) -> Result<LiteralInstance, E> {
         match l {
@@ -501,7 +518,7 @@ pub fn countOneBits(e: &Instance) -> Result<Instance, E> {
             LiteralInstance::F64(_) => Err(ERR),
         }
     }
-    match e.concretize() {
+    match e.concretize(context) {
         Some(Instance::Literal(l)) => lit_count_ones(&l).map(Into::into),
         Some(Instance::Vec(v)) => v.compwise_unary(lit_count_ones).map(Into::into),
         _ => Err(ERR),
@@ -511,7 +528,7 @@ pub fn countOneBits(e: &Instance) -> Result<Instance, E> {
 /// `countTrailingZeros()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#countTrailingZeros-builtin>
-pub fn countTrailingZeros(e: &Instance) -> Result<Instance, E> {
+pub fn countTrailingZeros(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`countTrailingZeros` expects an integer scalar or vector argument");
     fn lit_trailing_zeros(l: &LiteralInstance) -> Result<LiteralInstance, E> {
         match l {
@@ -530,7 +547,7 @@ pub fn countTrailingZeros(e: &Instance) -> Result<Instance, E> {
             LiteralInstance::F64(_) => Err(ERR),
         }
     }
-    match e.concretize() {
+    match e.concretize(context) {
         Some(Instance::Literal(l)) => lit_trailing_zeros(&l).map(Into::into),
         Some(Instance::Vec(v)) => v.compwise_unary(lit_trailing_zeros).map(Into::into),
         _ => Err(ERR),
@@ -540,19 +557,30 @@ pub fn countTrailingZeros(e: &Instance) -> Result<Instance, E> {
 /// `cross()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#cross-builtin>
-pub fn cross(a: &Instance, b: &Instance, stage: ShaderStage) -> Result<Instance, E> {
-    let (a, b) = convert(a, b).ok_or(E::Builtin("`cross` arguments are incompatible"))?;
+pub fn cross(
+    a: &Instance,
+    b: &Instance,
+    stage: ShaderStage,
+    context: &TyContext,
+) -> Result<Instance, E> {
+    let (a, b) = convert(a, b, context).ok_or(E::Builtin("`cross` arguments are incompatible"))?;
     match (a, b) {
         (Instance::Vec(a), Instance::Vec(b)) if a.n() == 3 => {
-            let s1 = a[1]
-                .op_mul(&b[2], stage)?
-                .op_sub(&a[2].op_mul(&b[1], stage)?, stage)?;
-            let s2 = a[2]
-                .op_mul(&b[0], stage)?
-                .op_sub(&a[0].op_mul(&b[2], stage)?, stage)?;
-            let s3 = a[0]
-                .op_mul(&b[1], stage)?
-                .op_sub(&a[1].op_mul(&b[0], stage)?, stage)?;
+            let s1 = a[1].op_mul(&b[2], stage, context)?.op_sub(
+                &a[2].op_mul(&b[1], stage, context)?,
+                stage,
+                context,
+            )?;
+            let s2 = a[2].op_mul(&b[0], stage, context)?.op_sub(
+                &a[0].op_mul(&b[2], stage, context)?,
+                stage,
+                context,
+            )?;
+            let s3 = a[0].op_mul(&b[1], stage, context)?.op_sub(
+                &a[1].op_mul(&b[0], stage, context)?,
+                stage,
+                context,
+            )?;
             Ok(VecInstance::new(vec![s1, s2, s3]).into())
         }
         _ => Err(E::Builtin(
@@ -564,12 +592,12 @@ pub fn cross(a: &Instance, b: &Instance, stage: ShaderStage) -> Result<Instance,
 /// `degrees()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#degrees-builtin>
-pub fn degrees(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("degrees", e, n => n.to_degrees())
+pub fn degrees(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("degrees", e, n => n.to_degrees(), context)
 }
 
 /// TODO: This built-in is not implemented!
-pub fn determinant(_a1: &Instance) -> Result<Instance, E> {
+pub fn determinant(_a1: &Instance, _context: &TyContext) -> Result<Instance, E> {
     Err(E::Todo("determinant".to_string()))
 }
 
@@ -578,83 +606,109 @@ pub fn determinant(_a1: &Instance) -> Result<Instance, E> {
 /// NOTE: the function returns an error if computed out of domain
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#distance-builtin>
-pub fn distance(e1: &Instance, e2: &Instance, stage: ShaderStage) -> Result<Instance, E> {
-    length(&e1.op_sub(e2, stage)?)
+pub fn distance(
+    e1: &Instance,
+    e2: &Instance,
+    stage: ShaderStage,
+    context: &TyContext,
+) -> Result<Instance, E> {
+    length(&e1.op_sub(e2, stage, context)?, context)
 }
 
 /// `dot()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dot-builtin>
-pub fn dot(e1: &Instance, e2: &Instance, stage: ShaderStage) -> Result<Instance, E> {
-    let (e1, e2) = convert(e1, e2).ok_or(E::Builtin("`dot` arguments are incompatible"))?;
+pub fn dot(
+    e1: &Instance,
+    e2: &Instance,
+    stage: ShaderStage,
+    context: &TyContext,
+) -> Result<Instance, E> {
+    let (e1, e2) =
+        convert(e1, e2, context).ok_or(E::Builtin("`dot` arguments are incompatible"))?;
     match (e1, e2) {
-        (Instance::Vec(e1), Instance::Vec(e2)) => e1.dot(&e2, stage).map(Into::into),
+        (Instance::Vec(e1), Instance::Vec(e2)) => e1.dot(&e2, stage, context).map(Into::into),
         _ => Err(E::Builtin("`dot` expects vector arguments")),
     }
 }
 
 /// TODO: This built-in is not implemented!
-pub fn dot4U8Packed(_a1: &Instance, _a2: &Instance) -> Result<Instance, E> {
+pub fn dot4U8Packed(_a1: &Instance, _a2: &Instance, _context: &TyContext) -> Result<Instance, E> {
     Err(E::Todo("dot4U8Packed".to_string()))
 }
 
 /// TODO: This built-in is not implemented!
-pub fn dot4I8Packed(_a1: &Instance, _a2: &Instance) -> Result<Instance, E> {
+pub fn dot4I8Packed(_a1: &Instance, _a2: &Instance, _context: &TyContext) -> Result<Instance, E> {
     Err(E::Todo("dot4I8Packed".to_string()))
 }
 
 /// `exp()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#exp-builtin>
-pub fn exp(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("exp", e, n => n.exp())
+pub fn exp(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("exp", e, n => n.exp(), context)
 }
 
 /// `exp2()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#exp2-builtin>
-pub fn exp2(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("exp2", e, n => n.exp2())
+pub fn exp2(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("exp2", e, n => n.exp2(), context)
 }
 
 /// TODO: This built-in is not implemented!
-pub fn extractBits(_a1: &Instance, _a2: &Instance, _a3: &Instance) -> Result<Instance, E> {
+pub fn extractBits(
+    _a1: &Instance,
+    _a2: &Instance,
+    _a3: &Instance,
+    _context: &TyContext,
+) -> Result<Instance, E> {
     Err(E::Todo("extractBits".to_string()))
 }
 
 /// TODO: This built-in is not implemented!
-pub fn faceForward(_a1: &Instance, _a2: &Instance, _a3: &Instance) -> Result<Instance, E> {
+pub fn faceForward(
+    _a1: &Instance,
+    _a2: &Instance,
+    _a3: &Instance,
+    _context: &TyContext,
+) -> Result<Instance, E> {
     Err(E::Todo("faceForward".to_string()))
 }
 
 /// TODO: This built-in is not implemented!
-pub fn firstLeadingBit(_a1: &Instance) -> Result<Instance, E> {
+pub fn firstLeadingBit(_a1: &Instance, _context: &TyContext) -> Result<Instance, E> {
     Err(E::Todo("firstLeadingBit".to_string()))
 }
 
 /// TODO: This built-in is not implemented!
-pub fn firstTrailingBit(_a1: &Instance) -> Result<Instance, E> {
+pub fn firstTrailingBit(_a1: &Instance, _context: &TyContext) -> Result<Instance, E> {
     Err(E::Todo("firstTrailingBit".to_string()))
 }
 
 /// `floor()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#floor-builtin>
-pub fn floor(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("floor", e, n => n.floor())
+pub fn floor(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("floor", e, n => n.floor(), context)
 }
 
 /// TODO: This built-in is not implemented!
-pub fn fma(_a1: &Instance, _a2: &Instance, _a3: &Instance) -> Result<Instance, E> {
+pub fn fma(
+    _a1: &Instance,
+    _a2: &Instance,
+    _a3: &Instance,
+    _context: &TyContext,
+) -> Result<Instance, E> {
     Err(E::Todo("fma".to_string()))
 }
 
 /// `fract()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#fract-builtin>
-pub fn fract(e: &Instance, stage: ShaderStage) -> Result<Instance, E> {
-    e.op_sub(&floor(e)?, stage)
-    // impl_call_float_unary!("fract", e, n => n.fract())
+pub fn fract(e: &Instance, stage: ShaderStage, context: &TyContext) -> Result<Instance, E> {
+    e.op_sub(&floor(e, context)?, stage, context)
+    // impl_call_float_unary!("fract", e, n => n.fract(), context)
 }
 
 /// `frexp()` builtin function.
@@ -662,12 +716,13 @@ pub fn fract(e: &Instance, stage: ShaderStage) -> Result<Instance, E> {
 /// TODO: This built-in is only partially implemented.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#frexp-builtin>
-pub fn frexp(e: &Instance) -> Result<Instance, E> {
+pub fn frexp(e: &Instance, context: &mut TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`frexp` expects a float or vector of float argument");
-    fn make_frexp_inst(fract: Instance, exp: Instance) -> Instance {
+    fn make_frexp_inst(fract: Instance, exp: Instance, context: &mut TyContext) -> Instance {
         Instance::Struct(StructInstance::new(
-            frexp_struct_type(&fract.ty()).unwrap(),
+            frexp_struct_type(&fract.ty(), context).unwrap(),
             vec![fract, exp],
+            context,
         ))
     }
     // from: https://docs.rs/libm/latest/src/libm/math/frexp.rs.html#1-20
@@ -702,6 +757,7 @@ pub fn frexp(e: &Instance) -> Result<Instance, E> {
                 Ok(make_frexp_inst(
                     LiteralInstance::AbstractFloat(fract).into(),
                     LiteralInstance::AbstractInt(exp as i64).into(),
+                    context,
                 ))
             }
             LiteralInstance::I32(_) => Err(E::Todo("frexp with i32 input".to_string())),
@@ -711,6 +767,7 @@ pub fn frexp(e: &Instance) -> Result<Instance, E> {
                 Ok(make_frexp_inst(
                     LiteralInstance::F32(fract as f32).into(),
                     LiteralInstance::I32(exp).into(),
+                    context,
                 ))
             }
             LiteralInstance::F16(n) => {
@@ -718,6 +775,7 @@ pub fn frexp(e: &Instance) -> Result<Instance, E> {
                 Ok(make_frexp_inst(
                     LiteralInstance::F16(f16::from_f64(fract)).into(),
                     LiteralInstance::I32(exp).into(),
+                    context,
                 ))
             }
             #[cfg(feature = "naga-ext")]
@@ -730,6 +788,7 @@ pub fn frexp(e: &Instance) -> Result<Instance, E> {
                 Ok(make_frexp_inst(
                     LiteralInstance::F64(fract).into(),
                     LiteralInstance::I64(exp as i64).into(),
+                    context,
                 ))
             }
         },
@@ -769,7 +828,7 @@ pub fn frexp(e: &Instance) -> Result<Instance, E> {
                 .collect_vec();
             let fract = VecInstance::new(fracts).into();
             let exp = VecInstance::new(exps).into();
-            Ok(make_frexp_inst(fract, exp))
+            Ok(make_frexp_inst(fract, exp, context))
         }
         _ => Err(ERR),
     }
@@ -781,6 +840,7 @@ pub fn insertBits(
     _a2: &Instance,
     _a3: &Instance,
     _a4: &Instance,
+    _context: &TyContext,
 ) -> Result<Instance, E> {
     Err(E::Todo("insertBits".to_string()))
 }
@@ -790,13 +850,13 @@ pub fn insertBits(
 // NOTE: the function returns NaN as an "indeterminate value" if computed out of domain
 //
 /// Reference: <https://www.w3.org/TR/WGSL/#inverseSqrt-builtin>
-pub fn inverseSqrt(e: &Instance) -> Result<Instance, E> {
+pub fn inverseSqrt(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`inverseSqrt` expects a float or vector of float argument");
-    fn lit_isqrt(l: &LiteralInstance) -> Result<LiteralInstance, E> {
+    fn lit_isqrt(l: &LiteralInstance, context: &TyContext) -> Result<LiteralInstance, E> {
         match l {
             LiteralInstance::Bool(_) => Err(ERR),
             LiteralInstance::AbstractInt(_) => l
-                .convert_to(&Type::AbstractFloat)
+                .convert_to(&Type::AbstractFloat, context)
                 .ok_or(E::Conversion(Type::AbstractInt, Type::AbstractFloat))
                 .map(|n| LiteralInstance::from(1.0 / n.unwrap_abstract_float().sqrt())),
             LiteralInstance::AbstractFloat(n) => Ok(LiteralInstance::from(1.0 / n.sqrt())),
@@ -813,8 +873,8 @@ pub fn inverseSqrt(e: &Instance) -> Result<Instance, E> {
         }
     }
     match e {
-        Instance::Literal(l) => lit_isqrt(l).map(Into::into),
-        Instance::Vec(v) => v.compwise_unary(lit_isqrt).map(Into::into),
+        Instance::Literal(l) => lit_isqrt(l, context).map(Into::into),
+        Instance::Vec(v) => v.compwise_unary(|l| lit_isqrt(l, context)).map(Into::into),
         _ => Err(ERR),
     }
 }
@@ -905,19 +965,20 @@ pub fn ldexp(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
 /// `length()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#length-builtin>
-pub fn length(e: &Instance) -> Result<Instance, E> {
+pub fn length(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`length` expects a float or vector of float argument");
     match e {
         Instance::Literal(LiteralInstance::AbstractInt(_)) => {
-            abs(&e.convert_to(&Type::AbstractFloat).unwrap())
+            abs(&e.convert_to(&Type::AbstractFloat, context).unwrap())
         }
         Instance::Literal(l) if l.ty().is_float() => abs(e),
         Instance::Vec(v) => sqrt(
-            &v.op_mul(v, ShaderStage::Exec)?
+            &v.op_mul(v, ShaderStage::Exec, context)?
                 .into_iter()
                 .map(Ok)
-                .reduce(|a, b| a?.op_add(&b?, ShaderStage::Exec))
+                .reduce(|a, b| a?.op_add(&b?, ShaderStage::Exec, context))
                 .unwrap()?,
+            context,
         ),
         _ => Err(ERR),
     }
@@ -926,21 +987,21 @@ pub fn length(e: &Instance) -> Result<Instance, E> {
 /// `log()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#log-builtin>
-pub fn log(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("log", e, n => n.ln())
+pub fn log(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("log", e, n => n.ln(),context)
 }
 
 /// `log2()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#log2-builtin>
-pub fn log2(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("log2", e, n => n.log2())
+pub fn log2(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("log2", e, n => n.log2(),context)
 }
 
 /// `max()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#max-builtin>
-pub fn max(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
+pub fn max(e1: &Instance, e2: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`max` expects a scalar or vector of scalar argument");
     fn lit_max(e1: &LiteralInstance, e2: &LiteralInstance) -> Result<LiteralInstance, E> {
         match e1 {
@@ -963,7 +1024,8 @@ pub fn max(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
             LiteralInstance::F64(e1) => Ok(LiteralInstance::F64(e1.max(e2.unwrap_f64()))),
         }
     }
-    let (e1, e2) = convert(e1, e2).ok_or(E::Builtin("`max` arguments are incompatible"))?;
+    let (e1, e2) =
+        convert(e1, e2, context).ok_or(E::Builtin("`max` arguments are incompatible"))?;
     match (e1, e2) {
         (Instance::Literal(e1), Instance::Literal(e2)) => lit_max(&e1, &e2).map(Into::into),
         (Instance::Vec(e1), Instance::Vec(e2)) => e1.compwise_binary(&e2, lit_max).map(Into::into),
@@ -974,7 +1036,7 @@ pub fn max(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
 /// `min()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#min-builtin>
-pub fn min(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
+pub fn min(e1: &Instance, e2: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`min` expects a scalar or vector of scalar argument");
     fn lit_min(e1: &LiteralInstance, e2: &LiteralInstance) -> Result<LiteralInstance, E> {
         match e1 {
@@ -997,7 +1059,8 @@ pub fn min(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
             LiteralInstance::F64(e1) => Ok(LiteralInstance::F64(e1.min(e2.unwrap_f64()))),
         }
     }
-    let (e1, e2) = convert(e1, e2).ok_or(E::Builtin("`min` arguments are incompatible"))?;
+    let (e1, e2) =
+        convert(e1, e2, context).ok_or(E::Builtin("`min` arguments are incompatible"))?;
     match (e1, e2) {
         (Instance::Literal(e1), Instance::Literal(e2)) => lit_min(&e1, &e2).map(Into::into),
         (Instance::Vec(e1), Instance::Vec(e2)) => e1.compwise_binary(&e2, lit_min).map(Into::into),
@@ -1008,48 +1071,60 @@ pub fn min(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
 /// `mix()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#mix-builtin>
-pub fn mix(e1: &Instance, e2: &Instance, e3: &Instance, stage: ShaderStage) -> Result<Instance, E> {
+pub fn mix(
+    e1: &Instance,
+    e2: &Instance,
+    e3: &Instance,
+    stage: ShaderStage,
+    context: &TyContext,
+) -> Result<Instance, E> {
     let tys = [e1.inner_ty(), e2.inner_ty(), e3.inner_ty()];
-    let inner_ty = convert_all_ty(&tys).ok_or(E::Builtin("`mix` arguments are incompatible"))?;
-    let e1 = e1.convert_inner_to(inner_ty).unwrap();
-    let e2 = e2.convert_inner_to(inner_ty).unwrap();
-    let e3 = e3.convert_inner_to(inner_ty).unwrap();
-    let (e1, e2) = convert(&e1, &e2).ok_or(E::Builtin("`mix` arguments are incompatible"))?;
+    let inner_ty =
+        convert_all_ty(&tys, context).ok_or(E::Builtin("`mix` arguments are incompatible"))?;
+    let e1 = e1.convert_inner_to(inner_ty, context).unwrap();
+    let e2 = e2.convert_inner_to(inner_ty, context).unwrap();
+    let e3 = e3.convert_inner_to(inner_ty, context).unwrap();
+    let (e1, e2) =
+        convert(&e1, &e2, context).ok_or(E::Builtin("`mix` arguments are incompatible"))?;
 
     // TODO is it ok with abstract int? it's supposed to be of type inner_ty
     let one = Instance::Literal(LiteralInstance::AbstractInt(1));
 
-    e1.op_mul(&one.op_sub(&e3, stage)?, stage)?
-        .op_add(&e2.op_mul(&e3, stage)?, stage)
+    e1.op_mul(&one.op_sub(&e3, stage, context)?, stage, context)?
+        .op_add(&e2.op_mul(&e3, stage, context)?, stage, context)
 }
 
 /// TODO: This built-in is not implemented!
-pub fn modf(_a1: &Instance) -> Result<Instance, E> {
+pub fn modf(_a1: &Instance, _context: &TyContext) -> Result<Instance, E> {
     Err(E::Todo("modf".to_string()))
 }
 
 /// `normalize()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#normalize-builtin>
-pub fn normalize(e: &Instance, stage: ShaderStage) -> Result<Instance, E> {
-    e.op_div(&length(e)?, stage)
+pub fn normalize(e: &Instance, stage: ShaderStage, context: &TyContext) -> Result<Instance, E> {
+    e.op_div(&length(e, context)?, stage, context)
 }
 
 /// `pow()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pow-builtin>
-pub fn pow(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
+pub fn pow(e1: &Instance, e2: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`pow` expects a scalar or vector of scalar argument");
-    fn lit_powf(e1: &LiteralInstance, e2: &LiteralInstance) -> Result<LiteralInstance, E> {
+    fn lit_powf(
+        e1: &LiteralInstance,
+        e2: &LiteralInstance,
+        context: &TyContext,
+    ) -> Result<LiteralInstance, E> {
         match e1 {
             LiteralInstance::Bool(_) => Err(ERR),
             LiteralInstance::AbstractInt(_) => {
                 let e1 = e1
-                    .convert_to(&Type::AbstractFloat)
+                    .convert_to(&Type::AbstractFloat, context)
                     .ok_or(E::Conversion(Type::AbstractInt, Type::AbstractFloat))?
                     .unwrap_abstract_float();
                 let e2 = e2
-                    .convert_to(&Type::AbstractFloat)
+                    .convert_to(&Type::AbstractFloat, context)
                     .ok_or(E::Conversion(Type::AbstractInt, Type::AbstractFloat))?
                     .unwrap_abstract_float();
                 Ok(LiteralInstance::from(e1.powf(e2)))
@@ -1069,52 +1144,62 @@ pub fn pow(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
             LiteralInstance::F64(e1) => Ok(LiteralInstance::F64(e1.powf(e2.unwrap_f64()))),
         }
     }
-    let (e1, e2) = convert(e1, e2).ok_or(E::Builtin("`pow` arguments are incompatible"))?;
+    let (e1, e2) =
+        convert(e1, e2, context).ok_or(E::Builtin("`pow` arguments are incompatible"))?;
     match (e1, e2) {
-        (Instance::Literal(e1), Instance::Literal(e2)) => lit_powf(&e1, &e2).map(Into::into),
-        (Instance::Vec(e1), Instance::Vec(e2)) => e1.compwise_binary(&e2, lit_powf).map(Into::into),
+        (Instance::Literal(e1), Instance::Literal(e2)) => {
+            lit_powf(&e1, &e2, context).map(Into::into)
+        }
+        (Instance::Vec(e1), Instance::Vec(e2)) => e1
+            .compwise_binary(&e2, |a, b| lit_powf(a, b, context))
+            .map(Into::into),
         _ => Err(ERR),
     }
 }
 
 /// TODO: This built-in is not implemented!
-pub fn quantizeToF16(_a1: &Instance) -> Result<Instance, E> {
+pub fn quantizeToF16(_a1: &Instance, _context: &TyContext) -> Result<Instance, E> {
     Err(E::Todo("quantizeToF16".to_string()))
 }
 
 /// `radians()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#radians-builtin>
-pub fn radians(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("radians", e, n => n.to_radians())
+pub fn radians(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("radians", e, n => n.to_radians(), context)
 }
 
 /// TODO: This built-in is not implemented!
-pub fn reflect(_a1: &Instance, _a2: &Instance) -> Result<Instance, E> {
+pub fn reflect(_a1: &Instance, _a2: &Instance, _context: &TyContext) -> Result<Instance, E> {
     Err(E::Todo("reflect".to_string()))
 }
 
 /// TODO: This built-in is not implemented!
-pub fn refract(_a1: &Instance, _a2: &Instance, _a3: &Instance) -> Result<Instance, E> {
+pub fn refract(
+    _a1: &Instance,
+    _a2: &Instance,
+    _a3: &Instance,
+    _context: &TyContext,
+) -> Result<Instance, E> {
     Err(E::Todo("refract".to_string()))
 }
 
 /// TODO: This built-in is not implemented!
-pub fn reverseBits(_a1: &Instance) -> Result<Instance, E> {
+pub fn reverseBits(_a1: &Instance, _context: &TyContext) -> Result<Instance, E> {
     Err(E::Todo("reverseBits".to_string()))
 }
 
 /// `round()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#round-builtin>
-pub fn round(e: &Instance) -> Result<Instance, E> {
+pub fn round(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`round` expects a float or vector of float argument");
-    fn lit_fn(l: &LiteralInstance) -> Result<LiteralInstance, E> {
+    fn lit_fn(l: &LiteralInstance, context: &TyContext) -> Result<LiteralInstance, E> {
         match l {
             LiteralInstance::Bool(_) => Err(ERR),
             LiteralInstance::AbstractInt(_) => {
                 let n = l
-                    .convert_to(&Type::AbstractFloat)
+                    .convert_to(&Type::AbstractFloat, context)
                     .ok_or(E::Conversion(Type::AbstractInt, Type::AbstractFloat))?
                     .unwrap_abstract_float();
                 Ok(LiteralInstance::from(n.round_ties_even()))
@@ -1135,8 +1220,8 @@ pub fn round(e: &Instance) -> Result<Instance, E> {
         }
     }
     match e {
-        Instance::Literal(l) => lit_fn(l).map(Into::into),
-        Instance::Vec(v) => v.compwise_unary(lit_fn).map(Into::into),
+        Instance::Literal(l) => lit_fn(l, context).map(Into::into),
+        Instance::Vec(v) => v.compwise_unary(|l| lit_fn(l, context)).map(Into::into),
         _ => Err(ERR),
     }
 }
@@ -1144,12 +1229,12 @@ pub fn round(e: &Instance) -> Result<Instance, E> {
 /// `saturate()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#saturate-builtin>
-pub fn saturate(e: &Instance) -> Result<Instance, E> {
+pub fn saturate(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     match e {
         Instance::Literal(_) => {
             let zero = LiteralInstance::AbstractFloat(0.0);
             let one = LiteralInstance::AbstractFloat(1.0);
-            clamp(e, &zero.into(), &one.into())
+            clamp(e, &zero.into(), &one.into(), context)
         }
         Instance::Vec(v) => {
             let n = v.n();
@@ -1157,7 +1242,7 @@ pub fn saturate(e: &Instance) -> Result<Instance, E> {
             let one = Instance::from(LiteralInstance::AbstractFloat(1.0));
             let zero = VecInstance::new((0..n).map(|_| zero.clone()).collect_vec());
             let one = VecInstance::new((0..n).map(|_| one.clone()).collect_vec());
-            clamp(e, &zero.into(), &one.into())
+            clamp(e, &zero.into(), &one.into(), context)
         }
         _ => Err(E::Builtin(
             "`saturate` expects a float or vector of float argument",
@@ -1213,44 +1298,53 @@ pub fn sign(e: &Instance) -> Result<Instance, E> {
 /// `sin()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#sin-builtin>
-pub fn sin(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("sin", e, n => n.sin())
+pub fn sin(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("sin", e, n => n.sin(),context)
 }
 
 /// `sinh()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#sinh-builtin>
-pub fn sinh(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("sinh", e, n => n.sinh())
+pub fn sinh(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("sinh", e, n => n.sinh(), context)
 }
 
 /// TODO: This built-in is not implemented!
-pub fn smoothstep(_low: &Instance, _high: &Instance, _x: &Instance) -> Result<Instance, E> {
+pub fn smoothstep(
+    _low: &Instance,
+    _high: &Instance,
+    _x: &Instance,
+    _context: &TyContext,
+) -> Result<Instance, E> {
     Err(E::Todo("smoothstep".to_string()))
 }
 
 /// `sqrt()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#sqrt-builtin>
-pub fn sqrt(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("sqrt", e, n => n.sqrt())
+pub fn sqrt(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("sqrt", e, n => n.sqrt(), context)
 }
 
 /// `step()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#step-builtin>
-pub fn step(edge: &Instance, x: &Instance) -> Result<Instance, E> {
+pub fn step(edge: &Instance, x: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`step` expects a float or vector of float argument");
-    fn lit_step(edge: &LiteralInstance, x: &LiteralInstance) -> Result<LiteralInstance, E> {
+    fn lit_step(
+        edge: &LiteralInstance,
+        x: &LiteralInstance,
+        context: &TyContext,
+    ) -> Result<LiteralInstance, E> {
         match edge {
             LiteralInstance::Bool(_) => Err(ERR),
             LiteralInstance::AbstractInt(_) => {
                 let edge = edge
-                    .convert_to(&Type::AbstractFloat)
+                    .convert_to(&Type::AbstractFloat, context)
                     .ok_or(E::Conversion(Type::AbstractInt, Type::AbstractFloat))?
                     .unwrap_abstract_float();
                 let x = x
-                    .convert_to(&Type::AbstractFloat)
+                    .convert_to(&Type::AbstractFloat, context)
                     .ok_or(E::Conversion(Type::AbstractInt, Type::AbstractFloat))?
                     .unwrap_abstract_float();
                 Ok(LiteralInstance::from(if edge <= x {
@@ -1290,12 +1384,15 @@ pub fn step(edge: &Instance, x: &Instance) -> Result<Instance, E> {
             })),
         }
     }
-    let (edge, x) = convert(edge, x).ok_or(E::Builtin("`step` arguments are incompatible"))?;
+    let (edge, x) =
+        convert(edge, x, context).ok_or(E::Builtin("`step` arguments are incompatible"))?;
     match (edge, x) {
-        (Instance::Literal(edge), Instance::Literal(x)) => lit_step(&edge, &x).map(Into::into),
-        (Instance::Vec(edge), Instance::Vec(x)) => {
-            edge.compwise_binary(&x, lit_step).map(Into::into)
+        (Instance::Literal(edge), Instance::Literal(x)) => {
+            lit_step(&edge, &x, context).map(Into::into)
         }
+        (Instance::Vec(edge), Instance::Vec(x)) => edge
+            .compwise_binary(&x, |a, b| lit_step(a, b, context))
+            .map(Into::into),
         _ => Err(ERR),
     }
 }
@@ -1303,15 +1400,15 @@ pub fn step(edge: &Instance, x: &Instance) -> Result<Instance, E> {
 /// `tan()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#tan-builtin>
-pub fn tan(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("tan", e, n => n.tan())
+pub fn tan(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("tan", e, n => n.tan(), context)
 }
 
 /// `tanh()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#tanh-builtin>
-pub fn tanh(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("tanh", e, n => n.tanh())
+pub fn tanh(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("tanh", e, n => n.tanh(), context)
 }
 
 /// `transpose()` builtin function.
@@ -1327,8 +1424,8 @@ pub fn transpose(e: &Instance) -> Result<Instance, E> {
 /// `trunc()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#trunc-builtin>
-pub fn trunc(e: &Instance) -> Result<Instance, E> {
-    impl_call_float_unary!("trunc", e, n => n.trunc())
+pub fn trunc(e: &Instance, context: &TyContext) -> Result<Instance, E> {
+    impl_call_float_unary!("trunc", e, n => n.trunc(), context)
 }
 
 // ------
@@ -1339,11 +1436,11 @@ pub fn trunc(e: &Instance) -> Result<Instance, E> {
 /// `atomicLoad()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicLoad-builtin>
-pub fn atomicLoad(e: &Instance) -> Result<Instance, E> {
+pub fn atomicLoad(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     let err = E::Builtin("`atomicLoad` expects a pointer to atomic argument");
     if let Instance::Ptr(ptr) = e {
         // TODO: there is a ptr.ptr.ptr chain here. Rename it.
-        let inst = ptr.ptr.read()?;
+        let inst = ptr.ptr.read(context)?;
         if let Instance::Atomic(inst) = &*inst {
             Ok(inst.inner().clone())
         } else {
@@ -1357,14 +1454,14 @@ pub fn atomicLoad(e: &Instance) -> Result<Instance, E> {
 /// `atomicStore()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicStore-builtin>
-pub fn atomicStore(e1: &Instance, e2: &Instance) -> Result<(), E> {
+pub fn atomicStore(e1: &Instance, e2: &Instance, context: &TyContext) -> Result<(), E> {
     let err = E::Builtin("`atomicStore` expects a pointer to atomic argument");
     if let Instance::Ptr(ptr) = e1 {
-        let mut inst = ptr.ptr.read_write()?;
+        let mut inst = ptr.ptr.read_write(context)?;
         if let Instance::Atomic(inst) = &mut *inst {
             let ty = inst.inner().ty();
             let e2 = e2
-                .convert_to(&ty)
+                .convert_to(&ty, context)
                 .ok_or_else(|| E::ParamType(ty, e2.ty()))?;
             *inst = AtomicInstance::new(e2);
             Ok(())
@@ -1379,72 +1476,80 @@ pub fn atomicStore(e1: &Instance, e2: &Instance) -> Result<(), E> {
 /// `atomicAdd()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicSub-builtin>
-pub fn atomicAdd(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
-    let initial = atomicLoad(e1)?;
-    atomicStore(e1, &initial.op_add(e2, ShaderStage::Exec)?)?;
+pub fn atomicAdd(e1: &Instance, e2: &Instance, context: &TyContext) -> Result<Instance, E> {
+    let initial = atomicLoad(e1, context)?;
+    atomicStore(
+        e1,
+        &initial.op_add(e2, ShaderStage::Exec, context)?,
+        context,
+    )?;
     Ok(initial)
 }
 
 /// `atomicSub()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicSub-builtin>
-pub fn atomicSub(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
-    let initial = atomicLoad(e1)?;
-    atomicStore(e1, &initial.op_sub(e2, ShaderStage::Exec)?)?;
+pub fn atomicSub(e1: &Instance, e2: &Instance, context: &TyContext) -> Result<Instance, E> {
+    let initial = atomicLoad(e1, context)?;
+    atomicStore(
+        e1,
+        &initial.op_sub(e2, ShaderStage::Exec, context)?,
+        context,
+    )?;
     Ok(initial)
 }
 
 /// `atomicMax()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicMax-builtin>
-pub fn atomicMax(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
-    let initial = atomicLoad(e1)?;
-    atomicStore(e1, &max(&initial, e2)?)?;
+pub fn atomicMax(e1: &Instance, e2: &Instance, context: &TyContext) -> Result<Instance, E> {
+    let initial = atomicLoad(e1, context)?;
+    atomicStore(e1, &max(&initial, e2, context)?, context)?;
     Ok(initial)
 }
 
 /// `atomicMin()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicMin-builtin>
-pub fn atomicMin(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
-    let initial = atomicLoad(e1)?;
-    atomicStore(e1, &min(&initial, e2)?)?;
+pub fn atomicMin(e1: &Instance, e2: &Instance, context: &TyContext) -> Result<Instance, E> {
+    let initial = atomicLoad(e1, context)?;
+    atomicStore(e1, &min(&initial, e2, context)?, context)?;
     Ok(initial)
 }
 
 /// `atomicAnd()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicAnd-builtin>
-pub fn atomicAnd(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
-    let initial = atomicLoad(e1)?;
-    atomicStore(e1, &initial.op_bitand(e2)?)?;
+pub fn atomicAnd(e1: &Instance, e2: &Instance, context: &TyContext) -> Result<Instance, E> {
+    let initial = atomicLoad(e1, context)?;
+    atomicStore(e1, &initial.op_bitand(e2, context)?, context)?;
     Ok(initial)
 }
 
 /// `atomicOr()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicOr-builtin>
-pub fn atomicOr(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
-    let initial = atomicLoad(e1)?;
-    atomicStore(e1, &initial.op_bitor(e2)?)?;
+pub fn atomicOr(e1: &Instance, e2: &Instance, context: &TyContext) -> Result<Instance, E> {
+    let initial = atomicLoad(e1, context)?;
+    atomicStore(e1, &initial.op_bitor(e2, context)?, context)?;
     Ok(initial)
 }
 
 /// `atomicXor()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicXor-builtin>
-pub fn atomicXor(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
-    let initial = atomicLoad(e1)?;
-    atomicStore(e1, &initial.op_bitxor(e2)?)?;
+pub fn atomicXor(e1: &Instance, e2: &Instance, context: &TyContext) -> Result<Instance, E> {
+    let initial = atomicLoad(e1, context)?;
+    atomicStore(e1, &initial.op_bitxor(e2, context)?, context)?;
     Ok(initial)
 }
 
 /// `atomicExchange()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicExchange-builtin>
-pub fn atomicExchange(e1: &Instance, e2: &Instance) -> Result<Instance, E> {
-    let initial = atomicLoad(e1)?;
-    atomicStore(e1, e2)?;
+pub fn atomicExchange(e1: &Instance, e2: &Instance, context: &TyContext) -> Result<Instance, E> {
+    let initial = atomicLoad(e1, context)?;
+    atomicStore(e1, e2, context)?;
     Ok(initial)
 }
 
@@ -1455,26 +1560,28 @@ pub fn atomicCompareExchangeWeak(
     atomic_ptr: &Instance,
     cmp: &Instance,
     v: &Instance,
+    context: &mut TyContext,
 ) -> Result<Instance, E> {
-    let old_value = atomicLoad(atomic_ptr)?;
+    let old_value = atomicLoad(atomic_ptr, context)?;
 
     let ty = old_value.ty();
 
-    let Some(cmp) = cmp.convert_to(&ty) else {
+    let Some(cmp) = cmp.convert_to(&ty, context) else {
         return Err(E::ParamType(ty, cmp.ty()));
     };
 
-    let Some(v) = v.convert_to(&ty) else {
+    let Some(v) = v.convert_to(&ty, context) else {
         return Err(E::ParamType(ty, v.ty()));
     };
 
     let exchanged = old_value == cmp;
     if exchanged {
-        atomicStore(atomic_ptr, &v)?;
+        atomicStore(atomic_ptr, &v, context)?;
     }
     Ok(Instance::Struct(StructInstance::new(
-        atomic_compare_exchange_struct_type(&old_value.ty()),
+        atomic_compare_exchange_struct_type(&old_value.ty(), context),
         vec![old_value, LiteralInstance::Bool(exchanged).into()],
+        context,
     )))
 }
 
@@ -1486,11 +1593,11 @@ pub fn atomicCompareExchangeWeak(
 /// `pack4x8snorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack4x8snorm-builtin>
-pub fn pack4x8snorm(e: &Instance) -> Result<Instance, E> {
+pub fn pack4x8snorm(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`pack4x8snorm` expects a `vec4<f32>` argument");
 
     let v = e
-        .convert_to(&Type::Vec(4, Type::F32.into()))
+        .convert_to(&Type::Vec(4, Type::F32.into()), context)
         .ok_or(ERR)?
         .unwrap_vec();
 
@@ -1506,11 +1613,11 @@ pub fn pack4x8snorm(e: &Instance) -> Result<Instance, E> {
 /// `pack4x8unorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack4x8unorm-builtin>
-pub fn pack4x8unorm(e: &Instance) -> Result<Instance, E> {
+pub fn pack4x8unorm(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`pack4x8unorm` expects a `vec4<f32>` argument");
 
     let v = e
-        .convert_to(&Type::Vec(4, Type::F32.into()))
+        .convert_to(&Type::Vec(4, Type::F32.into()), context)
         .ok_or(ERR)?
         .unwrap_vec();
 
@@ -1526,11 +1633,11 @@ pub fn pack4x8unorm(e: &Instance) -> Result<Instance, E> {
 /// `pack4xI8()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack4xI8-builtin>
-pub fn pack4xI8(e: &Instance) -> Result<Instance, E> {
+pub fn pack4xI8(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`pack4xI8` expects a `vec4<i32>` argument");
 
     let v = e
-        .convert_to(&Type::Vec(4, Type::I32.into()))
+        .convert_to(&Type::Vec(4, Type::I32.into()), context)
         .ok_or(ERR)?
         .unwrap_vec();
 
@@ -1545,11 +1652,11 @@ pub fn pack4xI8(e: &Instance) -> Result<Instance, E> {
 /// `pack4xU8()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack4xU8-builtin>
-pub fn pack4xU8(e: &Instance) -> Result<Instance, E> {
+pub fn pack4xU8(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`pack4xU8` expects a `vec4<u32>` argument");
 
     let v = e
-        .convert_to(&Type::Vec(4, Type::U32.into()))
+        .convert_to(&Type::Vec(4, Type::U32.into()), context)
         .ok_or(ERR)?
         .unwrap_vec();
 
@@ -1564,11 +1671,11 @@ pub fn pack4xU8(e: &Instance) -> Result<Instance, E> {
 /// `pack4xI8Clamp()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack4xI8Clamp-builtin>
-pub fn pack4xI8Clamp(e: &Instance) -> Result<Instance, E> {
+pub fn pack4xI8Clamp(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`pack4xI8Clamp` expects a `vec4<i32>` argument");
 
     let v = e
-        .convert_to(&Type::Vec(4, Type::I32.into()))
+        .convert_to(&Type::Vec(4, Type::I32.into()), context)
         .ok_or(ERR)?
         .unwrap_vec();
 
@@ -1583,11 +1690,11 @@ pub fn pack4xI8Clamp(e: &Instance) -> Result<Instance, E> {
 /// `pack4xU8Clamp()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack4xU8Clamp-builtin>
-pub fn pack4xU8Clamp(e: &Instance) -> Result<Instance, E> {
+pub fn pack4xU8Clamp(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`pack4xU8Clamp` expects a `vec4<u32>` argument");
 
     let v = e
-        .convert_to(&Type::Vec(4, Type::U32.into()))
+        .convert_to(&Type::Vec(4, Type::U32.into()), context)
         .ok_or(ERR)?
         .unwrap_vec();
 
@@ -1602,11 +1709,11 @@ pub fn pack4xU8Clamp(e: &Instance) -> Result<Instance, E> {
 /// `pack2x16snorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack2x16snorm-builtin>
-pub fn pack2x16snorm(e: &Instance) -> Result<Instance, E> {
+pub fn pack2x16snorm(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`pack2x16snorm` expects a `vec2<f32>` argument");
 
     let v = e
-        .convert_to(&Type::Vec(2, Type::F32.into()))
+        .convert_to(&Type::Vec(2, Type::F32.into()), context)
         .ok_or(ERR)?
         .unwrap_vec();
 
@@ -1622,11 +1729,11 @@ pub fn pack2x16snorm(e: &Instance) -> Result<Instance, E> {
 /// `pack2x16unorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack2x16unorm-builtin>
-pub fn pack2x16unorm(e: &Instance) -> Result<Instance, E> {
+pub fn pack2x16unorm(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`pack2x16unorm` expects a `vec2<f32>` argument");
 
     let v = e
-        .convert_to(&Type::Vec(2, Type::F32.into()))
+        .convert_to(&Type::Vec(2, Type::F32.into()), context)
         .ok_or(ERR)?
         .unwrap_vec();
 
@@ -1642,11 +1749,11 @@ pub fn pack2x16unorm(e: &Instance) -> Result<Instance, E> {
 /// `pack2x16float()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack2x16float-builtin>
-pub fn pack2x16float(e: &Instance) -> Result<Instance, E> {
+pub fn pack2x16float(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`pack2x16float` expects a `vec2<f32>` argument");
 
     let v = e
-        .convert_to(&Type::Vec(2, Type::F32.into()))
+        .convert_to(&Type::Vec(2, Type::F32.into()), context)
         .ok_or(ERR)?
         .unwrap_vec();
 
@@ -1662,11 +1769,11 @@ pub fn pack2x16float(e: &Instance) -> Result<Instance, E> {
 /// `unpack4x8snorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#unpack4x8snorm-builtin>
-pub fn unpack4x8snorm(e: &Instance) -> Result<Instance, E> {
+pub fn unpack4x8snorm(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`unpack4x8snorm` expects a `u32` argument");
 
     let e = e
-        .convert_to(&Type::U32)
+        .convert_to(&Type::U32, context)
         .ok_or(ERR)?
         .unwrap_literal()
         .unwrap_u32();
@@ -1683,11 +1790,11 @@ pub fn unpack4x8snorm(e: &Instance) -> Result<Instance, E> {
 /// `unpack4x8unorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#unpack4x8unorm-builtin>
-pub fn unpack4x8unorm(e: &Instance) -> Result<Instance, E> {
+pub fn unpack4x8unorm(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`unpack4x8unorm` expects a `u32` argument");
 
     let e = e
-        .convert_to(&Type::U32)
+        .convert_to(&Type::U32, context)
         .ok_or(ERR)?
         .unwrap_literal()
         .unwrap_u32();
@@ -1704,11 +1811,11 @@ pub fn unpack4x8unorm(e: &Instance) -> Result<Instance, E> {
 /// `unpack4xI8()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#unpack4xI8-builtin>
-pub fn unpack4xI8(e: &Instance) -> Result<Instance, E> {
+pub fn unpack4xI8(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`unpack4xI8` expects a `u32` argument");
 
     let e = e
-        .convert_to(&Type::U32)
+        .convert_to(&Type::U32, context)
         .ok_or(ERR)?
         .unwrap_literal()
         .unwrap_u32();
@@ -1725,11 +1832,11 @@ pub fn unpack4xI8(e: &Instance) -> Result<Instance, E> {
 /// `unpack4xU8()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#unpack4xU8-builtin>
-pub fn unpack4xU8(e: &Instance) -> Result<Instance, E> {
+pub fn unpack4xU8(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`unpack4xU8` expects a `u32` argument");
 
     let e = e
-        .convert_to(&Type::U32)
+        .convert_to(&Type::U32, context)
         .ok_or(ERR)?
         .unwrap_literal()
         .unwrap_u32();
@@ -1746,11 +1853,11 @@ pub fn unpack4xU8(e: &Instance) -> Result<Instance, E> {
 /// `unpack2x16snorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#unpack2x16snorm-builtin>
-pub fn unpack2x16snorm(e: &Instance) -> Result<Instance, E> {
+pub fn unpack2x16snorm(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`unpack2x16snorm` expects a `u32` argument");
 
     let e = e
-        .convert_to(&Type::U32)
+        .convert_to(&Type::U32, context)
         .ok_or(ERR)?
         .unwrap_literal()
         .unwrap_u32();
@@ -1769,11 +1876,11 @@ pub fn unpack2x16snorm(e: &Instance) -> Result<Instance, E> {
 /// `unpack2x16unorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#unpack2x16unorm-builtin>
-pub fn unpack2x16unorm(e: &Instance) -> Result<Instance, E> {
+pub fn unpack2x16unorm(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`unpack2x16unorm` expects a `u32` argument");
 
     let e = e
-        .convert_to(&Type::U32)
+        .convert_to(&Type::U32, context)
         .ok_or(ERR)?
         .unwrap_literal()
         .unwrap_u32();
@@ -1792,11 +1899,11 @@ pub fn unpack2x16unorm(e: &Instance) -> Result<Instance, E> {
 /// `unpack2x16float()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#unpack2x16float-builtin>
-pub fn unpack2x16float(e: &Instance) -> Result<Instance, E> {
+pub fn unpack2x16float(e: &Instance, context: &TyContext) -> Result<Instance, E> {
     const ERR: E = E::Builtin("`unpack2x16float` expects a `u32` argument");
 
     let e = e
-        .convert_to(&Type::U32)
+        .convert_to(&Type::U32, context)
         .ok_or(ERR)?
         .unwrap_literal()
         .unwrap_u32();
@@ -1814,11 +1921,16 @@ pub fn unpack2x16float(e: &Instance) -> Result<Instance, E> {
 
 impl VecInstance {
     /// Warning, this function does not check operand types
-    pub fn dot(&self, rhs: &VecInstance, stage: ShaderStage) -> Result<LiteralInstance, E> {
-        self.compwise_binary(rhs, |a, b| a.op_mul(b, stage))?
+    pub fn dot(
+        &self,
+        rhs: &VecInstance,
+        stage: ShaderStage,
+        context: &TyContext,
+    ) -> Result<LiteralInstance, E> {
+        self.compwise_binary(rhs, |a, b| a.op_mul(b, stage, context))?
             .into_iter()
             .map(|c| Ok(c.unwrap_literal()))
-            .reduce(|a, b| a?.op_add(&b?, stage))
+            .reduce(|a, b| a?.op_add(&b?, stage, context))
             .unwrap()
     }
 }

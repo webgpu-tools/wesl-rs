@@ -20,7 +20,7 @@ pub use lower::*;
 pub use prelude::*;
 pub use to_expr::*;
 pub use ty::*;
-pub use wgsl_types::{ShaderStage, builtin::*, conv::*, inst::*, tplt::*, ty::*};
+pub use wgsl_types::{ShaderStage, builtin::*, conv::*, inst::*, tplt::*, ty::*, ty_context::*};
 
 use derive_more::Display;
 use std::{collections::HashMap, rc::Rc};
@@ -191,6 +191,7 @@ pub struct Context<'s> {
     pub(crate) scope: Scope<Instance>,
     pub(crate) resources: HashMap<(u32, u32), RefInstance>,
     pub(crate) overrides: HashMap<String, Instance>,
+    pub(crate) ty_context: &'s mut TyContext,
     pub(crate) kind: ScopeKind,
     pub(crate) stage: ShaderStage,
     pub(crate) err_decl: Option<String>,
@@ -198,7 +199,7 @@ pub struct Context<'s> {
 }
 
 impl<'s> Context<'s> {
-    pub fn new(source: &'s TranslationUnit) -> Self {
+    pub fn new(source: &'s TranslationUnit, ty_context: &'s mut TyContext) -> Self {
         Self {
             source,
             scope: Default::default(),
@@ -206,6 +207,7 @@ impl<'s> Context<'s> {
             overrides: Default::default(),
             kind: ScopeKind::Function,
             stage: ShaderStage::Const,
+            ty_context,
             err_span: None,
             err_decl: None,
         }
@@ -253,6 +255,9 @@ impl<'s> Context<'s> {
     }
     pub fn overridable(&self, name: &str) -> Option<&Instance> {
         self.overrides.get(name)
+    }
+    pub fn ty_context(&self) -> &TyContext {
+        self.ty_context
     }
 }
 

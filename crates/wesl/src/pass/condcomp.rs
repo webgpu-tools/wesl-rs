@@ -58,13 +58,13 @@ impl Features {
 const EXPR_TRUE: Expression = Expression::Literal(LiteralExpression::Bool(true));
 const EXPR_FALSE: Expression = Expression::Literal(LiteralExpression::Bool(false));
 
-fn eval_attr(expr: &ExpressionNode, features: &Features) -> Result<Expression, E> {
-    eval_attr_impl(expr, features).map_err(|e| Diagnostic::from(e).with_span(expr.span()).into())
+fn eval_attr(expr: &ExpressionNode, features: &Features) -> Result<Expression, Diagnostic> {
+    eval_attr_impl(expr, features).map_err(|e| e.with_span(expr.span()))
 }
 
-fn eval_attr_impl(expr: &Expression, features: &Features) -> Result<Expression, E> {
-    fn eval_rec(expr: &ExpressionNode, features: &Features) -> Result<Expression, E> {
-        eval_attr(expr, features).map_err(|e| Diagnostic::from(e).with_span(expr.span()).into())
+fn eval_attr_impl(expr: &Expression, features: &Features) -> Result<Expression, Diagnostic> {
+    fn eval_rec(expr: &ExpressionNode, features: &Features) -> Result<Expression, Diagnostic> {
+        eval_attr(expr, features).map_err(|e| e.with_span(expr.span()))
     }
 
     match expr {
@@ -202,11 +202,11 @@ fn eval_if_attr(
     node: &mut impl SyntaxNode,
     prev: &mut NodeEval,
     features: &Features,
-) -> Result<(), E> {
+) -> Result<(), Diagnostic> {
     let span = node.span();
     eval_if_attr_impl(node, prev, features).map_err(|e| {
         if let Some(span) = span {
-            Diagnostic::from(e).with_span(span).into()
+            e.with_span(span)
         } else {
             e
         }
@@ -217,7 +217,7 @@ fn eval_if_attr_impl(
     node: &mut impl SyntaxNode,
     prev: &mut NodeEval,
     features: &Features,
-) -> Result<(), E> {
+) -> Result<(), Diagnostic> {
     let attr = get_single_attr(node.attributes_mut())?;
     if let Some(attr) = attr {
         prev.has_condcomp = attr.is_condcomp();
@@ -287,7 +287,7 @@ fn eval_opt_attr(
     opt_node: &mut Option<impl SyntaxNode>,
     prev: &mut NodeEval,
     features: &Features,
-) -> Result<(), E> {
+) -> Result<(), Diagnostic> {
     if let Some(node) = opt_node {
         eval_if_attr(node, prev, features)?;
         if prev.chain_has_true && !prev.is_false {
@@ -297,7 +297,10 @@ fn eval_opt_attr(
     Ok(())
 }
 
-fn eval_if_attrs(nodes: &mut Vec<impl SyntaxNode>, features: &Features) -> Result<NodeEval, E> {
+fn eval_if_attrs(
+    nodes: &mut Vec<impl SyntaxNode>,
+    features: &Features,
+) -> Result<NodeEval, Diagnostic> {
     let mut prev = NodeEval {
         has_condcomp: false,
         chain_has_true: false,
@@ -321,8 +324,11 @@ fn eval_if_attrs(nodes: &mut Vec<impl SyntaxNode>, features: &Features) -> Resul
     }
 }
 
-fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) -> Result<(), E> {
-    fn rec_eval_inside_stmt(stmt: &mut StatementNode, feats: &Features) -> Result<(), E> {
+fn stmt_eval_if_attrs(
+    statements: &mut Vec<StatementNode>,
+    features: &Features,
+) -> Result<(), Diagnostic> {
+    fn rec_eval_inside_stmt(stmt: &mut StatementNode, feats: &Features) -> Result<(), Diagnostic> {
         match stmt.node_mut() {
             Statement::Compound(stmt) => {
                 rec(&mut stmt.statements, feats)?;
@@ -368,7 +374,7 @@ fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) 
         Ok(())
     }
 
-    fn rec(stmts: &mut Vec<StatementNode>, feats: &Features) -> Result<NodeEval, E> {
+    fn rec(stmts: &mut Vec<StatementNode>, feats: &Features) -> Result<NodeEval, Diagnostic> {
         let mut prev = NodeEval {
             has_condcomp: false,
             chain_has_true: false,
@@ -411,7 +417,7 @@ fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) 
 }
 
 /// Run the conditional translation phase, eliminating unused code branches.
-pub fn condcomp(module: &mut TranslationUnit, features: &Features) -> Result<(), E> {
+pub fn condcomp(module: &mut TranslationUnit, features: &Features) -> Result<(), Diagnostic> {
     module.remove_voids();
     eval_if_attrs(&mut module.imports, features)?;
     eval_if_attrs(&mut module.global_directives, features)?;
@@ -421,7 +427,7 @@ pub fn condcomp(module: &mut TranslationUnit, features: &Features) -> Result<(),
     fn eval_flatten_compound(
         decls: &mut Vec<GlobalDeclarationNode>,
         features: &Features,
-    ) -> Result<(), E> {
+    ) -> Result<(), Diagnostic> {
         let mut prev = NodeEval {
             has_condcomp: false,
             chain_has_true: false,
@@ -460,12 +466,12 @@ pub fn condcomp(module: &mut TranslationUnit, features: &Features) -> Result<(),
     for decl in &mut module.global_declarations {
         if let GlobalDeclaration::Struct(decl) = decl.node_mut() {
             eval_if_attrs(&mut decl.members, features)
-                .map_err(|e| Diagnostic::from(e).with_declaration(decl.ident.to_string()))?;
+                .map_err(|e| e.with_declaration(decl.ident.to_string()))?;
         } else if let GlobalDeclaration::Function(decl) = decl.node_mut() {
             eval_if_attrs(&mut decl.parameters, features)
-                .map_err(|e| Diagnostic::from(e).with_declaration(decl.ident.to_string()))?;
+                .map_err(|e| e.with_declaration(decl.ident.to_string()))?;
             stmt_eval_if_attrs(&mut decl.body.statements, features)
-                .map_err(|e| Diagnostic::from(e).with_declaration(decl.ident.to_string()))?;
+                .map_err(|e| e.with_declaration(decl.ident.to_string()))?;
         }
     }
 

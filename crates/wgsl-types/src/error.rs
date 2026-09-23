@@ -2,6 +2,7 @@ use crate::{
     CallSignature, Type,
     inst::LiteralInstance,
     syntax::{BinaryOperator, UnaryOperator},
+    ty_context::{DisplayWithContext, TyContext},
 };
 
 /// The global error struct.
@@ -55,16 +56,21 @@ pub enum Error {
     ParamType(Type, Type),
 }
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl DisplayWithContext for Error {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter, context: &TyContext) -> std::fmt::Result {
         match self {
             Error::Todo(v) => write!(fmt, "not implemented: `{v}`"),
             Error::Unreachable => write!(fmt, "unreachable code detected"),
-            Error::NotScalar(ty) => write!(fmt, "expected a scalar type, got `{ty}`"),
-            Error::NotConstructible(ty) => write!(fmt, "`{ty}` is not constructible"),
+            Error::NotScalar(ty) => {
+                write!(fmt, "expected a scalar type, got `{}`", context.display(ty))
+            }
+            Error::NotConstructible(ty) => {
+                write!(fmt, "`{}` is not constructible", context.display(ty))
+            }
             Error::SampledType(ty) => write!(
                 fmt,
-                "invalid sampled type, expected `i32`, `u32` or `f32`, got `{ty}`"
+                "invalid sampled type, expected `i32`, `u32` or `f32`, got `{}`",
+                context.display(ty)
             ),
             Error::UnknownType(ty) => {
                 write!(fmt, "unknown type `{ty}`")
@@ -72,9 +78,16 @@ impl std::fmt::Display for Error {
             Error::UnexpectedTemplate(ty) => {
                 write!(fmt, "type `{ty}` does not take any template arguments")
             }
-            Error::MissingTemplate(ty) => write!(fmt, "missing template arguments for type `{ty}`"),
+            Error::MissingTemplate(ty) => {
+                write!(fmt, "missing template arguments for type `{ty}`")
+            }
             Error::WriteRefType(new_ty, ty) => {
-                write!(fmt, "cannot write a `{new_ty}` to a reference to `{ty}`")
+                write!(
+                    fmt,
+                    "cannot write a `{}` to a reference to `{}`",
+                    context.display(new_ty),
+                    context.display(ty)
+                )
             }
             Error::NotWrite => write!(fmt, "attempt to write to a read-only reference"),
             Error::NotRead => write!(fmt, "attempt to read a write-only reference"),
@@ -82,25 +95,47 @@ impl std::fmt::Display for Error {
             Error::PtrHandle => write!(fmt, "cannot create a pointer in `handle` address space"),
             Error::PtrVecComp => write!(fmt, "cannot create a pointer to a vector component"),
             Error::Conversion(from_ty, to_ty) => {
-                write!(fmt, "cannot convert from `{from_ty}` to `{to_ty}`")
+                write!(
+                    fmt,
+                    "cannot convert from `{}` to `{}`",
+                    context.display(from_ty),
+                    context.display(to_ty)
+                )
             }
             Error::ConvOverflow(literal, ty) => {
-                write!(fmt, "overflow while converting `{literal}` to `{ty}`")
+                write!(
+                    fmt,
+                    "overflow while converting `{literal}` to `{}`",
+                    context.display(ty)
+                )
             }
-            Error::Component(ty, name) => write!(fmt, "`{ty}` has no component `{name}`"),
-            Error::NotIndexable(ty) => write!(fmt, "`{ty}` cannot be indexed"),
+            Error::Component(ty, name) => {
+                write!(fmt, "`{}` has no component `{name}`", context.display(ty))
+            }
+            Error::NotIndexable(ty) => {
+                write!(fmt, "`{}` cannot be indexed", context.display(ty))
+            }
             Error::OutOfBounds(index, ty, num_components) => write!(
                 fmt,
-                "index `{index}` is out-of-bounds for `{ty}` of `{num_components}` components"
+                "index `{index}` is out-of-bounds for `{}` of `{num_components}` components",
+                context.display(ty)
             ),
-            Error::Unary(op, ty) => write!(fmt, "cannot use unary operator `{op}` on type `{ty}`"),
+            Error::Unary(op, ty) => write!(
+                fmt,
+                "cannot use unary operator `{op}` on type `{}`",
+                context.display(ty)
+            ),
             Error::Binary(op, left_ty, right_ty) => write!(
                 fmt,
-                "cannot use binary operator `{op}` with operands `{left_ty}` and `{right_ty}`"
+                "cannot use binary operator `{op}` with operands `{}` and `{}`",
+                context.display(left_ty),
+                context.display(right_ty)
             ),
             Error::CompwiseBinary(ty_1, ty_2) => write!(
                 fmt,
-                "cannot apply component-wise binary operation on operands `{ty_1}` and `{ty_2}`"
+                "cannot apply component-wise binary operation on operands `{}` and `{}`",
+                context.display(ty_1),
+                context.display(ty_2)
             ),
             Error::AddOverflow => write!(fmt, "attempt to add with overflow"),
             Error::SubOverflow => write!(fmt, "attempt to subtract with overflow"),
@@ -112,14 +147,18 @@ impl std::fmt::Display for Error {
             ),
             Error::ShlOverflow(num, ty) => write!(
                 fmt,
-                "attempt to shift left by `{num}`, which would overflow `{ty}`"
+                "attempt to shift left by `{num}`, which would overflow `{ty}`",
             ),
             Error::ShrOverflow(num, ty) => write!(
                 fmt,
-                "attempt to shift right by `{num}`, which would overflow `{ty}`"
+                "attempt to shift right by `{num}`, which would overflow `{ty}`",
             ),
             Error::Signature(call_signature) => {
-                write!(fmt, "invalid function call signature: `{call_signature}`")
+                write!(
+                    fmt,
+                    "invalid function call signature: `{}`",
+                    context.display(call_signature)
+                )
             }
             Error::Builtin(name) => write!(fmt, "{name}"),
             Error::TemplateArgs(name) => write!(fmt, "invalid template arguments to `{name}`"),
@@ -129,7 +168,9 @@ impl std::fmt::Display for Error {
             ),
             Error::ParamType(expected_ty, actual_ty) => write!(
                 fmt,
-                "invalid parameter type, expected `{expected_ty}`, got `{actual_ty}`"
+                "invalid parameter type, expected `{}`, got `{}`",
+                context.display(expected_ty),
+                context.display(actual_ty)
             ),
         }
     }

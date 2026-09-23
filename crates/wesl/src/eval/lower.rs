@@ -24,7 +24,7 @@ fn make_explicit_call(call: &mut FunctionCall, ctx: &mut Context) -> Result<(), 
             let arg_ty = arg.eval_ty(ctx)?.loaded();
             let param_ty = ty_eval_ty(&param.ty, ctx)?;
             if arg_ty != param_ty {
-                if arg_ty.is_convertible_to(&param_ty) {
+                if arg_ty.is_convertible_to(&param_ty, ctx.ty_context) {
                     let ty = param_ty.to_expr(ctx)?.unwrap_type_or_identifier();
                     *arg.node_mut() = Expression::FunctionCall(FunctionCall {
                         ty,
@@ -67,7 +67,7 @@ fn make_explicit_return(stmt: &mut ReturnStatement, ctx: &mut Context) -> Result
                 return Ok(());
             }
 
-            if expr_ty.is_convertible_to(&ret_ty) {
+            if expr_ty.is_convertible_to(&ret_ty, ctx.ty_context) {
                 let ty = ret_ty.to_expr(ctx)?.unwrap_type_or_identifier();
                 *expr.node_mut() = Expression::FunctionCall(FunctionCall {
                     ty,
@@ -106,7 +106,7 @@ impl<T: Lower> Lower for Spanned<T> {
 impl Lower for Expression {
     fn lower(&mut self, ctx: &mut Context) -> Result<(), E> {
         match self.eval_value(ctx) {
-            Ok(inst) if !matches!(&inst, Instance::Struct(s) if s.ty.name.starts_with("__")) => {
+            Ok(inst) if !matches!(&inst, Instance::Struct(s) if ctx.ty_context[s.ty].name.starts_with("__")) => {
                 *self = inst.to_expr(ctx)?
             }
             // These are supposed to be the only acceptable errors when evaluating valid code.
@@ -218,13 +218,15 @@ impl Lower for Declaration {
                 if self.kind.is_const() {
                     ty // only const declarations can be of abstract type.
                 } else {
-                    ty.concretize()
+                    ty.concretize(ctx.ty_context)
                 }
             }
             (Some(ty), _) => ty_eval_ty(ty, ctx)?,
         };
 
-        if ty.is_concrete() && !matches!(&ty, Type::Struct(s) if s.name.starts_with("__")) {
+        if ty.is_concrete(ctx.ty_context)
+            && !matches!(&ty, Type::Struct(s) if ctx.ty_context[*s].name.starts_with("__"))
+        {
             self.ty = Some(ty.to_expr(ctx)?.unwrap_type_or_identifier());
         }
 
@@ -580,7 +582,7 @@ impl Lower for TranslationUnit {
                         .expect("module-scope declaration not present in scope");
                     let ty = inst.ty().loaded();
 
-                    if ty.is_concrete() {
+                    if ty.is_concrete(ctx.ty_context) {
                         decl.ty = Some(ty.to_expr(ctx)?.unwrap_type_or_identifier());
                     }
 

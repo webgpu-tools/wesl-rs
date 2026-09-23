@@ -16,6 +16,7 @@ use num_traits::{One, ToPrimitive, Zero};
 
 use crate::{
     CallSignature, Error, ShaderStage,
+    arena::Id,
     conv::{Convert, convert_all, convert_all_inner_to, convert_all_to, convert_all_ty},
     f16,
     inst::{
@@ -24,6 +25,7 @@ use crate::{
     },
     tplt::{ArrayTemplate, MatTemplate, TpltParam, VecTemplate},
     ty::{StructType, Ty, Type},
+    ty_context::TyContext,
 };
 
 type E = Error;
@@ -51,11 +53,16 @@ pub fn is_ctor(name: &str) -> bool {
 /// `array<T,N>()` constructor.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#array-builtin>
-pub fn array_t(tplt_ty: &Type, tplt_n: usize, args: &[Instance]) -> Result<Instance, E> {
+pub fn array_t(
+    tplt_ty: &Type,
+    tplt_n: usize,
+    args: &[Instance],
+    context: &TyContext,
+) -> Result<Instance, E> {
     let args = args
         .iter()
         .map(|a| {
-            a.convert_to(tplt_ty)
+            a.convert_to(tplt_ty, context)
                 .ok_or_else(|| E::ParamType(tplt_ty.clone(), a.ty()))
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -70,12 +77,12 @@ pub fn array_t(tplt_ty: &Type, tplt_n: usize, args: &[Instance]) -> Result<Insta
 /// `array()` constructor.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#array-builtin>
-pub fn array(args: &[Instance]) -> Result<Instance, E> {
+pub fn array(args: &[Instance], context: &TyContext) -> Result<Instance, E> {
     if args.is_empty() {
         return Err(E::Builtin("array constructor expects at least 1 argument"));
     }
 
-    let args = convert_all(args).ok_or(E::Builtin("array elements are incompatible"))?;
+    let args = convert_all(args, context).ok_or(E::Builtin("array elements are incompatible"))?;
 
     Ok(ArrayInstance::new(args, false).into())
 }
@@ -321,6 +328,7 @@ pub fn mat_t(
     tplt_ty: &Type,
     args: &[Instance],
     stage: ShaderStage,
+    context: &TyContext,
 ) -> Result<Instance, E> {
     // overload 1: mat conversion constructor
     if let [Instance::Mat(m)] = args {
@@ -355,10 +363,10 @@ pub fn mat_t(
             .ok_or(E::Builtin("matrix constructor expects arguments"))?
             .ty();
         let ty = ty
-            .convert_inner_to(tplt_ty)
+            .convert_inner_to(tplt_ty, context)
             .ok_or(E::Conversion(ty.inner_ty(), tplt_ty.clone()))?;
-        let args =
-            convert_all_to(args, &ty).ok_or(E::Builtin("matrix components are incompatible"))?;
+        let args = convert_all_to(args, &ty, context)
+            .ok_or(E::Builtin("matrix components are incompatible"))?;
 
         // overload 2: mat from column vectors
         if let Type::Vec(n, _) = ty {
@@ -396,7 +404,7 @@ pub fn mat_t(
 /// `matCxR()` constructor.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#mat2x2-builtin>
-pub fn mat(c: usize, r: usize, args: &[Instance]) -> Result<Instance, E> {
+pub fn mat(c: usize, r: usize, args: &[Instance], context: &TyContext) -> Result<Instance, E> {
     // overload 1: mat conversion constructor
     if let [Instance::Mat(m)] = args {
         if m.c() != c || m.r() != r {
@@ -407,7 +415,8 @@ pub fn mat(c: usize, r: usize, args: &[Instance]) -> Result<Instance, E> {
         Ok(m.clone().into())
     } else {
         let tys = args.iter().map(|a| a.ty()).collect_vec();
-        let ty = convert_all_ty(&tys).ok_or(E::Builtin("matrix components are incompatible"))?;
+        let ty = convert_all_ty(&tys, context)
+            .ok_or(E::Builtin("matrix components are incompatible"))?;
         let mut inner_ty = ty.inner_ty();
 
         if inner_ty.is_abstract_int() {
@@ -419,7 +428,7 @@ pub fn mat(c: usize, r: usize, args: &[Instance]) -> Result<Instance, E> {
             ));
         }
 
-        let args = convert_all_inner_to(args, &inner_ty)
+        let args = convert_all_inner_to(args, &inner_ty, context)
             .ok_or(E::Builtin("matrix components are incompatible"))?;
 
         // overload 2: mat from column vectors
@@ -459,11 +468,12 @@ pub fn vec_t(
     tplt_ty: &Type,
     args: &[Instance],
     stage: ShaderStage,
+    context: &TyContext,
 ) -> Result<Instance, E> {
     // overload 1: vec init from single scalar value
     if let [Instance::Literal(l)] = args {
         let val = l
-            .convert_to(tplt_ty)
+            .convert_to(tplt_ty, context)
             .map(Instance::Literal)
             .ok_or_else(|| E::ParamType(tplt_ty.clone(), l.ty()))?;
         let comps = (0..n).map(|_| val.clone()).collect_vec();
@@ -517,7 +527,7 @@ pub fn vec_t(
         let comps = args
             .iter()
             .map(|a| {
-                a.convert_to(tplt_ty)
+                a.convert_to(tplt_ty, context)
                     .ok_or_else(|| E::ParamType(tplt_ty.clone(), a.ty()))
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -529,7 +539,7 @@ pub fn vec_t(
 /// `vecN()` constructor.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#vec2-builtin>
-pub fn vec(n: usize, args: &[Instance]) -> Result<Instance, E> {
+pub fn vec(n: usize, args: &[Instance], context: &TyContext) -> Result<Instance, E> {
     // overload 1: vec init from single scalar value
     if let [Instance::Literal(l)] = args {
         let ty = l.ty();
@@ -567,7 +577,8 @@ pub fn vec(n: usize, args: &[Instance]) -> Result<Instance, E> {
             return Err(E::ParamCount(format!("vec{n}"), n, args.len()));
         }
 
-        let comps = convert_all(&args).ok_or(E::Builtin("vector components are incompatible"))?;
+        let comps =
+            convert_all(&args, context).ok_or(E::Builtin("vector components are incompatible"))?;
 
         if !comps.first().unwrap(/* SAFETY: len() checked above */).ty().is_scalar() {
             return Err(E::Builtin("vec constructor expects scalar arguments"));
@@ -581,38 +592,46 @@ pub fn vec(n: usize, args: &[Instance]) -> Result<Instance, E> {
 }
 
 /// User-defined struct constructor.
-pub fn struct_ctor(struct_ty: &StructType, args: &[Instance]) -> Result<StructInstance, E> {
+pub fn struct_ctor(
+    struct_ty: Id<StructType>,
+    args: &[Instance],
+    context: &TyContext,
+) -> Result<StructInstance, E> {
     if args.is_empty() {
-        return StructInstance::zero_value(struct_ty);
+        return StructInstance::zero_value(struct_ty, context);
     }
 
-    if args.len() != struct_ty.members.len() {
+    if args.len() != context[struct_ty].members.len() {
         return Err(E::ParamCount(
-            struct_ty.name.clone(),
-            struct_ty.members.len(),
+            context[struct_ty].name.clone(),
+            context[struct_ty].members.len(),
             args.len(),
         ));
     }
 
-    let members = struct_ty
+    let members = context[struct_ty]
         .members
         .iter()
         .zip(args)
         .map(|(m_ty, inst)| {
             let inst = inst
-                .convert_to(&m_ty.ty)
+                .convert_to(&m_ty.ty, context)
                 .ok_or_else(|| E::ParamType(m_ty.ty.clone(), inst.ty()))?;
             Ok(inst)
         })
         .collect::<Result<Vec<_>, E>>()?;
 
-    Ok(StructInstance::new(struct_ty.clone(), members))
+    Ok(StructInstance::new(struct_ty, members, context))
 }
 
 /// Check a struct constructor call signature.
 ///
 /// Validates the type and number of arguments passed.
-pub fn typecheck_struct_ctor(struct_ty: &StructType, args: &[Type]) -> Result<(), E> {
+pub fn typecheck_struct_ctor(
+    struct_ty: &StructType,
+    args: &[Type],
+    context: &TyContext,
+) -> Result<(), E> {
     if args.is_empty() {
         // zero-value constructor
         return Ok(());
@@ -627,7 +646,7 @@ pub fn typecheck_struct_ctor(struct_ty: &StructType, args: &[Type]) -> Result<()
     }
 
     for (m_ty, a_ty) in struct_ty.members.iter().zip(args) {
-        if !a_ty.is_convertible_to(&m_ty.ty) {
+        if !a_ty.is_convertible_to(&m_ty.ty, context) {
             return Err(E::ParamType(m_ty.ty.clone(), a_ty.ty()));
         }
     }
@@ -644,8 +663,16 @@ pub fn typecheck_struct_ctor(struct_ty: &StructType, args: &[Type]) -> Result<()
 /// Expects `tplt_ty` to be valid.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#array-builtin>
-fn array_ctor_ty_t(tplt_ty: &Type, tplt_n: usize, args: &[Type]) -> Result<Type, E> {
-    if let Some(arg) = args.iter().find(|arg| !arg.is_convertible_to(tplt_ty)) {
+fn array_ctor_ty_t(
+    tplt_ty: &Type,
+    tplt_n: usize,
+    args: &[Type],
+    context: &TyContext,
+) -> Result<Type, E> {
+    if let Some(arg) = args
+        .iter()
+        .find(|arg| !arg.is_convertible_to(tplt_ty, context))
+    {
         Err(E::Conversion(arg.clone(), tplt_ty.clone()))
     } else {
         Ok(Type::Array(Box::new(tplt_ty.clone()), Some(tplt_n)))
@@ -655,8 +682,8 @@ fn array_ctor_ty_t(tplt_ty: &Type, tplt_n: usize, args: &[Type]) -> Result<Type,
 /// Return type of `array()` constructor.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#array-builtin>
-fn array_ctor_ty(args: &[Type]) -> Result<Type, E> {
-    let ty = convert_all_ty(args).ok_or(E::Builtin("array elements are incompatible"))?;
+fn array_ctor_ty(args: &[Type], context: &TyContext) -> Result<Type, E> {
+    let ty = convert_all_ty(args, context).ok_or(E::Builtin("array elements are incompatible"))?;
     Ok(Type::Array(Box::new(ty.clone()), Some(args.len())))
 }
 
@@ -665,7 +692,13 @@ fn array_ctor_ty(args: &[Type]) -> Result<Type, E> {
 /// Expects `tplt_ty` to be valid (a float).
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#mat2x2-builtin>
-fn mat_ctor_ty_t(c: u8, r: u8, tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
+fn mat_ctor_ty_t(
+    c: u8,
+    r: u8,
+    tplt_ty: &Type,
+    args: &[Type],
+    context: &TyContext,
+) -> Result<Type, E> {
     // overload 1: mat conversion constructor
     if let [ty @ Type::Mat(c2, r2, _)] = args {
         // note: this is an explicit conversion, not automatic conversion
@@ -679,9 +712,10 @@ fn mat_ctor_ty_t(c: u8, r: u8, tplt_ty: &Type, args: &[Type]) -> Result<Type, E>
         if args.is_empty() {
             return Err(E::Builtin("matrix constructor expects arguments"));
         }
-        let ty = convert_all_ty(args).ok_or(E::Builtin("matrix components are incompatible"))?;
+        let ty = convert_all_ty(args, context)
+            .ok_or(E::Builtin("matrix components are incompatible"))?;
         let ty = ty
-            .convert_inner_to(tplt_ty)
+            .convert_inner_to(tplt_ty, context)
             .ok_or(E::Conversion(ty.inner_ty(), tplt_ty.clone()))?;
 
         // overload 2: mat from column vectors
@@ -714,7 +748,7 @@ fn mat_ctor_ty_t(c: u8, r: u8, tplt_ty: &Type, args: &[Type]) -> Result<Type, E>
 /// Return type of `matCxR()` constructor.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#mat2x2-builtin>
-fn mat_ctor_ty(c: u8, r: u8, args: &[Type]) -> Result<Type, E> {
+fn mat_ctor_ty(c: u8, r: u8, args: &[Type], context: &TyContext) -> Result<Type, E> {
     // overload 1: mat conversion constructor
     if let [ty @ Type::Mat(c2, r2, ty2)] = args {
         // note: this is an explicit conversion, not automatic conversion
@@ -723,7 +757,8 @@ fn mat_ctor_ty(c: u8, r: u8, args: &[Type]) -> Result<Type, E> {
         }
         Ok(ty.clone())
     } else {
-        let ty = convert_all_ty(args).ok_or(E::Builtin("matrix components are incompatible"))?;
+        let ty = convert_all_ty(args, context)
+            .ok_or(E::Builtin("matrix components are incompatible"))?;
         let mut inner_ty = ty.inner_ty();
 
         if inner_ty.is_abstract_int() {
@@ -762,11 +797,11 @@ fn mat_ctor_ty(c: u8, r: u8, args: &[Type]) -> Result<Type, E> {
 /// Expects `tplt_ty` to be valid (a scalar).
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#vec2-builtin>
-fn vec_ctor_ty_t(n: u8, tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
+fn vec_ctor_ty_t(n: u8, tplt_ty: &Type, args: &[Type], context: &TyContext) -> Result<Type, E> {
     if let [arg] = args {
         // overload 1: vec init from single scalar value
         if arg.is_scalar() {
-            if !arg.is_convertible_to(tplt_ty) {
+            if !arg.is_convertible_to(tplt_ty, context) {
                 return Err(E::Conversion(arg.clone(), tplt_ty.clone()));
             }
         }
@@ -785,8 +820,8 @@ fn vec_ctor_ty_t(n: u8, tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
         let n2 = args
             .iter()
             .try_fold(0, |acc, arg| match arg {
-                ty if ty.is_scalar() => ty.is_convertible_to(tplt_ty).then_some(acc + 1),
-                Type::Vec(n, ty) => ty.is_convertible_to(tplt_ty).then_some(acc + n),
+                ty if ty.is_scalar() => ty.is_convertible_to(tplt_ty, context).then_some(acc + 1),
+                Type::Vec(n, ty) => ty.is_convertible_to(tplt_ty, context).then_some(acc + n),
                 _ => None,
             })
             .ok_or(E::Builtin(
@@ -803,7 +838,7 @@ fn vec_ctor_ty_t(n: u8, tplt_ty: &Type, args: &[Type]) -> Result<Type, E> {
 /// Return type of `vecN()` constructor.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#vec2-builtin>
-fn vec_ctor_ty(n: u8, args: &[Type]) -> Result<Type, E> {
+fn vec_ctor_ty(n: u8, args: &[Type], context: &TyContext) -> Result<Type, E> {
     if let [arg] = args {
         // overload 1: vec init from single scalar value
         if arg.is_scalar() {
@@ -838,7 +873,8 @@ fn vec_ctor_ty(n: u8, args: &[Type]) -> Result<Type, E> {
         }
 
         let tys = args.iter().map(|arg| arg.inner_ty()).collect_vec();
-        let ty = convert_all_ty(&tys).ok_or(E::Builtin("vector components are incompatible"))?;
+        let ty = convert_all_ty(&tys, context)
+            .ok_or(E::Builtin("vector components are incompatible"))?;
 
         Ok(Type::Vec(n, ty.clone().into()))
     }
@@ -855,7 +891,12 @@ fn vec_ctor_ty(n: u8, args: &[Type]) -> Result<Type, E> {
 /// Includes built-in constructors and zero-value constructors, *but not* the struct
 /// constructors, since they require knowledge of the struct type.
 /// You can type-check a struct constructor call with [`typecheck_struct_ctor`].
-pub fn type_ctor(name: &str, tplt: Option<&[TpltParam]>, args: &[Type]) -> Result<Type, E> {
+pub fn type_ctor(
+    name: &str,
+    tplt: Option<&[TpltParam]>,
+    args: &[Type],
+    context: &TyContext,
+) -> Result<Type, E> {
     match (name, tplt, args) {
         ("array", Some(t), []) => {
             let tplt = ArrayTemplate::parse(t)?;
@@ -870,9 +911,10 @@ pub fn type_ctor(name: &str, tplt: Option<&[TpltParam]>, args: &[Type]) -> Resul
                 &tplt.inner_ty(),
                 tplt.n().ok_or(E::TemplateArgs("array"))?,
                 a,
+                context,
             )
         }
-        ("array", None, _) => array_ctor_ty(args),
+        ("array", None, _) => array_ctor_ty(args, context),
         ("bool", None, []) => Ok(Type::Bool),
         ("bool", None, [a]) if a.is_scalar() => Ok(Type::Bool),
         ("i32", None, []) => Ok(Type::I32),
@@ -884,41 +926,65 @@ pub fn type_ctor(name: &str, tplt: Option<&[TpltParam]>, args: &[Type]) -> Resul
         ("f16", None, []) => Ok(Type::F16),
         ("f16", None, [a]) if a.is_scalar() => Ok(Type::F16),
         ("mat2x2", Some(t), []) => Ok(MatTemplate::parse(t)?.ty(2, 2)),
-        ("mat2x2", Some(t), _) => mat_ctor_ty_t(2, 2, MatTemplate::parse(t)?.inner_ty(), args),
-        ("mat2x2", None, _) => mat_ctor_ty(2, 2, args),
+        ("mat2x2", Some(t), _) => {
+            mat_ctor_ty_t(2, 2, MatTemplate::parse(t)?.inner_ty(), args, context)
+        }
+        ("mat2x2", None, _) => mat_ctor_ty(2, 2, args, context),
         ("mat2x3", Some(t), []) => Ok(MatTemplate::parse(t)?.ty(2, 3)),
-        ("mat2x3", Some(t), _) => mat_ctor_ty_t(2, 3, MatTemplate::parse(t)?.inner_ty(), args),
-        ("mat2x3", None, _) => mat_ctor_ty(2, 3, args),
+        ("mat2x3", Some(t), _) => {
+            mat_ctor_ty_t(2, 3, MatTemplate::parse(t)?.inner_ty(), args, context)
+        }
+        ("mat2x3", None, _) => mat_ctor_ty(2, 3, args, context),
         ("mat2x4", Some(t), []) => Ok(MatTemplate::parse(t)?.ty(2, 4)),
-        ("mat2x4", Some(t), _) => mat_ctor_ty_t(2, 4, MatTemplate::parse(t)?.inner_ty(), args),
-        ("mat2x4", None, _) => mat_ctor_ty(2, 4, args),
+        ("mat2x4", Some(t), _) => {
+            mat_ctor_ty_t(2, 4, MatTemplate::parse(t)?.inner_ty(), args, context)
+        }
+        ("mat2x4", None, _) => mat_ctor_ty(2, 4, args, context),
         ("mat3x2", Some(t), []) => Ok(MatTemplate::parse(t)?.ty(3, 2)),
-        ("mat3x2", Some(t), _) => mat_ctor_ty_t(3, 2, MatTemplate::parse(t)?.inner_ty(), args),
-        ("mat3x2", None, _) => mat_ctor_ty(3, 2, args),
+        ("mat3x2", Some(t), _) => {
+            mat_ctor_ty_t(3, 2, MatTemplate::parse(t)?.inner_ty(), args, context)
+        }
+        ("mat3x2", None, _) => mat_ctor_ty(3, 2, args, context),
         ("mat3x3", Some(t), []) => Ok(MatTemplate::parse(t)?.ty(3, 3)),
-        ("mat3x3", Some(t), _) => mat_ctor_ty_t(3, 3, MatTemplate::parse(t)?.inner_ty(), args),
-        ("mat3x3", None, _) => mat_ctor_ty(3, 3, args),
+        ("mat3x3", Some(t), _) => {
+            mat_ctor_ty_t(3, 3, MatTemplate::parse(t)?.inner_ty(), args, context)
+        }
+        ("mat3x3", None, _) => mat_ctor_ty(3, 3, args, context),
         ("mat3x4", Some(t), []) => Ok(MatTemplate::parse(t)?.ty(3, 4)),
-        ("mat3x4", Some(t), _) => mat_ctor_ty_t(3, 4, MatTemplate::parse(t)?.inner_ty(), args),
-        ("mat3x4", None, _) => mat_ctor_ty(3, 4, args),
+        ("mat3x4", Some(t), _) => {
+            mat_ctor_ty_t(3, 4, MatTemplate::parse(t)?.inner_ty(), args, context)
+        }
+        ("mat3x4", None, _) => mat_ctor_ty(3, 4, args, context),
         ("mat4x2", Some(t), []) => Ok(MatTemplate::parse(t)?.ty(4, 2)),
-        ("mat4x2", Some(t), _) => mat_ctor_ty_t(4, 2, MatTemplate::parse(t)?.inner_ty(), args),
-        ("mat4x2", None, _) => mat_ctor_ty(4, 2, args),
+        ("mat4x2", Some(t), _) => {
+            mat_ctor_ty_t(4, 2, MatTemplate::parse(t)?.inner_ty(), args, context)
+        }
+        ("mat4x2", None, _) => mat_ctor_ty(4, 2, args, context),
         ("mat4x3", Some(t), []) => Ok(MatTemplate::parse(t)?.ty(4, 3)),
-        ("mat4x3", Some(t), _) => mat_ctor_ty_t(4, 3, MatTemplate::parse(t)?.inner_ty(), args),
-        ("mat4x3", None, _) => mat_ctor_ty(4, 3, args),
+        ("mat4x3", Some(t), _) => {
+            mat_ctor_ty_t(4, 3, MatTemplate::parse(t)?.inner_ty(), args, context)
+        }
+        ("mat4x3", None, _) => mat_ctor_ty(4, 3, args, context),
         ("mat4x4", Some(t), []) => Ok(MatTemplate::parse(t)?.ty(4, 4)),
-        ("mat4x4", Some(t), _) => mat_ctor_ty_t(4, 4, MatTemplate::parse(t)?.inner_ty(), args),
-        ("mat4x4", None, _) => mat_ctor_ty(4, 4, args),
-        ("vec2", Some(t), []) => Ok(VecTemplate::parse(t)?.ty(2)),
-        ("vec2", Some(t), _) => vec_ctor_ty_t(2, VecTemplate::parse(t)?.inner_ty(), args),
-        ("vec2", None, _) => vec_ctor_ty(2, args),
-        ("vec3", Some(t), []) => Ok(VecTemplate::parse(t)?.ty(3)),
-        ("vec3", Some(t), _) => vec_ctor_ty_t(3, VecTemplate::parse(t)?.inner_ty(), args),
-        ("vec3", None, _) => vec_ctor_ty(3, args),
-        ("vec4", Some(t), []) => Ok(VecTemplate::parse(t)?.ty(4)),
-        ("vec4", Some(t), _) => vec_ctor_ty_t(4, VecTemplate::parse(t)?.inner_ty(), args),
-        ("vec4", None, _) => vec_ctor_ty(4, args),
+        ("mat4x4", Some(t), _) => {
+            mat_ctor_ty_t(4, 4, MatTemplate::parse(t)?.inner_ty(), args, context)
+        }
+        ("mat4x4", None, _) => mat_ctor_ty(4, 4, args, context),
+        ("vec2", Some(t), []) => Ok(VecTemplate::parse(t, context)?.ty(2)),
+        ("vec2", Some(t), _) => {
+            vec_ctor_ty_t(2, VecTemplate::parse(t, context)?.inner_ty(), args, context)
+        }
+        ("vec2", None, _) => vec_ctor_ty(2, args, context),
+        ("vec3", Some(t), []) => Ok(VecTemplate::parse(t, context)?.ty(3)),
+        ("vec3", Some(t), _) => {
+            vec_ctor_ty_t(3, VecTemplate::parse(t, context)?.inner_ty(), args, context)
+        }
+        ("vec3", None, _) => vec_ctor_ty(3, args, context),
+        ("vec4", Some(t), []) => Ok(VecTemplate::parse(t, context)?.ty(4)),
+        ("vec4", Some(t), _) => {
+            vec_ctor_ty_t(4, VecTemplate::parse(t, context)?.inner_ty(), args, context)
+        }
+        ("vec4", None, _) => vec_ctor_ty(4, args, context),
         #[cfg(feature = "naga-ext")]
         ("i64", None, []) => Ok(Type::I64),
         #[cfg(feature = "naga-ext")]
@@ -946,7 +1012,7 @@ pub fn type_ctor(name: &str, tplt: Option<&[TpltParam]>, args: &[Type]) -> Resul
 
 impl Instance {
     /// Zero-value initialize an instance of a given type.
-    pub fn zero_value(ty: &Type) -> Result<Self, E> {
+    pub fn zero_value(ty: &Type, context: &TyContext) -> Result<Self, E> {
         match ty {
             Type::Bool
             | Type::AbstractInt
@@ -955,8 +1021,10 @@ impl Instance {
             | Type::U32
             | Type::F32
             | Type::F16 => LiteralInstance::zero_value(ty).map(Into::into),
-            Type::Struct(s) => StructInstance::zero_value(s).map(Into::into),
-            Type::Array(a_ty, Some(n)) => ArrayInstance::zero_value(a_ty, *n).map(Into::into),
+            Type::Struct(s) => StructInstance::zero_value(*s, context).map(Into::into),
+            Type::Array(a_ty, Some(n)) => {
+                ArrayInstance::zero_value(a_ty, *n, context).map(Into::into)
+            }
             Type::Array(_, None) => Err(E::NotConstructible(ty.clone())),
             Type::Vec(n, v_ty) => VecInstance::zero_value(*n, v_ty).map(Into::into),
             Type::Mat(c, r, m_ty) => MatInstance::zero_value(*c, *r, m_ty).map(Into::into),
@@ -987,14 +1055,16 @@ impl Instance {
     ///
     /// * textures and samplers in the `handle` address space.
     /// * runtime-sized arrays in the `storage` address space.
-    pub fn storable_zero_value(ty: &Type) -> Result<Self, E> {
+    pub fn storable_zero_value(ty: &Type, context: &TyContext) -> Result<Self, E> {
         match ty {
-            Type::Struct(s) => StructInstance::storable_zero_value(s).map(Into::into),
+            Type::Struct(s) => StructInstance::storable_zero_value(*s, context).map(Into::into),
             Type::Array(a_ty, Some(n)) => {
-                ArrayInstance::storable_zero_value(a_ty, *n).map(Into::into)
+                ArrayInstance::storable_zero_value(a_ty, *n, context).map(Into::into)
             }
-            Type::Atomic(a_ty) => AtomicInstance::storable_zero_value(a_ty).map(Into::into),
-            _ => Self::zero_value(ty),
+            Type::Atomic(a_ty) => {
+                AtomicInstance::storable_zero_value(a_ty, context).map(Into::into)
+            }
+            _ => Self::zero_value(ty, context),
         }
     }
 }
@@ -1023,45 +1093,45 @@ impl LiteralInstance {
 
 impl StructInstance {
     /// Zero-value initialize a `struct` instance.
-    pub fn zero_value(s: &StructType) -> Result<Self, E> {
-        let members = s
+    pub fn zero_value(s: Id<StructType>, context: &TyContext) -> Result<Self, E> {
+        let members = context[s]
             .members
             .iter()
             .map(|mem| {
-                let val = Instance::zero_value(&mem.ty)?;
+                let val = Instance::zero_value(&mem.ty, context)?;
                 Ok(val)
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(StructInstance::new(s.clone(), members))
+        Ok(StructInstance::new(s, members, context))
     }
 
     /// See [`Instance::storable_zero_value`].
-    pub fn storable_zero_value(s: &StructType) -> Result<Self, E> {
-        let members = s
+    pub fn storable_zero_value(s: Id<StructType>, context: &TyContext) -> Result<Self, E> {
+        let members = context[s]
             .members
             .iter()
             .map(|mem| {
-                let val = Instance::storable_zero_value(&mem.ty)?;
+                let val = Instance::storable_zero_value(&mem.ty, context)?;
                 Ok(val)
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(StructInstance::new(s.clone(), members))
+        Ok(StructInstance::new(s, members, context))
     }
 }
 
 impl ArrayInstance {
     /// Zero-value initialize an `array` instance.
-    pub fn zero_value(ty: &Type, n: usize) -> Result<Self, E> {
-        let zero = Instance::zero_value(ty)?;
+    pub fn zero_value(ty: &Type, n: usize, context: &TyContext) -> Result<Self, E> {
+        let zero = Instance::zero_value(ty, context)?;
         let comps = (0..n).map(|_| zero.clone()).collect_vec();
         Ok(ArrayInstance::new(comps, false))
     }
 
     /// See [`Instance::storable_zero_value`].
-    pub fn storable_zero_value(ty: &Type, n: usize) -> Result<Self, E> {
-        let zero = Instance::storable_zero_value(ty)?;
+    pub fn storable_zero_value(ty: &Type, n: usize, context: &TyContext) -> Result<Self, E> {
+        let zero = Instance::storable_zero_value(ty, context)?;
         let comps = (0..n).map(|_| zero.clone()).collect_vec();
         Ok(ArrayInstance::new(comps, false))
     }
@@ -1088,8 +1158,8 @@ impl MatInstance {
 
 impl AtomicInstance {
     /// See [`Instance::storable_zero_value`].
-    pub fn storable_zero_value(ty: &Type) -> Result<Self, E> {
-        let zero = Instance::zero_value(ty)?;
+    pub fn storable_zero_value(ty: &Type, context: &TyContext) -> Result<Self, E> {
+        let zero = Instance::zero_value(ty, context)?;
         Ok(AtomicInstance::new(zero))
     }
 }

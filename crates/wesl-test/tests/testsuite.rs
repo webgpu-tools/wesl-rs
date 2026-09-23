@@ -8,7 +8,7 @@ use std::{ffi::OsStr, path::PathBuf, process::Command, str::FromStr};
 
 use wesl::{
     CompileOptions, Compiler, Features, ManglerKind,
-    error::Diagnostic,
+    eval::TyContext,
     resolver::{Constants, VirtualResolver},
     syntax::*,
 };
@@ -334,28 +334,39 @@ fn json_case(case: &Test) -> Result<(), libtest_mimic::Failed> {
         TestKind::Eval { eval, result } => {
             let module = case.code.parse::<TranslationUnit>()?;
             let expr = eval.parse::<Expression>()?;
-            let (eval_inst, _) = wesl::eval(&expr, &module);
+            let mut ty_context = TyContext::default();
+            let (eval_inst, _) = wesl::eval(&expr, &module, &mut ty_context);
             let expect = result
                 .as_ref()
                 .map(|expect| -> Result<_, wesl::Error> {
                     let expr = expect.parse::<Expression>()?;
-                    let (expect_inst, _) = wesl::eval(&expr, &module);
-                    Ok(expect_inst?)
+                    let (expect_inst, _) = wesl::eval(&expr, &module, &mut ty_context);
+                    expect_inst.map_err(|e| wesl::Error::EvalError(e, ty_context.clone_for_error()))
                 })
                 .transpose()?;
             match (eval_inst, expect) {
                 (Err(_), None) => Ok(()),
                 (Ok(inst), Some(expect)) => {
                     if inst != expect {
-                        Err(format!("expected `{expect}`, got `{inst}`").into())
+                        Err(format!(
+                            "expected `{}`, got `{}`",
+                            ty_context.display(&expect),
+                            ty_context.display(&inst)
+                        )
+                        .into())
                     } else {
                         Ok(())
                     }
                 }
-                (Ok(inst), None) => Err(format!("expected Fail, got Pass (`{inst}`)").into()),
-                (Err(err), Some(expect)) => {
-                    Err(format!("expected `{expect}`, got Fail (`{err}`)").into())
+                (Ok(inst), None) => {
+                    Err(format!("expected Fail, got Pass (`{}`)", ty_context.display(&inst)).into())
                 }
+                (Err(err), Some(expect)) => Err(format!(
+                    "expected `{}`, got Fail (`{}`)",
+                    ty_context.display(&expect),
+                    ty_context.display(&err),
+                )
+                .into()),
             }
         }
         TestKind::Context { lower } => {
@@ -363,7 +374,7 @@ fn json_case(case: &Test) -> Result<(), libtest_mimic::Failed> {
             wesl::pass::retarget_idents(&mut module);
             let mut valid = wesl::pass::validate_wesl(&module);
             if *lower && valid.is_ok() {
-                valid = wesl::pass::lower(&mut module).map_err(Diagnostic::from);
+                valid = wesl::pass::lower(&mut module);
             }
             match (valid, case.expect) {
                 (Err(_), Expectation::Fail) | (Ok(()), Expectation::Pass) => Ok(()),

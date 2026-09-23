@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use wgsl_parse::syntax::{self, TranslationUnit};
-use wgsl_types::{Instance, ShaderStage, inst::RefInstance};
+use wgsl_types::{Instance, ShaderStage, inst::RefInstance, ty_context::TyContext};
 
 use crate::{
     CompileResult,
-    error::{Diagnostic, Error},
+    error::Diagnostic,
     eval::{Context, Eval, EvalError, Exec, Inputs, SyntaxUtil, exec_entrypoint},
 };
 
@@ -55,13 +55,13 @@ impl EvalResult<'_> {
     // TODO: make context non-mut
     /// Convert the result instance to its in-memory representation.
     pub fn to_buffer(&mut self) -> Option<Vec<u8>> {
-        self.inst.to_buffer()
+        self.inst.to_buffer(self.ctx.ty_context)
     }
 }
 
 impl std::fmt::Display for EvalResult<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.inst.fmt(f)
+        self.ctx.ty_context.display(&self.inst).fmt(f)
     }
 }
 
@@ -77,21 +77,25 @@ impl CompileResult {
     ///
     /// The user-defined `@const` attribute is non-standard.
     /// See issue [#46](https://github.com/webgpu-tools/wesl-spec/issues/46#issuecomment-2389531479).
-    pub fn eval<'a>(&'a self, source: &str) -> Result<EvalResult<'a>, Error> {
+    pub fn eval<'a>(
+        &'a self,
+        source: &str,
+        ty_context: &'a mut TyContext,
+    ) -> Result<EvalResult<'a>, Diagnostic> {
         let expr = source
             .parse::<syntax::Expression>()
-            .map_err(|e| Error::Error(Diagnostic::from(e).with_source(source.to_string())))?;
-        let (inst, ctx) = eval(&expr, &self.syntax);
+            .map_err(|e| Diagnostic::new(e.into()).with_source(source.to_string()))?;
+        let (inst, ctx) = eval(&expr, &self.syntax, ty_context);
         let inst = inst.map_err(|e| {
-            Diagnostic::from(e)
+            Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
                 .with_source(source.to_string())
                 .with_ctx(&ctx)
         });
 
         let inst = if let Some(sourcemap) = &self.sourcemap {
-            inst.map_err(|e| Error::Error(e.with_sourcemap(sourcemap)))
+            inst.map_err(|e| e.with_sourcemap(sourcemap))
         } else {
-            inst.map_err(Error::Error)
+            inst
         }?;
 
         let res = EvalResult { inst, ctx };
@@ -111,25 +115,36 @@ impl CompileResult {
         inputs: Inputs,
         bindings: HashMap<(u32, u32), RefInstance>,
         overrides: HashMap<String, Instance>,
-    ) -> Result<ExecResult<'a>, Error> {
-        let mut ctx = Context::new(&self.syntax);
+        ty_context: &'a mut TyContext,
+    ) -> Result<ExecResult<'a>, Diagnostic> {
+        let mut ctx = Context::new(&self.syntax, ty_context);
         ctx.add_bindings(bindings);
         ctx.add_overrides(overrides);
         ctx.set_stage(ShaderStage::Exec);
 
         let entry_fn = SyntaxUtil::decl_function(ctx.source, entrypoint)
-            .ok_or_else(|| EvalError::UnknownFunction(entrypoint.to_string()))?;
+            .ok_or_else(|| EvalError::UnknownFunction(entrypoint.to_string()))
+            .map_err(|e| {
+                Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+                    .with_ctx(&ctx)
+            })?;
 
-        let _ = self.syntax.exec(&mut ctx)?;
+        let _ = self.syntax.exec(&mut ctx).map_err(|e| {
+            Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+                .with_ctx(&ctx)
+        })?;
 
         let inst = exec_entrypoint(entry_fn, inputs, &mut ctx).map_err(|e| {
             if let Some(span) = ctx.source.user_decl_span(entrypoint) {
                 ctx.set_err_span_ctx(span);
             }
             if let Some(sourcemap) = &self.sourcemap {
-                Diagnostic::from(e).with_ctx(&ctx).with_sourcemap(sourcemap)
+                Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+                    .with_ctx(&ctx)
+                    .with_sourcemap(sourcemap)
             } else {
-                Diagnostic::from(e).with_ctx(&ctx)
+                Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+                    .with_ctx(&ctx)
             }
         })?;
 
@@ -143,18 +158,16 @@ impl CompileResult {
 /// const-expressions.
 ///
 /// Not all builtin `@const` WGSL functions are supported yet.
-pub fn eval_str(expr: &str) -> Result<Instance, Error> {
+pub fn eval_str(expr: &str, ty_context: &mut TyContext) -> Result<Instance, Diagnostic> {
     let expr = expr
         .parse::<syntax::Expression>()
-        .map_err(|e| Error::Error(Diagnostic::from(e).with_source(expr.to_string())))?;
+        .map_err(|e| Diagnostic::new(e.into()).with_source(expr.to_string()))?;
     let module = TranslationUnit::default();
-    let (inst, ctx) = eval(&expr, &module);
+    let (inst, ctx) = eval(&expr, &module, ty_context);
     inst.map_err(|e| {
-        Error::Error(
-            Diagnostic::from(e)
-                .with_source(expr.to_string())
-                .with_ctx(&ctx),
-        )
+        Diagnostic::new(crate::Error::EvalError(e, ctx.ty_context.clone_for_error()))
+            .with_source(expr.to_string())
+            .with_ctx(&ctx)
     })
 }
 
@@ -167,8 +180,9 @@ pub fn eval_str(expr: &str) -> Result<Instance, Error> {
 pub fn eval<'s>(
     expr: &syntax::Expression,
     wgsl: &'s TranslationUnit,
+    ty_context: &'s mut TyContext,
 ) -> (Result<Instance, EvalError>, Context<'s>) {
-    let mut ctx = Context::new(wgsl);
+    let mut ctx = Context::new(wgsl, ty_context);
     let res = wgsl.exec(&mut ctx).and_then(|_| expr.eval(&mut ctx));
     (res, ctx)
 }
@@ -179,8 +193,9 @@ pub fn exec<'s>(
     wgsl: &'s TranslationUnit,
     bindings: HashMap<(u32, u32), RefInstance>,
     overrides: HashMap<String, Instance>,
+    ty_context: &'s mut TyContext,
 ) -> (Result<Option<Instance>, EvalError>, Context<'s>) {
-    let mut ctx = Context::new(wgsl);
+    let mut ctx = Context::new(wgsl, ty_context);
     ctx.add_bindings(bindings);
     ctx.add_overrides(overrides);
     ctx.set_stage(ShaderStage::Exec);

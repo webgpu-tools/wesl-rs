@@ -9,6 +9,8 @@
 
 #![allow(non_snake_case)]
 
+use crate::arena::Id;
+use crate::ty_context::TyContext;
 use crate::{
     CallSignature, Error,
     conv::{Convert, convert_all_ty, convert_ty},
@@ -30,6 +32,7 @@ pub fn type_builtin_fn(
     name: &str,
     tplt: Option<&[TpltParam]>,
     args: &[Type],
+    context: &mut TyContext,
 ) -> Result<Option<Type>, E> {
     let err = || {
         E::Signature(CallSignature {
@@ -43,13 +46,13 @@ pub fn type_builtin_fn(
         // bitcast
         ("bitcast", [a]) if let Some(tplt) = tplt => {
             let tplt = BitcastTemplate::parse(tplt)?;
-            bitcast_t(tplt.ty(), a).map(Some)
+            bitcast_t(tplt.ty(), a, context).map(Some)
         }
         _ if tplt.is_some() => Err(err()),
         // logical
         ("all", [a]) => all(a).map(Some),
         ("any", [a]) => any(a).map(Some),
-        ("select", [a1, a2, a3]) => select(a1, a2, a3).map(Some),
+        ("select", [a1, a2, a3]) => select(a1, a2, a3, context).map(Some),
         // array
         ("arrayLength", [a]) => arrayLength(a).map(Some),
         // numeric
@@ -60,70 +63,70 @@ pub fn type_builtin_fn(
         ("asinh", [a]) => asinh(a).map(Some),
         ("atan", [a]) => atan(a).map(Some),
         ("atanh", [a]) => atanh(a).map(Some),
-        ("atan2", [a1, a2]) => atan2(a1, a2).map(Some),
+        ("atan2", [a1, a2]) => atan2(a1, a2, context).map(Some),
         ("ceil", [a]) => ceil(a).map(Some),
-        ("clamp", [a1, a2, a3]) => clamp(a1, a2, a3).map(Some),
+        ("clamp", [a1, a2, a3]) => clamp(a1, a2, a3, context).map(Some),
         ("cos", [a]) => cos(a).map(Some),
         ("cosh", [a]) => cosh(a).map(Some),
-        ("countLeadingZeros", [a]) => countLeadingZeros(a).map(Some),
-        ("countOneBits", [a]) => countOneBits(a).map(Some),
-        ("countTrailingZeros", [a]) => countTrailingZeros(a).map(Some),
-        ("cross", [a1, a2]) => cross(a1, a2).map(Some),
+        ("countLeadingZeros", [a]) => countLeadingZeros(a, context).map(Some),
+        ("countOneBits", [a]) => countOneBits(a, context).map(Some),
+        ("countTrailingZeros", [a]) => countTrailingZeros(a, context).map(Some),
+        ("cross", [a1, a2]) => cross(a1, a2, context).map(Some),
         ("degrees", [a]) => degrees(a).map(Some),
         ("determinant", [a]) => determinant(a).map(Some),
-        ("distance", [a1, a2]) => distance(a1, a2).map(Some),
-        ("dot", [a1, a2]) => dot(a1, a2).map(Some),
-        ("dot4U8Packed", [a1, a2]) => dot4U8Packed(a1, a2).map(Some),
-        ("dot4I8Packed", [a1, a2]) => dot4I8Packed(a1, a2).map(Some),
+        ("distance", [a1, a2]) => distance(a1, a2, context).map(Some),
+        ("dot", [a1, a2]) => dot(a1, a2, context).map(Some),
+        ("dot4U8Packed", [a1, a2]) => dot4U8Packed(a1, a2, context).map(Some),
+        ("dot4I8Packed", [a1, a2]) => dot4I8Packed(a1, a2, context).map(Some),
         ("exp", [a]) => exp(a).map(Some),
         ("exp2", [a]) => exp2(a).map(Some),
-        ("extractBits", [a1, a2, a3]) => extractBits(a1, a2, a3).map(Some),
-        ("faceForward", [a1, a2, a3]) => faceForward(a1, a2, a3).map(Some),
-        ("firstLeadingBit", [a]) => firstLeadingBit(a).map(Some),
-        ("firstTrailingBit", [a]) => firstTrailingBit(a).map(Some),
+        ("extractBits", [a1, a2, a3]) => extractBits(a1, a2, a3, context).map(Some),
+        ("faceForward", [a1, a2, a3]) => faceForward(a1, a2, a3, context).map(Some),
+        ("firstLeadingBit", [a]) => firstLeadingBit(a, context).map(Some),
+        ("firstTrailingBit", [a]) => firstTrailingBit(a, context).map(Some),
         ("floor", [a]) => floor(a).map(Some),
-        ("fma", [a1, a2, a3]) => fma(a1, a2, a3).map(Some),
+        ("fma", [a1, a2, a3]) => fma(a1, a2, a3, context).map(Some),
         ("fract", [a]) => fract(a).map(Some),
-        ("frexp", [a]) => frexp(a).map(Some),
-        ("insertBits", [a1, a2, a3, a4]) => insertBits(a1, a2, a3, a4).map(Some),
+        ("frexp", [a]) => frexp(a, context).map(Some),
+        ("insertBits", [a1, a2, a3, a4]) => insertBits(a1, a2, a3, a4, context).map(Some),
         ("inverseSqrt", [a]) => inverseSqrt(a).map(Some),
-        ("ldexp", [a1, a2]) => ldexp(a1, a2).map(Some),
+        ("ldexp", [a1, a2]) => ldexp(a1, a2, context).map(Some),
         ("length", [a]) => length(a).map(Some),
         ("log", [a]) => log(a).map(Some),
         ("log2", [a]) => log2(a).map(Some),
-        ("max", [a1, a2]) => max(a1, a2).map(Some),
-        ("min", [a1, a2]) => min(a1, a2).map(Some),
-        ("mix", [a1, a2, a3]) => mix(a1, a2, a3).map(Some),
-        ("modf", [a]) => modf(a).map(Some),
+        ("max", [a1, a2]) => max(a1, a2, context).map(Some),
+        ("min", [a1, a2]) => min(a1, a2, context).map(Some),
+        ("mix", [a1, a2, a3]) => mix(a1, a2, a3, context).map(Some),
+        ("modf", [a]) => modf(a, context).map(Some),
         ("normalize", [a]) => normalize(a).map(Some),
-        ("pow", [a1, a2]) => pow(a1, a2).map(Some),
-        ("quantizeToF16", [a]) => quantizeToF16(a).map(Some),
+        ("pow", [a1, a2]) => pow(a1, a2, context).map(Some),
+        ("quantizeToF16", [a]) => quantizeToF16(a, context).map(Some),
         ("radians", [a]) => radians(a).map(Some),
-        ("reflect", [a1, a2]) => reflect(a1, a2).map(Some),
-        ("refract", [a1, a2, a3]) => refract(a1, a2, a3).map(Some),
-        ("reverseBits", [a]) => reverseBits(a).map(Some),
+        ("reflect", [a1, a2]) => reflect(a1, a2, context).map(Some),
+        ("refract", [a1, a2, a3]) => refract(a1, a2, a3, context).map(Some),
+        ("reverseBits", [a]) => reverseBits(a, context).map(Some),
         ("round", [a]) => round(a).map(Some),
         ("saturate", [a]) => saturate(a).map(Some),
         ("sign", [a]) => sign(a).map(Some),
         ("sin", [a]) => sin(a).map(Some),
         ("sinh", [a]) => sinh(a).map(Some),
-        ("smoothstep", [a1, a2, a3]) => smoothstep(a1, a2, a3).map(Some),
+        ("smoothstep", [a1, a2, a3]) => smoothstep(a1, a2, a3, context).map(Some),
         ("sqrt", [a]) => sqrt(a).map(Some),
-        ("step", [a1, a2]) => step(a1, a2).map(Some),
+        ("step", [a1, a2]) => step(a1, a2, context).map(Some),
         ("tan", [a]) => tan(a).map(Some),
         ("tanh", [a]) => tanh(a).map(Some),
         ("transpose", [a]) => transpose(a).map(Some),
         ("trunc", [a]) => trunc(a).map(Some),
         // derivative
-        ("dpdx", [a]) => dpdx(a).map(Some),
-        ("dpdxCoarse", [a]) => dpdxCoarse(a).map(Some),
-        ("dpdxFine", [a]) => dpdxFine(a).map(Some),
-        ("dpdy", [a]) => dpdy(a).map(Some),
-        ("dpdyCoarse", [a]) => dpdyCoarse(a).map(Some),
-        ("dpdyFine", [a]) => dpdyFine(a).map(Some),
-        ("fwidth", [a]) => fwidth(a).map(Some),
-        ("fwidthCoarse", [a]) => fwidthCoarse(a).map(Some),
-        ("fwidthFine", [a]) => fwidthFine(a).map(Some),
+        ("dpdx", [a]) => dpdx(a, context).map(Some),
+        ("dpdxCoarse", [a]) => dpdxCoarse(a, context).map(Some),
+        ("dpdxFine", [a]) => dpdxFine(a, context).map(Some),
+        ("dpdy", [a]) => dpdy(a, context).map(Some),
+        ("dpdyCoarse", [a]) => dpdyCoarse(a, context).map(Some),
+        ("dpdyFine", [a]) => dpdyFine(a, context).map(Some),
+        ("fwidth", [a]) => fwidth(a, context).map(Some),
+        ("fwidthCoarse", [a]) => fwidthCoarse(a, context).map(Some),
+        ("fwidthFine", [a]) => fwidthFine(a, context).map(Some),
         // texture
         ("textureDimensions", [a1]) => textureDimensions(a1, None).map(Some),
         ("textureDimensions", [a1, a2]) => textureDimensions(a1, Some(a2)).map(Some),
@@ -209,35 +212,35 @@ pub fn type_builtin_fn(
         ("textureStore", [a1, a2, a3, a4]) => textureStore(a1, a2, a3, Some(a4)).map(|()| None),
         // atomic
         ("atomicLoad", [a]) => atomicLoad(a).map(Some),
-        ("atomicStore", [a1, a2]) => atomicStore(a1, a2).map(|()| None),
-        ("atomicAdd", [a1, a2]) => atomicAdd(a1, a2).map(Some),
-        ("atomicSub", [a1, a2]) => atomicSub(a1, a2).map(Some),
-        ("atomicMax", [a1, a2]) => atomicMax(a1, a2).map(Some),
-        ("atomicMin", [a1, a2]) => atomicMin(a1, a2).map(Some),
-        ("atomicAnd", [a1, a2]) => atomicAnd(a1, a2).map(Some),
-        ("atomicOr", [a1, a2]) => atomicOr(a1, a2).map(Some),
-        ("atomicXor", [a1, a2]) => atomicXor(a1, a2).map(Some),
-        ("atomicExchange", [a1, a2]) => atomicExchange(a1, a2).map(Some),
+        ("atomicStore", [a1, a2]) => atomicStore(a1, a2, context).map(|()| None),
+        ("atomicAdd", [a1, a2]) => atomicAdd(a1, a2, context).map(Some),
+        ("atomicSub", [a1, a2]) => atomicSub(a1, a2, context).map(Some),
+        ("atomicMax", [a1, a2]) => atomicMax(a1, a2, context).map(Some),
+        ("atomicMin", [a1, a2]) => atomicMin(a1, a2, context).map(Some),
+        ("atomicAnd", [a1, a2]) => atomicAnd(a1, a2, context).map(Some),
+        ("atomicOr", [a1, a2]) => atomicOr(a1, a2, context).map(Some),
+        ("atomicXor", [a1, a2]) => atomicXor(a1, a2, context).map(Some),
+        ("atomicExchange", [a1, a2]) => atomicExchange(a1, a2, context).map(Some),
         ("atomicCompareExchangeWeak", [a1, a2, a3]) => {
-            atomicCompareExchangeWeak(a1, a2, a3).map(Some)
+            atomicCompareExchangeWeak(a1, a2, a3, context).map(Some)
         }
         // packing
-        ("pack4x8snorm", [a]) => pack4x8snorm(a).map(Some),
-        ("pack4x8unorm", [a]) => pack4x8unorm(a).map(Some),
-        ("pack4xI8", [a]) => pack4xI8(a).map(Some),
-        ("pack4xU8", [a]) => pack4xU8(a).map(Some),
-        ("pack4xI8Clamp", [a]) => pack4xI8Clamp(a).map(Some),
-        ("pack4xU8Clamp", [a]) => pack4xU8Clamp(a).map(Some),
-        ("pack2x16snorm", [a]) => pack2x16snorm(a).map(Some),
-        ("pack2x16unorm", [a]) => pack2x16unorm(a).map(Some),
-        ("pack2x16float", [a]) => pack2x16float(a).map(Some),
-        ("unpack4x8snorm", [a]) => unpack4x8snorm(a).map(Some),
-        ("unpack4x8unorm", [a]) => unpack4x8unorm(a).map(Some),
-        ("unpack4xI8", [a]) => unpack4xI8(a).map(Some),
-        ("unpack4xU8", [a]) => unpack4xU8(a).map(Some),
-        ("unpack2x16snorm", [a]) => unpack2x16snorm(a).map(Some),
-        ("unpack2x16unorm", [a]) => unpack2x16unorm(a).map(Some),
-        ("unpack2x16float", [a]) => unpack2x16float(a).map(Some),
+        ("pack4x8snorm", [a]) => pack4x8snorm(a, context).map(Some),
+        ("pack4x8unorm", [a]) => pack4x8unorm(a, context).map(Some),
+        ("pack4xI8", [a]) => pack4xI8(a, context).map(Some),
+        ("pack4xU8", [a]) => pack4xU8(a, context).map(Some),
+        ("pack4xI8Clamp", [a]) => pack4xI8Clamp(a, context).map(Some),
+        ("pack4xU8Clamp", [a]) => pack4xU8Clamp(a, context).map(Some),
+        ("pack2x16snorm", [a]) => pack2x16snorm(a, context).map(Some),
+        ("pack2x16unorm", [a]) => pack2x16unorm(a, context).map(Some),
+        ("pack2x16float", [a]) => pack2x16float(a, context).map(Some),
+        ("unpack4x8snorm", [a]) => unpack4x8snorm(a, context).map(Some),
+        ("unpack4x8unorm", [a]) => unpack4x8unorm(a, context).map(Some),
+        ("unpack4xI8", [a]) => unpack4xI8(a, context).map(Some),
+        ("unpack4xU8", [a]) => unpack4xU8(a, context).map(Some),
+        ("unpack2x16snorm", [a]) => unpack2x16snorm(a, context).map(Some),
+        ("unpack2x16unorm", [a]) => unpack2x16unorm(a, context).map(Some),
+        ("unpack2x16float", [a]) => unpack2x16float(a, context).map(Some),
         // synchronization
         ("storageBarrier", []) => Ok(None),
         ("textureBarrier", []) => Ok(None),
@@ -246,58 +249,64 @@ pub fn type_builtin_fn(
             Ok(Some(*t.clone()))
         }
         // subgroup
-        ("subgroupAdd", [a]) => subgroupAdd(a).map(Some),
-        ("subgroupExclusiveAdd", [a]) => subgroupExclusiveAdd(a).map(Some),
-        ("subgroupInclusiveAdd", [a]) => subgroupInclusiveAdd(a).map(Some),
+        ("subgroupAdd", [a]) => subgroupAdd(a, context).map(Some),
+        ("subgroupExclusiveAdd", [a]) => subgroupExclusiveAdd(a, context).map(Some),
+        ("subgroupInclusiveAdd", [a]) => subgroupInclusiveAdd(a, context).map(Some),
         ("subgroupAll", [a]) => subgroupAll(a).map(Some),
-        ("subgroupAnd", [a]) => subgroupAnd(a).map(Some),
+        ("subgroupAnd", [a]) => subgroupAnd(a, context).map(Some),
         ("subgroupAny", [a]) => subgroupAny(a).map(Some),
         ("subgroupBallot", [a]) => subgroupBallot(Some(a)).map(Some),
         #[cfg(feature = "naga-ext")]
         ("subgroupBallot", []) => subgroupBallot(None).map(Some),
-        ("subgroupBroadcast", [a1, a2]) => subgroupBroadcast(a1, a2).map(Some),
-        ("subgroupBroadcastFirst", [a]) => subgroupBroadcastFirst(a).map(Some),
+        ("subgroupBroadcast", [a1, a2]) => subgroupBroadcast(a1, a2, context).map(Some),
+        ("subgroupBroadcastFirst", [a]) => subgroupBroadcastFirst(a, context).map(Some),
         ("subgroupElect", []) => subgroupElect().map(Some),
-        ("subgroupMax", [a]) => subgroupMax(a).map(Some),
-        ("subgroupMin", [a]) => subgroupMin(a).map(Some),
-        ("subgroupMul", [a]) => subgroupMul(a).map(Some),
-        ("subgroupExclusiveMul", [a]) => subgroupExclusiveMul(a).map(Some),
-        ("subgroupInclusiveMul", [a]) => subgroupInclusiveMul(a).map(Some),
-        ("subgroupOr", [a]) => subgroupOr(a).map(Some),
-        ("subgroupShuffle", [a1, a2]) => subgroupShuffle(a1, a2).map(Some),
-        ("subgroupShuffleDown", [a1, a2]) => subgroupShuffleDown(a1, a2).map(Some),
-        ("subgroupShuffleUp", [a1, a2]) => subgroupShuffleUp(a1, a2).map(Some),
-        ("subgroupShuffleXor", [a1, a2]) => subgroupShuffleXor(a1, a2).map(Some),
-        ("subgroupXor", [a]) => subgroupXor(a).map(Some),
+        ("subgroupMax", [a]) => subgroupMax(a, context).map(Some),
+        ("subgroupMin", [a]) => subgroupMin(a, context).map(Some),
+        ("subgroupMul", [a]) => subgroupMul(a, context).map(Some),
+        ("subgroupExclusiveMul", [a]) => subgroupExclusiveMul(a, context).map(Some),
+        ("subgroupInclusiveMul", [a]) => subgroupInclusiveMul(a, context).map(Some),
+        ("subgroupOr", [a]) => subgroupOr(a, context).map(Some),
+        ("subgroupShuffle", [a1, a2]) => subgroupShuffle(a1, a2, context).map(Some),
+        ("subgroupShuffleDown", [a1, a2]) => subgroupShuffleDown(a1, a2, context).map(Some),
+        ("subgroupShuffleUp", [a1, a2]) => subgroupShuffleUp(a1, a2, context).map(Some),
+        ("subgroupShuffleXor", [a1, a2]) => subgroupShuffleXor(a1, a2, context).map(Some),
+        ("subgroupXor", [a]) => subgroupXor(a, context).map(Some),
         // quad
-        ("quadBroadcast", [a1, a2]) => quadBroadcast(a1, a2).map(Some),
-        ("quadSwapDiagonal", [a]) => quadSwapDiagonal(a).map(Some),
-        ("quadSwapX", [a]) => quadSwapX(a).map(Some),
-        ("quadSwapY", [a]) => quadSwapY(a).map(Some),
+        ("quadBroadcast", [a1, a2]) => quadBroadcast(a1, a2, context).map(Some),
+        ("quadSwapDiagonal", [a]) => quadSwapDiagonal(a, context).map(Some),
+        ("quadSwapX", [a]) => quadSwapX(a, context).map(Some),
+        ("quadSwapY", [a]) => quadSwapY(a, context).map(Some),
         // naga ray queries extension
         #[cfg(feature = "naga-ext")]
-        ("rayQueryInitialize", [a1, a2, a3]) => rayQueryInitialize(a1, a2, a3).map(|()| None),
+        ("rayQueryInitialize", [a1, a2, a3]) => {
+            rayQueryInitialize(a1, a2, a3, context).map(|()| None)
+        }
         #[cfg(feature = "naga-ext")]
         ("rayQueryProceed", [a]) => rayQueryProceed(a).map(Some),
         #[cfg(feature = "naga-ext")]
         ("rayQueryGenerateIntersection", [a1, a2]) => {
-            rayQueryGenerateIntersection(a1, a2).map(|()| None)
+            rayQueryGenerateIntersection(a1, a2, context).map(|()| None)
         }
         #[cfg(feature = "naga-ext")]
         ("rayQueryConfirmIntersection", [a]) => rayQueryConfirmIntersection(a).map(|()| None),
         #[cfg(feature = "naga-ext")]
         ("rayQueryTerminate", [a]) => rayQueryTerminate(a).map(|()| None),
         #[cfg(feature = "naga-ext")]
-        ("rayQueryGetCommittedIntersection", [a]) => rayQueryGetCommittedIntersection(a).map(Some),
+        ("rayQueryGetCommittedIntersection", [a]) => {
+            rayQueryGetCommittedIntersection(a, context).map(Some)
+        }
         #[cfg(feature = "naga-ext")]
-        ("rayQueryGetCandidateIntersection", [a]) => rayQueryGetCandidateIntersection(a).map(Some),
+        ("rayQueryGetCandidateIntersection", [a]) => {
+            rayQueryGetCandidateIntersection(a, context).map(Some)
+        }
         #[cfg(feature = "naga-ext")]
         ("getCommittedHitVertexPositions", [a]) => getCommittedHitVertexPositions(a).map(Some),
         #[cfg(feature = "naga-ext")]
         ("getCandidateHitVertexPositions", [a]) => getCandidateHitVertexPositions(a).map(Some),
         // naga ray tracing pipelines extension
         #[cfg(feature = "naga-ext")]
-        ("traceRay", [a1, a2, a3]) => traceRay(a1, a2, a3).map(|()| None),
+        ("traceRay", [a1, a2, a3]) => traceRay(a1, a2, a3, context).map(|()| None),
         _ => Err(err()),
     }
 }
@@ -335,9 +344,9 @@ pub(crate) fn frexp_struct_name(ty: &Type) -> Option<&'static str> {
     }
 }
 
-pub(crate) fn frexp_struct_type(ty: &Type) -> Option<StructType> {
+pub(crate) fn frexp_struct_type(ty: &Type, context: &mut TyContext) -> Option<Id<StructType>> {
     frexp_struct_name(ty).map(|name| {
-        let exp_inner_ty = if ty.is_abstract() {
+        let exp_inner_ty = if ty.is_abstract(context) {
             Type::AbstractInt
         } else {
             Type::I32
@@ -346,13 +355,13 @@ pub(crate) fn frexp_struct_type(ty: &Type) -> Option<StructType> {
             Type::Vec(n, _) => Type::Vec(*n, Box::new(exp_inner_ty)),
             _ => exp_inner_ty,
         };
-        StructType {
+        context.struct_arena.add(StructType {
             name: name.to_string(),
             members: vec![
                 StructMemberType::new("fract".to_string(), ty.clone()),
                 StructMemberType::new("exp".to_string(), exp_ty),
             ],
-        }
+        })
     })
 }
 
@@ -385,30 +394,35 @@ pub(crate) fn modf_struct_name(ty: &Type) -> Option<&'static str> {
     }
 }
 
-pub(crate) fn atomic_compare_exchange_struct_type(ty: &Type) -> StructType {
-    StructType {
+pub(crate) fn atomic_compare_exchange_struct_type(
+    ty: &Type,
+    context: &mut TyContext,
+) -> Id<StructType> {
+    context.struct_arena.add(StructType {
         name: "__atomic_compare_exchange_result".to_string(),
         members: vec![
             StructMemberType::new("old_value".to_string(), ty.clone()),
             StructMemberType::new("exchanged".to_string(), Type::Bool),
         ],
-    }
+    })
 }
 
-pub(crate) fn modf_struct_type(ty: &Type) -> Option<StructType> {
-    modf_struct_name(ty).map(|name| StructType {
-        name: name.to_string(),
-        members: vec![
-            StructMemberType::new("fract".to_string(), ty.clone()),
-            StructMemberType::new("whole".to_string(), ty.clone()),
-        ],
+pub(crate) fn modf_struct_type(ty: &Type, context: &mut TyContext) -> Option<Id<StructType>> {
+    modf_struct_name(ty).map(|name| {
+        context.struct_arena.add(StructType {
+            name: name.to_string(),
+            members: vec![
+                StructMemberType::new("fract".to_string(), ty.clone()),
+                StructMemberType::new("whole".to_string(), ty.clone()),
+            ],
+        })
     })
 }
 
 #[cfg(feature = "naga-ext")]
 #[allow(unused)]
-pub(crate) fn ray_desc_struct_type() -> StructType {
-    StructType {
+pub(crate) fn ray_desc_struct_type(context: &mut TyContext) -> Id<StructType> {
+    context.struct_arena.add(StructType {
         name: "RayDesc".to_string(),
         members: vec![
             StructMemberType::new("flags".to_string(), Type::U32),
@@ -418,12 +432,12 @@ pub(crate) fn ray_desc_struct_type() -> StructType {
             StructMemberType::new("origin".to_string(), Type::Vec(3, Box::new(Type::F32))),
             StructMemberType::new("dir".to_string(), Type::Vec(3, Box::new(Type::F32))),
         ],
-    }
+    })
 }
 
 #[cfg(feature = "naga-ext")]
-pub(crate) fn ray_intersection_struct_type() -> StructType {
-    StructType {
+pub(crate) fn ray_intersection_struct_type(context: &mut TyContext) -> Id<StructType> {
+    context.struct_arena.add(StructType {
         name: "RayIntersection".to_string(),
         members: vec![
             StructMemberType::new("kind".to_string(), Type::U32),
@@ -447,7 +461,7 @@ pub(crate) fn ray_intersection_struct_type() -> StructType {
                 Type::Mat(4, 3, Box::new(Type::F32)),
             ),
         ],
-    }
+    })
 }
 
 // utility predicates for `T or vecN<T>` constraints.
@@ -474,8 +488,8 @@ fn inner_is_bool(ty: &Type) -> bool {
 /// we assume `tplt_ty` is a concrete numeric scalar or concrete numeric vector.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#bitcast-builtin>
-pub fn bitcast_t(tplt_ty: &Type, e: &Type) -> Result<Type, E> {
-    if tplt_ty.size_of() != e.concretize().size_of() {
+pub fn bitcast_t(tplt_ty: &Type, e: &Type, context: &TyContext) -> Result<Type, E> {
+    if tplt_ty.size_of(context) != e.concretize(context).size_of(context) {
         Err(E::Builtin(
             "`bitcast` argument must have the same byte length as the template type",
         ))
@@ -522,8 +536,8 @@ pub fn any(e: &Type) -> Result<Type, E> {
 /// `select()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#select-builtin>
-pub fn select(f: &Type, t: &Type, cond: &Type) -> Result<Type, E> {
-    let ty = convert_ty(f, t).ok_or(E::Builtin(
+pub fn select(f: &Type, t: &Type, cond: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = convert_ty(f, t, context).ok_or(E::Builtin(
         "`select` 1st and 2nd arguments are incompatible",
     ))?;
 
@@ -651,8 +665,8 @@ pub fn atanh(e: &Type) -> Result<Type, E> {
 /// `atan2()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atan2-builtin>
-pub fn atan2(y: &Type, x: &Type) -> Result<Type, E> {
-    let ty = convert_ty(y, x).ok_or(E::Builtin("`atan2 arguments are incompatible`"))?;
+pub fn atan2(y: &Type, x: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = convert_ty(y, x, context).ok_or(E::Builtin("`atan2 arguments are incompatible`"))?;
     inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
         "`atan2` expects float scalar or vector arguments",
     ))
@@ -670,9 +684,9 @@ pub fn ceil(e: &Type) -> Result<Type, E> {
 /// `clamp()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#clamp>
-pub fn clamp(e: &Type, low: &Type, high: &Type) -> Result<Type, E> {
-    let ty =
-        convert_all_ty([e, low, high]).ok_or(E::Builtin("`clamp` arguments are incompatible"))?;
+pub fn clamp(e: &Type, low: &Type, high: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = convert_all_ty([e, low, high], context)
+        .ok_or(E::Builtin("`clamp` arguments are incompatible"))?;
     if inner_is_numeric(ty) {
         Ok(ty.clone())
     } else {
@@ -705,9 +719,9 @@ pub fn cosh(e: &Type) -> Result<Type, E> {
 /// `countLeadingZeros()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#countLeadingZeros-builtin>
-pub fn countLeadingZeros(e: &Type) -> Result<Type, E> {
+pub fn countLeadingZeros(e: &Type, context: &TyContext) -> Result<Type, E> {
     inner_is_integer(e)
-        .then_some(e.concretize())
+        .then_some(e.concretize(context))
         .ok_or(E::Builtin(
             "`countLeadingZeros` argument must be a integer scalar or vector",
         ))
@@ -716,9 +730,9 @@ pub fn countLeadingZeros(e: &Type) -> Result<Type, E> {
 /// `countOneBits()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#countOneBits-builtin>
-pub fn countOneBits(e: &Type) -> Result<Type, E> {
+pub fn countOneBits(e: &Type, context: &TyContext) -> Result<Type, E> {
     inner_is_integer(e)
-        .then_some(e.concretize())
+        .then_some(e.concretize(context))
         .ok_or(E::Builtin(
             "`countOneBits` argument must be a integer scalar or vector",
         ))
@@ -727,9 +741,9 @@ pub fn countOneBits(e: &Type) -> Result<Type, E> {
 /// `countTrailingZeros()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#countTrailingZeros-builtin>
-pub fn countTrailingZeros(e: &Type) -> Result<Type, E> {
+pub fn countTrailingZeros(e: &Type, context: &TyContext) -> Result<Type, E> {
     inner_is_integer(e)
-        .then_some(e.concretize())
+        .then_some(e.concretize(context))
         .ok_or(E::Builtin(
             "`countTrailingZeros` argument must be a integer scalar or vector",
         ))
@@ -738,8 +752,8 @@ pub fn countTrailingZeros(e: &Type) -> Result<Type, E> {
 /// `cross()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#cross-builtin>
-pub fn cross(a: &Type, b: &Type) -> Result<Type, E> {
-    let ty = convert_ty(a, b).ok_or(E::Builtin("`cross` arguments are incompatible"))?;
+pub fn cross(a: &Type, b: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = convert_ty(a, b, context).ok_or(E::Builtin("`cross` arguments are incompatible"))?;
     match ty {
         Type::Vec(3, t) if t.is_float() => Ok(ty.clone()),
         _ => Err(E::Builtin(
@@ -770,8 +784,9 @@ pub fn determinant(e: &Type) -> Result<Type, E> {
 /// `distance()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#distance-builtin>
-pub fn distance(e1: &Type, e2: &Type) -> Result<Type, E> {
-    let ty = convert_ty(e1, e2).ok_or(E::Builtin("`distance` arguments are incompatible"))?;
+pub fn distance(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty =
+        convert_ty(e1, e2, context).ok_or(E::Builtin("`distance` arguments are incompatible"))?;
     inner_is_float(ty)
         .then_some(ty.inner_ty())
         .ok_or(E::Builtin(
@@ -782,8 +797,8 @@ pub fn distance(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// `dot()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dot-builtin>
-pub fn dot(e1: &Type, e2: &Type) -> Result<Type, E> {
-    let ty = convert_ty(e1, e2).ok_or(E::Builtin("`dot` arguments are incompatible"))?;
+pub fn dot(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = convert_ty(e1, e2, context).ok_or(E::Builtin("`dot` arguments are incompatible"))?;
     match ty {
         Type::Vec(_, t) if t.is_numeric() => Ok(*t.clone()),
         _ => Err(E::Builtin(
@@ -795,8 +810,8 @@ pub fn dot(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// `dot4U8Packed()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dot4U8Packed-builtin>
-pub fn dot4U8Packed(e1: &Type, e2: &Type) -> Result<Type, E> {
-    if e1.is_convertible_to(&Type::U32) && e2.is_convertible_to(&Type::U32) {
+pub fn dot4U8Packed(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
+    if e1.is_convertible_to(&Type::U32, context) && e2.is_convertible_to(&Type::U32, context) {
         Ok(Type::U32)
     } else {
         Err(E::Builtin("`dot4U8Packed` expects two u32 arguments"))
@@ -806,8 +821,8 @@ pub fn dot4U8Packed(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// `dot4I8Packed()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dot4I8Packed-builtin>
-pub fn dot4I8Packed(e1: &Type, e2: &Type) -> Result<Type, E> {
-    if e1.is_convertible_to(&Type::U32) && e2.is_convertible_to(&Type::U32) {
+pub fn dot4I8Packed(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
+    if e1.is_convertible_to(&Type::U32, context) && e2.is_convertible_to(&Type::U32, context) {
         Ok(Type::I32)
     } else {
         Err(E::Builtin("`dot4I8Packed` expects two u32 arguments"))
@@ -835,13 +850,15 @@ pub fn exp2(e: &Type) -> Result<Type, E> {
 /// `extractBits()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#extractBits-builtin>
-pub fn extractBits(e: &Type, offset: &Type, count: &Type) -> Result<Type, E> {
+pub fn extractBits(e: &Type, offset: &Type, count: &Type, context: &TyContext) -> Result<Type, E> {
     if !inner_is_integer(e) {
         Err(E::Builtin(
             "`extractBits` 1st argument must be an integer scalar or vector",
         ))
-    } else if offset.is_convertible_to(&Type::U32) && count.is_convertible_to(&Type::U32) {
-        Ok(e.concretize())
+    } else if offset.is_convertible_to(&Type::U32, context)
+        && count.is_convertible_to(&Type::U32, context)
+    {
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`extractBits` 2nd and 3rd arguments must be u32",
@@ -852,8 +869,8 @@ pub fn extractBits(e: &Type, offset: &Type, count: &Type) -> Result<Type, E> {
 /// `faceForward()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#faceForward-builtin>
-pub fn faceForward(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
-    let ty = convert_all_ty([e1, e2, e3])
+pub fn faceForward(e1: &Type, e2: &Type, e3: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = convert_all_ty([e1, e2, e3], context)
         .ok_or(E::Builtin("`faceForward` arguments are incompatible"))?;
     if matches!(ty, Type::Vec(_, t) if t.is_float()) {
         Ok(ty.clone())
@@ -867,9 +884,9 @@ pub fn faceForward(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
 /// `firstLeadingBit()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#firstLeadingBit-builtin>
-pub fn firstLeadingBit(e: &Type) -> Result<Type, E> {
+pub fn firstLeadingBit(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_integer(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`firstLeadingBit` expects an integer scalar or vector argument",
@@ -880,9 +897,9 @@ pub fn firstLeadingBit(e: &Type) -> Result<Type, E> {
 /// `firstTrailingBit()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#firstTrailingBit-builtin>
-pub fn firstTrailingBit(e: &Type) -> Result<Type, E> {
+pub fn firstTrailingBit(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_integer(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`firstTrailingBit` expects an integer scalar or vector argument",
@@ -902,8 +919,9 @@ pub fn floor(e: &Type) -> Result<Type, E> {
 /// `fma()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#fma-builtin>
-pub fn fma(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
-    let ty = convert_all_ty([e1, e2, e3]).ok_or(E::Builtin("`fma` arguments are incompatible"))?;
+pub fn fma(e1: &Type, e2: &Type, e3: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = convert_all_ty([e1, e2, e3], context)
+        .ok_or(E::Builtin("`fma` arguments are incompatible"))?;
     inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
         "`fma` expects three float scalar or vector arguments",
     ))
@@ -923,9 +941,9 @@ pub fn fract(e: &Type) -> Result<Type, E> {
 /// TODO: This built-in is only partially implemented.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#frexp-builtin>
-pub fn frexp(e: &Type) -> Result<Type, E> {
+pub fn frexp(e: &Type, context: &mut TyContext) -> Result<Type, E> {
     if inner_is_float(e) {
-        Ok(frexp_struct_type(e).unwrap().into())
+        Ok(Type::Struct(frexp_struct_type(e, context).unwrap()))
     } else {
         Err(E::Builtin(
             "`frexp` expects a float scalar or vector argument",
@@ -936,17 +954,26 @@ pub fn frexp(e: &Type) -> Result<Type, E> {
 /// `insertBits()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#insertBits-builtin>
-pub fn insertBits(e: &Type, newbits: &Type, offset: &Type, count: &Type) -> Result<Type, E> {
-    let ty = convert_ty(e, newbits).ok_or(E::Builtin("`insertBits` arguments are incompatible"))?;
+pub fn insertBits(
+    e: &Type,
+    newbits: &Type,
+    offset: &Type,
+    count: &Type,
+    context: &TyContext,
+) -> Result<Type, E> {
+    let ty = convert_ty(e, newbits, context)
+        .ok_or(E::Builtin("`insertBits` arguments are incompatible"))?;
 
     if !inner_is_integer(ty) {
         Err(E::Builtin(
             "`insertBits` 1st argument must be an integer scalar or vector",
         ))
-    } else if !offset.is_convertible_to(&Type::U32) || !count.is_convertible_to(&Type::U32) {
+    } else if !offset.is_convertible_to(&Type::U32, context)
+        || !count.is_convertible_to(&Type::U32, context)
+    {
         Err(E::Builtin("`insertBits` 3rd and 4th arguments must be u32"))
     } else {
-        Ok(ty.concretize())
+        Ok(ty.concretize(context))
     }
 }
 
@@ -962,7 +989,7 @@ pub fn inverseSqrt(e: &Type) -> Result<Type, E> {
 /// `ldexp()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#ldexp-builtin>
-pub fn ldexp(e1: &Type, e2: &Type) -> Result<Type, E> {
+pub fn ldexp(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
     if !inner_is_float(e1) {
         Err(E::Builtin(
             "`ldexp` 1st argument must be a float scalar or vector",
@@ -979,9 +1006,9 @@ pub fn ldexp(e1: &Type, e2: &Type) -> Result<Type, E> {
         Err(E::Builtin(
             "`ldexp` arguments must be both scalar or both vectors",
         ))
-    } else if e1.is_abstract() && e2.is_concrete() {
+    } else if e1.is_abstract(context) && e2.is_concrete(context) {
         // "If either parameter is concrete then the other parameter will undergo automatic conversion to a concrete type (if applicable) and the result will be a concrete type."
-        Ok(e1.concretize())
+        Ok(e1.concretize(context))
     } else {
         Ok(e1.clone())
     }
@@ -1017,8 +1044,8 @@ pub fn log2(e: &Type) -> Result<Type, E> {
 /// `max()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#max-builtin>
-pub fn max(e1: &Type, e2: &Type) -> Result<Type, E> {
-    let ty = convert_ty(e1, e2).ok_or(E::Builtin("`max` arguments are incompatible"))?;
+pub fn max(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = convert_ty(e1, e2, context).ok_or(E::Builtin("`max` arguments are incompatible"))?;
     inner_is_numeric(ty).then_some(ty.clone()).ok_or(E::Builtin(
         "`max` expects two numeric scalar or vector arguments",
     ))
@@ -1027,8 +1054,8 @@ pub fn max(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// `min()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#min-builtin>
-pub fn min(e1: &Type, e2: &Type) -> Result<Type, E> {
-    let ty = convert_ty(e1, e2).ok_or(E::Builtin("`min` arguments are incompatible"))?;
+pub fn min(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = convert_ty(e1, e2, context).ok_or(E::Builtin("`min` arguments are incompatible"))?;
     inner_is_numeric(ty).then_some(ty.clone()).ok_or(E::Builtin(
         "`min` expects two numeric scalar or vector arguments",
     ))
@@ -1037,10 +1064,10 @@ pub fn min(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// `mix()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#mix-builtin>
-pub fn mix(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
+pub fn mix(e1: &Type, e2: &Type, e3: &Type, context: &TyContext) -> Result<Type, E> {
     // e1 and e2 have to be the same type, but e3 can be the same type or the same inner type.
-    let ty =
-        convert_ty(e1, e2).ok_or(E::Builtin("`mix` 1st and 2nd arguments are incompatible"))?;
+    let ty = convert_ty(e1, e2, context)
+        .ok_or(E::Builtin("`mix` 1st and 2nd arguments are incompatible"))?;
 
     if !inner_is_float(ty) {
         Err(E::Builtin(
@@ -1049,8 +1076,8 @@ pub fn mix(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
     }
     // 2nd overload: scalar blend factor with vector mixing components
     else if ty.is_vec() && e3.is_scalar() {
-        let ty = convert_ty(&ty.inner_ty(), e3)
-            .and_then(|inner_ty| ty.convert_inner_to(inner_ty))
+        let ty = convert_ty(&ty.inner_ty(), e3, context)
+            .and_then(|inner_ty| ty.convert_inner_to(inner_ty, context))
             .ok_or(E::Builtin(
                 "`mix` 3rd argument is incompatible with 1st and 2nd argument inner type",
             ))?;
@@ -1058,7 +1085,7 @@ pub fn mix(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
     }
     // 1st overload: 3 args of the same type
     else {
-        let ty = convert_ty(ty, e3).ok_or(E::Builtin(
+        let ty = convert_ty(ty, e3, context).ok_or(E::Builtin(
             "`mix` 3rd argument is incompatible with 1st and 2nd arguments",
         ))?;
         Ok(ty.clone())
@@ -1068,9 +1095,9 @@ pub fn mix(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
 /// `modf()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#modf-builtin>
-pub fn modf(e: &Type) -> Result<Type, E> {
+pub fn modf(e: &Type, context: &mut TyContext) -> Result<Type, E> {
     if inner_is_float(e) {
-        Ok(modf_struct_type(e).unwrap().into())
+        Ok(Type::Struct(modf_struct_type(e, context).unwrap()))
     } else {
         Err(E::Builtin(
             "`modf` expects a float scalar or vector argument",
@@ -1093,8 +1120,8 @@ pub fn normalize(e: &Type) -> Result<Type, E> {
 /// `pow()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pow-builtin>
-pub fn pow(e1: &Type, e2: &Type) -> Result<Type, E> {
-    let ty = convert_ty(e1, e2).ok_or(E::Builtin("`pow` arguments are incompatible"))?;
+pub fn pow(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = convert_ty(e1, e2, context).ok_or(E::Builtin("`pow` arguments are incompatible"))?;
     inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
         "`pow` argument must be a float scalar or vector",
     ))
@@ -1103,9 +1130,9 @@ pub fn pow(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// `quantizeToF16()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#quantizeToF16-builtin>
-pub fn quantizeToF16(e: &Type) -> Result<Type, E> {
+pub fn quantizeToF16(e: &Type, context: &TyContext) -> Result<Type, E> {
     const ERR: E = E::Builtin("`quantizeToF16` expects a f32 scalar or vector argument");
-    let ty = e.convert_inner_to(&Type::F32).ok_or(ERR)?;
+    let ty = e.convert_inner_to(&Type::F32, context).ok_or(ERR)?;
     if ty.is_f32() || ty.is_vec() {
         Ok(ty)
     } else {
@@ -1125,8 +1152,9 @@ pub fn radians(e: &Type) -> Result<Type, E> {
 /// `reflect()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#reflect-builtin>
-pub fn reflect(e1: &Type, e2: &Type) -> Result<Type, E> {
-    let ty = convert_ty(e1, e2).ok_or(E::Builtin("`reflect` arguments are incompatible"))?;
+pub fn reflect(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty =
+        convert_ty(e1, e2, context).ok_or(E::Builtin("`reflect` arguments are incompatible"))?;
     if ty.is_vec() && ty.inner_ty().is_float() {
         Ok(ty.clone())
     } else {
@@ -1137,13 +1165,13 @@ pub fn reflect(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// `refract()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#refract-builtin>
-pub fn refract(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
-    let ty = convert_ty(e1, e2).ok_or(E::Builtin(
+pub fn refract(e1: &Type, e2: &Type, e3: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = convert_ty(e1, e2, context).ok_or(E::Builtin(
         "`refract` 1st and 2nd arguments are incompatible",
     ))?;
 
-    let ty = convert_ty(&ty.inner_ty(), e3)
-        .and_then(|inner_ty| ty.convert_inner_to(inner_ty))
+    let ty = convert_ty(&ty.inner_ty(), e3, context)
+        .and_then(|inner_ty| ty.convert_inner_to(inner_ty, context))
         .ok_or(E::Builtin(
             "`refract` 3rd argument is incompatible with 1st and 2nd argument inner type",
         ))?;
@@ -1160,9 +1188,9 @@ pub fn refract(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
 /// `reverseBits()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#reverseBits-builtin>
-pub fn reverseBits(e: &Type) -> Result<Type, E> {
+pub fn reverseBits(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_integer(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`reverseBits` expects an integer scalar or vector argument",
@@ -1222,8 +1250,8 @@ pub fn sinh(e: &Type) -> Result<Type, E> {
 /// `smoothstep()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#smoothstep-builtin>
-pub fn smoothstep(edge0: &Type, edge1: &Type, x: &Type) -> Result<Type, E> {
-    let ty = convert_all_ty([edge0, edge1, x])
+pub fn smoothstep(edge0: &Type, edge1: &Type, x: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = convert_all_ty([edge0, edge1, x], context)
         .ok_or(E::Builtin("`smoothstep` arguments are incompatible"))?;
     inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
         "`smoothstep` expects three float scalar or vector arguments",
@@ -1242,8 +1270,9 @@ pub fn sqrt(e: &Type) -> Result<Type, E> {
 /// `step()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#step-builtin>
-pub fn step(edge: &Type, x: &Type) -> Result<Type, E> {
-    let ty = convert_all_ty([edge, x]).ok_or(E::Builtin("`step` arguments are incompatible"))?;
+pub fn step(edge: &Type, x: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = convert_all_ty([edge, x], context)
+        .ok_or(E::Builtin("`step` arguments are incompatible"))?;
     inner_is_float(ty).then_some(ty.clone()).ok_or(E::Builtin(
         "`step` expects two float scalar or vector arguments",
     ))
@@ -1294,8 +1323,8 @@ pub fn trunc(e: &Type) -> Result<Type, E> {
 /// `dpdx()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dpdx-builtin>
-pub fn dpdx(e: &Type) -> Result<Type, E> {
-    let ty = e.convert_inner_to(&Type::F32);
+pub fn dpdx(e: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = e.convert_inner_to(&Type::F32, context);
     if let Some(ty) = ty
         && (ty.is_scalar() || ty.is_vec())
     {
@@ -1310,8 +1339,8 @@ pub fn dpdx(e: &Type) -> Result<Type, E> {
 /// `dpdxCoarse()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dpdxCoarse-builtin>
-pub fn dpdxCoarse(e: &Type) -> Result<Type, E> {
-    let ty = e.convert_inner_to(&Type::F32);
+pub fn dpdxCoarse(e: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = e.convert_inner_to(&Type::F32, context);
     if let Some(ty) = ty
         && (ty.is_scalar() || ty.is_vec())
     {
@@ -1326,8 +1355,8 @@ pub fn dpdxCoarse(e: &Type) -> Result<Type, E> {
 /// `dpdxFine()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dpdxFine-builtin>
-pub fn dpdxFine(e: &Type) -> Result<Type, E> {
-    let ty = e.convert_inner_to(&Type::F32);
+pub fn dpdxFine(e: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = e.convert_inner_to(&Type::F32, context);
     if let Some(ty) = ty
         && (ty.is_scalar() || ty.is_vec())
     {
@@ -1342,8 +1371,8 @@ pub fn dpdxFine(e: &Type) -> Result<Type, E> {
 /// `dpdy()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dpdy-builtin>
-pub fn dpdy(e: &Type) -> Result<Type, E> {
-    let ty = e.convert_inner_to(&Type::F32);
+pub fn dpdy(e: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = e.convert_inner_to(&Type::F32, context);
     if let Some(ty) = ty
         && (ty.is_scalar() || ty.is_vec())
     {
@@ -1358,8 +1387,8 @@ pub fn dpdy(e: &Type) -> Result<Type, E> {
 /// `dpdyCoarse()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dpdyCoarse-builtin>
-pub fn dpdyCoarse(e: &Type) -> Result<Type, E> {
-    let ty = e.convert_inner_to(&Type::F32);
+pub fn dpdyCoarse(e: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = e.convert_inner_to(&Type::F32, context);
     if let Some(ty) = ty
         && (ty.is_scalar() || ty.is_vec())
     {
@@ -1374,8 +1403,8 @@ pub fn dpdyCoarse(e: &Type) -> Result<Type, E> {
 /// `dpdyFine()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#dpdyFine-builtin>
-pub fn dpdyFine(e: &Type) -> Result<Type, E> {
-    let ty = e.convert_inner_to(&Type::F32);
+pub fn dpdyFine(e: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = e.convert_inner_to(&Type::F32, context);
     if let Some(ty) = ty
         && (ty.is_scalar() || ty.is_vec())
     {
@@ -1390,8 +1419,8 @@ pub fn dpdyFine(e: &Type) -> Result<Type, E> {
 /// `fwidth()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#fwidth-builtin>
-pub fn fwidth(e: &Type) -> Result<Type, E> {
-    let ty = e.convert_inner_to(&Type::F32);
+pub fn fwidth(e: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = e.convert_inner_to(&Type::F32, context);
     if let Some(ty) = ty
         && (ty.is_scalar() || ty.is_vec())
     {
@@ -1406,8 +1435,8 @@ pub fn fwidth(e: &Type) -> Result<Type, E> {
 /// `fwidthCoarse()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#fwidthCoarse-builtin>
-pub fn fwidthCoarse(e: &Type) -> Result<Type, E> {
-    let ty = e.convert_inner_to(&Type::F32);
+pub fn fwidthCoarse(e: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = e.convert_inner_to(&Type::F32, context);
     if let Some(ty) = ty
         && (ty.is_scalar() || ty.is_vec())
     {
@@ -1422,8 +1451,8 @@ pub fn fwidthCoarse(e: &Type) -> Result<Type, E> {
 /// `fwidthFine()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#fwidthFine-builtin>
-pub fn fwidthFine(e: &Type) -> Result<Type, E> {
-    let ty = e.convert_inner_to(&Type::F32);
+pub fn fwidthFine(e: &Type, context: &TyContext) -> Result<Type, E> {
+    let ty = e.convert_inner_to(&Type::F32, context);
     if let Some(ty) = ty
         && (ty.is_scalar() || ty.is_vec())
     {
@@ -1829,7 +1858,7 @@ pub fn atomicLoad(e: &Type) -> Result<Type, E> {
 /// `atomicStore()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicStore-builtin>
-pub fn atomicStore(e1: &Type, e2: &Type) -> Result<(), E> {
+pub fn atomicStore(e1: &Type, e2: &Type, context: &TyContext) -> Result<(), E> {
     if let Type::Ptr(a_s, ptr_ty, a_m) = e1
         && let Type::Atomic(ty) = &**ptr_ty
     {
@@ -1841,7 +1870,7 @@ pub fn atomicStore(e1: &Type, e2: &Type) -> Result<(), E> {
             Err(E::Builtin(
                 "the access mode of the atomic pointer argument must be `read_write`",
             ))
-        } else if e2.is_convertible_to(ty) {
+        } else if e2.is_convertible_to(ty, context) {
             Ok(())
         } else {
             Err(E::Builtin(
@@ -1858,7 +1887,7 @@ pub fn atomicStore(e1: &Type, e2: &Type) -> Result<(), E> {
 /// `atomicAdd()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicAdd-builtin>
-pub fn atomicAdd(e1: &Type, e2: &Type) -> Result<Type, E> {
+pub fn atomicAdd(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
     if let Type::Ptr(a_s, ptr_ty, a_m) = e1
         && let Type::Atomic(ty) = &**ptr_ty
     {
@@ -1870,7 +1899,7 @@ pub fn atomicAdd(e1: &Type, e2: &Type) -> Result<Type, E> {
             Err(E::Builtin(
                 "the access mode of the atomic pointer argument must be `read_write`",
             ))
-        } else if e2.is_convertible_to(ty) {
+        } else if e2.is_convertible_to(ty, context) {
             Ok(*ty.clone())
         } else {
             Err(E::Builtin(
@@ -1887,7 +1916,7 @@ pub fn atomicAdd(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// `atomicSub()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicSub-builtin>
-pub fn atomicSub(e1: &Type, e2: &Type) -> Result<Type, E> {
+pub fn atomicSub(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
     if let Type::Ptr(a_s, ptr_ty, a_m) = e1
         && let Type::Atomic(ty) = &**ptr_ty
     {
@@ -1899,7 +1928,7 @@ pub fn atomicSub(e1: &Type, e2: &Type) -> Result<Type, E> {
             Err(E::Builtin(
                 "the access mode of the atomic pointer argument must be `read_write`",
             ))
-        } else if e2.is_convertible_to(ty) {
+        } else if e2.is_convertible_to(ty, context) {
             Ok(*ty.clone())
         } else {
             Err(E::Builtin(
@@ -1916,7 +1945,7 @@ pub fn atomicSub(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// `atomicMax()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicMax-builtin>
-pub fn atomicMax(e1: &Type, e2: &Type) -> Result<Type, E> {
+pub fn atomicMax(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
     if let Type::Ptr(a_s, ptr_ty, a_m) = e1
         && let Type::Atomic(ty) = &**ptr_ty
     {
@@ -1928,7 +1957,7 @@ pub fn atomicMax(e1: &Type, e2: &Type) -> Result<Type, E> {
             Err(E::Builtin(
                 "the access mode of the atomic pointer argument must be `read_write`",
             ))
-        } else if e2.is_convertible_to(ty) {
+        } else if e2.is_convertible_to(ty, context) {
             Ok(*ty.clone())
         } else {
             Err(E::Builtin(
@@ -1945,7 +1974,7 @@ pub fn atomicMax(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// `atomicMin()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicMin-builtin>
-pub fn atomicMin(e1: &Type, e2: &Type) -> Result<Type, E> {
+pub fn atomicMin(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
     if let Type::Ptr(a_s, ptr_ty, a_m) = e1
         && let Type::Atomic(ty) = &**ptr_ty
     {
@@ -1957,7 +1986,7 @@ pub fn atomicMin(e1: &Type, e2: &Type) -> Result<Type, E> {
             Err(E::Builtin(
                 "the access mode of the atomic pointer argument must be `read_write`",
             ))
-        } else if e2.is_convertible_to(ty) {
+        } else if e2.is_convertible_to(ty, context) {
             Ok(*ty.clone())
         } else {
             Err(E::Builtin(
@@ -1974,7 +2003,7 @@ pub fn atomicMin(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// `atomicAnd()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicAnd-builtin>
-pub fn atomicAnd(e1: &Type, e2: &Type) -> Result<Type, E> {
+pub fn atomicAnd(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
     if let Type::Ptr(a_s, ptr_ty, a_m) = e1
         && let Type::Atomic(ty) = &**ptr_ty
     {
@@ -1986,7 +2015,7 @@ pub fn atomicAnd(e1: &Type, e2: &Type) -> Result<Type, E> {
             Err(E::Builtin(
                 "the access mode of the atomic pointer argument must be `read_write`",
             ))
-        } else if e2.is_convertible_to(ty) {
+        } else if e2.is_convertible_to(ty, context) {
             Ok(*ty.clone())
         } else {
             Err(E::Builtin(
@@ -2003,7 +2032,7 @@ pub fn atomicAnd(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// `atomicOr()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicOr-builtin>
-pub fn atomicOr(e1: &Type, e2: &Type) -> Result<Type, E> {
+pub fn atomicOr(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
     if let Type::Ptr(a_s, ptr_ty, a_m) = e1
         && let Type::Atomic(ty) = &**ptr_ty
     {
@@ -2015,7 +2044,7 @@ pub fn atomicOr(e1: &Type, e2: &Type) -> Result<Type, E> {
             Err(E::Builtin(
                 "the access mode of the atomic pointer argument must be `read_write`",
             ))
-        } else if e2.is_convertible_to(ty) {
+        } else if e2.is_convertible_to(ty, context) {
             Ok(*ty.clone())
         } else {
             Err(E::Builtin(
@@ -2032,7 +2061,7 @@ pub fn atomicOr(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// `atomicXor()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicXor-builtin>
-pub fn atomicXor(e1: &Type, e2: &Type) -> Result<Type, E> {
+pub fn atomicXor(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
     if let Type::Ptr(a_s, ptr_ty, a_m) = e1
         && let Type::Atomic(ty) = &**ptr_ty
     {
@@ -2044,7 +2073,7 @@ pub fn atomicXor(e1: &Type, e2: &Type) -> Result<Type, E> {
             Err(E::Builtin(
                 "the access mode of the atomic pointer argument must be `read_write`",
             ))
-        } else if e2.is_convertible_to(ty) {
+        } else if e2.is_convertible_to(ty, context) {
             Ok(*ty.clone())
         } else {
             Err(E::Builtin(
@@ -2061,7 +2090,7 @@ pub fn atomicXor(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// `atomicExchange()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicExchange-builtin>
-pub fn atomicExchange(e1: &Type, e2: &Type) -> Result<Type, E> {
+pub fn atomicExchange(e1: &Type, e2: &Type, context: &TyContext) -> Result<Type, E> {
     if let Type::Ptr(a_s, ptr_ty, a_m) = e1
         && let Type::Atomic(ty) = &**ptr_ty
     {
@@ -2073,7 +2102,7 @@ pub fn atomicExchange(e1: &Type, e2: &Type) -> Result<Type, E> {
             Err(E::Builtin(
                 "the access mode of the atomic pointer argument must be `read_write`",
             ))
-        } else if e2.is_convertible_to(ty) {
+        } else if e2.is_convertible_to(ty, context) {
             Ok(*ty.clone())
         } else {
             Err(E::Builtin(
@@ -2090,7 +2119,12 @@ pub fn atomicExchange(e1: &Type, e2: &Type) -> Result<Type, E> {
 /// `atomicCompareExchangeWeak()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#atomicCompareExchangeWeak-builtin>
-pub fn atomicCompareExchangeWeak(e1: &Type, e2: &Type, e3: &Type) -> Result<Type, E> {
+pub fn atomicCompareExchangeWeak(
+    e1: &Type,
+    e2: &Type,
+    e3: &Type,
+    context: &mut TyContext,
+) -> Result<Type, E> {
     let Type::Ptr(a_s, ptr_ty, a_m) = e1 else {
         return Err(E::Builtin(
             "`atomicCompareExchangeWeak` expects a pointer to atomic argument",
@@ -2109,20 +2143,22 @@ pub fn atomicCompareExchangeWeak(e1: &Type, e2: &Type, e3: &Type) -> Result<Type
         Err(E::Builtin(
             "the access mode of the atomic pointer argument must be `read_write`",
         ))
-    } else if !e2.is_convertible_to(ty) && !e3.is_convertible_to(ty) {
+    } else if !e2.is_convertible_to(ty, context) && !e3.is_convertible_to(ty, context) {
         Err(E::Builtin(
             "`atomicCompareExchangeWeak` 2nd and 3rd arguments are incompatible with the atomic pointer type",
         ))
-    } else if !e2.is_convertible_to(ty) {
+    } else if !e2.is_convertible_to(ty, context) {
         Err(E::Builtin(
             "`atomicCompareExchangeWeak` 2nd argument is incompatible with the atomic pointer type",
         ))
-    } else if !e3.is_convertible_to(ty) {
+    } else if !e3.is_convertible_to(ty, context) {
         Err(E::Builtin(
             "`atomicCompareExchangeWeak` 3rd argument is incompatible with the atomic pointer type",
         ))
     } else {
-        Ok(atomic_compare_exchange_struct_type(ty).into())
+        Ok(Type::Struct(atomic_compare_exchange_struct_type(
+            ty, context,
+        )))
     }
 }
 
@@ -2134,8 +2170,8 @@ pub fn atomicCompareExchangeWeak(e1: &Type, e2: &Type, e3: &Type) -> Result<Type
 /// `pack4x8snorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack4x8snorm-builtin>
-pub fn pack4x8snorm(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::Vec(4, Type::F32.into())) {
+pub fn pack4x8snorm(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(4, Type::F32.into()), context) {
         Ok(Type::U32)
     } else {
         Err(E::Builtin("`pack4x8snorm` expects a `vec4<f32>` argument"))
@@ -2145,8 +2181,8 @@ pub fn pack4x8snorm(e: &Type) -> Result<Type, E> {
 /// `pack4x8unorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack4x8unorm-builtin>
-pub fn pack4x8unorm(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::Vec(4, Type::F32.into())) {
+pub fn pack4x8unorm(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(4, Type::F32.into()), context) {
         Ok(Type::U32)
     } else {
         Err(E::Builtin("`pack4x8unorm` expects a `vec4<f32>` argument"))
@@ -2156,8 +2192,8 @@ pub fn pack4x8unorm(e: &Type) -> Result<Type, E> {
 /// `pack4xI8()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack4xI8-builtin>
-pub fn pack4xI8(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::Vec(4, Type::I32.into())) {
+pub fn pack4xI8(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(4, Type::I32.into()), context) {
         Ok(Type::U32)
     } else {
         Err(E::Builtin("`pack4xI8` expects a `vec4<i32>` argument"))
@@ -2167,8 +2203,8 @@ pub fn pack4xI8(e: &Type) -> Result<Type, E> {
 /// `pack4xU8()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack4xU8-builtin>
-pub fn pack4xU8(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::Vec(4, Type::U32.into())) {
+pub fn pack4xU8(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(4, Type::U32.into()), context) {
         Ok(Type::U32)
     } else {
         Err(E::Builtin("`pack4xU8` expects a `vec4<u32>` argument"))
@@ -2178,8 +2214,8 @@ pub fn pack4xU8(e: &Type) -> Result<Type, E> {
 /// `pack4xI8Clamp()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack4xI8Clamp-builtin>
-pub fn pack4xI8Clamp(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::Vec(4, Type::I32.into())) {
+pub fn pack4xI8Clamp(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(4, Type::I32.into()), context) {
         Ok(Type::U32)
     } else {
         Err(E::Builtin("`pack4xI8Clamp` expects a `vec4<i32>` argument"))
@@ -2189,8 +2225,8 @@ pub fn pack4xI8Clamp(e: &Type) -> Result<Type, E> {
 /// `pack4xU8Clamp()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack4xU8Clamp-builtin>
-pub fn pack4xU8Clamp(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::Vec(4, Type::U32.into())) {
+pub fn pack4xU8Clamp(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(4, Type::U32.into()), context) {
         Ok(Type::U32)
     } else {
         Err(E::Builtin("`pack4xU8Clamp` expects a `vec4<u32>` argument"))
@@ -2200,8 +2236,8 @@ pub fn pack4xU8Clamp(e: &Type) -> Result<Type, E> {
 /// `pack2x16snorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack2x16snorm-builtin>
-pub fn pack2x16snorm(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::Vec(2, Type::F32.into())) {
+pub fn pack2x16snorm(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(2, Type::F32.into()), context) {
         Ok(Type::U32)
     } else {
         Err(E::Builtin("`pack2x16snorm` expects a `vec2<f32>` argument"))
@@ -2211,8 +2247,8 @@ pub fn pack2x16snorm(e: &Type) -> Result<Type, E> {
 /// `pack2x16unorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack2x16unorm-builtin>
-pub fn pack2x16unorm(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::Vec(2, Type::F32.into())) {
+pub fn pack2x16unorm(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(2, Type::F32.into()), context) {
         Ok(Type::U32)
     } else {
         Err(E::Builtin("`pack2x16unorm` expects a `vec2<f32>` argument"))
@@ -2222,8 +2258,8 @@ pub fn pack2x16unorm(e: &Type) -> Result<Type, E> {
 /// `pack2x16float()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#pack2x16float-builtin>
-pub fn pack2x16float(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::Vec(2, Type::F32.into())) {
+pub fn pack2x16float(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::Vec(2, Type::F32.into()), context) {
         Ok(Type::U32)
     } else {
         Err(E::Builtin("`pack2x16float` expects a `vec2<f32>` argument"))
@@ -2233,8 +2269,8 @@ pub fn pack2x16float(e: &Type) -> Result<Type, E> {
 /// `unpack4x8snorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#unpack4x8snorm-builtin>
-pub fn unpack4x8snorm(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::U32) {
+pub fn unpack4x8snorm(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::U32, context) {
         Ok(Type::Vec(4, Type::F32.into()))
     } else {
         Err(E::Builtin("`unpack4x8snorm` expects a `u32` argument"))
@@ -2244,8 +2280,8 @@ pub fn unpack4x8snorm(e: &Type) -> Result<Type, E> {
 /// `unpack4x8unorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#unpack4x8unorm-builtin>
-pub fn unpack4x8unorm(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::U32) {
+pub fn unpack4x8unorm(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::U32, context) {
         Ok(Type::Vec(4, Type::F32.into()))
     } else {
         Err(E::Builtin("`unpack4x8unorm` expects a `u32` argument"))
@@ -2255,8 +2291,8 @@ pub fn unpack4x8unorm(e: &Type) -> Result<Type, E> {
 /// `unpack4xI8()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#unpack4xI8-builtin>
-pub fn unpack4xI8(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::U32) {
+pub fn unpack4xI8(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::U32, context) {
         Ok(Type::Vec(4, Type::I32.into()))
     } else {
         Err(E::Builtin("`unpack4xI8` expects a `u32` argument"))
@@ -2266,8 +2302,8 @@ pub fn unpack4xI8(e: &Type) -> Result<Type, E> {
 /// `unpack4xU8()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#unpack4xU8-builtin>
-pub fn unpack4xU8(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::U32) {
+pub fn unpack4xU8(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::U32, context) {
         Ok(Type::Vec(4, Type::U32.into()))
     } else {
         Err(E::Builtin("`unpack4xU8` expects a `u32` argument"))
@@ -2277,8 +2313,8 @@ pub fn unpack4xU8(e: &Type) -> Result<Type, E> {
 /// `unpack2x16snorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#unpack2x16snorm-builtin>
-pub fn unpack2x16snorm(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::U32) {
+pub fn unpack2x16snorm(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::U32, context) {
         Ok(Type::Vec(2, Type::F32.into()))
     } else {
         Err(E::Builtin("`unpack2x16snorm` expects a `u32` argument"))
@@ -2288,8 +2324,8 @@ pub fn unpack2x16snorm(e: &Type) -> Result<Type, E> {
 /// `unpack2x16unorm()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#unpack2x16unorm-builtin>
-pub fn unpack2x16unorm(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::U32) {
+pub fn unpack2x16unorm(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::U32, context) {
         Ok(Type::Vec(2, Type::F32.into()))
     } else {
         Err(E::Builtin("`unpack2x16unorm` expects a `u32` argument"))
@@ -2299,8 +2335,8 @@ pub fn unpack2x16unorm(e: &Type) -> Result<Type, E> {
 /// `unpack2x16float()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#unpack2x16float-builtin>
-pub fn unpack2x16float(e: &Type) -> Result<Type, E> {
-    if e.is_convertible_to(&Type::U32) {
+pub fn unpack2x16float(e: &Type, context: &TyContext) -> Result<Type, E> {
+    if e.is_convertible_to(&Type::U32, context) {
         Ok(Type::Vec(2, Type::F32.into()))
     } else {
         Err(E::Builtin("`unpack2x16float` expects a `u32` argument"))
@@ -2315,9 +2351,9 @@ pub fn unpack2x16float(e: &Type) -> Result<Type, E> {
 /// `subgroupAdd()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupAdd-builtin>
-pub fn subgroupAdd(e: &Type) -> Result<Type, E> {
+pub fn subgroupAdd(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_numeric(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupAdd` expects a numeric scalar or vector argument",
@@ -2328,9 +2364,9 @@ pub fn subgroupAdd(e: &Type) -> Result<Type, E> {
 /// `subgroupExclusiveAdd()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupExclusiveAdd-builtin>
-pub fn subgroupExclusiveAdd(e: &Type) -> Result<Type, E> {
+pub fn subgroupExclusiveAdd(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_numeric(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupExclusiveAdd` expects a numeric scalar or vector argument",
@@ -2341,9 +2377,9 @@ pub fn subgroupExclusiveAdd(e: &Type) -> Result<Type, E> {
 /// `subgroupInclusiveAdd()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupInclusiveAdd-builtin>
-pub fn subgroupInclusiveAdd(e: &Type) -> Result<Type, E> {
+pub fn subgroupInclusiveAdd(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_numeric(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupInclusiveAdd` expects a numeric scalar or vector argument",
@@ -2365,9 +2401,9 @@ pub fn subgroupAll(e: &Type) -> Result<Type, E> {
 /// `subgroupAnd()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupAnd-builtin>
-pub fn subgroupAnd(e: &Type) -> Result<Type, E> {
+pub fn subgroupAnd(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_integer(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupAnd` expects an integer scalar or vector argument",
@@ -2406,9 +2442,9 @@ pub fn subgroupBallot(pred: Option<&Type>) -> Result<Type, E> {
 /// `subgroupBroadcast()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupBroadcast-builtin>
-pub fn subgroupBroadcast(e: &Type, id: &Type) -> Result<Type, E> {
+pub fn subgroupBroadcast(e: &Type, id: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_numeric(e) && id.is_integer() {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupBroadcast` expects a numeric scalar or vector 1st argument and an integer 2nd argument",
@@ -2419,9 +2455,9 @@ pub fn subgroupBroadcast(e: &Type, id: &Type) -> Result<Type, E> {
 /// `subgroupBroadcastFirst()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupBroadcastFirst-builtin>
-pub fn subgroupBroadcastFirst(e: &Type) -> Result<Type, E> {
+pub fn subgroupBroadcastFirst(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_numeric(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupBroadcastFirst` expects a numeric scalar or vector argument",
@@ -2439,9 +2475,9 @@ pub fn subgroupElect() -> Result<Type, E> {
 /// `subgroupMax()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupMax-builtin>
-pub fn subgroupMax(e: &Type) -> Result<Type, E> {
+pub fn subgroupMax(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_numeric(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupMax` expects a numeric scalar or vector argument",
@@ -2452,9 +2488,9 @@ pub fn subgroupMax(e: &Type) -> Result<Type, E> {
 /// `subgroupMin()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupMin-builtin>
-pub fn subgroupMin(e: &Type) -> Result<Type, E> {
+pub fn subgroupMin(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_numeric(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupMin` expects a numeric scalar or vector argument",
@@ -2465,9 +2501,9 @@ pub fn subgroupMin(e: &Type) -> Result<Type, E> {
 /// `subgroupMul()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupMul-builtin>
-pub fn subgroupMul(e: &Type) -> Result<Type, E> {
+pub fn subgroupMul(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_numeric(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupMul` expects a numeric scalar or vector argument",
@@ -2478,9 +2514,9 @@ pub fn subgroupMul(e: &Type) -> Result<Type, E> {
 /// `subgroupExclusiveMul()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupExclusiveMul-builtin>
-pub fn subgroupExclusiveMul(e: &Type) -> Result<Type, E> {
+pub fn subgroupExclusiveMul(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_numeric(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupExclusiveMul` expects a numeric scalar or vector argument",
@@ -2491,9 +2527,9 @@ pub fn subgroupExclusiveMul(e: &Type) -> Result<Type, E> {
 /// `subgroupInclusiveMul()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupInclusiveMul-builtin>
-pub fn subgroupInclusiveMul(e: &Type) -> Result<Type, E> {
+pub fn subgroupInclusiveMul(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_numeric(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupInclusiveMul` expects a numeric scalar or vector argument",
@@ -2504,9 +2540,9 @@ pub fn subgroupInclusiveMul(e: &Type) -> Result<Type, E> {
 /// `subgroupOr()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupOr-builtin>
-pub fn subgroupOr(e: &Type) -> Result<Type, E> {
+pub fn subgroupOr(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_integer(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupOr` expects an integer scalar or vector argument",
@@ -2517,9 +2553,9 @@ pub fn subgroupOr(e: &Type) -> Result<Type, E> {
 /// `subgroupShuffle()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupShuffle-builtin>
-pub fn subgroupShuffle(e: &Type, id: &Type) -> Result<Type, E> {
+pub fn subgroupShuffle(e: &Type, id: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_numeric(e) && id.is_integer() {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupShuffle` expects a numeric scalar or vector 1st argument and an integer 2nd argument",
@@ -2530,9 +2566,9 @@ pub fn subgroupShuffle(e: &Type, id: &Type) -> Result<Type, E> {
 /// `subgroupShuffleDown()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupShuffleDown-builtin>
-pub fn subgroupShuffleDown(e: &Type, delta: &Type) -> Result<Type, E> {
-    if inner_is_numeric(e) && delta.is_convertible_to(&Type::U32) {
-        Ok(e.concretize())
+pub fn subgroupShuffleDown(e: &Type, delta: &Type, context: &TyContext) -> Result<Type, E> {
+    if inner_is_numeric(e) && delta.is_convertible_to(&Type::U32, context) {
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupShuffleDown` expects a numeric scalar or vector 1st argument and an integer 2nd argument",
@@ -2543,9 +2579,9 @@ pub fn subgroupShuffleDown(e: &Type, delta: &Type) -> Result<Type, E> {
 /// `subgroupShuffleUp()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupShuffleUp-builtin>
-pub fn subgroupShuffleUp(e: &Type, delta: &Type) -> Result<Type, E> {
-    if inner_is_numeric(e) && delta.is_convertible_to(&Type::U32) {
-        Ok(e.concretize())
+pub fn subgroupShuffleUp(e: &Type, delta: &Type, context: &TyContext) -> Result<Type, E> {
+    if inner_is_numeric(e) && delta.is_convertible_to(&Type::U32, context) {
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupShuffleUp` expects a numeric scalar or vector 1st argument and an integer 2nd argument",
@@ -2556,9 +2592,9 @@ pub fn subgroupShuffleUp(e: &Type, delta: &Type) -> Result<Type, E> {
 /// `subgroupShuffleXor()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupShuffleXor-builtin>
-pub fn subgroupShuffleXor(e: &Type, mask: &Type) -> Result<Type, E> {
-    if inner_is_numeric(e) && mask.is_convertible_to(&Type::U32) {
-        Ok(e.concretize())
+pub fn subgroupShuffleXor(e: &Type, mask: &Type, context: &TyContext) -> Result<Type, E> {
+    if inner_is_numeric(e) && mask.is_convertible_to(&Type::U32, context) {
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupShuffleXor` expects a numeric scalar or vector 1st argument and an integer 2nd argument",
@@ -2569,9 +2605,9 @@ pub fn subgroupShuffleXor(e: &Type, mask: &Type) -> Result<Type, E> {
 /// `subgroupXor()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#subgroupXor-builtin>
-pub fn subgroupXor(e: &Type) -> Result<Type, E> {
+pub fn subgroupXor(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_integer(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`subgroupXor` expects an integer scalar or vector argument",
@@ -2587,9 +2623,9 @@ pub fn subgroupXor(e: &Type) -> Result<Type, E> {
 /// `quadBroadcast()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#quadBroadcast-builtin>
-pub fn quadBroadcast(e: &Type, id: &Type) -> Result<Type, E> {
+pub fn quadBroadcast(e: &Type, id: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_numeric(e) && id.is_integer() {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`quadBroadcast` expects a numeric scalar or vector 1st argument and an integer 2nd argument",
@@ -2600,9 +2636,9 @@ pub fn quadBroadcast(e: &Type, id: &Type) -> Result<Type, E> {
 /// `quadSwapDiagonal()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#quadSwapDiagonal-builtin>
-pub fn quadSwapDiagonal(e: &Type) -> Result<Type, E> {
+pub fn quadSwapDiagonal(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_numeric(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`quadSwapDiagonal` expects a numeric scalar or vector argument",
@@ -2613,9 +2649,9 @@ pub fn quadSwapDiagonal(e: &Type) -> Result<Type, E> {
 /// `quadSwapX()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#quadSwapX-builtin>
-pub fn quadSwapX(e: &Type) -> Result<Type, E> {
+pub fn quadSwapX(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_numeric(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`quadSwapX` expects a numeric scalar or vector argument",
@@ -2626,9 +2662,9 @@ pub fn quadSwapX(e: &Type) -> Result<Type, E> {
 /// `quadSwapY()` builtin function.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#quadSwapY-builtin>
-pub fn quadSwapY(e: &Type) -> Result<Type, E> {
+pub fn quadSwapY(e: &Type, context: &TyContext) -> Result<Type, E> {
     if inner_is_numeric(e) {
-        Ok(e.concretize())
+        Ok(e.concretize(context))
     } else {
         Err(E::Builtin(
             "`quadSwapY` expects a numeric scalar or vector argument",
@@ -2645,12 +2681,17 @@ pub fn quadSwapY(e: &Type) -> Result<Type, E> {
 
 /// `rayQueryInitialize()` `naga` built-in function.
 #[cfg(feature = "naga-ext")]
-pub fn rayQueryInitialize(rq: &Type, accel_struct: &Type, ray_desc: &Type) -> Result<(), E> {
+pub fn rayQueryInitialize(
+    rq: &Type,
+    accel_struct: &Type,
+    ray_desc: &Type,
+    context: &TyContext,
+) -> Result<(), E> {
     if matches!(
         rq,
         Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
     ) && matches!(accel_struct, Type::AccelerationStructure(_))
-        && matches!(ray_desc, Type::Struct(s) if s.name == "RayDesc")
+        && matches!(ray_desc, Type::Struct(s) if context[*s].name == "RayDesc")
     {
         Ok(())
     } else {
@@ -2677,7 +2718,7 @@ pub fn rayQueryProceed(rq: &Type) -> Result<Type, E> {
 
 /// `rayQueryGenerateIntersection()` `naga` built-in function.
 #[cfg(feature = "naga-ext")]
-pub fn rayQueryGenerateIntersection(rq: &Type, hit_t: &Type) -> Result<(), E> {
+pub fn rayQueryGenerateIntersection(rq: &Type, hit_t: &Type, context: &TyContext) -> Result<(), E> {
     if !matches!(
         rq,
         Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
@@ -2685,7 +2726,7 @@ pub fn rayQueryGenerateIntersection(rq: &Type, hit_t: &Type) -> Result<(), E> {
         Err(E::Builtin(
             "`rayQueryGenerateIntersection` 1st argument must be a pointer to `ray_query`",
         ))
-    } else if hit_t.is_convertible_to(&Type::F32) {
+    } else if hit_t.is_convertible_to(&Type::F32, context) {
         Ok(())
     } else {
         Err(E::Builtin(
@@ -2726,12 +2767,12 @@ pub fn rayQueryTerminate(rq: &Type) -> Result<(), E> {
 
 /// `rayQueryGetCommittedIntersection()` `naga` built-in function.
 #[cfg(feature = "naga-ext")]
-pub fn rayQueryGetCommittedIntersection(e: &Type) -> Result<Type, E> {
+pub fn rayQueryGetCommittedIntersection(e: &Type, context: &mut TyContext) -> Result<Type, E> {
     if matches!(
         e,
         Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
     ) {
-        Ok(ray_intersection_struct_type().into())
+        Ok(Type::Struct(ray_intersection_struct_type(context)))
     } else {
         Err(E::Builtin(
             "`rayQueryGetCommittedIntersection` expects a pointer to `ray_query` argument",
@@ -2741,12 +2782,12 @@ pub fn rayQueryGetCommittedIntersection(e: &Type) -> Result<Type, E> {
 
 /// `rayQueryGetCandidateIntersection()` `naga` built-in function.
 #[cfg(feature = "naga-ext")]
-pub fn rayQueryGetCandidateIntersection(e: &Type) -> Result<Type, E> {
+pub fn rayQueryGetCandidateIntersection(e: &Type, context: &mut TyContext) -> Result<Type, E> {
     if matches!(
         e,
         Type::Ptr(AddressSpace::Function, t, AccessMode::ReadWrite) if matches!(**t, Type::RayQuery(_))
     ) {
-        Ok(ray_intersection_struct_type().into())
+        Ok(Type::Struct(ray_intersection_struct_type(context)))
     } else {
         Err(E::Builtin(
             "`rayQueryGetCandidateIntersection` expects a pointer to `ray_query` argument",
@@ -2797,9 +2838,14 @@ pub fn getCandidateHitVertexPositions(e: &Type) -> Result<Type, E> {
 
 /// `traceRay()` `naga` built-in function.
 #[cfg(feature = "naga-ext")]
-pub fn traceRay(accel_struct: &Type, ray_desc: &Type, payload: &Type) -> Result<(), E> {
+pub fn traceRay(
+    accel_struct: &Type,
+    ray_desc: &Type,
+    payload: &Type,
+    context: &TyContext,
+) -> Result<(), E> {
     if matches!(accel_struct, Type::AccelerationStructure(_))
-        && matches!(ray_desc, Type::Struct(s) if s.name == "RayDesc")
+        && matches!(ray_desc, Type::Struct(s) if context[*s].name == "RayDesc")
         && matches!(
             payload,
             Type::Ptr(

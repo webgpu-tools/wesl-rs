@@ -13,6 +13,7 @@ use crate::{
     inst::{ArrayInstance, LiteralInstance, MatInstance, StructInstance, VecInstance},
     syntax::AccessMode,
     ty::{Ty, Type},
+    ty_context::TyContext,
 };
 
 pub trait Convert: Sized + Clone + Ty {
@@ -21,7 +22,7 @@ pub trait Convert: Sized + Clone + Ty {
     /// E.g. `array<u32>.convert_inner_to(array<f32>)` becomes `array<f32>`.
     ///
     /// Reference: <https://www.w3.org/TR/WGSL/#conversion-rank>
-    fn convert_to(&self, ty: &Type) -> Option<Self>;
+    fn convert_to(&self, ty: &Type, context: &TyContext) -> Option<Self>;
 
     /// Convert an instance by changing its inner type to another.
     ///
@@ -34,54 +35,54 @@ pub trait Convert: Sized + Clone + Ty {
     ///
     /// See [`Ty::inner_ty`]
     /// See [`Convert::convert_to`]
-    fn convert_inner_to(&self, ty: &Type) -> Option<Self> {
-        self.convert_to(ty)
+    fn convert_inner_to(&self, ty: &Type, context: &TyContext) -> Option<Self> {
+        self.convert_to(ty, context)
     }
 
     /// Convert an abstract instance to a concrete type.
     ///
     /// E.g. `array<vec<AbstractInt>>` becomes `array<vec<i32>>`.
-    fn concretize(&self) -> Option<Self> {
-        self.convert_to(&self.ty().concretize())
+    fn concretize(&self, context: &TyContext) -> Option<Self> {
+        self.convert_to(&self.ty().concretize(context), context)
     }
 }
 
 impl Convert for Type {
-    fn convert_to(&self, ty: &Type) -> Option<Self> {
-        self.is_convertible_to(ty).then_some(ty.clone())
+    fn convert_to(&self, ty: &Type, context: &TyContext) -> Option<Self> {
+        self.is_convertible_to(ty, context).then_some(ty.clone())
     }
-    fn convert_inner_to(&self, ty: &Type) -> Option<Self> {
+    fn convert_inner_to(&self, ty: &Type, context: &TyContext) -> Option<Self> {
         match self {
             Type::Array(inner, n) => inner
-                .convert_to(ty)
+                .convert_to(ty, context)
                 .map(|inner| Type::Array(inner.into(), *n)),
             Type::Vec(n, inner) => inner
-                .convert_to(ty)
+                .convert_to(ty, context)
                 .map(|inner| Type::Vec(*n, inner.into())),
             Type::Mat(c, r, inner) => inner
-                .convert_to(ty)
+                .convert_to(ty, context)
                 .map(|inner| Type::Mat(*c, *r, inner.into())),
             Type::Atomic(_) => (self == ty).then_some(ty.clone()),
             Type::Ptr(_, _, _) => (self == ty).then_some(ty.clone()),
-            _ => self.convert_to(ty), // for types that don't have an inner ty
+            _ => self.convert_to(ty, context), // for types that don't have an inner ty
         }
     }
-    fn concretize(&self) -> Option<Self> {
-        Some(self.concretize())
+    fn concretize(&self, context: &TyContext) -> Option<Self> {
+        Some(self.concretize(context))
     }
 }
 
 impl Type {
-    pub fn is_convertible_to(&self, ty: &Type) -> bool {
-        conversion_rank(self, ty).is_some()
+    pub fn is_convertible_to(&self, ty: &Type, context: &TyContext) -> bool {
+        conversion_rank(self, ty, context).is_some()
     }
-    pub fn concretize(&self) -> Self {
+    pub fn concretize(&self, context: &TyContext) -> Self {
         match self {
             Self::AbstractInt => Type::I32,
             Self::AbstractFloat => Type::F32,
-            Self::Array(ty, n) => Type::Array(ty.concretize().into(), *n),
-            Self::Vec(n, ty) => Type::Vec(*n, ty.concretize().into()),
-            Self::Mat(c, r, ty) if ty.is_abstract() => Type::Mat(*c, *r, Type::F32.into()),
+            Self::Array(ty, n) => Type::Array(ty.concretize(context).into(), *n),
+            Self::Vec(n, ty) => Type::Vec(*n, ty.concretize(context).into()),
+            Self::Mat(c, r, ty) if ty.is_abstract(context) => Type::Mat(*c, *r, Type::F32.into()),
             _ => self.clone(),
         }
     }
@@ -99,16 +100,16 @@ impl Type {
 }
 
 impl Instance {
-    pub fn is_convertible_to(&self, ty: &Type) -> bool {
-        self.ty().is_convertible_to(ty)
+    pub fn is_convertible_to(&self, ty: &Type, context: &TyContext) -> bool {
+        self.ty().is_convertible_to(ty, context)
     }
 
     /// Apply the load rule.
     ///
     /// Reference: <https://www.w3.org/TR/WGSL/#load-rule>
-    pub fn loaded(mut self) -> Result<Self, Error> {
+    pub fn loaded(mut self, context: &TyContext) -> Result<Self, Error> {
         while let Instance::Ref(r) = self {
-            self = r.read()?.to_owned();
+            self = r.read(context)?.to_owned();
         }
         Ok(self)
     }
@@ -138,7 +139,7 @@ impl LiteralInstance {
 }
 
 impl Convert for LiteralInstance {
-    fn convert_to(&self, ty: &Type) -> Option<Self> {
+    fn convert_to(&self, ty: &Type, _context: &TyContext) -> Option<Self> {
         if ty == &self.ty() {
             return Some(*self);
         }
@@ -162,33 +163,33 @@ impl Convert for LiteralInstance {
 }
 
 impl Convert for ArrayInstance {
-    fn convert_to(&self, ty: &Type) -> Option<Self> {
+    fn convert_to(&self, ty: &Type, context: &TyContext) -> Option<Self> {
         if let Type::Array(c_ty, Some(n)) = ty {
             if *n == self.n() {
-                self.convert_inner_to(c_ty)
+                self.convert_inner_to(c_ty, context)
             } else {
                 None
             }
         } else if let Type::Array(c_ty, None) = ty {
-            self.convert_inner_to(c_ty)
+            self.convert_inner_to(c_ty, context)
         } else {
             None
         }
     }
-    fn convert_inner_to(&self, ty: &Type) -> Option<Self> {
+    fn convert_inner_to(&self, ty: &Type, context: &TyContext) -> Option<Self> {
         let components = self
             .iter()
-            .map(|c| c.convert_to(ty))
+            .map(|c| c.convert_to(ty, context))
             .collect::<Option<Vec<_>>>()?;
         Some(ArrayInstance::new(components, self.runtime_sized))
     }
 }
 
 impl Convert for VecInstance {
-    fn convert_to(&self, ty: &Type) -> Option<Self> {
+    fn convert_to(&self, ty: &Type, context: &TyContext) -> Option<Self> {
         if let Type::Vec(n, c_ty) = ty {
             if *n as usize == self.n() {
-                self.convert_inner_to(c_ty)
+                self.convert_inner_to(c_ty, context)
             } else {
                 None
             }
@@ -196,20 +197,20 @@ impl Convert for VecInstance {
             None
         }
     }
-    fn convert_inner_to(&self, ty: &Type) -> Option<Self> {
+    fn convert_inner_to(&self, ty: &Type, context: &TyContext) -> Option<Self> {
         let components = self
             .iter()
-            .map(|c| c.convert_to(ty))
+            .map(|c| c.convert_to(ty, context))
             .collect::<Option<Vec<_>>>()?;
         Some(VecInstance::new(components))
     }
 }
 
 impl Convert for MatInstance {
-    fn convert_to(&self, ty: &Type) -> Option<Self> {
+    fn convert_to(&self, ty: &Type, context: &TyContext) -> Option<Self> {
         if let Type::Mat(c, r, c_ty) = ty {
             if *c as usize == self.c() && *r as usize == self.r() {
-                self.convert_inner_to(c_ty)
+                self.convert_inner_to(c_ty, context)
             } else {
                 None
             }
@@ -217,40 +218,40 @@ impl Convert for MatInstance {
             None
         }
     }
-    fn convert_inner_to(&self, ty: &Type) -> Option<Self> {
+    fn convert_inner_to(&self, ty: &Type, context: &TyContext) -> Option<Self> {
         let components = self
             .iter_cols()
-            .map(|c| c.convert_inner_to(ty))
+            .map(|c| c.convert_inner_to(ty, context))
             .collect::<Option<Vec<_>>>()?;
         Some(MatInstance::from_cols(components))
     }
 }
 
 impl Convert for StructInstance {
-    fn convert_to(&self, ty: &Type) -> Option<Self> {
+    fn convert_to(&self, ty: &Type, context: &TyContext) -> Option<Self> {
         if &self.ty() == ty {
             Some(self.clone())
         } else if let Type::Struct(s2) = ty {
-            let s1 = &self.ty;
-            if s1.name.starts_with("__") && s2.name.starts_with("__") {
+            let s1 = self.ty;
+            if context[s1].name.starts_with("__") && context[*s2].name.starts_with("__") {
                 // this is a struct type conversion of built-in types.
                 // __frexp_result_* or __modf_result_*
                 // TODO: here we just assume that s2 is a variant of s1. We should
                 // check.
-                if s2.name.ends_with("f32") {
+                if context[*s2].name.ends_with("f32") {
                     let members = self
                         .members
                         .iter()
-                        .map(|inst| inst.convert_inner_to(&Type::F32))
+                        .map(|inst| inst.convert_inner_to(&Type::F32, context))
                         .collect::<Option<Vec<_>>>()?;
-                    Some(StructInstance::new((**s2).clone(), members))
-                } else if s2.name.ends_with("f16") {
+                    Some(StructInstance::new(*s2, members, context))
+                } else if context[*s2].name.ends_with("f16") {
                     let members = self
                         .members
                         .iter()
-                        .map(|inst| inst.convert_inner_to(&Type::F16))
+                        .map(|inst| inst.convert_inner_to(&Type::F16, context))
                         .collect::<Option<Vec<_>>>()?;
-                    Some(StructInstance::new((**s2).clone(), members))
+                    Some(StructInstance::new(*s2, members, context))
                 } else {
                     None
                 }
@@ -264,32 +265,35 @@ impl Convert for StructInstance {
 }
 
 impl Convert for Instance {
-    fn convert_to(&self, ty: &Type) -> Option<Self> {
+    fn convert_to(&self, ty: &Type, context: &TyContext) -> Option<Self> {
         if &self.ty() == ty {
             return Some(self.clone());
         }
         match self {
-            Self::Literal(l) => l.convert_to(ty).map(Self::Literal),
-            Self::Struct(s) => s.convert_to(ty).map(Self::Struct),
-            Self::Array(a) => a.convert_to(ty).map(Self::Array),
-            Self::Vec(v) => v.convert_to(ty).map(Self::Vec),
-            Self::Mat(m) => m.convert_to(ty).map(Self::Mat),
+            Self::Literal(l) => l.convert_to(ty, context).map(Self::Literal),
+            Self::Struct(s) => s.convert_to(ty, context).map(Self::Struct),
+            Self::Array(a) => a.convert_to(ty, context).map(Self::Array),
+            Self::Vec(v) => v.convert_to(ty, context).map(Self::Vec),
+            Self::Mat(m) => m.convert_to(ty, context).map(Self::Mat),
             Self::Ptr(_) => None,
-            Self::Ref(r) => r.read().ok().and_then(|r| r.convert_to(ty)), // this is the "load rule". Also performed by `eval_value`.
+            Self::Ref(r) => r.read(context).ok().and_then(|r| r.convert_to(ty, context)), // this is the "load rule". Also performed by `eval_value`.
             Self::Atomic(_) => None,
             Self::Opaque(_) => None,
         }
     }
 
-    fn convert_inner_to(&self, ty: &Type) -> Option<Self> {
+    fn convert_inner_to(&self, ty: &Type, context: &TyContext) -> Option<Self> {
         match self {
-            Self::Literal(l) => l.convert_inner_to(ty).map(Self::Literal),
+            Self::Literal(l) => l.convert_inner_to(ty, context).map(Self::Literal),
             Self::Struct(_) => None,
-            Self::Array(a) => a.convert_inner_to(ty).map(Self::Array),
-            Self::Vec(v) => v.convert_inner_to(ty).map(Self::Vec),
-            Self::Mat(m) => m.convert_inner_to(ty).map(Self::Mat),
+            Self::Array(a) => a.convert_inner_to(ty, context).map(Self::Array),
+            Self::Vec(v) => v.convert_inner_to(ty, context).map(Self::Vec),
+            Self::Mat(m) => m.convert_inner_to(ty, context).map(Self::Mat),
             Self::Ptr(_) => None,
-            Self::Ref(r) => r.read().ok().and_then(|r| r.convert_inner_to(ty)), // this is the "load rule". Also performed by `eval_value`.
+            Self::Ref(r) => r
+                .read(context)
+                .ok()
+                .and_then(|r| r.convert_inner_to(ty, context)), // this is the "load rule". Also performed by `eval_value`.
             Self::Atomic(_) => None,
             Self::Opaque(_) => None,
         }
@@ -297,7 +301,7 @@ impl Convert for Instance {
 }
 
 /// Implements the [conversion rank algorithm](https://www.w3.org/TR/WGSL/#conversion-rank)
-pub fn conversion_rank(ty1: &Type, ty2: &Type) -> Option<u32> {
+pub fn conversion_rank(ty1: &Type, ty2: &Type, context: &TyContext) -> Option<u32> {
     // reference: <https://www.w3.org/TR/WGSL/#conversion-rank>
     match (ty1, ty2) {
         (_, _) if ty1 == ty2 => Some(0),
@@ -313,10 +317,10 @@ pub fn conversion_rank(ty1: &Type, ty2: &Type) -> Option<u32> {
         (Type::AbstractFloat, Type::F16) => Some(2),
         // frexp and modf
         (Type::Struct(s1), Type::Struct(s2)) => {
-            if s1.name.starts_with("__") && s1.name.ends_with("abstract") {
-                if s2.name.ends_with("f32") {
+            if context[*s1].name.starts_with("__") && context[*s1].name.ends_with("abstract") {
+                if context[*s2].name.ends_with("f32") {
                     Some(1)
-                } else if s2.name.ends_with("f16") {
+                } else if context[*s2].name.ends_with("f16") {
                     Some(2)
                 } else {
                     None
@@ -325,10 +329,12 @@ pub fn conversion_rank(ty1: &Type, ty2: &Type) -> Option<u32> {
                 None
             }
         }
-        (Type::Array(ty1, n1), Type::Array(ty2, n2)) if n1 == n2 => conversion_rank(ty1, ty2),
-        (Type::Vec(n1, ty1), Type::Vec(n2, ty2)) if n1 == n2 => conversion_rank(ty1, ty2),
+        (Type::Array(ty1, n1), Type::Array(ty2, n2)) if n1 == n2 => {
+            conversion_rank(ty1, ty2, context)
+        }
+        (Type::Vec(n1, ty1), Type::Vec(n2, ty2)) if n1 == n2 => conversion_rank(ty1, ty2, context),
         (Type::Mat(c1, r1, ty1), Type::Mat(c2, r2, ty2)) if c1 == c2 && r1 == r2 => {
-            conversion_rank(ty1, ty2)
+            conversion_rank(ty1, ty2, context)
         }
         _ => None,
     }
@@ -336,11 +342,11 @@ pub fn conversion_rank(ty1: &Type, ty2: &Type) -> Option<u32> {
 
 /// Performs overload resolution when two instances of T are involved (which is the most common).
 /// it just makes sure that the two instance types are the same. This is sufficient in most cases.
-pub fn convert<T: Convert + Ty + Clone>(i1: &T, i2: &T) -> Option<(T, T)> {
+pub fn convert<T: Convert + Ty + Clone>(i1: &T, i2: &T, context: &TyContext) -> Option<(T, T)> {
     let (ty1, ty2) = (i1.ty(), i2.ty());
-    let ty = convert_ty(&ty1, &ty2)?;
-    let i1 = i1.convert_to(ty)?;
-    let i2 = i2.convert_to(ty)?;
+    let ty = convert_ty(&ty1, &ty2, context)?;
+    let i1 = i1.convert_to(ty, context)?;
+    let i2 = i2.convert_to(ty, context)?;
     Some((i1, i2))
 }
 
@@ -348,26 +354,34 @@ pub fn convert<T: Convert + Ty + Clone>(i1: &T, i2: &T) -> Option<(T, T)> {
 pub fn convert_inner<T1: Convert + Ty + Clone, T2: Convert + Ty + Clone>(
     i1: &T1,
     i2: &T2,
+    context: &TyContext,
 ) -> Option<(T1, T2)> {
     let (ty1, ty2) = (i1.inner_ty(), i2.inner_ty());
-    let ty = convert_ty(&ty1, &ty2)?;
-    let i1 = i1.convert_inner_to(ty)?;
-    let i2 = i2.convert_inner_to(ty)?;
+    let ty = convert_ty(&ty1, &ty2, context)?;
+    let i1 = i1.convert_inner_to(ty, context)?;
+    let i2 = i2.convert_inner_to(ty, context)?;
     Some((i1, i2))
 }
 
 /// See [`convert`]
-pub fn convert_all<'a, T: Convert + Ty + Clone + 'a>(insts: &[T]) -> Option<Vec<T>> {
+pub fn convert_all<'a, T: Convert + Ty + Clone + 'a>(
+    insts: &[T],
+    context: &TyContext,
+) -> Option<Vec<T>> {
     let tys = insts.iter().map(|i| i.ty()).collect_vec();
-    let ty = convert_all_ty(&tys)?;
-    convert_all_to(insts, ty)
+    let ty = convert_all_ty(&tys, context)?;
+    convert_all_to(insts, ty, context)
 }
 
 /// See [`convert`]
-pub fn convert_all_to<'a, T: Convert + Ty + Clone + 'a>(insts: &[T], ty: &Type) -> Option<Vec<T>> {
+pub fn convert_all_to<'a, T: Convert + Ty + Clone + 'a>(
+    insts: &[T],
+    ty: &Type,
+    context: &TyContext,
+) -> Option<Vec<T>> {
     insts
         .iter()
-        .map(|inst| inst.convert_to(ty))
+        .map(|inst| inst.convert_to(ty, context))
         .collect::<Option<Vec<_>>>()
 }
 
@@ -375,25 +389,29 @@ pub fn convert_all_to<'a, T: Convert + Ty + Clone + 'a>(insts: &[T], ty: &Type) 
 pub fn convert_all_inner_to<'a, T: Convert + Ty + Clone + 'a>(
     insts: &[T],
     ty: &Type,
+    context: &TyContext,
 ) -> Option<Vec<T>> {
     insts
         .iter()
-        .map(|inst| inst.convert_inner_to(ty))
+        .map(|inst| inst.convert_inner_to(ty, context))
         .collect::<Option<Vec<_>>>()
 }
 
 /// Performs overload resolution when two instances of T are involved (which is the most common).
 /// it just makes sure that the two types are the same. This is sufficient in most cases.
-pub fn convert_ty<'a>(ty1: &'a Type, ty2: &'a Type) -> Option<&'a Type> {
-    conversion_rank(ty1, ty2)
+pub fn convert_ty<'a>(ty1: &'a Type, ty2: &'a Type, context: &TyContext) -> Option<&'a Type> {
+    conversion_rank(ty1, ty2, context)
         .map(|_rank| ty2)
-        .or_else(|| conversion_rank(ty2, ty1).map(|_rank| ty1))
+        .or_else(|| conversion_rank(ty2, ty1, context).map(|_rank| ty1))
 }
 
 /// Performs overload resolution (find the type that all others can be automatically converted to)
-pub fn convert_all_ty<'a>(tys: impl IntoIterator<Item = &'a Type> + 'a) -> Option<&'a Type> {
+pub fn convert_all_ty<'a>(
+    tys: impl IntoIterator<Item = &'a Type> + 'a,
+    context: &TyContext,
+) -> Option<&'a Type> {
     tys.into_iter()
         .map(Option::Some)
-        .reduce(|ty1, ty2| convert_ty(ty1?, ty2?))
+        .reduce(|ty1, ty2| convert_ty(ty1?, ty2?, context))
         .flatten()
 }

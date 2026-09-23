@@ -12,7 +12,9 @@ use std::{
 use wesl::{
     CompileOptions, CompileResult, Compiler, Feature, Features, ManglerKind,
     error::Diagnostic,
-    eval::{Eval, EvalAttrs, Inputs, Instance, LiteralInstance, RefInstance, Ty, ty_eval_ty},
+    eval::{
+        Eval, EvalAttrs, Inputs, Instance, LiteralInstance, RefInstance, Ty, TyContext, ty_eval_ty,
+    },
     package::PackageBuilder,
     resolver::{Router, StandardResolver, VirtualResolver},
     syntax::{self, AccessMode, AddressSpace, ModulePath, PathOrigin, TranslationUnit},
@@ -211,7 +213,7 @@ impl TryFrom<&CompOptsArgs> for CompileOptions {
                 |(name, expr)| -> Result<(String, LiteralInstance), CliError> {
                     let expr = expr
                         .parse::<syntax::LiteralExpression>()
-                        .map_err(|e| Diagnostic::from(e).with_source(expr.to_string()))?;
+                        .map_err(|e| Diagnostic::new(e.into()).with_source(expr.to_string()))?;
                     Ok((name.to_string(), LiteralInstance::from(expr)))
                 },
             )
@@ -422,15 +424,23 @@ enum CliError {
     #[error("resource `@group({0}) @binding({1})` not found")]
     ResourceNotFound(u32, u32),
     #[error(
-        "resource `@group({0}) @binding({1})` ({2} bytes) is incompatible with type `{3}` ({4} bytes)"
+        "resource `@group({group_id}) @binding({binding_id})` ({size} bytes) is incompatible with type `{}` ({ty_size} bytes)",
+        context.display(ty)
     )]
-    ResourceIncompatible(u32, u32, u32, wesl::eval::Type, u32),
-    #[error("Could not convert instance to buffer (type `{0}` is not storable)")]
-    NotStorable(wesl::eval::Type),
+    ResourceIncompatible {
+        group_id: u32,
+        binding_id: u32,
+        size: u32,
+        ty: wesl::eval::Type,
+        ty_size: u32,
+        context: Box<TyContext>,
+    },
+    #[error("Could not convert instance to buffer (type `{}` is not storable)", .1.display(.0))]
+    NotStorable(wesl::eval::Type, Box<TyContext>),
     #[error("{0}")]
     WeslError(#[from] wesl::error::Error),
     #[error("{0}")]
-    WeslDiagnostic(#[from] wesl::error::Diagnostic<wesl::error::Error>),
+    WeslDiagnostic(#[from] wesl::error::Diagnostic),
     #[cfg(feature = "naga")]
     #[error("naga parse error: {}", .0.emit_to_string(.1))]
     NagaParse(naga::front::wgsl::ParseError, String),
@@ -488,8 +498,9 @@ fn run_compile(
 fn parse_binding(
     b: &Binding,
     module: &TranslationUnit,
+    ty_context: &mut TyContext,
 ) -> Result<((u32, u32), RefInstance), CliError> {
-    let mut ctx = wesl::eval::Context::new(module);
+    let mut ctx = wesl::eval::Context::new(module, ty_context);
 
     let ty_expr = module
         .global_declarations
@@ -508,9 +519,12 @@ fn parse_binding(
         .ok_or(CliError::ResourceNotFound(b.group, b.binding))?;
 
     let ty = ty_eval_ty(&ty_expr, &mut ctx).map_err(|e| {
-        Diagnostic::from(e)
-            .with_ctx(&ctx)
-            .with_source(ty_expr.to_string())
+        Diagnostic::new(wesl::Error::EvalError(
+            e,
+            ctx.ty_context().clone_for_error(),
+        ))
+        .with_ctx(&ctx)
+        .with_source(ty_expr.to_string())
     })?;
     let (storage, access) = match b.kind {
         BindingType::Uniform => (AddressSpace::Uniform, AccessMode::Read),
@@ -528,14 +542,15 @@ fn parse_binding(
         BindingType::ReadWrite => todo!(),
         BindingType::ReadOnly => todo!(),
     };
-    let inst = Instance::from_buffer(&b.data, &ty).ok_or_else(|| {
-        CliError::ResourceIncompatible(
-            b.group,
-            b.binding,
-            b.data.len() as u32,
-            ty.clone(),
-            ty.size_of().unwrap_or_default(),
-        )
+    let inst = Instance::from_buffer(&b.data, &ty, ctx.ty_context()).ok_or_else(|| {
+        CliError::ResourceIncompatible {
+            group_id: b.group,
+            binding_id: b.binding,
+            size: b.data.len() as u32,
+            ty: ty.clone(),
+            ty_size: ty.size_of(ctx.ty_context()).unwrap_or_default(),
+            context: ctx.ty_context().clone_for_error(),
+        }
     })?;
     Ok((
         (b.group, b.binding),
@@ -543,15 +558,22 @@ fn parse_binding(
     ))
 }
 
-fn eval_expr(src: &str, module: &TranslationUnit) -> Result<Instance, CliError> {
-    let mut ctx = wesl::eval::Context::new(module);
+fn eval_expr(
+    src: &str,
+    module: &TranslationUnit,
+    ty_context: &mut TyContext,
+) -> Result<Instance, CliError> {
+    let mut ctx = wesl::eval::Context::new(module, ty_context);
     let expr = src
         .parse::<syntax::Expression>()
-        .map_err(|e| Diagnostic::from(e).with_source(src.to_string()))?;
+        .map_err(|e| Diagnostic::new(e.into()).with_source(src.to_string()))?;
     let inst = expr.eval_value(&mut ctx).map_err(|e| {
-        Diagnostic::from(e)
-            .with_ctx(&ctx)
-            .with_source(src.to_string())
+        Diagnostic::new(wesl::Error::EvalError(
+            e,
+            ctx.ty_context().clone_for_error(),
+        ))
+        .with_ctx(&ctx)
+        .with_source(src.to_string())
     })?;
     Ok(inst)
 }
@@ -610,7 +632,7 @@ fn run(cli: Cli) -> Result<(), CliError> {
             match &args.kind {
                 CheckKind::Wgsl => {
                     let mut module = wgsl_parse::parse_str(&source)
-                        .map_err(|e| Diagnostic::from(e).with_source(source.clone()))?;
+                        .map_err(|e| Diagnostic::new(e.into()).with_source(source.clone()))?;
                     wesl::pass::retarget_idents(&mut module);
                     wesl::pass::validate_wgsl(&module)?;
 
@@ -621,7 +643,7 @@ fn run(cli: Cli) -> Result<(), CliError> {
                 }
                 CheckKind::Wesl => {
                     let mut module = TranslationUnit::from_str(&source)
-                        .map_err(|e| Diagnostic::from(e).with_source(source))?;
+                        .map_err(|e| Diagnostic::new(e.into()).with_source(source))?;
                     wesl::pass::retarget_idents(&mut module);
                     wesl::pass::validate_wesl(&module)?;
                 }
@@ -642,61 +664,70 @@ fn run(cli: Cli) -> Result<(), CliError> {
             let comp = file_or_source(args.file)
                 .map(|input| run_compile(&args.options, input))
                 .unwrap_or_else(|| Ok(CompileResult::default()))?;
-            let eval = comp.eval(&args.expr)?;
+            let mut ty_context = TyContext::default();
+            let eval = comp.eval(&args.expr, &mut ty_context)?;
             if args.binary {
-                let buf = eval
-                    .inst
-                    .to_buffer()
-                    .ok_or_else(|| CliError::NotStorable(eval.inst.ty()))?;
+                let buf = eval.inst.to_buffer(eval.ctx.ty_context()).ok_or_else(|| {
+                    CliError::NotStorable(eval.inst.ty(), eval.ctx.ty_context().clone_for_error())
+                })?;
                 std::io::stdout().write_all(buf.as_slice()).unwrap();
             } else {
-                println!("{}", eval.inst)
+                println!("{}", eval.ctx.ty_context().display(&eval.inst))
             }
         }
         Command::Exec(args) => {
             let comp = file_or_source(args.file)
                 .map(|input| run_compile(&args.options, input))
                 .unwrap_or_else(|| Ok(CompileResult::default()))?;
-
+            let mut ty_context = TyContext::default();
             let resources = args
                 .resources
                 .iter()
-                .map(|b| parse_binding(b, &comp.syntax))
+                .map(|b| parse_binding(b, &comp.syntax, &mut ty_context))
                 .collect::<Result<_, _>>()?;
 
             let overrides = args
                 .overrides
                 .iter()
                 .map(|(name, expr)| -> Result<(String, Instance), CliError> {
-                    Ok((name.to_string(), eval_expr(expr, &comp.syntax)?))
+                    Ok((
+                        name.to_string(),
+                        eval_expr(expr, &comp.syntax, &mut ty_context)?,
+                    ))
                 })
                 .collect::<Result<_, _>>()?;
 
-            let mut inputs = Inputs::new_zero_initialized();
+            let mut inputs = Inputs::new_zero_initialized(&ty_context);
 
             inputs.user_defined = args
                 .user_inputs
                 .iter()
                 .map(|(index, expr)| -> Result<(u32, Instance), CliError> {
-                    Ok((*index, eval_expr(expr, &comp.syntax)?))
+                    Ok((*index, eval_expr(expr, &comp.syntax, &mut ty_context)?))
                 })
                 .collect::<Result<_, _>>()?;
 
             for (name, expr) in &args.builtins {
-                let inst = eval_expr(expr, &comp.syntax)?;
+                let inst = eval_expr(expr, &comp.syntax, &mut ty_context)?;
                 inputs.builtins.insert(name.to_string(), inst);
             }
 
-            let exec = comp.exec(&args.entrypoint, inputs, resources, overrides)?;
+            let exec = comp.exec(
+                &args.entrypoint,
+                inputs,
+                resources,
+                overrides,
+                &mut ty_context,
+            )?;
 
             if let Some(inst) = &exec.inst {
                 if args.binary {
-                    let buf = inst
-                        .to_buffer()
-                        .ok_or_else(|| CliError::NotStorable(inst.ty()))?;
+                    let buf = inst.to_buffer(exec.ctx.ty_context()).ok_or_else(|| {
+                        CliError::NotStorable(inst.ty(), exec.ctx.ty_context().clone_for_error())
+                    })?;
                     std::io::stdout().write_all(buf.as_slice()).unwrap();
                 } else {
-                    println!("return: {inst}")
+                    println!("return: {}", exec.ctx.ty_context().display(inst));
                 }
             } else if !args.binary {
                 println!("return: void")
@@ -707,19 +738,22 @@ fn run(cli: Cli) -> Result<(), CliError> {
                 .iter()
                 .filter_map(|r| {
                     let inst = exec.resource(r.group, r.binding)?.clone();
-                    let inst = inst.read().ok()?.to_owned();
+                    let inst = inst.read(exec.ctx.ty_context()).ok()?.to_owned();
                     Some((r.group, r.binding, inst))
                 })
                 .collect::<Vec<_>>();
 
             for (group, binding, inst) in resources {
                 if args.binary {
-                    let buf = inst
-                        .to_buffer()
-                        .ok_or_else(|| CliError::NotStorable(inst.ty()))?;
+                    let buf = inst.to_buffer(exec.ctx.ty_context()).ok_or_else(|| {
+                        CliError::NotStorable(inst.ty(), exec.ctx.ty_context().clone_for_error())
+                    })?;
                     std::io::stdout().write_all(buf.as_slice()).unwrap();
                 } else {
-                    println!("resource: group={group} binding={binding} value={inst}")
+                    println!(
+                        "resource: group={group} binding={binding} value={}",
+                        exec.ctx.ty_context().display(&inst)
+                    )
                 }
             }
         }

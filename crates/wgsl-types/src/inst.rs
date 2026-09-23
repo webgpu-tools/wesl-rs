@@ -8,9 +8,12 @@ use std::{
 };
 
 use crate::{
-    Error, f16,
+    Error,
+    arena::Id,
+    f16,
     syntax::{AccessMode, AddressSpace},
     ty::{StructType, Ty, Type},
+    ty_context::TyContext,
 };
 
 type E = Error;
@@ -66,31 +69,31 @@ impl Instance {
     pub fn unwrap_literal(self) -> LiteralInstance {
         match self {
             Instance::Literal(field_0) => field_0,
-            val => panic!("called `Instance::unwrap_literal()` on a `{val}` value"),
+            val => panic!("called `Instance::unwrap_literal()` on a `{val:?}` value"),
         }
     }
     pub fn unwrap_literal_ref(&self) -> &LiteralInstance {
         match self {
             Instance::Literal(field_0) => field_0,
-            val => panic!("called `Instance::unwrap_literal_ref()` on a `{val}` value"),
+            val => panic!("called `Instance::unwrap_literal_ref()` on a `{val:?}` value"),
         }
     }
     pub fn unwrap_vec(self) -> VecInstance {
         match self {
             Instance::Vec(field_0) => field_0,
-            val => panic!("called `Instance::unwrap_vec()` on a `{val}` value"),
+            val => panic!("called `Instance::unwrap_vec()` on a `{val:?}` value"),
         }
     }
     pub fn unwrap_vec_ref(&self) -> &VecInstance {
         match self {
             Instance::Vec(field_0) => field_0,
-            val => panic!("called `Instance::unwrap_vec_ref()` on a `{val}` value"),
+            val => panic!("called `Instance::unwrap_vec_ref()` on a `{val:?}` value"),
         }
     }
     pub fn unwrap_vec_mut(&mut self) -> &mut VecInstance {
         match self {
             Instance::Vec(field_0) => field_0,
-            val => panic!("called `Instance::unwrap_vec_mut()` on a `{val}` value"),
+            val => panic!("called `Instance::unwrap_vec_mut()` on a `{val:?}` value"),
         }
     }
 }
@@ -143,13 +146,15 @@ impl Instance {
     /// * Indexing an `array`, `vec`, or `mat` (`arr[n]`)
     ///
     /// Reference: <https://www.w3.org/TR/WGSL/#memory-views>
-    pub fn view(&self, view: &MemView) -> Result<&Instance, E> {
+    pub fn view(&self, view: &MemView, context: &TyContext) -> Result<&Instance, E> {
         match view {
             MemView::Whole => Ok(self),
             MemView::Member(m, v) => match self {
                 Instance::Struct(s) => {
-                    let inst = s.member(m).ok_or_else(|| E::Component(s.ty(), m.clone()))?;
-                    inst.view(v)
+                    let inst = s
+                        .member(m, context)
+                        .ok_or_else(|| E::Component(s.ty(), m.clone()))?;
+                    inst.view(v, context)
                 }
                 _ => Err(E::Component(self.ty(), m.clone())),
             },
@@ -159,21 +164,21 @@ impl Instance {
                         .components
                         .get(*i)
                         .ok_or(E::OutOfBounds(*i, a.ty(), a.n()))?;
-                    inst.view(view)
+                    inst.view(view, context)
                 }
                 Instance::Vec(v) => {
                     let inst = v
                         .components
                         .get(*i)
                         .ok_or(E::OutOfBounds(*i, v.ty(), v.n()))?;
-                    inst.view(view)
+                    inst.view(view, context)
                 }
                 Instance::Mat(m) => {
                     let inst = m
                         .components
                         .get(*i)
                         .ok_or(E::OutOfBounds(*i, m.ty(), m.c()))?;
-                    inst.view(view)
+                    inst.view(view, context)
                 }
                 _ => Err(E::NotIndexable(self.ty())),
             },
@@ -183,14 +188,16 @@ impl Instance {
     /// Get an instance representing a memory view.
     ///
     /// See [Self::view]
-    pub fn view_mut(&mut self, view: &MemView) -> Result<&mut Instance, E> {
+    pub fn view_mut(&mut self, view: &MemView, context: &TyContext) -> Result<&mut Instance, E> {
         let ty = self.ty();
         match view {
             MemView::Whole => Ok(self),
             MemView::Member(m, v) => match self {
                 Instance::Struct(s) => {
-                    let inst = s.member_mut(m).ok_or_else(|| E::Component(ty, m.clone()))?;
-                    inst.view_mut(v)
+                    let inst = s
+                        .member_mut(m, context)
+                        .ok_or_else(|| E::Component(ty, m.clone()))?;
+                    inst.view_mut(v, context)
                 }
                 _ => Err(E::Component(ty, m.clone())),
             },
@@ -198,17 +205,17 @@ impl Instance {
                 Instance::Array(a) => {
                     let n = a.n();
                     let inst = a.components.get_mut(*i).ok_or(E::OutOfBounds(*i, ty, n))?;
-                    inst.view_mut(view)
+                    inst.view_mut(view, context)
                 }
                 Instance::Vec(v) => {
                     let n = v.n();
                     let inst = v.components.get_mut(*i).ok_or(E::OutOfBounds(*i, ty, n))?;
-                    inst.view_mut(view)
+                    inst.view_mut(view, context)
                 }
                 Instance::Mat(m) => {
                     let c = m.c();
                     let inst = m.components.get_mut(*i).ok_or(E::OutOfBounds(*i, ty, c))?;
-                    inst.view_mut(view)
+                    inst.view_mut(view, context)
                 }
                 _ => Err(E::NotIndexable(ty)),
             },
@@ -325,7 +332,7 @@ impl LiteralInstance {
 /// Reference: <https://www.w3.org/TR/WGSL/#struct-types>
 #[derive(Clone, Debug, PartialEq)]
 pub struct StructInstance {
-    pub ty: StructType,
+    pub ty: Id<StructType>,
     pub members: Vec<Instance>,
 }
 
@@ -335,26 +342,26 @@ impl StructInstance {
     /// # Panics
     /// * if there is not the right number of members
     /// * if the members are not of the right type
-    pub fn new(ty: StructType, members: Vec<Instance>) -> Self {
-        assert_eq!(ty.members.len(), members.len());
-        for (m, m_ty) in members.iter().zip(&ty.members) {
+    pub fn new(ty: Id<StructType>, members: Vec<Instance>, context: &TyContext) -> Self {
+        assert_eq!(context[ty].members.len(), members.len());
+        for (m, m_ty) in members.iter().zip(&context[ty].members) {
             assert_eq!(m_ty.ty, m.ty());
         }
 
         Self { ty, members }
     }
     /// Get a `struct` member value by name.
-    pub fn member(&self, name: &str) -> Option<&Instance> {
+    pub fn member(&self, name: &str, context: &TyContext) -> Option<&Instance> {
         self.members
             .iter()
-            .zip(&self.ty.members)
+            .zip(&context[self.ty].members)
             .find_map(|(inst, m_ty)| (m_ty.name == name).then_some(inst))
     }
     /// Get a `struct` member value by name.
-    pub fn member_mut(&mut self, name: &str) -> Option<&mut Instance> {
+    pub fn member_mut(&mut self, name: &str, context: &TyContext) -> Option<&mut Instance> {
         self.members
             .iter_mut()
-            .zip(&self.ty.members)
+            .zip(&context[self.ty].members)
             .find_map(|(inst, m_ty)| (m_ty.name == name).then_some(inst))
     }
     // pub fn iter_members(&self) -> impl Iterator<Item = &(String, Instance)> {
@@ -626,13 +633,13 @@ impl From<PtrInstance> for RefInstance {
 
 impl RefInstance {
     /// Get a reference to a `struct` or `vec` member.
-    pub fn view_member(&self, comp: String) -> Result<Self, E> {
+    pub fn view_member(&self, comp: String, context: &TyContext) -> Result<Self, E> {
         if !self.access.is_read() {
             return Err(E::NotRead);
         }
         let mut view = self.view.clone();
         view.append_member(comp);
-        let ty = self.ptr.borrow().view(&view)?.ty();
+        let ty = self.ptr.borrow().view(&view, context)?.ty();
         Ok(Self {
             ty,
             space: self.space,
@@ -642,13 +649,13 @@ impl RefInstance {
         })
     }
     /// Get a reference to an `array`, `vec` or `mat` component.
-    pub fn view_index(&self, index: usize) -> Result<Self, E> {
+    pub fn view_index(&self, index: usize, context: &TyContext) -> Result<Self, E> {
         if !self.access.is_read() {
             return Err(E::NotRead);
         }
         let mut view = self.view.clone();
         view.append_index(index);
-        let ty = self.ptr.borrow().view(&view)?.ty();
+        let ty = self.ptr.borrow().view(&view, context)?.ty();
         Ok(Self {
             ty,
             space: self.space,
@@ -658,16 +665,16 @@ impl RefInstance {
         })
     }
 
-    pub fn read<'a>(&'a self) -> Result<Ref<'a, Instance>, E> {
+    pub fn read<'a>(&'a self, context: &TyContext) -> Result<Ref<'a, Instance>, E> {
         if !self.access.is_read() {
             return Err(E::NotRead);
         }
         Ok(Ref::<'a, Instance>::map(self.ptr.borrow(), |r| {
-            r.view(&self.view).expect("invalid reference")
+            r.view(&self.view, context).expect("invalid reference")
         }))
     }
 
-    pub fn write(&self, value: Instance) -> Result<(), E> {
+    pub fn write(&self, value: Instance, context: &TyContext) -> Result<(), E> {
         if !self.access.is_write() {
             return Err(E::NotWrite);
         }
@@ -675,18 +682,18 @@ impl RefInstance {
             return Err(E::WriteRefType(value.ty(), self.ty.clone()));
         }
         let mut r = self.ptr.borrow_mut();
-        let view = r.view_mut(&self.view).expect("invalid reference");
+        let view = r.view_mut(&self.view, context).expect("invalid reference");
         assert!(view.ty() == value.ty());
         let _ = std::mem::replace(view, value);
         Ok(())
     }
 
-    pub fn read_write<'a>(&'a self) -> Result<RefMut<'a, Instance>, E> {
+    pub fn read_write<'a>(&'a self, context: &TyContext) -> Result<RefMut<'a, Instance>, E> {
         if !self.access.is_write() {
             return Err(E::NotReadWrite);
         }
         Ok(RefMut::<'a, Instance>::map(self.ptr.borrow_mut(), |r| {
-            r.view_mut(&self.view).expect("invalid reference")
+            r.view_mut(&self.view, context).expect("invalid reference")
         }))
     }
 }

@@ -9,7 +9,7 @@ use wgsl_parse::syntax::{
 use wgsl_types::idents::{BUILTIN_CONSTRUCTOR_NAMES, BUILTIN_FUNCTION_NAMES};
 
 use crate::{
-    error::{Diagnostic, Error, ValidateError},
+    error::{Diagnostic, ValidateError},
     idents::builtin_ident,
     pass::Visit,
 };
@@ -21,15 +21,17 @@ type E = ValidateError;
 /// * OR it is a built-in name
 ///
 /// Note that this function could be simplified if we didn't care about the diagnostics metadata (declaration and expression)
-fn check_defined_symbols(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
-    fn check_ty(ty: &TypeExpression) -> Result<(), Diagnostic<Error>> {
+fn check_defined_symbols(module: &TranslationUnit) -> Result<(), Diagnostic> {
+    fn check_ty(ty: &TypeExpression) -> Result<(), Diagnostic> {
         if ty.path.is_none()
             && ty.ident.use_count() == 1
             && builtin_ident(&ty.ident.name()).is_none()
             // `_` is only valid for phony assignments
             && *ty.ident.name() != "_"
         {
-            Err(E::UndefinedSymbol(ty.ident.to_string()).into())
+            Err(Diagnostic::new(
+                E::UndefinedSymbol(ty.ident.to_string()).into(),
+            ))
         } else {
             for arg in ty.template_args.iter().flatten() {
                 check_expr(&arg.expression)?;
@@ -37,7 +39,7 @@ fn check_defined_symbols(module: &TranslationUnit) -> Result<(), Diagnostic<Erro
             Ok(())
         }
     }
-    fn check_expr(expr: &ExpressionNode) -> Result<(), Diagnostic<Error>> {
+    fn check_expr(expr: &ExpressionNode) -> Result<(), Diagnostic> {
         if let Expression::TypeOrIdentifier(ty) = expr.node() {
             check_ty(ty).map_err(|d| d.with_span(expr.span()))
         } else if let Expression::FunctionCall(call) = expr.node() {
@@ -53,7 +55,7 @@ fn check_defined_symbols(module: &TranslationUnit) -> Result<(), Diagnostic<Erro
             Ok(())
         }
     }
-    fn check_decl(decl: &GlobalDeclaration) -> Result<(), Diagnostic<Error>> {
+    fn check_decl(decl: &GlobalDeclaration) -> Result<(), Diagnostic> {
         let decl_name = decl.ident().map(|ident| ident.name().to_string());
         for expr in Visit::<ExpressionNode>::visit(decl) {
             check_expr(expr).map_err(|mut d| {
@@ -84,7 +86,7 @@ fn check_defined_symbols(module: &TranslationUnit) -> Result<(), Diagnostic<Erro
     Ok(())
 }
 
-fn check_function_calls(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
+fn check_function_calls(module: &TranslationUnit) -> Result<(), Diagnostic> {
     fn check_call(call: &FunctionCall, ident: &Ident, module: &TranslationUnit) -> Result<(), E> {
         let decl = module
             .global_declarations
@@ -147,7 +149,7 @@ fn check_function_calls(module: &TranslationUnit) -> Result<(), Diagnostic<Error
     for decl in &module.global_declarations {
         for expr in Visit::<ExpressionNode>::visit(decl.node()) {
             check_expr(expr, module).map_err(|e| {
-                let mut err = Diagnostic::from(e);
+                let mut err = Diagnostic::new(e.into());
                 err.detail.span = Some(expr.span());
                 err.detail.declaration = decl.ident().map(|id| id.name().to_string());
                 err
@@ -157,12 +159,13 @@ fn check_function_calls(module: &TranslationUnit) -> Result<(), Diagnostic<Error
     Ok(())
 }
 
-fn check_duplicate_decl(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
+fn check_duplicate_decl(module: &TranslationUnit) -> Result<(), Diagnostic> {
     let mut unique = HashSet::new();
 
-    fn check_ident(id: &Ident, unique: &mut HashSet<String>) -> Result<(), Diagnostic<Error>> {
+    fn check_ident(id: &Ident, unique: &mut HashSet<String>) -> Result<(), Diagnostic> {
         if unique.contains(id.name().as_str()) {
-            Err(Diagnostic::from(E::Duplicate(id.to_string())).with_declaration(id.to_string()))
+            Err(Diagnostic::new(E::Duplicate(id.to_string()).into())
+                .with_declaration(id.to_string()))
         } else {
             unique.insert(id.to_string());
             Ok(())
@@ -172,7 +175,7 @@ fn check_duplicate_decl(module: &TranslationUnit) -> Result<(), Diagnostic<Error
     fn check_import_content(
         cont: &ImportContent,
         unique: &mut HashSet<String>,
-    ) -> Result<(), Diagnostic<Error>> {
+    ) -> Result<(), Diagnostic> {
         match cont {
             ImportContent::Item(item) => {
                 let id = item.rename.as_ref().unwrap_or(&item.ident);
@@ -215,7 +218,7 @@ fn check_duplicate_decl(module: &TranslationUnit) -> Result<(), Diagnostic<Error
     Ok(())
 }
 
-fn check_cycles(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
+fn check_cycles(module: &TranslationUnit) -> Result<(), Diagnostic> {
     fn check_decl(
         id: &Ident,
         decl: &GlobalDeclaration,
@@ -245,7 +248,7 @@ fn check_cycles(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
         if let Some(id) = decl.ident() {
             let mut unique = HashSet::new();
             check_decl(&id, decl, &mut unique, module)
-                .map_err(|e| Diagnostic::from(e).with_declaration(id.to_string()))?;
+                .map_err(|e| Diagnostic::new(e.into()).with_declaration(id.to_string()))?;
         }
     }
     Ok(())
@@ -262,7 +265,7 @@ fn check_cycles(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
 /// * Duplicate declarations: declarations in the same scope cannot have the same name.
 ///   (except for unresolved conditional compilation)
 /// * Cyclic declarations: no cycles are allowed in declarations.
-pub fn validate_wesl(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
+pub fn validate_wesl(module: &TranslationUnit) -> Result<(), Diagnostic> {
     check_defined_symbols(module)?;
     check_duplicate_decl(module)?;
     check_cycles(module)?;
@@ -277,7 +280,7 @@ pub fn validate_wesl(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> 
 /// * Cyclic declarations: no cycles are allowed in declarations.
 /// * Function calls: call expressions must refer to a function or a type constructor.
 ///   Check the number of arguments but not their type.
-pub fn validate_wgsl(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
+pub fn validate_wgsl(module: &TranslationUnit) -> Result<(), Diagnostic> {
     check_defined_symbols(module)?;
     check_duplicate_decl(module)?;
     check_cycles(module)?;

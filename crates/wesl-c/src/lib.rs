@@ -270,38 +270,34 @@ impl From<&WeslCompileOptions> for wesl::CompileOptions {
     }
 }
 
-impl From<wesl::Error> for WeslError {
-    fn from(e: wesl::Error) -> Self {
-        let d = wesl::error::Diagnostic::from(e);
-
-        let diagnostic = if let (Some(span), Some(res)) = (&d.detail.span, &d.detail.module_path) {
-            let diag = WeslDiagnostic {
-                file: create_c_string(&res.components.join("/")),
-                span_start: span.start,
-                span_end: span.end,
-                title: create_c_string(&d.error.to_string()),
-            };
-
-            let boxed = Box::new(diag);
-            Box::into_raw(boxed)
-        } else {
-            ptr::null()
+fn from_wesl_diagnostic(d: wesl::error::Diagnostic) -> WeslError {
+    let diagnostic = if let (Some(span), Some(res)) = (&d.detail.span, &d.detail.module_path) {
+        let diag = WeslDiagnostic {
+            file: create_c_string(&res.components.join("/")),
+            span_start: span.start,
+            span_end: span.end,
+            title: create_c_string(&d.error.to_string()),
         };
 
-        WeslError {
-            source: d
-                .detail
-                .output
-                .as_ref()
-                .map_or(ptr::null(), |s| create_c_string(s)),
-            message: create_c_string(&d.to_string()),
-            diagnostics: diagnostic,
-            diagnostics_len: if diagnostic.is_null() {
-                0
-            } else {
-                1
-            },
-        }
+        let boxed = Box::new(diag);
+        Box::into_raw(boxed)
+    } else {
+        ptr::null()
+    };
+
+    WeslError {
+        source: d
+            .detail
+            .output
+            .as_ref()
+            .map_or(ptr::null(), |s| create_c_string(s)),
+        message: create_c_string(&d.to_string()),
+        diagnostics: diagnostic,
+        diagnostics_len: if diagnostic.is_null() {
+            0
+        } else {
+            1
+        },
     }
 }
 
@@ -542,8 +538,8 @@ impl wesl::Resolver for CustomResolver {
             unsafe { (self.options.resolve_source)(cstring.as_ptr(), self.options.userdata) };
 
         if result.is_null() {
-            return Err(ResolveError::Error(
-                wesl::Error::Custom("No value returned from resolver".into()).into(),
+            return Err(ResolveError::Custom(
+                "No value returned from resolver".to_owned(),
             ));
         }
 
@@ -555,17 +551,13 @@ impl wesl::Resolver for CustomResolver {
 
         if !result.success {
             // TODO: Better error reporting.
-            return Err(ResolveError::Error(
-                wesl::Error::Custom("Custom resolver failed".into()).into(),
-            ));
+            return Err(ResolveError::Custom("Custom resolver failed".to_owned()));
         }
 
         let result_cstr = unsafe { CStr::from_ptr(result.source) };
-        let result_str = result_cstr.to_str().map_err(|_| {
-            ResolveError::Error(
-                wesl::Error::Custom("Resolved source is not valid UTF-8".into()).into(),
-            )
-        })?;
+        let result_str = result_cstr
+            .to_str()
+            .map_err(|_| ResolveError::Custom("Resolved source is not valid UTF-8".to_owned()))?;
 
         Ok(result_str.to_owned().into())
     }
@@ -663,7 +655,7 @@ pub unsafe extern "C" fn wesl_compile(
             let output = result.to_string();
             WeslResult::success(create_c_string(&output))
         }
-        Err(e) => WeslResult::error(WeslError::from(e)),
+        Err(e) => WeslResult::error(from_wesl_diagnostic(e)),
     }
 }
 

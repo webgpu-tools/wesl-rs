@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 #[cfg(feature = "naga-ext")]
 use crate::tplt::AccelerationStructureTags;
-use crate::{Error, Instance, inst::*, syntax::*};
+use crate::{Error, Instance, arena::Id, inst::*, syntax::*, ty_context::TyContext};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StructMemberType {
@@ -29,12 +29,6 @@ impl StructMemberType {
 pub struct StructType {
     pub name: String,
     pub members: Vec<StructMemberType>,
-}
-
-impl From<StructType> for Type {
-    fn from(value: StructType) -> Self {
-        Self::Struct(Box::new(value))
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -274,7 +268,7 @@ pub enum Type {
     U32,
     F32,
     F16,
-    Struct(Box<StructType>),
+    Struct(Id<StructType>),
     Array(Box<Type>, Option<usize>),
     Vec(u8, Box<Type>),
     Mat(u8, u8, Box<Type>),
@@ -363,30 +357,31 @@ impl Type {
     }
 
     /// Reference: <https://www.w3.org/TR/WGSL/#abstract-types>
-    pub fn is_abstract(&self) -> bool {
+    pub fn is_abstract(&self, context: &TyContext) -> bool {
         match self {
             Type::AbstractInt => true,
             Type::AbstractFloat => true,
-            Type::Array(ty, _) | Type::Vec(_, ty) | Type::Mat(_, _, ty) => ty.is_abstract(),
+            Type::Array(ty, _) | Type::Vec(_, ty) | Type::Mat(_, _, ty) => ty.is_abstract(context),
             // there are a couple internal structs with abstract members:
             // __frexp_result_xxx and __ldexp_result_xxx
-            Type::Struct(s) if s.name.starts_with("__") => {
-                s.members.iter().any(|m| m.ty.is_abstract())
-            }
+            Type::Struct(s) if context[*s].name.starts_with("__") => context[*s]
+                .members
+                .iter()
+                .any(|m| m.ty.is_abstract(context)),
             _ => false,
         }
     }
 
-    pub fn is_concrete(&self) -> bool {
+    pub fn is_concrete(&self, context: &TyContext) -> bool {
         match self {
             Type::Unknown => false,
-            _ => !self.is_abstract(),
+            _ => !self.is_abstract(context),
         }
     }
 
     /// Reference: <https://www.w3.org/TR/WGSL/#storable-types>
-    pub fn is_storable(&self) -> bool {
-        self.is_concrete()
+    pub fn is_storable(&self, context: &TyContext) -> bool {
+        self.is_concrete(context)
             && match self {
                 Type::Bool
                 | Type::I32
@@ -444,21 +439,21 @@ impl Type {
     pub fn unwrap_atomic(self) -> Box<Type> {
         match self {
             Type::Atomic(ty) => ty,
-            val => panic!("called `Type::unwrap_atomic()` on a `{val}` value"),
+            val => panic!("called `Type::unwrap_atomic()` on a `{val:?}` value"),
         }
     }
 
-    pub fn unwrap_struct(self) -> Box<StructType> {
+    pub fn unwrap_struct(self) -> Id<StructType> {
         match self {
             Type::Struct(ty) => ty,
-            val => panic!("called `Type::unwrap_struct()` on a `{val}` value"),
+            val => panic!("called `Type::unwrap_struct()` on a `{val:?}` value"),
         }
     }
 
     pub fn unwrap_vec(self) -> (u8, Box<Type>) {
         match self {
             Type::Vec(size, ty) => (size, ty),
-            val => panic!("called `Type::unwrap_vec()` on a `{val}` value"),
+            val => panic!("called `Type::unwrap_vec()` on a `{val:?}` value"),
         }
     }
 }
@@ -566,7 +561,7 @@ impl Ty for LiteralInstance {
 
 impl Ty for StructInstance {
     fn ty(&self) -> Type {
-        self.ty.clone().into()
+        Type::Struct(self.ty)
     }
 }
 

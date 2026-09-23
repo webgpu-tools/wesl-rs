@@ -9,22 +9,23 @@ use crate::{
         VecInstance,
     },
     ty::{Ty, Type},
+    ty_context::TyContext,
 };
 
 impl Instance {
     /// Memory representation of host-shareable instances.
     ///
     /// Returns `None` if the type is not host-shareable.
-    pub fn to_buffer(&self) -> Option<Vec<u8>> {
+    pub fn to_buffer(&self, context: &TyContext) -> Option<Vec<u8>> {
         match self {
             Instance::Literal(l) => l.to_buffer(),
-            Instance::Struct(s) => s.to_buffer(),
-            Instance::Array(a) => a.to_buffer(),
-            Instance::Vec(v) => v.to_buffer(),
-            Instance::Mat(m) => m.to_buffer(),
+            Instance::Struct(s) => s.to_buffer(context),
+            Instance::Array(a) => a.to_buffer(context),
+            Instance::Vec(v) => v.to_buffer(context),
+            Instance::Mat(m) => m.to_buffer(context),
             Instance::Ptr(_) => None,
             Instance::Ref(_) => None,
-            Instance::Atomic(a) => a.inner().to_buffer(),
+            Instance::Atomic(a) => a.inner().to_buffer(context),
             Instance::Opaque(_) => None,
         }
     }
@@ -33,7 +34,7 @@ impl Instance {
     ///
     /// Returns `None` if the type is not host-shareable, or if the buffer is too small.
     /// The buffer can be larger than the type; extra bytes will be ignored.
-    pub fn from_buffer(buf: &[u8], ty: &Type) -> Option<Self> {
+    pub fn from_buffer(buf: &[u8], ty: &Type, context: &TyContext) -> Option<Self> {
         match ty {
             Type::Bool => None,
             Type::AbstractInt => None,
@@ -78,7 +79,7 @@ impl Instance {
                 .map(|buf| LiteralInstance::F64(f64::from_le_bytes(buf)).into()),
             Type::Struct(s) => {
                 let mut offset = 0;
-                let members = s
+                let members = context[*s]
                     .members
                     .iter()
                     .map(|m| {
@@ -86,38 +87,38 @@ impl Instance {
                         // they can only be the last member of a struct.
                         let inst = if let Type::Array(_, None) = &m.ty {
                             let buf = buf.get(offset as usize..)?;
-                            Instance::from_buffer(buf, &m.ty)?
+                            Instance::from_buffer(buf, &m.ty, context)?
                         } else {
                             // TODO: handle errors, check valid size...
-                            let size = m.size.or_else(|| m.ty.size_of())?;
-                            let align = m.align.or_else(|| m.ty.align_of())?;
+                            let size = m.size.or_else(|| m.ty.size_of(context))?;
+                            let align = m.align.or_else(|| m.ty.align_of(context))?;
                             offset = round_up(align, offset);
                             let buf = buf.get(offset as usize..(offset + size) as usize)?;
                             offset += size;
-                            Instance::from_buffer(buf, &m.ty)?
+                            Instance::from_buffer(buf, &m.ty, context)?
                         };
                         Some(inst)
                     })
                     .collect::<Option<Vec<_>>>()?;
-                Some(StructInstance::new((**s).clone(), members).into())
+                Some(StructInstance::new(*s, members, context).into())
             }
             Type::Array(ty, Some(n)) => {
                 let mut offset = 0;
-                let size = ty.size_of()?;
-                let stride = round_up(ty.align_of()?, size);
+                let size = ty.size_of(context)?;
+                let stride = round_up(ty.align_of(context)?, size);
                 let mut comps = Vec::new();
                 while comps.len() != *n {
                     let buf = buf.get(offset as usize..(offset + size) as usize)?;
                     offset += stride;
-                    let inst = Instance::from_buffer(buf, ty)?;
+                    let inst = Instance::from_buffer(buf, ty, context)?;
                     comps.push(inst);
                 }
                 Some(ArrayInstance::new(comps, false).into())
             }
             Type::Array(ty, None) => {
                 let mut offset = 0;
-                let size = ty.size_of()?;
-                let stride = round_up(ty.align_of()?, size);
+                let size = ty.size_of(context)?;
+                let stride = round_up(ty.align_of(context)?, size);
                 let n = buf.len() as u32 / stride;
                 if n == 0 {
                     // arrays must not be empty
@@ -127,7 +128,7 @@ impl Instance {
                     .map(|_| {
                         let buf = buf.get(offset as usize..(offset + size) as usize)?;
                         offset += stride;
-                        Instance::from_buffer(buf, ty)
+                        Instance::from_buffer(buf, ty, context)
                     })
                     .collect::<Option<_>>()?;
                 Some(ArrayInstance::new(comps, true).into())
@@ -136,12 +137,12 @@ impl Instance {
             Type::BindingArray(_, _) => None,
             Type::Vec(n, ty) => {
                 let mut offset = 0;
-                let size = ty.size_of()?;
+                let size = ty.size_of(context)?;
                 let comps = (0..*n)
                     .map(|_| {
                         let buf = buf.get(offset as usize..(offset + size) as usize)?;
                         offset += size;
-                        Instance::from_buffer(buf, ty)
+                        Instance::from_buffer(buf, ty, context)
                     })
                     .collect::<Option<Vec<_>>>()?;
                 Some(VecInstance::new(comps).into())
@@ -149,13 +150,13 @@ impl Instance {
             Type::Mat(c, r, ty) => {
                 let mut offset = 0;
                 let col_ty = Type::Vec(*r, ty.clone());
-                let col_size = col_ty.size_of()?;
-                let col_off = round_up(col_ty.align_of()?, col_size);
+                let col_size = col_ty.size_of(context)?;
+                let col_off = round_up(col_ty.align_of(context)?, col_size);
                 let cols = (0..*c)
                     .map(|_| {
                         let buf = buf.get(offset as usize..(offset + col_size) as usize)?;
                         offset += col_off;
-                        Instance::from_buffer(buf, &col_ty)
+                        Instance::from_buffer(buf, &col_ty, context)
                     })
                     .collect::<Option<Vec<_>>>()?;
                 Some(MatInstance::from_cols(cols).into())
@@ -208,11 +209,16 @@ impl StructInstance {
     /// Memory representation of host-shareable instances.
     ///
     /// Returns `None` if the type is not host-shareable.
-    fn to_buffer(&self) -> Option<Vec<u8>> {
+    fn to_buffer(&self, context: &TyContext) -> Option<Vec<u8>> {
         let mut buf = Vec::new();
-        for (i, (inst, m)) in self.members.iter().zip(&self.ty.members).enumerate() {
+        for (i, (inst, m)) in self
+            .members
+            .iter()
+            .zip(&context[self.ty].members)
+            .enumerate()
+        {
             let len = buf.len() as u32;
-            let size = m.size.or_else(|| m.ty.min_size_of())?;
+            let size = m.size.or_else(|| m.ty.min_size_of(context))?;
 
             // handle runtime-size arrays as last struct member
             let size = match inst {
@@ -222,12 +228,12 @@ impl StructInstance {
                 _ => Some(size),
             }?;
 
-            let align = m.align.or_else(|| m.ty.align_of())?;
+            let align = m.align.or_else(|| m.ty.align_of(context))?;
             let off = round_up(align, len);
             if off > len {
                 buf.extend((len..off).map(|_| 0));
             }
-            let mut bytes = inst.to_buffer()?;
+            let mut bytes = inst.to_buffer(context)?;
             let bytes_len = bytes.len() as u32;
             if size > bytes_len {
                 bytes.extend((bytes_len..size).map(|_| 0));
@@ -242,13 +248,13 @@ impl ArrayInstance {
     /// Memory representation of host-shareable instances.
     ///
     /// Returns `None` if the type is not host-shareable.
-    fn to_buffer(&self) -> Option<Vec<u8>> {
+    fn to_buffer(&self, context: &TyContext) -> Option<Vec<u8>> {
         let mut buf = Vec::new();
         let ty = self.inner_ty();
-        let size = ty.size_of()?;
-        let stride = round_up(ty.align_of()?, size);
+        let size = ty.size_of(context)?;
+        let stride = round_up(ty.align_of(context)?, size);
         for c in self.iter() {
-            buf.extend(c.to_buffer()?);
+            buf.extend(c.to_buffer(context)?);
             if stride > size {
                 buf.extend((size..stride).map(|_| 0))
             }
@@ -261,10 +267,10 @@ impl VecInstance {
     /// Memory representation of host-shareable instances.
     ///
     /// Returns `None` if the type is not host-shareable.
-    fn to_buffer(&self) -> Option<Vec<u8>> {
+    fn to_buffer(&self, context: &TyContext) -> Option<Vec<u8>> {
         Some(
             self.iter()
-                .flat_map(|v| v.to_buffer().unwrap(/* SAFETY: vector elements must be host-shareable */).into_iter())
+                .flat_map(|v| v.to_buffer(context).unwrap(/* SAFETY: vector elements must be host-shareable */).into_iter())
                 .collect_vec(),
         )
     }
@@ -274,14 +280,14 @@ impl MatInstance {
     /// Memory representation of host-shareable instances.
     ///
     /// Returns `None` if the type is not host-shareable.
-    fn to_buffer(&self) -> Option<Vec<u8>> {
+    fn to_buffer(&self, context: &TyContext) -> Option<Vec<u8>> {
         Some(
             self.iter_cols()
                 .flat_map(|v| {
                     // SAFETY: vector elements must be host-shareable
-                    let mut v_buf = v.to_buffer().unwrap();
+                    let mut v_buf = v.to_buffer(context).unwrap();
                     let len = v_buf.len() as u32;
-                    let align = v.ty().align_of().unwrap();
+                    let align = v.ty().align_of(context).unwrap();
                     if len < align {
                         v_buf.extend((len..align).map(|_| 0));
                     }
@@ -303,7 +309,7 @@ impl Type {
     /// runtime-sized array. See [`Type::min_size_of`] for runtime-sized arrays.
     ///
     /// Reference: <https://www.w3.org/TR/WGSL/#alignment-and-size>
-    pub fn size_of(&self) -> Option<u32> {
+    pub fn size_of(&self, context: &TyContext) -> Option<u32> {
         match self {
             Type::Bool => Some(4),
             Type::AbstractInt => None,
@@ -319,34 +325,34 @@ impl Type {
             #[cfg(feature = "naga-ext")]
             Type::F64 => Some(8),
             Type::Struct(s) => {
-                let past_last_mem = s
+                let past_last_mem = context[*s]
                     .members
                     .iter()
                     .map(|m| {
                         // TODO: handle errors, check valid size...
-                        let size = m.size.or_else(|| m.ty.size_of())?;
-                        let align = m.align.or_else(|| m.ty.align_of())?;
+                        let size = m.size.or_else(|| m.ty.size_of(context))?;
+                        let align = m.align.or_else(|| m.ty.align_of(context))?;
                         Some((size, align))
                     })
                     .try_fold(0, |offset, mem| {
                         let (size, align) = mem?;
                         Some(round_up(align, offset) + size)
                     })?;
-                Some(round_up(self.align_of()?, past_last_mem))
+                Some(round_up(self.align_of(context)?, past_last_mem))
             }
             Type::Array(ty, Some(n)) => {
-                let (size, align) = (ty.size_of()?, ty.align_of()?);
+                let (size, align) = (ty.size_of(context)?, ty.align_of(context)?);
                 Some(*n as u32 * round_up(align, size))
             }
             Type::Array(_, None) => None,
             #[cfg(feature = "naga-ext")]
             Type::BindingArray(_, _) => None,
             Type::Vec(n, ty) => {
-                let size = ty.size_of()?;
+                let size = ty.size_of(context)?;
                 Some(*n as u32 * size)
             }
             Type::Mat(c, r, ty) => {
-                let align = Type::Vec(*r, ty.clone()).align_of()?;
+                let align = Type::Vec(*r, ty.clone()).align_of(context)?;
                 Some(*c as u32 * align)
             }
             Type::Atomic(_) => Some(4),
@@ -362,12 +368,12 @@ impl Type {
 
     /// Variant of [`Type::size_of`], but for runtime-sized arrays, it returns the minimum
     /// size of the array, i.e. the size of an array with one element.
-    pub fn min_size_of(&self) -> Option<u32> {
+    pub fn min_size_of(&self, context: &TyContext) -> Option<u32> {
         match self {
-            Type::Array(ty, None) => Some(round_up(ty.align_of()?, ty.size_of()?)),
+            Type::Array(ty, None) => Some(round_up(ty.align_of(context)?, ty.size_of(context)?)),
             // TODO: should we also compute for structs containing a runtime-sized array?
             // This function is only used once, anyway.
-            _ => self.size_of(),
+            _ => self.size_of(context),
         }
     }
 
@@ -376,7 +382,7 @@ impl Type {
     /// Return `None` if the type is not host-shareable.
     ///
     /// Reference: <https://www.w3.org/TR/WGSL/#alignment-and-size>
-    pub fn align_of(&self) -> Option<u32> {
+    pub fn align_of(&self, context: &TyContext) -> Option<u32> {
         match self {
             Type::Bool => Some(4),
             Type::AbstractInt => None,
@@ -391,13 +397,13 @@ impl Type {
             Type::U64 => Some(8),
             #[cfg(feature = "naga-ext")]
             Type::F64 => Some(8),
-            Type::Struct(s) => s
+            Type::Struct(s) => context[*s]
                 .members
                 .iter()
                 // TODO: check valid align attr
-                .map(|m| m.align.or_else(|| m.ty.align_of()))
+                .map(|m| m.align.or_else(|| m.ty.align_of(context)))
                 .try_fold(0, |a, b| Some(a.max(b?))),
-            Type::Array(ty, _) => ty.align_of(),
+            Type::Array(ty, _) => ty.align_of(context),
             #[cfg(feature = "naga-ext")]
             Type::BindingArray(_, _) => None,
             Type::Vec(n, ty) => {
@@ -408,10 +414,10 @@ impl Type {
                         _ => None,
                     }
                 } else {
-                    self.size_of()
+                    self.size_of(context)
                 }
             }
-            Type::Mat(_, r, ty) => Type::Vec(*r, ty.clone()).align_of(),
+            Type::Mat(_, r, ty) => Type::Vec(*r, ty.clone()).align_of(context),
             Type::Atomic(_) => Some(4),
             Type::Ptr(_, _, _)
             | Type::Ref(_, _, _)

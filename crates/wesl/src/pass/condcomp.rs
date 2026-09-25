@@ -1,8 +1,6 @@
-use crate::error::{CondCompError, Diagnostic, Error};
+use crate::error::{CondCompError, Diagnostic};
 use std::collections::HashMap;
 use wgsl_parse::{SyntaxNode, span::Spanned, syntax::*};
-
-type E = Error;
 
 /// Set the behavior for a feature flag during conditional translation.
 ///
@@ -164,7 +162,7 @@ fn eval_attr_impl(expr: &Expression, features: &Features) -> Result<Expression, 
     }
 }
 
-fn get_single_attr(attrs: &mut [AttributeNode]) -> Result<Option<&mut AttributeNode>, E> {
+fn get_single_attr(attrs: &mut [AttributeNode]) -> Result<Option<&mut AttributeNode>, Diagnostic> {
     let mut it = attrs.iter_mut().filter(|attr| {
         matches!(
             attr.node(),

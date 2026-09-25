@@ -5,7 +5,10 @@ use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 use wesl::{
     CompileResult, Compiler,
-    eval::{Eval, EvalAttrs, Inputs, Instance, RefInstance, Ty, ty_eval_ty},
+    eval::{
+        DisplayWithContext, Eval, EvalAttrs, Inputs, Instance, RefInstance, Ty, TyContext,
+        ty_eval_ty,
+    },
     resolver::VirtualResolver,
     syntax::{self, AccessMode, AddressSpace, TranslationUnit},
 };

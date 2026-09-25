@@ -1,6 +1,10 @@
-use crate::{error::Diagnostic, pass::Visit};
-
-use wgsl_parse::syntax::*;
+use crate::{
+    error::Diagnostic,
+    eval::{Context, Exec as _, Lower as _, mark_functions_const},
+    pass::Visit,
+};
+use wgsl_parse::{SyntaxNode as _, syntax::*};
+use wgsl_types::ty_ctx::TyContext;
 
 /// Performs conversions on the final syntax tree to make it more compatible with WGSL
 /// implementations like Naga, catch errors early and perform optimizations.
@@ -27,7 +31,6 @@ pub fn lower(module: &mut TranslationUnit) -> Result<(), Diagnostic> {
         })
     }
 
-    use wgsl_types::ty_context::TyContext;
     mark_functions_const(module);
 
     // we want to drop wesl2 at the end of the block for idents use_count

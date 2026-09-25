@@ -85,7 +85,6 @@ runtime dependencies.
 The eval/exec implementation is tested with the [WebGPU Conformance Test Suite][cts].
 
 ```rust
-# #[cfg(feature = "eval")] { // feature-gate
 # use wesl::{Compiler, resolver::VirtualResolver, eval_str, eval::TyContext};
 # let mut ty_ctx = TyContext::default();
 // ...standalone expression

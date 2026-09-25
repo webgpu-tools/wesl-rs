@@ -144,23 +144,6 @@ impl std::fmt::Display for Error {
     }
 }
 
-impl DisplayWithContext for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, _context: &TyContext) -> std::fmt::Result {
-        match self {
-            Error::ParseError(err) => err.fmt(f),
-            Error::ValidateError(err) => err.fmt(f),
-            Error::ResolveError(err) => err.fmt(f),
-            Error::ImportError(err) => err.fmt(f),
-            Error::UsageError(err) => err.fmt(f),
-            Error::CondCompError(err) => err.fmt(f),
-            Error::TomlError(err) => err.fmt(f),
-            #[cfg(feature = "eval")]
-            Error::EvalError(err, _) => err.fmt(f, _context),
-            Error::Custom(msg) => write!(f, "{}", msg),
-        }
-    }
-}
-
 impl From<wgsl_parse::Error> for Error {
     fn from(source: wgsl_parse::Error) -> Self {
         Error::ParseError(source)

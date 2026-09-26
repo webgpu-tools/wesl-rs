@@ -406,6 +406,11 @@ pub fn mat(c: usize, r: usize, args: &[Instance]) -> Result<Instance, E> {
         // note: `matCxR(e: matCxR<S>) -> matCxR<S>` is no-op
         Ok(m.clone().into())
     } else {
+        if args.is_empty() {
+            return Err(E::Builtin(
+                "zero-value matrix constructor requires a template",
+            ));
+        }
         let tys = args.iter().map(|a| a.ty()).collect_vec();
         let ty = convert_all_ty(&tys).ok_or(E::Builtin("matrix components are incompatible"))?;
         let mut inner_ty = ty.inner_ty();
@@ -723,6 +728,11 @@ fn mat_ctor_ty(c: u8, r: u8, args: &[Type]) -> Result<Type, E> {
         }
         Ok(ty.clone())
     } else {
+        if args.is_empty() {
+            return Err(E::Builtin(
+                "zero-value matrix constructor requires a template",
+            ));
+        }
         let ty = convert_all_ty(args).ok_or(E::Builtin("matrix components are incompatible"))?;
         let mut inner_ty = ty.inner_ty();
 

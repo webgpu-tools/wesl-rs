@@ -310,7 +310,8 @@ impl_visit! { Statement => ExpressionNode,
             else_if_clauses.[].{
                 expression,
                 body.statements.[].(x => recurse(x)),
-            }
+            },
+            else_clause.[].body.statements.[].(x => recurse(x)),
         },
         Statement::Switch.{
             expression,
@@ -349,6 +350,7 @@ impl_visit! { Statement => StatementNode,
         Statement::If.{
             if_clause.body.statements.[],
             else_if_clauses.[].body.statements.[],
+            else_clause.[].body.statements.[],
         },
         Statement::Switch.clauses.[].body.statements.[],
         Statement::Loop.{
@@ -518,4 +520,37 @@ impl_visit! { ConstAssert => TypeExpression,
         attributes.[].(x => visit::<Attribute, TypeExpression>(x)),
         expression.(x => visit::<Expression, TypeExpression>(x)),
     }
+}
+
+#[test]
+fn test_visit_if_else() {
+    let mut statement: Statement =
+        "if false { return 1; } else if false { return 2; } else { return 3; }"
+            .parse()
+            .expect("parse failure");
+
+    assert_eq!(
+        Visit::<StatementNode>::visit(&statement)
+            .map(|statement| statement.to_string())
+            .collect::<Vec<_>>(),
+        ["return 1;", "return 2;", "return 3;"]
+    );
+    assert_eq!(
+        Visit::<StatementNode>::visit_mut(&mut statement)
+            .map(|statement| statement.to_string())
+            .collect::<Vec<_>>(),
+        ["return 1;", "return 2;", "return 3;"]
+    );
+    assert_eq!(
+        Visit::<ExpressionNode>::visit(&statement)
+            .map(|expression| expression.to_string())
+            .collect::<Vec<_>>(),
+        ["false", "1", "false", "2", "3"]
+    );
+    assert_eq!(
+        Visit::<ExpressionNode>::visit_mut(&mut statement)
+            .map(|expression| expression.to_string())
+            .collect::<Vec<_>>(),
+        ["false", "1", "false", "2", "3"]
+    );
 }

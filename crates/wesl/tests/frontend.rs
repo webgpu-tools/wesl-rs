@@ -2,6 +2,7 @@
 
 use std::path::Path;
 
+use expect_test::expect_file;
 use wesl::{CompileOptions, Compiler, Constants, Features};
 
 fn fixtures_dir() -> &'static Path {
@@ -37,7 +38,8 @@ fn compile_wgsl() {
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    let expected = expect_file![format!("./snapshots/frontend__compile_wgsl.snap")];
+    expected.assert_eq(&result.syntax.to_string());
 }
 
 #[tokio::test]
@@ -54,7 +56,8 @@ async fn compile_wgsl_async() {
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    let expected = expect_file![format!("./snapshots/frontend__compile_wgsl_async.snap")];
+    expected.assert_eq(&result.syntax.to_string());
 }
 
 #[cfg(not(feature = "eval"))]
@@ -71,7 +74,8 @@ fn compile_wgsl_lower() {
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    let expected = expect_file![format!("./snapshots/frontend__compile_wgsl_lower.snap")];
+    expected.assert_eq(&result.syntax.to_string());
 }
 
 #[cfg(feature = "eval")]
@@ -88,7 +92,10 @@ fn compile_wgsl_lower_eval() {
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    let expected = expect_file![format!(
+        "./snapshots/frontend__compile_wgsl_lower_eval.snap"
+    )];
+    expected.assert_eq(&result.syntax.to_string());
 }
 
 #[test]
@@ -104,7 +111,8 @@ fn compile_wgsl_strip() {
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    let expected = expect_file![format!("./snapshots/frontend__compile_wgsl_strip.snap")];
+    expected.assert_eq(&result.syntax.to_string());
 }
 
 /// same as test `compile_wesl_toml` below, except the path provided is a directory,
@@ -131,7 +139,8 @@ fn compile_wesl_directory() {
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    let expected = expect_file![format!("./snapshots/frontend__compile_wesl_directory.snap")];
+    expected.assert_eq(&result.syntax.to_string());
 }
 
 /// same as test `compile_wesl_toml` below, except the path provided is a file,
@@ -158,7 +167,8 @@ fn compile_wesl_file() {
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    let expected = expect_file![format!("./snapshots/frontend__compile_wesl_file.snap")];
+    expected.assert_eq(&result.syntax.to_string());
 }
 
 #[test]
@@ -184,7 +194,10 @@ fn compile_wesl_toml_feat1() {
     .inspect_err(|e| eprintln!("{e}"))
     .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    let expected = expect_file![format!(
+        "./snapshots/frontend__compile_wesl_toml_feat1.snap"
+    )];
+    expected.assert_eq(&result.syntax.to_string());
 }
 
 #[test]
@@ -210,7 +223,10 @@ fn compile_wesl_toml_feat2() {
     .inspect_err(|e| eprintln!("{e}"))
     .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    let expected = expect_file![format!(
+        "./snapshots/frontend__compile_wesl_toml_feat2.snap"
+    )];
+    expected.assert_eq(&result.syntax.to_string());
 }
 
 wesl_pkg!(a, "dependency_unification/a.rs");
@@ -240,5 +256,8 @@ fn compile_dependency_unification() {
     .inspect_err(|e| eprintln!("{e}"))
     .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    let expected = expect_file![format!(
+        "./snapshots/frontend__compile_dependency_unification.snap"
+    )];
+    expected.assert_eq(&result.syntax.to_string());
 }

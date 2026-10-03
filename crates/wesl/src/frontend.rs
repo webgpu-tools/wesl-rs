@@ -220,7 +220,7 @@ pub fn compile(
     main_path: &ModulePath,
     options: &CompileOptions,
     resolver: &impl Resolver,
-) -> Result<CompileResult, Error> {
+) -> Result<CompileResult, Diagnostic> {
     let mangler = Box::<dyn Mangler>::from(options.mangler);
 
     if options.sourcemap {
@@ -228,7 +228,7 @@ pub fn compile(
         let mut pass = CompilationPass::new(main_path, options, &sourcemapper, &sourcemapper);
         let res = CompilerDriver::compile(&mut pass);
         let sourcemap = sourcemapper.finish();
-        let res = res.map_err(|e| Diagnostic::from(e).with_sourcemap(&sourcemap))?;
+        let res = res.map_err(|e| e.with_sourcemap(&sourcemap))?;
 
         Ok(CompileResult {
             syntax: res.syntax,
@@ -253,7 +253,7 @@ pub async fn compile_async(
     main_path: &ModulePath,
     options: &CompileOptions,
     resolver: &impl Resolver,
-) -> Result<CompileResult, Error> {
+) -> Result<CompileResult, Diagnostic> {
     let mangler = Box::<dyn Mangler>::from(options.mangler);
 
     if options.sourcemap {
@@ -261,7 +261,7 @@ pub async fn compile_async(
         let mut pass = CompilationPass::new(main_path, options, &sourcemapper, &sourcemapper);
         let res = CompilerDriver::compile_async(&mut pass).await;
         let sourcemap = sourcemapper.finish();
-        let res = res.map_err(|e| Diagnostic::from(e).with_sourcemap(&sourcemap))?;
+        let res = res.map_err(|e| e.with_sourcemap(&sourcemap))?;
 
         Ok(CompileResult {
             syntax: res.syntax,
@@ -321,7 +321,7 @@ impl Compiler<()> {
     /// | `.wesl` file | the parent directory        | the file specified         |
     ///
     /// Note: `.wgsl` extensions are also supported, but `.wesl` takes priority.
-    pub fn compile(&self, path: impl AsRef<Path>) -> Result<CompileResult, Error> {
+    pub fn compile(&self, path: impl AsRef<Path>) -> Result<CompileResult, Diagnostic> {
         let (pkg_root_dir, main_path) = self.root_and_main(path.as_ref())?;
         self.compile_module(pkg_root_dir, &main_path)
     }
@@ -331,13 +331,13 @@ impl Compiler<()> {
         &self,
         pkg_root_dir: impl AsRef<Path>,
         main_path: &ModulePath,
-    ) -> Result<CompileResult, Error> {
+    ) -> Result<CompileResult, Diagnostic> {
         let resolver = self.create_resolver(pkg_root_dir.as_ref());
         compile(main_path, &self.options, &resolver)
     }
 
     /// Async version of [`Self::compile`].
-    pub async fn compile_async(&self, path: &Path) -> Result<CompileResult, Error> {
+    pub async fn compile_async(&self, path: &Path) -> Result<CompileResult, Diagnostic> {
         let (pkg_root_dir, main_path) = self.root_and_main(path.as_ref())?;
         self.compile_module_async(&pkg_root_dir, &main_path).await
     }
@@ -347,7 +347,7 @@ impl Compiler<()> {
         &self,
         pkg_root_dir: impl AsRef<Path>,
         main_path: &ModulePath,
-    ) -> Result<CompileResult, Error> {
+    ) -> Result<CompileResult, Diagnostic> {
         let resolver = self.create_resolver(pkg_root_dir.as_ref());
         compile_async(main_path, &self.options, &resolver).await
     }
@@ -401,12 +401,12 @@ impl<R: Resolver> Compiler<R> {
     ///
     /// The main module defaults to the package root module.
     /// See [`Self::compile_module`] to compile a different main module.
-    pub fn compile_root(&self) -> Result<CompileResult, Error> {
+    pub fn compile_root(&self) -> Result<CompileResult, Diagnostic> {
         compile(&ModulePath::new_root(), &self.options, &self.resolver)
     }
 
     /// Variant of [`Self::compile`] with a custom main module path.
-    pub fn compile_module(&self, main_path: &ModulePath) -> Result<CompileResult, Error> {
+    pub fn compile_module(&self, main_path: &ModulePath) -> Result<CompileResult, Diagnostic> {
         compile(main_path, &self.options, &self.resolver)
     }
 
@@ -423,13 +423,13 @@ impl<R: Resolver> Compiler<R> {
     ///
     /// Can panic if [`ModulePath::from_path`] fails.
     // TODO: we don't want that panic.
-    pub fn compile(&self, fs_main_path: impl AsRef<Path>) -> Result<CompileResult, Error> {
+    pub fn compile(&self, fs_main_path: impl AsRef<Path>) -> Result<CompileResult, Diagnostic> {
         let main_path = main_module_path(fs_main_path.as_ref(), &self.resolver)?;
         compile(&main_path, &self.options, &self.resolver)
     }
 
     /// Async version of [`Self::compile_root`].
-    pub async fn compile_root_async(&self) -> Result<CompileResult, Error> {
+    pub async fn compile_root_async(&self) -> Result<CompileResult, Diagnostic> {
         compile_async(&ModulePath::new_root(), &self.options, &self.resolver).await
     }
 
@@ -437,7 +437,7 @@ impl<R: Resolver> Compiler<R> {
     pub async fn compile_module_async(
         &self,
         main_path: &ModulePath,
-    ) -> Result<CompileResult, Error> {
+    ) -> Result<CompileResult, Diagnostic> {
         compile_async(main_path, &self.options, &self.resolver).await
     }
 
@@ -445,7 +445,7 @@ impl<R: Resolver> Compiler<R> {
     pub async fn compile_async(
         &self,
         fs_main_path: &impl AsRef<Path>,
-    ) -> Result<CompileResult, Error> {
+    ) -> Result<CompileResult, Diagnostic> {
         let main_path = main_module_path(fs_main_path.as_ref(), &self.resolver)?;
         compile_async(&main_path, &self.options, &self.resolver).await
     }
@@ -636,7 +636,7 @@ impl CompilerDriver for CompilationPass<'_> {
         Ok(())
     }
 
-    fn load_module(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error> {
+    fn load_module(&mut self, path: &ModulePath) -> Result<TranslationUnit, Diagnostic> {
         let mut module = pass::load_module(path, &self.resolver)?;
 
         if self.options.condcomp {
@@ -656,7 +656,7 @@ impl CompilerDriver for CompilationPass<'_> {
         &self,
         modules: &mut Vec<Module>,
         used_items: &UsedItems,
-    ) -> Result<TranslationUnit, Error> {
+    ) -> Result<TranslationUnit, Diagnostic> {
         pass::retarget_modules(modules, used_items, &self.resolver);
 
         for module in modules.iter_mut() {

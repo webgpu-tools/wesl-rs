@@ -4,7 +4,7 @@ use wgsl_parse::syntax::{Ident, ModulePath, TranslationUnit, Visibility};
 
 use crate::{
     SyntaxUtil,
-    error::{Diagnostic, Error},
+    error::Diagnostic,
     pass::{self, CompileResult, CompilerDriver, Module, UsedItems},
     resolver::{AsyncResolver, Resolver},
 };
@@ -14,7 +14,10 @@ pub fn main_entry_points(main_module: &TranslationUnit) -> HashSet<Ident> {
 }
 
 /// Note: it does not call [`pass::retarget_idents`], because that must be done right after [`pass::condcomp`].
-pub fn load_module(path: &ModulePath, resolver: &impl Resolver) -> Result<TranslationUnit, Error> {
+pub fn load_module(
+    path: &ModulePath,
+    resolver: &impl Resolver,
+) -> Result<TranslationUnit, Diagnostic> {
     let source = resolver.resolve_source(path)?;
 
     let module: TranslationUnit = source.parse().map_err(|e| {
@@ -29,11 +32,11 @@ pub fn load_module(path: &ModulePath, resolver: &impl Resolver) -> Result<Transl
 pub async fn load_module_async(
     path: &ModulePath,
     resolver: &impl AsyncResolver,
-) -> Result<TranslationUnit, Error> {
+) -> Result<TranslationUnit, Diagnostic> {
     let source = resolver.resolve_source_async(path).await?;
 
-    let mut module: TranslationUnit = source.parse().map_err(|e| {
-        Diagnostic::from(e)
+    let mut module: TranslationUnit = source.parse().map_err(|e: wgsl_parse::Error| {
+        Diagnostic::new(e.into())
             .with_module_path(path.clone(), resolver.display_name(path))
             .with_source(source.to_string())
     })?;
@@ -44,13 +47,13 @@ pub async fn load_module_async(
 }
 
 /// Default implementation of [`CompilerDriver::compile`]
-pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error> {
+pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Diagnostic> {
     let main_path = driver.main_path().clone();
     let main_module = driver.load_module(&main_path)?;
     let main_entrypoints = driver
         .main_entry_points(&main_module)?
         .into_iter()
-        .map(|ident| (ident, Visibility::Private)) // No visibility requirements for entry points
+        .map(|ident: Ident| (ident, Visibility::Private)) // No visibility requirements for entry points
         .collect::<HashMap<Ident, Visibility>>();
 
     let mut modules = Vec::new();
@@ -102,7 +105,7 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
     })
 }
 
-pub async fn compile_async(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error> {
+pub async fn compile_async(driver: &mut impl CompilerDriver) -> Result<CompileResult, Diagnostic> {
     let main_path = driver.main_path().clone();
     let main_module = driver.load_module(&main_path)?;
     let main_entrypoints = driver

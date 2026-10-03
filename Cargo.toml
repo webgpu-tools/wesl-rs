@@ -38,14 +38,14 @@ repository = "https://github.com/webgpu-tools/wesl-rs"
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-tokrepr = { path = "crates/tokrepr" }
-tokrepr-derive = { path = "crates/tokrepr-derive" }
-wesl = { path = "crates/wesl" }
-wesl-core = { path = "crates/wesl-core" }
-wesl-macros = { path = "crates/wesl-macros" }
-wesl-quote = { path = "crates/wesl-quote" }
-wgsl-parse = { path = "crates/wgsl-parse" }
-wgsl-types = { path = "crates/wgsl-types" }
+tokrepr = { path = "crates/tokrepr", version = "0.1.1" }
+tokrepr-derive = { path = "crates/tokrepr-derive", version = "0.1.0" }
+wesl = { path = "crates/wesl", version = "0.5.0" }
+wesl-core = { path = "crates/wesl-core", version = "0.1.0" }
+wesl-macros = { path = "crates/wesl-macros", version = "0.5.0" }
+wesl-quote = { path = "crates/wesl-quote", version = "0.5.0" }
+wgsl-parse = { path = "crates/wgsl-parse", version = "0.5.0" }
+wgsl-types = { path = "crates/wgsl-types", version = "0.5.0" }
 
 [workspace.lints.clippy]
 # TODO: change eventually

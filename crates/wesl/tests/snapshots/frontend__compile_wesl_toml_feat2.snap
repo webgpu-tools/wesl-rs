@@ -1,7 +1,3 @@
----
-source: crates/wesl/tests/frontend.rs
-expression: result.syntax.to_string()
----
 diagnostic (off, derivative_uniformity);
 
 const K: f32 = 2.0;

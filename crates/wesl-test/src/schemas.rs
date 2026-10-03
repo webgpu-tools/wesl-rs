@@ -4,9 +4,9 @@
 use std::{
     collections::HashMap,
     fmt::{self},
+    process::Command,
 };
 
-use regex::Regex;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -82,8 +82,7 @@ impl fmt::Display for ParsingTest {
 }
 
 fn normalize_wgsl(wgsl: &str) -> String {
-    let re = Regex::new(r"\s+").unwrap();
-    re.replace_all(wgsl, " ").trim().to_string()
+    wgsl.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 #[allow(unused)]
@@ -182,4 +181,101 @@ impl fmt::Display for Expectation {
             Expectation::Fail => f.write_str("Fail"),
         }
     }
+}
+
+pub fn fetch_git_repository(
+    repository: &WgslGitSrc,
+    target_dir: &std::path::Path,
+) -> std::io::Result<()> {
+    // Modeled after https://github.com/gfx-rs/wgpu/blob/c0a580d6f0343a725b3defa8be4fdf0a9691eaad/xtask/src/cts.rs
+    let WgslGitSrc { url, revision } = repository;
+    if std::fs::exists(&target_dir)? {
+        // Do a git update
+        let commit_exists = Command::new("git")
+            .args(["cat-file", "commit", revision])
+            .current_dir(&target_dir)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .expect("failed to execute git cat-file")
+            .wait()
+            .expect("failed to wait on git")
+            .success();
+
+        if !commit_exists {
+            let git_fetch = Command::new("git")
+                .args(["fetch", "--quiet", "--depth", "1", "origin", revision])
+                .current_dir(&target_dir)
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::inherit())
+                .spawn()
+                .expect("failed to execute git fetch")
+                .wait()
+                .expect("failed to wait on git");
+            if !git_fetch.success() {
+                panic!("Git fetch failed");
+            }
+        }
+
+        let git_checkout = Command::new("git")
+            .args(["checkout", "--quiet", revision])
+            .current_dir(&target_dir)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::inherit())
+            .spawn()
+            .expect("failed to execute git checkout")
+            .wait()
+            .expect("failed to wait on git");
+
+        if !git_checkout.success() {
+            panic!("Git checkout failed");
+        }
+    } else {
+        // Note: The --revision flag is not supported by git versions below 2.49.0 (so we don't use it)
+        // Ensure the target directory exists
+        std::fs::create_dir_all(&target_dir)?;
+
+        let git_clone = Command::new("git")
+            .args(["clone", url, "--no-checkout", "--depth", "1", "."])
+            .current_dir(&target_dir)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::inherit())
+            .spawn()
+            .expect("failed to execute git clone")
+            .wait()
+            .expect("failed to wait on git");
+
+        if !git_clone.success() {
+            panic!("Git clone failed");
+        }
+
+        let git_fetch = Command::new("git")
+            .args(["fetch", "--quiet", "--depth", "1", "origin", revision])
+            .current_dir(&target_dir)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::inherit())
+            .spawn()
+            .expect("failed to execute git fetch")
+            .wait()
+            .expect("failed to wait on git");
+        if !git_fetch.success() {
+            panic!("Git fetch failed");
+        }
+
+        let git_checkout = Command::new("git")
+            .args(["checkout", "--quiet", revision])
+            .current_dir(&target_dir)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::inherit())
+            .spawn()
+            .expect("failed to execute git checkout")
+            .wait()
+            .expect("failed to wait on git");
+
+        if !git_checkout.success() {
+            panic!("Git checkout {:?} failed", revision);
+        }
+    }
+
+    Ok(())
 }

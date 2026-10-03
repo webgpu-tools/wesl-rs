@@ -74,7 +74,7 @@ fn check_wasm_pack() -> Result<(), String> {
         .output()
         .is_ok_and(|o| o.status.success());
     if !found {
-        return Err(format!("`wasm-pack` command not found"));
+        return Err("`wasm-pack` command not found".to_string());
     }
     Ok(())
 }

@@ -1,0 +1,252 @@
+name: Release
+
+# Publishes:
+# - a GitHub release with the wesl-cli binary for every target.
+# - `wesl-rs-web` to npm.
+# - the workspace crates to crates.io.
+#
+# Triggered by pushing a `vX.Y.Z` tag. The manual dispatch only runs the build jobs.
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+
+permissions: {}
+
+env:
+  CARGO_TERM_COLOR: always
+  STABLE_TOOLCHAIN: "1.97.1"
+  NODE_VERSION: "24"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  wesl-cli:
+    name: build wesl-cli (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - os: macos-14
+            target: x86_64-apple-darwin
+          - os: macos-14
+            target: aarch64-apple-darwin
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.STABLE_TOOLCHAIN }}
+          target: ${{ matrix.target }}
+
+      - name: Build wesl-cli
+        run: cargo build --release --locked --target ${{ matrix.target }} -p wesl-cli
+
+      - name: Package wesl-cli
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="${{ matrix.target }}"
+          out="target/${target}/release"
+          pkg="wesl-${target}"
+          mkdir -p "${pkg}"
+
+          # CLI binary
+          if [[ "${target}" == *windows* ]]; then
+            cp "${out}/wesl.exe" "${pkg}/"
+          else
+            cp "${out}/wesl" "${pkg}/"
+          fi
+
+          cp README.md LICENSE-APACHE LICENSE-MIT "${pkg}/"
+          ls -la "${pkg}"
+
+          # Archive
+          if [[ "${target}" == *windows* ]]; then
+            7z a "${pkg}.zip" "${pkg}"
+          else
+            tar czf "${pkg}.tar.gz" "${pkg}"
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: wesl-cli-${{ matrix.target }}
+          path: ./wesl-${{ matrix.target }}.*
+          if-no-files-found: error
+
+  wesl-rs-web:
+    name: build wesl-rs-web
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.STABLE_TOOLCHAIN }}
+          target: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        uses: taiki-e/install-action@wasm-pack
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Build wesl-rs-web
+        run: cargo xtask wesl-rs-web --release
+
+      - name: Create tarball
+        working-directory: ./crates/wesl-rs-web
+        run: |
+          npm pack
+          mv wesl-rs-web-*.tgz ../../wesl-rs-web.tgz
+
+      - name: Check tarball
+        run: |
+          contents="$(tar -tzf wesl-rs-web.tgz)"
+          for file in package.json README.md LICENSE-APACHE LICENSE-MIT dist/wesl-rs-web.js dist/wesl-rs-web.d.ts dist/wesl-rs-web_bg.wasm; do
+            grep -qxF "package/$file" <<< "$contents" || { echo "::error::tarball is missing $file"; exit 1; }
+          done
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: wesl-rs-web
+          path: ./wesl-rs-web.tgz
+          if-no-files-found: error
+
+  publish-github:
+    name: Publish (GitHub Release)
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: ["wesl-cli", "wesl-rs-web"]
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set release tag
+        run: |
+            echo "TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+
+      - name: Download dist artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Display artifacts
+        run: ls -la ./dist
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ env.TAG }}
+          name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
+          prerelease: false
+          generate_release_notes: true
+          files: dist/*
+          fail_on_unmatched_files: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-crates-io:
+    name: Publish (crates.io)
+    needs: publish-github
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # trusted publishing (OIDC)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.STABLE_TOOLCHAIN }}
+
+      - name: Authenticate with crates.io
+        uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+
+      - name: Publish to crates.io
+        run: |
+          cargo publish --locked \
+            -p tokrepr-derive \
+            -p tokrepr \
+            -p wesl-core \
+            -p wesl-macros \
+            -p wgsl-types \
+            -p wgsl-parse \
+            -p wesl-quote \
+            -p wesl \
+            -p wesl-cli
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+
+  publish-npm:
+    name: Publish (npm)
+    needs: publish-github
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # trusted publishing (OIDC)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Download wesl-rs-web artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: wesl-rs-web
+          path: ./dist
+
+      - name: Display artifact
+        run: ls -al ./dist
+
+      - name: Publish to npm
+        run: |
+          tarball=./dist/wesl-rs-web.tgz
+          version="$(tar -xOzf "${tarball}" package/package.json | jq -r .version)"
+          if [ "$(npm view "wesl-rs-web@${version}" version 2>/dev/null)" = "${version}" ]; then
+            echo "::notice::wesl-rs-web@${version} is already published"
+            exit 0
+          fi
+          npm publish "${tarball}" --tag "latest" --provenance --access public

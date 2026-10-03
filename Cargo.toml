@@ -30,6 +30,7 @@ default-members = [
 ]
 
 [workspace.package]
+# version bumps managed by `cargo xtask version`
 version = "0.5.0"
 edition = "2024"
 rust-version = "1.97.1"
@@ -37,7 +38,7 @@ repository = "https://github.com/webgpu-tools/wesl-rs"
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-tokrepr = { path = "crates/tokrepr", version = "0.1.0" }
+tokrepr = { path = "crates/tokrepr", version = "0.1.1" }
 tokrepr-derive = { path = "crates/tokrepr-derive", version = "0.1.0" }
 wesl = { path = "crates/wesl", version = "0.5.0" }
 wesl-core = { path = "crates/wesl-core", version = "0.1.0" }

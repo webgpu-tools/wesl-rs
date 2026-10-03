@@ -1,0 +1,47 @@
+{
+	"name": "wesl-web",
+	"version": "0.5.0",
+	"description": "wesl-rs compiler in WebAssembly",
+	"license": "MIT OR Apache-2.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/webgpu-tools/wesl-rs",
+		"directory": "crates/wesl-web"
+	},
+	"keywords": [
+		"wesl",
+		"wgsl",
+		"webgpu",
+		"shader",
+		"compiler",
+		"wasm"
+	],
+	"type": "module",
+	"main": "./dist/wesl_web.js",
+	"types": "./dist/wesl_web.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/wesl_web.d.ts",
+			"default": "./dist/wesl_web.js"
+		},
+		"./wesl_web_bg.wasm": "./dist/wesl_web_bg.wasm"
+	},
+	"files": [
+		"dist/wesl_web.js",
+		"dist/wesl_web.d.ts",
+		"dist/wesl_web_bg.wasm",
+		"dist/wesl_web_bg.wasm.d.ts",
+		"README.md",
+		"LICENSE-APACHE",
+		"LICENSE-MIT"
+	],
+	"sideEffects": false,
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"scripts": {
+		"build": "cargo xtask dist-web --release",
+		"prepack": "node -e \"for(const f of ['LICENSE-APACHE','LICENSE-MIT']) require('node:fs').copyFileSync('../../' + f, f)\""
+	}
+}

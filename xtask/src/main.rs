@@ -1,33 +1,28 @@
+mod update_grammar;
+mod wesl_web;
+
 use std::{env, path::PathBuf, process::ExitCode};
 
 fn main() -> ExitCode {
-    let task = env::args().nth(1);
-    match task.as_deref() {
-        Some("update_grammar") => update_grammar(),
+    let args: Vec<String> = env::args().skip(1).collect();
+    match args.first().map(String::as_str) {
+        Some("update_grammar") => update_grammar::run(&workspace_root()),
+        Some("wesl_web") => wesl_web::run(&workspace_root(), &args[1..]),
         _ => {
             eprintln!("usage: cargo xtask <command>");
             eprintln!();
             eprintln!("commands:");
             eprintln!("    update_grammar    run lalrpop on crates/wgsl-parse/src/grammar.lalrpop");
+            eprintln!("    wesl_web          build the wesl-web npm package into dist/");
             ExitCode::FAILURE
         }
     }
 }
 
-fn update_grammar() -> ExitCode {
+fn workspace_root() -> PathBuf {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let workspace_root = manifest_dir.parent().expect("xtask has a parent directory");
-    let grammar = workspace_root.join("crates/wgsl-parse/src/grammar.lalrpop");
-
-    println!("generating grammar from {}", grammar.display());
-    lalrpop::Configuration::new()
-        .set_out_dir(
-            grammar
-                .parent()
-                .expect("grammar file has a parent directory"),
-        )
-        .process_file(&grammar)
-        .unwrap();
-    println!("done");
-    ExitCode::SUCCESS
+    manifest_dir
+        .parent()
+        .expect("xtask has a parent directory")
+        .to_path_buf()
 }

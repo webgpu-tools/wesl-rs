@@ -1,5 +1,5 @@
 mod update_grammar;
-mod wesl_web;
+mod wesl_rs_web;
 
 use std::{env, path::PathBuf, process::ExitCode};
 
@@ -7,13 +7,13 @@ fn main() -> ExitCode {
     let args: Vec<String> = env::args().skip(1).collect();
     match args.first().map(String::as_str) {
         Some("update_grammar") => update_grammar::run(&workspace_root()),
-        Some("wesl_web") => wesl_web::run(&workspace_root(), &args[1..]),
+        Some("wesl-rs-web") => wesl_rs_web::run(&workspace_root(), &args[1..]),
         _ => {
             eprintln!("usage: cargo xtask <command>");
             eprintln!();
             eprintln!("commands:");
             eprintln!("    update_grammar    run lalrpop on crates/wgsl-parse/src/grammar.lalrpop");
-            eprintln!("    wesl_web          build the wesl-web npm package into dist/");
+            eprintln!("    wesl-rs-web          build the wesl-rs-web npm package into dist/");
             ExitCode::FAILURE
         }
     }

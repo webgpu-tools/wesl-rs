@@ -1,6 +1,6 @@
-//! Builds the `wesl-web` crate as an npm package.
+//! Builds the `wesl-rs-web` crate as an npm package.
 //!
-//! Runs `wasm-pack build crates/wesl-web --target web --out-dir crates/wesl-web/dist`.
+//! Runs `wasm-pack build crates/wesl-rs-web --target web --out-dir crates/wesl-rs-web/dist`.
 
 use std::{
     ffi::OsStr,
@@ -10,7 +10,7 @@ use std::{
 };
 
 /// Relative to the workspace root.
-const PACKAGE_ROOT: &str = "crates/wesl-web";
+const PACKAGE_ROOT: &str = "crates/wesl-rs-web";
 
 pub(crate) fn run(workspace_root: &Path, args: &[String]) -> ExitCode {
     let mut release = false;
@@ -18,7 +18,7 @@ pub(crate) fn run(workspace_root: &Path, args: &[String]) -> ExitCode {
         match arg.as_str() {
             "--release" => release = true,
             other => {
-                eprintln!("xtask wesl_web failed: unknown argument `{other}`");
+                eprintln!("xtask wesl-rs-web failed: unknown argument `{other}`");
                 return ExitCode::FAILURE;
             }
         }
@@ -27,7 +27,7 @@ pub(crate) fn run(workspace_root: &Path, args: &[String]) -> ExitCode {
     match dist_web(workspace_root, release) {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
-            eprintln!("xtask wesl_web failed: {e}");
+            eprintln!("xtask wesl-rs-web failed: {e}");
             ExitCode::FAILURE
         }
     }
@@ -57,7 +57,7 @@ fn dist_web(workspace_root: &Path, release: bool) -> Result<(), String> {
         "--out-dir",
         "dist",
         "--out-name",
-        "wesl_web",
+        "wesl-rs-web",
         "--no-pack",
     ]);
     if !release {
@@ -119,13 +119,13 @@ fn exec(cmd: &mut Command) -> Result<(), String> {
             .collect::<Vec<_>>()
             .join(" ")
     );
-    println!("xtask wesl_web: running `{display}`");
+    println!("xtask wesl-rs-web: running `{display}`");
     let status = cmd
         .status()
         .map_err(|e| format!("failed to run `{display}`: {e}"))?;
     if !status.success() {
         return Err(format!(
-            "xtask wesl_web failed: {display} (status {status})"
+            "xtask wesl-rs-web failed: {display} (status {status})"
         ));
     }
     Ok(())

@@ -1557,21 +1557,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "wesl-test"
-version = "0.5.0"
-dependencies = [
- "bevy-wgsl",
- "insta",
- "libtest-mimic",
- "regex",
- "serde",
- "serde_json",
- "wesl",
- "wgsl-parse",
-]
-
-[[package]]
-name = "wesl-web"
+name = "wesl-rs-web"
 version = "0.5.0"
 dependencies = [
  "ansi-to-html",
@@ -1586,6 +1572,20 @@ dependencies = [
  "tsify",
  "wasm-bindgen",
  "wesl",
+]
+
+[[package]]
+name = "wesl-test"
+version = "0.5.0"
+dependencies = [
+ "bevy-wgsl",
+ "insta",
+ "libtest-mimic",
+ "regex",
+ "serde",
+ "serde_json",
+ "wesl",
+ "wgsl-parse",
 ]
 
 [[package]]

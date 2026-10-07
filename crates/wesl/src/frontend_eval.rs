@@ -81,14 +81,14 @@ impl CompileResult {
         let expr = source
             .parse::<syntax::Expression>()
             .map_err(|e| Error::Error(Diagnostic::from(e).with_source(source.to_string())))?;
-        let (inst, ctx) = eval(&expr, &self.syntax);
+        let (inst, ctx) = eval(&expr, self.syntax());
         let inst = inst.map_err(|e| {
             Diagnostic::from(e)
                 .with_source(source.to_string())
                 .with_ctx(&ctx)
         });
 
-        let inst = if let Some(sourcemap) = &self.sourcemap {
+        let inst = if let Some(sourcemap) = self.sourcemap() {
             inst.map_err(|e| Error::Error(e.with_sourcemap(sourcemap)))
         } else {
             inst.map_err(Error::Error)
@@ -112,7 +112,7 @@ impl CompileResult {
         bindings: HashMap<(u32, u32), RefInstance>,
         overrides: HashMap<String, Instance>,
     ) -> Result<ExecResult<'a>, Error> {
-        let mut ctx = Context::new(&self.syntax);
+        let mut ctx = Context::new(self.syntax());
         ctx.add_bindings(bindings);
         ctx.add_overrides(overrides);
         ctx.set_stage(ShaderStage::Exec);
@@ -120,13 +120,13 @@ impl CompileResult {
         let entry_fn = SyntaxUtil::decl_function(ctx.source, entrypoint)
             .ok_or_else(|| EvalError::UnknownFunction(entrypoint.to_string()))?;
 
-        let _ = self.syntax.exec(&mut ctx)?;
+        let _ = self.syntax().exec(&mut ctx)?;
 
         let inst = exec_entrypoint(entry_fn, inputs, &mut ctx).map_err(|e| {
             if let Some(span) = ctx.source.user_decl_span(entrypoint) {
                 ctx.set_err_span_ctx(span);
             }
-            if let Some(sourcemap) = &self.sourcemap {
+            if let Some(sourcemap) = self.sourcemap() {
                 Diagnostic::from(e).with_ctx(&ctx).with_sourcemap(sourcemap)
             } else {
                 Diagnostic::from(e).with_ctx(&ctx)

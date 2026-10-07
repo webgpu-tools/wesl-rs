@@ -229,6 +229,7 @@ impl TryFrom<&CompOptsArgs> for CompileOptions {
             lower: opts.lower,
             validate: !opts.no_validate,
             sourcemap: !opts.no_sourcemap,
+            sort_declarations: false,
             mangle_main: opts.mangle_main,
             keep: if opts.no_strip {
                 None
@@ -665,14 +666,14 @@ fn run(cli: Cli) -> Result<(), CliError> {
             let resources = args
                 .resources
                 .iter()
-                .map(|b| parse_binding(b, &comp.syntax))
+                .map(|b| parse_binding(b, comp.syntax()))
                 .collect::<Result<_, _>>()?;
 
             let overrides = args
                 .overrides
                 .iter()
                 .map(|(name, expr)| -> Result<(String, Instance), CliError> {
-                    Ok((name.to_string(), eval_expr(expr, &comp.syntax)?))
+                    Ok((name.to_string(), eval_expr(expr, comp.syntax())?))
                 })
                 .collect::<Result<_, _>>()?;
 
@@ -682,12 +683,12 @@ fn run(cli: Cli) -> Result<(), CliError> {
                 .user_inputs
                 .iter()
                 .map(|(index, expr)| -> Result<(u32, Instance), CliError> {
-                    Ok((*index, eval_expr(expr, &comp.syntax)?))
+                    Ok((*index, eval_expr(expr, comp.syntax())?))
                 })
                 .collect::<Result<_, _>>()?;
 
             for (name, expr) in &args.builtins {
-                let inst = eval_expr(expr, &comp.syntax)?;
+                let inst = eval_expr(expr, comp.syntax())?;
                 inputs.builtins.insert(name.to_string(), inst);
             }
 

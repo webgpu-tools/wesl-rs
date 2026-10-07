@@ -386,6 +386,7 @@ fn json_case(case: &Test) -> Result<(), libtest_mimic::Failed> {
 
             let compile_options = CompileOptions {
                 keep_main: true,
+                sort_declarations: true,
                 ..Default::default()
             };
 
@@ -399,8 +400,7 @@ fn json_case(case: &Test) -> Result<(), libtest_mimic::Failed> {
 
             match (res, expect) {
                 (Err(_), None) => Ok(()),
-                (Ok(mut res), Some(mut expect)) => {
-                    res.syntax.sort_declarations();
+                (Ok(res), Some(mut expect)) => {
                     expect.sort_declarations();
                     if res.to_string() != expect.to_string() {
                         Err(format!("expected `{expect}`, got `{res}`").into())
@@ -449,15 +449,15 @@ pub fn testsuite_case(case: &WgslTestSrc) -> Result<(), libtest_mimic::Failed> {
     let main_module = ModulePath::from_str("package::main")?;
     let compile_options = CompileOptions {
         keep_main: true,
+        sort_declarations: true,
         ..Default::default()
     };
 
-    let mut case_wgsl =
+    let case_wgsl =
         Compiler::new_with_resolver(compile_options, resolver).compile_module(&main_module)?;
 
     if let Some(expect_wgsl) = &case.underscore_wgsl {
         let mut expect_wgsl = wgsl_parse::parse_str(expect_wgsl)?;
-        case_wgsl.syntax.sort_declarations();
         expect_wgsl.sort_declarations();
         assert_eq!(case_wgsl.to_string(), expect_wgsl.to_string());
     }
@@ -475,6 +475,7 @@ pub fn validation_case(test_name: String, path: PathBuf) -> Result<(), libtest_m
         lower: true,
         validate: true,
         mangler: ManglerKind::None,
+        sort_declarations: true,
         ..Default::default()
     };
 
@@ -485,9 +486,8 @@ pub fn validation_case(test_name: String, path: PathBuf) -> Result<(), libtest_m
 
     // second, we run with strip: true, which is the default for WESL, and save the snapshot.
     compiler.options.strip = true;
-    let mut res = compiler.compile_module(&main_path)?;
-    res.syntax.sort_declarations();
-    insta::assert_snapshot!(test_name, res.syntax.to_string());
+    let res = compiler.compile_module(&main_path)?;
+    insta::assert_snapshot!(test_name, res.to_string());
     Ok(())
 }
 
@@ -530,6 +530,7 @@ pub fn bevy_case(test_name: String, path: PathBuf) -> Result<(), libtest_mimic::
         constants,
         features,
         dependencies: vec![&bevy_wgsl::PACKAGE],
+        sort_declarations: true,
         ..Default::default()
     };
 
@@ -541,8 +542,7 @@ pub fn bevy_case(test_name: String, path: PathBuf) -> Result<(), libtest_mimic::
 
     // second, we run with strip: true, which is the default for WESL, and save the snapshot.
     compiler.options.strip = true;
-    let mut res = compiler.compile_module(pkg_root_dir, &main_path)?;
-    res.syntax.sort_declarations();
-    insta::assert_snapshot!(test_name, res.syntax.to_string());
+    let res = compiler.compile_module(pkg_root_dir, &main_path)?;
+    insta::assert_snapshot!(test_name, res.to_string());
     Ok(())
 }

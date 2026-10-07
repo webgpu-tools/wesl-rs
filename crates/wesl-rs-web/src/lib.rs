@@ -68,6 +68,8 @@ pub struct CompileOptions {
     #[serde(default)]
     pub mangler: ManglerKind,
     pub sourcemap: bool,
+    #[serde(default)]
+    pub sort_declarations: bool,
     pub imports: bool,
     pub condcomp: bool,
     pub visibility: bool,
@@ -211,6 +213,7 @@ fn run_compile(args: CompileOptions) -> Result<CompileResult, wesl::Error> {
         lower: args.lower,
         validate: args.validate,
         sourcemap: args.sourcemap,
+        sort_declarations: args.sort_declarations,
         mangler: args.mangler.into(),
         mangle_main: args.mangle_main,
         keep: args.keep,
@@ -395,7 +398,7 @@ fn run_impl(args: Command) -> Result<RunResult, Error> {
         Command::Compile(args) => {
             let comp = run_compile(args).map_err(|e| wesl_err_to_diagnostic(e, None))?;
 
-            Ok(RunResult::Compile(comp.syntax))
+            Ok(RunResult::Compile(comp.syntax().clone()))
         }
         Command::Eval(args) => {
             let comp =
@@ -415,14 +418,14 @@ fn run_impl(args: Command) -> Result<RunResult, Error> {
                 let resources = args
                     .resources
                     .iter()
-                    .map(|b| parse_binding(b, &comp.syntax))
+                    .map(|b| parse_binding(b, comp.syntax()))
                     .collect::<Result<_, _>>()?;
 
                 let overrides = args
                     .overrides
                     .iter()
                     .map(|(name, expr)| -> Result<(String, Instance), CliError> {
-                        Ok((name.to_string(), eval_expr(expr, &comp.syntax)?))
+                        Ok((name.to_string(), eval_expr(expr, comp.syntax())?))
                     })
                     .collect::<Result<_, _>>()?;
 
@@ -432,12 +435,12 @@ fn run_impl(args: Command) -> Result<RunResult, Error> {
                     .user_inputs
                     .iter()
                     .map(|(index, expr)| -> Result<(u32, Instance), CliError> {
-                        Ok((*index, eval_expr(expr, &comp.syntax)?))
+                        Ok((*index, eval_expr(expr, comp.syntax())?))
                     })
                     .collect::<Result<_, _>>()?;
 
                 for (name, expr) in &args.builtins {
-                    let inst = eval_expr(expr, &comp.syntax)?;
+                    let inst = eval_expr(expr, comp.syntax())?;
                     inputs.builtins.insert(name.to_string(), inst);
                 }
 

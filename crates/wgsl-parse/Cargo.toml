@@ -30,6 +30,7 @@ itertools = "0.15.0"
 lalrpop-util = "0.23.1"
 lexical = { version = "7.0.5", features = ["format", "power-of-two"] }
 logos = "0.16.0"
+pretty = { version = "0.12.5", default-features = false }
 serde = { version = "1.0.215", features = ["derive", "rc"], optional = true }
 thiserror = "2.0.12"
 tokrepr = { workspace = true, optional = true }

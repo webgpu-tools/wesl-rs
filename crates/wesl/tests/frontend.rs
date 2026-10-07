@@ -29,15 +29,15 @@ fn compile_wgsl() {
     let test_path = fixtures_dir().join("compile_wgsl/shaders/main.wgsl");
 
     let mut compiler = Compiler::default();
+    compiler.options.sort_declarations = true;
 
     compiler.options.lower = false;
     compiler.options.strip = false;
-    let mut result = compiler
+    let result = compiler
         .compile(&test_path)
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
-    result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    insta::assert_snapshot!(result.to_string());
 }
 
 #[tokio::test]
@@ -45,16 +45,16 @@ async fn compile_wgsl_async() {
     let test_path = fixtures_dir().join("compile_wgsl/shaders/main.wgsl");
 
     let mut compiler = Compiler::default();
+    compiler.options.sort_declarations = true;
 
     compiler.options.lower = false;
     compiler.options.strip = false;
-    let mut result = compiler
+    let result = compiler
         .compile_async(&test_path)
         .await
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
-    result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    insta::assert_snapshot!(result.to_string());
 }
 
 #[cfg(not(feature = "eval"))]
@@ -63,15 +63,15 @@ fn compile_wgsl_lower() {
     let test_path = fixtures_dir().join("compile_wgsl/shaders/main.wgsl");
 
     let mut compiler = Compiler::default();
+    compiler.options.sort_declarations = true;
 
     compiler.options.lower = true;
     compiler.options.strip = false;
-    let mut result = compiler
+    let result = compiler
         .compile(&test_path)
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
-    result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    insta::assert_snapshot!(result.to_string());
 }
 
 #[cfg(feature = "eval")]
@@ -80,15 +80,15 @@ fn compile_wgsl_lower_eval() {
     let test_path = fixtures_dir().join("compile_wgsl/shaders/main.wgsl");
 
     let mut compiler = Compiler::default();
+    compiler.options.sort_declarations = true;
 
     compiler.options.lower = true;
     compiler.options.strip = false;
-    let mut result = compiler
+    let result = compiler
         .compile(&test_path)
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
-    result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    insta::assert_snapshot!(result.to_string());
 }
 
 #[test]
@@ -96,15 +96,15 @@ fn compile_wgsl_strip() {
     let test_path = fixtures_dir().join("compile_wgsl/shaders/main.wgsl");
 
     let mut compiler = Compiler::default();
+    compiler.options.sort_declarations = true;
 
     compiler.options.lower = false;
     compiler.options.strip = true;
-    let mut result = compiler
+    let result = compiler
         .compile(&test_path)
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
-    result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    insta::assert_snapshot!(result.to_string());
 }
 
 /// same as test `compile_wesl_toml` below, except the path provided is a directory,
@@ -115,6 +115,7 @@ fn compile_wesl_directory() {
     let test_path = fixtures_dir().join("compile_wesl/shaders");
 
     let mut compiler = Compiler::default();
+    compiler.options.sort_declarations = true;
 
     compiler.options.lower = false;
     compiler.options.strip = false;
@@ -126,12 +127,11 @@ fn compile_wesl_directory() {
     compiler.options.constants = constants;
 
     compiler.options.dependencies = vec![&package_random::PACKAGE];
-    let mut result = compiler
+    let result = compiler
         .compile(&test_path)
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
-    result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    insta::assert_snapshot!(result.to_string());
 }
 
 /// same as test `compile_wesl_toml` below, except the path provided is a file,
@@ -142,6 +142,7 @@ fn compile_wesl_file() {
     let test_path = fixtures_dir().join("compile_wesl/shaders/package.wesl");
 
     let mut compiler = Compiler::default();
+    compiler.options.sort_declarations = true;
 
     compiler.options.lower = false;
     compiler.options.strip = false;
@@ -153,12 +154,11 @@ fn compile_wesl_file() {
     compiler.options.constants = constants;
 
     compiler.options.dependencies = vec![&package_random::PACKAGE];
-    let mut result = compiler
+    let result = compiler
         .compile(&test_path)
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
-    result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    insta::assert_snapshot!(result.to_string());
 }
 
 #[test]
@@ -174,17 +174,17 @@ fn compile_wesl_toml_feat1() {
     constants.set("PI", std::f64::consts::PI);
     constants.set("TRUE", true);
 
-    let mut result = Compiler::new(CompileOptions {
+    let result = Compiler::new(CompileOptions {
         features,
         constants,
         dependencies: vec![&package_random::PACKAGE],
+        sort_declarations: true,
         ..Default::default()
     })
     .compile(&test_path)
     .inspect_err(|e| eprintln!("{e}"))
     .unwrap();
-    result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    insta::assert_snapshot!(result.to_string());
 }
 
 #[test]
@@ -200,17 +200,17 @@ fn compile_wesl_toml_feat2() {
     constants.set("PI", std::f64::consts::PI);
     constants.set("TRUE", true);
 
-    let mut result = Compiler::new(CompileOptions {
+    let result = Compiler::new(CompileOptions {
         features,
         constants,
         dependencies: vec![&package_random::PACKAGE],
+        sort_declarations: true,
         ..Default::default()
     })
     .compile(&test_path)
     .inspect_err(|e| eprintln!("{e}"))
     .unwrap();
-    result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    insta::assert_snapshot!(result.to_string());
 }
 
 wesl_pkg!(a, "dependency_unification/a.rs");
@@ -232,13 +232,33 @@ fn compile_dependency_unification() {
     let test_path = fixtures_dir().join("dependency_unification/main.wesl");
 
     // in this test, A imports from C1 and D1, B imports from
-    let mut result = Compiler::new(CompileOptions {
+    let result = Compiler::new(CompileOptions {
         dependencies: vec![&a::PACKAGE, &b::PACKAGE],
+        sort_declarations: true,
         ..Default::default()
     })
     .compile(&test_path)
     .inspect_err(|e| eprintln!("{e}"))
     .unwrap();
-    result.syntax.sort_declarations(); // normalize for comparison
-    insta::assert_snapshot!(result.syntax.to_string());
+    insta::assert_snapshot!(result.to_string());
+}
+
+/// The compiled WGSL is printed once, with or without a sourcemap.
+#[test]
+fn compiled_code_is_available_as_a_str() {
+    for sourcemap in [false, true] {
+        let mut resolver = wesl::resolver::VirtualResolver::new();
+        resolver.add_module("package".parse().unwrap(), "fn f() { }".into());
+        let compiler = Compiler::new_with_resolver(
+            CompileOptions {
+                keep_main: true,
+                sourcemap,
+                ..Default::default()
+            },
+            resolver,
+        );
+        let result = compiler.compile_root().unwrap();
+        assert_eq!(result.wgsl(), result.syntax().to_string());
+        assert_eq!(result.wgsl(), result.to_string());
+    }
 }

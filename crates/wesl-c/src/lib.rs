@@ -251,6 +251,7 @@ impl From<&WeslCompileOptions> for wesl::CompileOptions {
             lower: options.lower,
             validate: options.validate,
             sourcemap: options.sourcemap,
+            sort_declarations: false,
             mangler: options.mangler.into(),
             mangle_main: options.mangle_main,
             keep: if keep_vec.is_empty() {
@@ -762,7 +763,7 @@ pub unsafe extern "C" fn wesl_exec(
             let parsed_resources: Result<HashMap<(u32, u32), RefInstance>, wesl::Error> =
                 resources_vec
                     .iter()
-                    .map(|r| parse_c_binding(r, &result.syntax))
+                    .map(|r| parse_c_binding(r, result.syntax()))
                     .collect();
 
             let parsed_resources = match parsed_resources {
@@ -776,7 +777,7 @@ pub unsafe extern "C" fn wesl_exec(
             let parsed_overrides: Result<HashMap<String, Instance>, wesl::Error> = overrides_map
                 .iter()
                 .map(|(name, expr)| {
-                    let mut ctx = wesl::eval::Context::new(&result.syntax);
+                    let mut ctx = wesl::eval::Context::new(result.syntax());
                     let expr = expr.parse::<wesl::syntax::Expression>().map_err(|e| {
                         wesl::Error::Custom(format!("Failed to parse override expression: {e}"))
                     })?;

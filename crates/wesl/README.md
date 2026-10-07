@@ -24,7 +24,7 @@ let compile_result = compiler
     .compile("path/to/shader.wesl")
     .inspect_err(|e| eprintln!("WESL error: {e}")) // pretty-print error diagnostics
     .expect("compilation error");
-let wgsl_string = compile_result.syntax.to_string();
+let wgsl_string = compile_result.to_string();
 #
 # assert!(&wgsl_string == shader_string);
 ```

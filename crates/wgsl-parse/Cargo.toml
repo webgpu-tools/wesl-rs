@@ -12,38 +12,43 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-annotate-snippets = "0.12.4"
+annotate-snippets = "0.12.16"
 derive_more = {
-  version = "2.0.1",
+  version = "2.1.1",
   features = [
     "as_ref",
-    "constructor",
     "deref",
     "deref_mut",
     "from",
     "is_variant",
-    "try_unwrap",
     "unwrap",
   ]
 }
 itertools = "0.15.0"
-lalrpop-util = "0.23.1"
-lexical = { version = "7.0.5", features = ["format", "power-of-two"] }
-logos = "0.16.0"
-serde = { version = "1.0.215", features = ["derive", "rc"], optional = true }
-thiserror = "2.0.12"
+lalrpop-util = { version = "0.23.1", default-features = false }
+lexical-parse-float = {
+  version = "1.0.6",
+  default-features = false,
+  features = ["format", "power-of-two", "std"],
+}
+lexical-parse-integer = {
+  version = "1.0.6",
+  default-features = false,
+  features = ["format", "power-of-two", "std"],
+}
+logos = "0.16.1"
+serde = { version = "1.0.229", features = ["derive", "rc"], optional = true }
+thiserror = "2.0.21"
 tokrepr = { workspace = true, optional = true }
 wgsl-types = { workspace = true }
 
 [features]
-default = []
 # experimental
-generics = ["wesl"]
+generics = []
 # See crates/wesl/Cargo.toml
 naga-ext = ["wgsl-types/naga-ext"]
 serde = ["dep:serde", "wgsl-types/serde"]
 tokrepr = ["dep:tokrepr", "wgsl-types/tokrepr"]
-wesl = []
 
 [lints]
 workspace = true

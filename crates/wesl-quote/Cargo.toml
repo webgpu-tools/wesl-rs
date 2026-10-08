@@ -13,11 +13,11 @@ proc-macro = true
 [dependencies]
 itertools = "0.15.0"
 proc-macro-error3 = { version = "3.1.1" }
-proc-macro2 = "1.0.86"
-quote = "1.0.37"
-syn = "3.0.2"
+proc-macro2 = "1.0.107"
+quote = "1.0.47"
+syn = "3.0.6"
 token_stream_flatten = { version = "0.1.0" }
-wgsl-parse = { workspace = true, features = ["tokrepr", "wesl"] }
+wgsl-parse = { workspace = true, features = ["tokrepr"] }
 
 [dev-dependencies]
 wesl = { path = "../wesl" }  # for unit tests. We can't use { workspace = true } because of a dependency cycle. see Cargo#4242.

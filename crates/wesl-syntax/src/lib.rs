@@ -24,10 +24,7 @@ pub struct Parse {
 }
 
 impl PartialEq for Parse {
-    fn eq(
-        &self,
-        other: &Self,
-    ) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.green_node == other.green_node
     }
 }
@@ -35,6 +32,14 @@ impl PartialEq for Parse {
 impl Eq for Parse {}
 
 impl Parse {
+    pub fn new(parsed: parser::Parse) -> Self {
+        let (green_node, errors) = parsed.into_parts();
+        Parse {
+            green_node,
+            errors: Arc::from(errors),
+        }
+    }
+
     #[must_use]
     pub fn syntax(&self) -> SyntaxNode {
         SyntaxNode::new_root(self.green_node.clone())
@@ -64,10 +69,7 @@ impl Parse {
 }
 
 #[must_use]
-pub fn parse(
-    input: &str,
-    edition: Edition,
-) -> Parse {
+pub fn parse(input: &str, edition: Edition) -> Parse {
     let (green_node, errors) = parser::parse_entrypoint_with_capabilities(
         input,
         ParseEntryPoint::File,
@@ -204,10 +206,7 @@ mod support {
         AstChildren::new(parent)
     }
 
-    pub(crate) fn child_syntax(
-        parent: &SyntaxNode,
-        kind: SyntaxKind,
-    ) -> Option<SyntaxNode> {
+    pub(crate) fn child_syntax(parent: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxNode> {
         parent.children().find(|node| node.kind() == kind)
     }
 
@@ -221,10 +220,7 @@ mod support {
             .find_map(Node::cast)
     }
 
-    pub(crate) fn token(
-        parent: &SyntaxNode,
-        kind: SyntaxKind,
-    ) -> Option<SyntaxToken> {
+    pub(crate) fn token(parent: &SyntaxNode, kind: SyntaxKind) -> Option<SyntaxToken> {
         parent
             .children_with_tokens()
             .filter_map(rowan::NodeOrToken::into_token)
@@ -242,7 +238,7 @@ mod support {
         match node.green() {
             Cow::Borrowed(green_ref) => {
                 TokenText::Borrowed(first_token(green_ref).map_or("", rowan::GreenTokenData::text))
-            },
+            }
             Cow::Owned(green) => first_token(&green)
                 .map(ToOwned::to_owned)
                 .map_or(TokenText::Borrowed(""), TokenText::Owned),

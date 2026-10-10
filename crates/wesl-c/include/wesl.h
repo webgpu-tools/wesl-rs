@@ -158,8 +158,6 @@ struct WeslResult wesl_compile(const char *main,
                                const struct WeslResolverOptions *resolver);
 
 /**
- * Requires the `eval` feature to be enabled.
- *
  * Free with `wesl_free_result`.
  */
 struct WeslResult wesl_eval(const char *main,
@@ -168,18 +166,6 @@ struct WeslResult wesl_eval(const char *main,
                             const struct WeslResolverOptions *resolver);
 
 /**
- * Requires the `eval` feature to be enabled.
- *
- * Free with `wesl_free_result`.
- */
-struct WeslResult wesl_eval(const char *_main,
-                            const char *_expression,
-                            const struct WeslCompileOptions *_options,
-                            const struct WeslResolverOptions *_resolver);
-
-/**
- * Requires the `eval` feature to be enabled.
- *
  * Free with `wesl_free_exec_result`.
  */
 struct WeslExecResult wesl_exec(const char *main,
@@ -188,18 +174,6 @@ struct WeslExecResult wesl_exec(const char *main,
                                 const struct WeslBindingArray *resources,
                                 const struct WeslStringMap *overrides,
                                 const struct WeslResolverOptions *resolver);
-
-/**
- * Requires the `eval` feature to be enabled.
- *
- * Free with `wesl_free_exec_result`.
- */
-struct WeslExecResult wesl_exec(const char *_main,
-                                const char *_entrypoint,
-                                const struct WeslCompileOptions *_options,
-                                const struct WeslBindingArray *_resources,
-                                const struct WeslStringMap *_overrides,
-                                const struct WeslResolverOptions *_resolver);
 
 void wesl_free_result(struct WeslResult *result);
 

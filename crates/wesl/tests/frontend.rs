@@ -60,25 +60,6 @@ async fn compile_wgsl_async() {
     expected.assert_eq(&result.syntax.to_string());
 }
 
-#[cfg(not(feature = "eval"))]
-#[test]
-fn compile_wgsl_lower() {
-    let test_path = fixtures_dir().join("compile_wgsl/shaders/main.wgsl");
-
-    let mut compiler = Compiler::default();
-
-    compiler.options.lower = true;
-    compiler.options.strip = false;
-    let mut result = compiler
-        .compile(&test_path)
-        .inspect_err(|e| eprintln!("{e}"))
-        .unwrap();
-    result.syntax.sort_declarations(); // normalize for comparison
-    let expected = expect_file![format!("./snapshots/frontend__compile_wgsl_lower.snap")];
-    expected.assert_eq(&result.syntax.to_string());
-}
-
-#[cfg(feature = "eval")]
 #[test]
 fn compile_wgsl_lower_eval() {
     let test_path = fixtures_dir().join("compile_wgsl/shaders/main.wgsl");

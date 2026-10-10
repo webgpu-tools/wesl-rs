@@ -32,7 +32,7 @@ expect-test = "1.5.1"
 tokio = { version = "1.53.1", features = ["macros", "rt"] }  # for testing async compile functions
 
 [features]
-eval = []
+eval = []  # TODO: Remove this and update Bevy
 generics = ["wgsl-parse/generics"]
 # Allow naga/wgpu extensions.
 # They are not well-documented, the best I could find is this:

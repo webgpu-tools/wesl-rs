@@ -16,7 +16,7 @@ path = "src/main.rs"
 clap = { version = "4.6.7", features = ["derive"] }
 naga = { version = "30.0.1", features = ["wgsl-in"], optional = true }
 thiserror = "2.0.21"
-wesl = { workspace = true, features = ["eval", "generics", "package"] }
+wesl = { workspace = true, features = ["generics", "package"] }
 wgsl-parse = { workspace = true }
 
 [features]

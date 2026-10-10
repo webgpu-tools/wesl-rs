@@ -73,7 +73,7 @@ See the [`wesl-quote`][wesl-quote] crate.
 ## Evaluating const-expressions
 
 This is an advanced and experimental feature. `wesl-rs` supports evaluation and execution
-of WESL code with the `eval` feature flag. Early evaluation (in particular of
+of WESL code. Early evaluation (in particular of
 const-expressions) helps developers to catch bugs early by improving the validation and
 error reporting capabilities of WESL. Full evaluation of const-expressions can be enabled
 with the `lower` compiler option.
@@ -85,7 +85,6 @@ runtime dependencies.
 The eval/exec implementation is tested with the [WebGPU Conformance Test Suite][cts].
 
 ```rust
-# #[cfg(feature = "eval")] { // feature-gate
 # use wesl::{Compiler, resolver::VirtualResolver, eval_str};
 // ...standalone expression
 let wgsl_expr = eval_str("abs(3 - 5)").unwrap().to_string();
@@ -104,7 +103,6 @@ let wgsl_expr = compiler
     .eval("my_fn(my_const) + 2").unwrap()
     .to_string();
 assert_eq!(wgsl_expr, "42u");
-# } // end feature-gate
 ```
 
 ## Features
@@ -113,7 +111,6 @@ assert_eq!(wgsl_expr, "42u");
 |------------|-------------------------------------------------------|---------------------------|
 | `generics` | user-defined type-generators and generic functions    | [experimental][generics]  |
 | `package`  | create shader libraries published to `crates.io`      | [experimental][packaging] |
-| `eval`     | execute shader code on the CPU and `@const` attribute | experimental              |
 | `naga-ext` | enable all Naga/WGPU extensions                       | experimental              |
 | `serde`    | derive `Serialize` and `Deserialize` for syntax nodes |                           |
 

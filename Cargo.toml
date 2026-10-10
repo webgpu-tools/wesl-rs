@@ -43,7 +43,6 @@ tokrepr-derive = { path = "crates/tokrepr-derive", version = "0.1.0" }
 wesl = { path = "crates/wesl", version = "0.6.0" }
 wesl-core = { path = "crates/wesl-core", version = "0.1.0" }
 wesl-macros = { path = "crates/wesl-macros", version = "0.6.0" }
-wesl-quote = { path = "crates/wesl-quote", version = "0.6.0" }
 wgsl-parse = { path = "crates/wgsl-parse", version = "0.6.0" }
 wgsl-types = { path = "crates/wgsl-types", version = "0.6.0" }
 

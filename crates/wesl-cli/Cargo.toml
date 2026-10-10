@@ -13,9 +13,9 @@ name = "wesl"
 path = "src/main.rs"
 
 [dependencies]
-clap = { version = "4.5.11", features = ["derive"] }
-naga = { version = "28.0.0", features = ["wgsl-in"], optional = true }
-thiserror = "2.0.11"
+clap = { version = "4.6.7", features = ["derive"] }
+naga = { version = "30.0.1", features = ["wgsl-in"], optional = true }
+thiserror = "2.0.21"
 wesl = { workspace = true, features = ["eval", "generics", "package"] }
 wgsl-parse = { workspace = true }
 

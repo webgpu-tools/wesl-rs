@@ -180,6 +180,12 @@ fn get_single_attr(attrs: &mut [AttributeNode]) -> Result<Option<&mut AttributeN
     }
 }
 
+/// Whether the node still has an `@if`, `@elif` or `@else` that was not resolved,
+/// e.g. because its feature flag is set to [`Feature::Keep`].
+fn has_condcomp_attr(node: &impl SyntaxNode) -> bool {
+    node.attributes().iter().any(|attr| attr.is_condcomp())
+}
+
 /// Conditional state of a syntax node.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct NodeEval {
@@ -386,6 +392,7 @@ fn stmt_eval_if_attrs(statements: &mut Vec<StatementNode>, features: &Features) 
                 if let Statement::Compound(stmt) = &**node
                     && prev.has_condcomp
                     && !prev.is_false
+                    && !has_condcomp_attr(node)
                 {
                     // replace the compound statements with its contents
                     // TODO: other compound statement attributes are lost. validation has no opportunity to check them.
@@ -436,6 +443,7 @@ pub fn condcomp(module: &mut TranslationUnit, features: &Features) -> Result<(),
             if let GlobalDeclaration::Compound(stmt) = &**node
                 && prev.has_condcomp
                 && !prev.is_false
+                && !has_condcomp_attr(node)
             {
                 // replace the compound statements with its contents
                 // TODO: other compound statement attributes are lost. validation has no opportunity to check them.

@@ -132,8 +132,12 @@ impl_visit! { TypeExpression => TypeExpression,
 impl_visit! { Statement => Attributes,
     {
         Statement::Compound.{ attributes, statements.[].(x => recurse(x)) },
+        Statement::Assignment.attributes,
+        Statement::Increment.attributes,
+        Statement::Decrement.attributes,
         Statement::If.{
             attributes,
+            if_clause.body.statements.[].(x => recurse(x)),
             else_if_clauses.[].body.statements.[].(x => recurse(x)),
             else_clause.[].body.statements.[].(x => recurse(x)),
         },
@@ -155,6 +159,8 @@ impl_visit! { Statement => Attributes,
         },
         Statement::For.{
             attributes,
+            initializer.[].(x => recurse(x)),
+            update.[].(x => recurse(x)),
             body.statements.[].(x => recurse(x)),
         },
         Statement::While.{
@@ -445,6 +451,7 @@ impl_visit! { GlobalDeclaration => Attributes,
         GlobalDeclaration::Function.{
             attributes,
             parameters.[].attributes,
+            return_attributes,
             body.{ attributes, statements.[].(x => visit::<Statement, Attributes>(x)) }
         },
         GlobalDeclaration::ConstAssert.attributes,
@@ -553,4 +560,80 @@ fn test_visit_if_else() {
             .collect::<Vec<_>>(),
         ["false", "1", "false", "2", "3"]
     );
+}
+
+#[test]
+fn test_visit_attributes_reaches_every_if() {
+    // Each `@if` uses a distinct flag, so that a missed node shows up as a missing flag.
+    let unit: TranslationUnit = "
+        struct S { @if(MEMBER) a: f32, b: f32 }
+        fn f(@if(PARAM) p: f32) -> @if(RETURN) f32 { return p; }
+        @if(DECL) const c = 1;
+        fn main() {
+            var x = 0;
+            @if(ASSIGN) x = 1;
+            @if(INCREMENT) x++;
+            @if(DECREMENT) x--;
+            @if(LOCAL) var y = 1;
+            @if(CALL) f(1.0);
+            if x == 0 {
+                @if(IF_BODY) x = 1;
+            } else if x == 1 {
+                @if(ELSE_IF_BODY) x = 2;
+            } else {
+                @if(ELSE_BODY) x = 3;
+            }
+            for (var i = 0; i < 2; i++) { @if(FOR_BODY) x = 4; }
+            while x < 10 { @if(WHILE_BODY) x = 5; }
+            loop {
+                @if(LOOP_BODY) x = 6;
+                continuing { @if(CONTINUING_BODY) x = 7; break if x > 3; }
+            }
+            switch x {
+                case 1 { @if(CASE_BODY) x = 8; }
+                default { }
+            }
+            { @if(BLOCK_BODY) x = 9; }
+            @if(BLOCK) { x = 10; }
+        }
+    "
+    .parse()
+    .expect("parse failure");
+
+    let mut found = Visit::<Attributes>::visit(&unit)
+        .flatten()
+        .filter_map(|attribute| match &**attribute {
+            Attribute::If(condition) | Attribute::Elif(condition) => Some(condition),
+            _ => None,
+        })
+        .flat_map(|condition| Visit::<TypeExpression>::visit(&**condition))
+        .map(|flag| flag.ident.name().to_string())
+        .collect::<Vec<_>>();
+    found.sort();
+
+    let mut expected = [
+        "MEMBER",
+        "PARAM",
+        "RETURN",
+        "DECL",
+        "ASSIGN",
+        "INCREMENT",
+        "DECREMENT",
+        "LOCAL",
+        "CALL",
+        "IF_BODY",
+        "ELSE_IF_BODY",
+        "ELSE_BODY",
+        "FOR_BODY",
+        "WHILE_BODY",
+        "LOOP_BODY",
+        "CONTINUING_BODY",
+        "CASE_BODY",
+        "BLOCK_BODY",
+        "BLOCK",
+    ]
+    .map(String::from);
+    expected.sort();
+
+    assert_eq!(found, expected);
 }

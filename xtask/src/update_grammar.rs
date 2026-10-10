@@ -13,7 +13,8 @@ pub(crate) fn run(workspace_root: &Path) -> ExitCode {
                 .expect("grammar file has a parent directory"),
         )
         .process_file(&grammar)
-        .unwrap();
-    println!("done");
+        .expect("failed to generate grammar");
+
+    println!("xtask update_grammar done");
     ExitCode::SUCCESS
 }

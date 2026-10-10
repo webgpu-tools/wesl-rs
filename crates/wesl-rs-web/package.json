@@ -1,6 +1,6 @@
 {
 	"name": "wesl-rs-web",
-	"version": "0.5.0",
+	"version": "0.6.0",
 	"description": "wesl-rs compiler in WebAssembly",
 	"license": "MIT OR Apache-2.0",
 	"repository": {

@@ -119,7 +119,7 @@ pub struct ImportStatement {
 /// WESL imports extension
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, PartialEq, Eq, Hash, IsVariant)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, IsVariant)]
 pub enum PathOrigin {
     /// Import relative to the current package root, starting with 'package::'.
     Absolute,
@@ -132,7 +132,7 @@ pub enum PathOrigin {
 /// WESL imports extension
 #[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ModulePath {
     pub origin: PathOrigin,
     pub components: Vec<String>,

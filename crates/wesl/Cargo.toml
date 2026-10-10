@@ -12,32 +12,20 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-annotate-snippets = "0.12.4"
+annotate-snippets = "0.12.16"
 anstream = "1.0.0"
-derive_more = {
-  version = "2.0.1",
-  features = [
-    "as_ref",
-    "deref",
-    "deref_mut",
-    "display",
-    "from",
-    "unwrap",
-  ]
-}
-glob = "0.3"
-half = { version = "2.4.1", features = ["num-traits"] }
+derive_more = { version = "2.1.1", features = ["display"] }
+glob = "0.3.4"
 itertools = "0.15.0"
-num-traits = "0.2.19"
-proc-macro2 = { version = "1.0.93", optional = true }  # dep for feature 'package'
-quote = { version = "1.0.38", optional = true }  # dep for feature 'package'
-serde = { version = "1.0", features = ["derive"] }  # dep for feature 'package'
-thiserror = "2.0.11"
-toml = "1.1"
+proc-macro2 = { version = "1.0.107", optional = true }  # dep for feature 'package'
+quote = { version = "1.0.47", optional = true }  # dep for feature 'package'
+serde = { version = "1.0.229", features = ["derive"] }  # dep for feature 'package'
+thiserror = "2.0.21"
+toml = { version = "1.1.6", default-features = false, features = ["parse", "serde", "std"] }
 wesl-core = { workspace = true }
-wesl-macros = { workspace = true, features = ["query"] }
+wesl-macros = { workspace = true }
 wesl-quote = { workspace = true, optional = true }  # dep for feature 'eval'
-wgsl-parse = { workspace = true, features = ["wesl"] }
+wgsl-parse = { workspace = true }
 wgsl-types = { workspace = true }
 
 [dev-dependencies]

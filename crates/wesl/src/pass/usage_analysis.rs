@@ -1,4 +1,4 @@
-use std::collections::{HashMap, hash_map::Entry};
+use std::collections::{BTreeMap, HashMap, btree_map, hash_map};
 use wgsl_parse::{SyntaxNode, syntax::*};
 
 use crate::{
@@ -27,7 +27,7 @@ impl Module {
 #[derive(Default, Clone, Debug)]
 pub struct UsedItems {
     /// Module declarations used.
-    used_items: HashMap<ModulePath, HashMap<Ident, Visibility>>,
+    used_items: BTreeMap<ModulePath, HashMap<Ident, Visibility>>,
 }
 
 /// Just a convenience
@@ -78,8 +78,8 @@ impl UsedItems {
     /// Returns true if inserted.
     pub fn insert_module(&mut self, path: ModulePath, idents: HashMap<Ident, Visibility>) -> bool {
         match self.used_items.entry(path) {
-            Entry::Occupied(_) => false,
-            Entry::Vacant(entry) => {
+            btree_map::Entry::Occupied(_) => false,
+            btree_map::Entry::Vacant(entry) => {
                 entry.insert(idents);
                 true
             }
@@ -92,13 +92,13 @@ impl UsedItems {
         let entry = self.used_items.entry(path.clone()).or_default();
 
         match entry.entry(ident) {
-            Entry::Occupied(mut entry) => {
+            hash_map::Entry::Occupied(mut entry) => {
                 if *entry.get() < visibility {
                     entry.insert(visibility);
                 }
                 false
             }
-            Entry::Vacant(entry) => {
+            hash_map::Entry::Vacant(entry) => {
                 entry.insert(visibility);
                 true
             }

@@ -2,6 +2,8 @@
 
 use crate::error::ParseError;
 use itertools::Itertools;
+use lexical_parse_float::{FromLexicalWithOptions as _, NumberFormatBuilder};
+use lexical_parse_integer::FromLexicalWithOptions as _;
 use logos::{Logos, SpannedIter};
 use std::{fmt::Display, num::NonZeroU8, sync::LazyLock};
 use wgsl_types::idents::RESERVED_WORDS;
@@ -55,21 +57,19 @@ fn decr_depth(lex: &mut logos::Lexer<Token>) {
     lex.extras.depth -= 1;
 }
 
-// TODO: get rid of crate `lexical`
+// don't have to be super strict, the lexer regex already did the heavy lifting
+const DEC_FORMAT: u128 = NumberFormatBuilder::new().build_unchecked();
 
 // don't have to be super strict, the lexer regex already did the heavy lifting
-const DEC_FORMAT: u128 = lexical::NumberFormatBuilder::new().build_unchecked();
-
-// don't have to be super strict, the lexer regex already did the heavy lifting
-const HEX_FORMAT: u128 = lexical::NumberFormatBuilder::new()
+const HEX_FORMAT: u128 = NumberFormatBuilder::new()
     .mantissa_radix(16)
     .base_prefix(NonZeroU8::new(b'x'))
     .exponent_base(NonZeroU8::new(16))
     .exponent_radix(NonZeroU8::new(10))
     .build_unchecked();
 
-static FLOAT_HEX_OPTIONS: LazyLock<lexical::parse_float_options::Options> = LazyLock::new(|| {
-    lexical::parse_float_options::OptionsBuilder::new()
+static FLOAT_HEX_OPTIONS: LazyLock<lexical_parse_float::options::Options> = LazyLock::new(|| {
+    lexical_parse_float::options::OptionsBuilder::new()
         .exponent(b'p')
         .decimal_point(b'.')
         .build()
@@ -77,127 +77,127 @@ static FLOAT_HEX_OPTIONS: LazyLock<lexical::parse_float_options::Options> = Lazy
 });
 
 fn parse_dec_abstract_int(lex: &mut logos::Lexer<Token>) -> Option<i64> {
-    let options = &lexical::parse_integer_options::STANDARD;
+    let options = &lexical_parse_integer::options::STANDARD;
     let str = lex.slice();
-    lexical::parse_with_options::<i64, _, DEC_FORMAT>(str, options).ok()
+    i64::from_lexical_with_options::<DEC_FORMAT>(str.as_bytes(), options).ok()
 }
 
 fn parse_hex_abstract_int(lex: &mut logos::Lexer<Token>) -> Option<i64> {
-    let options = &lexical::parse_integer_options::STANDARD;
+    let options = &lexical_parse_integer::options::STANDARD;
     let str = lex.slice();
-    lexical::parse_with_options::<i64, _, HEX_FORMAT>(str, options).ok()
+    i64::from_lexical_with_options::<HEX_FORMAT>(str.as_bytes(), options).ok()
 }
 
 fn parse_dec_i32(lex: &mut logos::Lexer<Token>) -> Option<i32> {
-    let options = &lexical::parse_integer_options::STANDARD;
+    let options = &lexical_parse_integer::options::STANDARD;
     let str = lex.slice();
     let str = &str[..str.len() - 1];
-    lexical::parse_with_options::<i32, _, DEC_FORMAT>(str, options).ok()
+    i32::from_lexical_with_options::<DEC_FORMAT>(str.as_bytes(), options).ok()
 }
 
 fn parse_hex_i32(lex: &mut logos::Lexer<Token>) -> Option<i32> {
-    let options = &lexical::parse_integer_options::STANDARD;
+    let options = &lexical_parse_integer::options::STANDARD;
     let str = lex.slice();
     let str = &str[..str.len() - 1];
-    lexical::parse_with_options::<i32, _, HEX_FORMAT>(str, options).ok()
+    i32::from_lexical_with_options::<HEX_FORMAT>(str.as_bytes(), options).ok()
 }
 
 fn parse_dec_u32(lex: &mut logos::Lexer<Token>) -> Option<u32> {
-    let options = &lexical::parse_integer_options::STANDARD;
+    let options = &lexical_parse_integer::options::STANDARD;
     let str = lex.slice();
     let str = &str[..str.len() - 1];
-    lexical::parse_with_options::<u32, _, DEC_FORMAT>(str, options).ok()
+    u32::from_lexical_with_options::<DEC_FORMAT>(str.as_bytes(), options).ok()
 }
 
 fn parse_hex_u32(lex: &mut logos::Lexer<Token>) -> Option<u32> {
-    let options = &lexical::parse_integer_options::STANDARD;
+    let options = &lexical_parse_integer::options::STANDARD;
     let str = lex.slice();
     let str = &str[..str.len() - 1];
-    lexical::parse_with_options::<u32, _, HEX_FORMAT>(str, options).ok()
+    u32::from_lexical_with_options::<HEX_FORMAT>(str.as_bytes(), options).ok()
 }
 
 fn parse_dec_abs_float(lex: &mut logos::Lexer<Token>) -> Option<f64> {
-    let options = &lexical::parse_float_options::STANDARD;
+    let options = &lexical_parse_float::options::STANDARD;
     let str = lex.slice();
-    lexical::parse_with_options::<f64, _, DEC_FORMAT>(str, options).ok()
+    f64::from_lexical_with_options::<DEC_FORMAT>(str.as_bytes(), options).ok()
 }
 
 fn parse_hex_abs_float(lex: &mut logos::Lexer<Token>) -> Option<f64> {
     let str = lex.slice();
-    lexical::parse_with_options::<f64, _, HEX_FORMAT>(str, &FLOAT_HEX_OPTIONS).ok()
+    f64::from_lexical_with_options::<HEX_FORMAT>(str.as_bytes(), &FLOAT_HEX_OPTIONS).ok()
 }
 
 fn parse_dec_f32(lex: &mut logos::Lexer<Token>) -> Option<f32> {
-    let options = &lexical::parse_float_options::STANDARD;
+    let options = &lexical_parse_float::options::STANDARD;
     let str = lex.slice();
     let str = &str[..str.len() - 1];
-    lexical::parse_with_options::<f32, _, DEC_FORMAT>(str, options).ok()
+    f32::from_lexical_with_options::<DEC_FORMAT>(str.as_bytes(), options).ok()
 }
 
 fn parse_hex_f32(lex: &mut logos::Lexer<Token>) -> Option<f32> {
     let str = lex.slice();
     let str = &str[..str.len() - 1];
-    lexical::parse_with_options::<f32, _, HEX_FORMAT>(str, &FLOAT_HEX_OPTIONS).ok()
+    f32::from_lexical_with_options::<HEX_FORMAT>(str.as_bytes(), &FLOAT_HEX_OPTIONS).ok()
 }
 
 fn parse_dec_f16(lex: &mut logos::Lexer<Token>) -> Option<f32> {
-    let options = &lexical::parse_float_options::STANDARD;
+    let options = &lexical_parse_float::options::STANDARD;
     let str = lex.slice();
     let str = &str[..str.len() - 1];
-    lexical::parse_with_options::<f32, _, DEC_FORMAT>(str, options).ok()
+    f32::from_lexical_with_options::<DEC_FORMAT>(str.as_bytes(), options).ok()
 }
 
 fn parse_hex_f16(lex: &mut logos::Lexer<Token>) -> Option<f32> {
     let str = lex.slice();
     let str = &str[..str.len() - 1];
-    lexical::parse_with_options::<f32, _, HEX_FORMAT>(str, &FLOAT_HEX_OPTIONS).ok()
+    f32::from_lexical_with_options::<HEX_FORMAT>(str.as_bytes(), &FLOAT_HEX_OPTIONS).ok()
 }
 
 // naga extension
 fn parse_dec_i64(lex: &mut logos::Lexer<Token>) -> Option<i64> {
-    let options = &lexical::parse_integer_options::STANDARD;
+    let options = &lexical_parse_integer::options::STANDARD;
     let str = lex.slice();
     let str = &str[..str.len() - 2];
-    lexical::parse_with_options::<i64, _, DEC_FORMAT>(str, options).ok()
+    i64::from_lexical_with_options::<DEC_FORMAT>(str.as_bytes(), options).ok()
 }
 
 // naga extension
 fn parse_hex_i64(lex: &mut logos::Lexer<Token>) -> Option<i64> {
-    let options = &lexical::parse_integer_options::STANDARD;
+    let options = &lexical_parse_integer::options::STANDARD;
     let str = lex.slice();
     let str = &str[..str.len() - 2];
-    lexical::parse_with_options::<i64, _, HEX_FORMAT>(str, options).ok()
+    i64::from_lexical_with_options::<HEX_FORMAT>(str.as_bytes(), options).ok()
 }
 
 // naga extension
 fn parse_dec_u64(lex: &mut logos::Lexer<Token>) -> Option<u64> {
-    let options = &lexical::parse_integer_options::STANDARD;
+    let options = &lexical_parse_integer::options::STANDARD;
     let str = lex.slice();
     let str = &str[..str.len() - 2];
-    lexical::parse_with_options::<u64, _, DEC_FORMAT>(str, options).ok()
+    u64::from_lexical_with_options::<DEC_FORMAT>(str.as_bytes(), options).ok()
 }
 
 // naga extension
 fn parse_hex_u64(lex: &mut logos::Lexer<Token>) -> Option<u64> {
-    let options = &lexical::parse_integer_options::STANDARD;
+    let options = &lexical_parse_integer::options::STANDARD;
     let str = lex.slice();
     let str = &str[..str.len() - 2];
-    lexical::parse_with_options::<u64, _, HEX_FORMAT>(str, options).ok()
+    u64::from_lexical_with_options::<HEX_FORMAT>(str.as_bytes(), options).ok()
 }
 
 // naga extension
 fn parse_dec_f64(lex: &mut logos::Lexer<Token>) -> Option<f64> {
-    let options = &lexical::parse_float_options::STANDARD;
+    let options = &lexical_parse_float::options::STANDARD;
     let str = lex.slice();
     let str = &str[..str.len() - 2];
-    lexical::parse_with_options::<f64, _, DEC_FORMAT>(str, options).ok()
+    f64::from_lexical_with_options::<DEC_FORMAT>(str.as_bytes(), options).ok()
 }
 
 // naga extension
 fn parse_hex_f64(lex: &mut logos::Lexer<Token>) -> Option<f64> {
     let str = lex.slice();
     let str = &str[..str.len() - 2];
-    lexical::parse_with_options::<f64, _, HEX_FORMAT>(str, &FLOAT_HEX_OPTIONS).ok()
+    f64::from_lexical_with_options::<HEX_FORMAT>(str.as_bytes(), &FLOAT_HEX_OPTIONS).ok()
 }
 
 fn parse_line_comment(lex: &mut logos::Lexer<Token>) {

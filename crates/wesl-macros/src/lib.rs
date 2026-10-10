@@ -1,7 +1,6 @@
 //! macros for [wesl].
 //!
 //! [wesl]: https://docs.rs/wesl
-#![cfg(feature = "query")]
 
 mod query_macro;
 

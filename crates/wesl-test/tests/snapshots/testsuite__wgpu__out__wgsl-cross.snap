@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 @compute @workgroup_size(1, 1, 1)
 fn main() {
     let a: vec3<f32> = vec3(0f, 0f, 1f);

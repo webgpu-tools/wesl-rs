@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 var<private> color_1: vec4<f32>;
 
 var<private> frag_color: vec4<f32>;

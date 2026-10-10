@@ -29,8 +29,8 @@ wgsl-parse = { workspace = true }
 wgsl-types = { workspace = true }
 
 [dev-dependencies]
-insta = { version = "1.49.0", features = ["yaml"] }
-tokio = { version = "1.53.2", features = ["macros", "rt"] }  # for testing async compile functions
+expect-test = "1.5.1"
+tokio = { version = "1.53.1", features = ["macros", "rt"] }  # for testing async compile functions
 
 [features]
 eval = ["dep:wesl-quote"]

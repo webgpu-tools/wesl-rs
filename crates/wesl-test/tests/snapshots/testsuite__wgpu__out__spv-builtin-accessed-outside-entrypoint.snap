@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 var<private> gl_VertexIndex_1: i32;
 
 var<private> unnamed: gl_PerVertex = gl_PerVertex(vec4(0f, 0f, 0f, 1f), 1f, array(0f), array(0f));

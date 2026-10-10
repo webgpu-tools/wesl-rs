@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 var<workgroup> arr_i32: array<i32, 128>;
 
 @compute @workgroup_size(4)

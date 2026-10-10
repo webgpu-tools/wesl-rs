@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 fn _naga_inverse_2x2_f32(m: mat2x2<f32>) -> mat2x2<f32> {
     var adj: mat2x2<f32>;
     adj[0][0] = m[1][1];

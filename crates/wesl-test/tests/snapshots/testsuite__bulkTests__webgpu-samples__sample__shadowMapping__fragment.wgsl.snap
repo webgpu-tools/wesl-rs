@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 override shadowDepthTextureSize: f32 = 1024.0;
 
 @group(0) @binding(0)

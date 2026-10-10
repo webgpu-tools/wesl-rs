@@ -1,7 +1,3 @@
----
-source: crates/wesl/tests/frontend.rs
-expression: result.syntax.to_string()
----
 const a_VERSION = 16;
 
 const b_VERSION = 16;

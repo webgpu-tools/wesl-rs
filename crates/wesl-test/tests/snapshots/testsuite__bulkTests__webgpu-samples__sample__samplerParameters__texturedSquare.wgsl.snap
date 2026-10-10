@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 override kTextureBaseSize: f32;
 
 override kViewportSize: f32;

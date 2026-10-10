@@ -1,4 +1,0 @@
-[submodule "crates/wesl-test/wesl-testsuite"]
-	path = crates/wesl-test/wesl-testsuite
-	url = https://github.com/wgsl-tooling-wg/wesl-testsuite
-	branch = main

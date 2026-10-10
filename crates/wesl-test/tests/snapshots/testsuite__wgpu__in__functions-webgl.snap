@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 @fragment
 fn main() {
     let a: vec2<f32> = test_fma();

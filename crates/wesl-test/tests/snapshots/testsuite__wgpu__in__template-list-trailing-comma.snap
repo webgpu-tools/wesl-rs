@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 var<workgroup> sized_comma: array<u32, 1>;
 
 var<workgroup> sized_no_comma: array<u32, 1>;

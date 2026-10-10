@@ -4,8 +4,9 @@
 //! These tests are run with `harness = false` in `Cargo.toml`, because they rely on the
 //! `libtest_mimic` custom harness to generate tests at runtime based on the JSON files.
 
-use std::{ffi::OsStr, path::PathBuf, process::Command, str::FromStr};
+use std::{ffi::OsStr, path::PathBuf, str::FromStr};
 
+use expect_test::expect_file;
 use wesl::{
     CompileOptions, Compiler, Features, ManglerKind,
     error::Diagnostic,
@@ -97,6 +98,17 @@ fn main() {
         });
     }
 
+    {
+        let base_dir = std::path::Path::new("wesl-testsuite");
+        fetch_git_repository(
+            &WgslGitSrc {
+                url: "https://github.com/webgpu-tools/wesl-testsuite.git".to_owned(),
+                revision: "5e37bc1b5ae6c5559d7d64205808804f9ad29a47".to_owned(),
+            },
+            base_dir,
+        )
+        .unwrap_or_else(|_| panic!("failed to fetch bulk test repository"));
+    }
     let testsuite_syntax_tests = ["wesl-testsuite/src/test-cases-json/importSyntaxCases.json"];
     for path in testsuite_syntax_tests {
         tests.extend({
@@ -140,15 +152,16 @@ fn main() {
             serde_json::from_str(&file).expect("failed to parse json file");
         json.into_iter().flat_map(|bulk_case| {
             let name = format!("bulkTests__{}", test_name(&bulk_case.base_dir));
-            let cwd = std::path::Path::new("wesl-testsuite");
-            fetch_bulk_test(&bulk_case, cwd)
-                .unwrap_or_else(|_| panic!("failed to fetch bulk test {name}"));
+            let base_dir = std::path::Path::new("wesl-testsuite").join(&bulk_case.base_dir);
+            if let Some(git) = &bulk_case.git {
+                fetch_git_repository(git, &base_dir)
+                    .unwrap_or_else(|_| panic!("failed to fetch bulk test {name}"));
+            }
 
             assert!(
                 bulk_case.exclude.is_none_or(|v| v.is_empty()),
                 "Globs are not supported"
             );
-            let base_dir = cwd.join(&bulk_case.base_dir);
             let include_paths: Vec<_> = bulk_case
                 .include
                 .expect("Required include field")
@@ -212,107 +225,6 @@ fn main() {
 
     let args = libtest_mimic::Arguments::from_args();
     libtest_mimic::run(&args, tests).exit();
-}
-
-fn fetch_bulk_test(bulk_test: &WgslBulkTest, cwd: &std::path::Path) -> std::io::Result<()> {
-    // Modeled after https://github.com/gfx-rs/wgpu/blob/c0a580d6f0343a725b3defa8be4fdf0a9691eaad/xtask/src/cts.rs
-    let Some(WgslGitSrc { url, revision }) = &bulk_test.git else {
-        return Ok(());
-    };
-    let base_dir = cwd.join(&bulk_test.base_dir);
-    if std::fs::exists(&base_dir)? {
-        // Do a git update
-        let commit_exists = Command::new("git")
-            .args(["cat-file", "commit", revision])
-            .current_dir(&base_dir)
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .spawn()
-            .expect("failed to execute git cat-file")
-            .wait()
-            .expect("failed to wait on git")
-            .success();
-
-        if !commit_exists {
-            let git_fetch = Command::new("git")
-                .args(["fetch", "--quiet", "--depth", "1", "origin", revision])
-                .current_dir(&base_dir)
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::inherit())
-                .spawn()
-                .expect("failed to execute git fetch")
-                .wait()
-                .expect("failed to wait on git");
-            if !git_fetch.success() {
-                panic!("Git fetch failed");
-            }
-        }
-
-        let git_checkout = Command::new("git")
-            .args(["checkout", "--quiet", revision])
-            .current_dir(&base_dir)
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::inherit())
-            .spawn()
-            .expect("failed to execute git checkout")
-            .wait()
-            .expect("failed to wait on git");
-
-        if !git_checkout.success() {
-            panic!("Git checkout failed");
-        }
-    } else {
-        // Note: The --revision flag is not supported by git versions below 2.49.0 (so we don't use it)
-        let git_clone = Command::new("git")
-            .args([
-                "clone",
-                url,
-                "--no-checkout",
-                "--depth",
-                "1",
-                &bulk_test.base_dir,
-            ])
-            .current_dir(cwd)
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::inherit())
-            .spawn()
-            .expect("failed to execute git clone")
-            .wait()
-            .expect("failed to wait on git");
-
-        if !git_clone.success() {
-            panic!("Git clone failed");
-        }
-
-        let git_fetch = Command::new("git")
-            .args(["fetch", "--quiet", "--depth", "1", "origin", revision])
-            .current_dir(&base_dir)
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::inherit())
-            .spawn()
-            .expect("failed to execute git fetch")
-            .wait()
-            .expect("failed to wait on git");
-        if !git_fetch.success() {
-            panic!("Git fetch failed");
-        }
-
-        let git_checkout = Command::new("git")
-            .args(["checkout", "--quiet", revision])
-            .current_dir(&base_dir)
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::inherit())
-            .spawn()
-            .expect("failed to execute git checkout")
-            .wait()
-            .expect("failed to wait on git");
-
-        if !git_checkout.success() {
-            panic!("Git checkout {:?} failed", revision);
-        }
-    }
-
-    Ok(())
 }
 
 fn json_case(case: &Test) -> Result<(), libtest_mimic::Failed> {
@@ -487,7 +399,12 @@ pub fn validation_case(test_name: String, path: PathBuf) -> Result<(), libtest_m
     compiler.options.strip = true;
     let mut res = compiler.compile_module(&main_path)?;
     res.syntax.sort_declarations();
-    insta::assert_snapshot!(test_name, res.syntax.to_string());
+    let expected = expect_file![format!(
+        "./snapshots/testsuite__{}.snap",
+        test_name.replace("/", "__")
+    )];
+    let actual = res.syntax.to_string();
+    expected.assert_eq(&actual);
     Ok(())
 }
 
@@ -543,6 +460,8 @@ pub fn bevy_case(test_name: String, path: PathBuf) -> Result<(), libtest_mimic::
     compiler.options.strip = true;
     let mut res = compiler.compile_module(pkg_root_dir, &main_path)?;
     res.syntax.sort_declarations();
-    insta::assert_snapshot!(test_name, res.syntax.to_string());
+    let expected = expect_file![format!("./snapshots/testsuite__{}.snap", test_name)];
+    let actual = res.syntax.to_string();
+    expected.assert_eq(&actual);
     Ok(())
 }

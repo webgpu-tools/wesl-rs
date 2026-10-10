@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 struct FragmentInput {
     @builtin(position)
     position: vec4<f32>,

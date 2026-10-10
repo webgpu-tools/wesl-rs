@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 var<workgroup> TGSM0: array<S, 128>;
 
 var<private> gl_GlobalInvocationID: vec3<u32>;

@@ -105,7 +105,7 @@ fn main() {
                 url: "https://github.com/webgpu-tools/wesl-testsuite.git".to_owned(),
                 revision: "5e37bc1b5ae6c5559d7d64205808804f9ad29a47".to_owned(),
             },
-            &base_dir,
+            base_dir,
         )
         .unwrap_or_else(|_| panic!("failed to fetch bulk test repository"));
     }

@@ -2,3 +2,4 @@
 .vscode
 .zed
 .helix
+crates/wesl-test/wesl-testsuite

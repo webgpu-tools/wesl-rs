@@ -1,0 +1,13 @@
+[package]
+name = "edition"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Shader language edition support crate for wgsl-analyzer."
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

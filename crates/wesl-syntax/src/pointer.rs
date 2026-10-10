@@ -1,0 +1,165 @@
+use std::{hash::Hash, iter, marker::PhantomData};
+
+use parser::{SyntaxKind, SyntaxNode};
+use rowan::TextRange;
+
+use crate::AstNode;
+
+/// A pointer to a syntax node inside a file. It can be used to remember a
+/// specific node across reparses of the same file.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SyntaxNodePointer {
+    // Do not expose this field further. At some point, we might want to replace
+    // range with node id.
+    pub(crate) range: TextRange,
+    kind: SyntaxKind,
+}
+
+impl SyntaxNodePointer {
+    #[must_use]
+    pub fn new(node: &SyntaxNode) -> Self {
+        Self {
+            range: node.text_range(),
+            kind: node.kind(),
+        }
+    }
+
+    /// "Dereference" the pointer to get the node it points to.
+    ///
+    /// Panics if node is not found, so make sure that `root` syntax tree is
+    /// equivalent (is build from the same text) to the tree which was
+    /// originally used to get this [`SyntaxNodePointer`].
+    ///
+    /// The complexity is linear in the depth of the tree and logarithmic in
+    /// tree width. Because most trees are shallow, thinking about this as
+    /// `O(log(N))` in the size of the tree is not too wrong!
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the node could not be found.
+    #[track_caller]
+    #[must_use]
+    pub fn to_node(
+        &self,
+        root: &SyntaxNode,
+    ) -> SyntaxNode {
+        debug_assert!(root.parent().is_none());
+        iter::successors(Some(root.clone()), |node| {
+            let node_or_token = node.child_or_token_at_range(self.range)?;
+            node_or_token.into_node()
+        })
+        .find(|node| node.text_range() == self.range && node.kind() == self.kind)
+        .ok_or_else(|| format!("cannot resolve local pointer to SyntaxNode: {self:?}"))
+        .unwrap()
+    }
+
+    #[must_use]
+    pub fn cast<Node>(self) -> Option<AstPointer<Node>>
+    where
+        Node: AstNode,
+    {
+        if !Node::can_cast(self.kind) {
+            return None;
+        }
+        Some(AstPointer {
+            raw: self,
+            _type: PhantomData,
+        })
+    }
+}
+
+/// Like `SyntaxNodePointer`, but remembers the type of node.
+pub struct AstPointer<N: AstNode> {
+    raw: SyntaxNodePointer,
+    _type: PhantomData<fn() -> N>,
+}
+
+impl<Node: AstNode> std::fmt::Debug for AstPointer<Node> {
+    fn fmt(
+        &self,
+        formatter: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
+        formatter
+            .debug_struct("AstPointer")
+            .field("raw", &self.raw)
+            .finish()
+    }
+}
+
+impl<Node: AstNode> Clone for AstPointer<Node> {
+    fn clone(&self) -> Self {
+        Self {
+            raw: self.raw.clone(),
+            _type: PhantomData,
+        }
+    }
+}
+
+impl<Node: AstNode> Eq for AstPointer<Node> {}
+
+impl<Node: AstNode> PartialEq for AstPointer<Node> {
+    fn eq(
+        &self,
+        other: &Self,
+    ) -> bool {
+        self.raw == other.raw
+    }
+}
+
+impl<Node: AstNode> std::hash::Hash for AstPointer<Node> {
+    fn hash<H>(
+        &self,
+        state: &mut H,
+    ) where
+        H: std::hash::Hasher,
+    {
+        self.raw.hash(state);
+    }
+}
+
+impl<Node: AstNode> AstPointer<Node> {
+    pub fn new(node: &Node) -> Self {
+        Self {
+            raw: SyntaxNodePointer::new(node.syntax()),
+            _type: PhantomData,
+        }
+    }
+
+    /// ## Panics
+    ///
+    /// Panics if the cast failed.
+    #[track_caller]
+    #[must_use]
+    pub fn to_node(
+        &self,
+        root: &SyntaxNode,
+    ) -> Node {
+        let syntax_node = self.raw.to_node(root);
+        Node::cast(syntax_node).unwrap()
+    }
+
+    #[must_use]
+    pub fn syntax_node_pointer(&self) -> SyntaxNodePointer {
+        self.raw.clone()
+    }
+
+    #[must_use]
+    pub fn cast<TargetNode>(self) -> Option<AstPointer<TargetNode>>
+    where
+        TargetNode: AstNode,
+    {
+        if !TargetNode::can_cast(self.raw.kind) {
+            return None;
+        }
+        Some(AstPointer {
+            raw: self.raw,
+            _type: PhantomData,
+        })
+    }
+}
+
+impl<Node: AstNode> From<AstPointer<Node>> for SyntaxNodePointer {
+    fn from(pointer: AstPointer<Node>) -> Self {
+        pointer.raw
+    }
+}

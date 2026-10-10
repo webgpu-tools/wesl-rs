@@ -1,0 +1,322 @@
+//! Concrete syntax tree definitions.
+
+pub mod algorithms;
+pub mod ast;
+pub mod pointer;
+
+use std::{marker::PhantomData, ops::Deref};
+
+use either::Either;
+pub use parser::{
+    Capabilities, Diagnostic, Edition, ExtensionsConfig, ParseEntryPoint, SyntaxElement,
+    SyntaxElementChildren, SyntaxKind, SyntaxNode, SyntaxNodeChildren, SyntaxToken, WeslLanguage,
+};
+pub use rowan::Direction;
+use smol_str::SmolStr;
+use triomphe::Arc;
+
+use crate::ast::{Attribute, AttributeList};
+
+#[derive(Clone, Debug)]
+pub struct Parse {
+    green_node: rowan::GreenNode,
+    errors: Arc<[Diagnostic]>,
+}
+
+impl PartialEq for Parse {
+    fn eq(
+        &self,
+        other: &Self,
+    ) -> bool {
+        self.green_node == other.green_node
+    }
+}
+
+impl Eq for Parse {}
+
+impl Parse {
+    #[must_use]
+    pub fn syntax(&self) -> SyntaxNode {
+        SyntaxNode::new_root(self.green_node.clone())
+    }
+
+    #[must_use]
+    pub fn errors(&self) -> &[Diagnostic] {
+        &self.errors
+    }
+
+    /// Returns the syntax tree as a file.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the cast fails.
+    #[must_use]
+    pub fn tree(&self) -> ast::SourceFile {
+        ast::SourceFile::cast(self.syntax()).unwrap()
+    }
+
+    pub fn ok(self) -> Result<ast::SourceFile, Vec<Diagnostic>> {
+        match self.errors() {
+            errors if !errors.is_empty() => Err(errors.to_vec()),
+            _ => Ok(self.tree()),
+        }
+    }
+}
+
+#[must_use]
+pub fn parse(
+    input: &str,
+    edition: Edition,
+) -> Parse {
+    let (green_node, errors) = parser::parse_entrypoint_with_capabilities(
+        input,
+        ParseEntryPoint::File,
+        edition,
+        Capabilities::default(),
+    )
+    .into_parts();
+    Parse {
+        green_node,
+        errors: Arc::from(errors),
+    }
+}
+
+/// Conversion from `SyntaxNode` to typed AST.
+pub trait AstNode {
+    fn can_cast(kind: SyntaxKind) -> bool
+    where
+        Self: Sized;
+
+    fn cast(syntax: SyntaxNode) -> Option<Self>
+    where
+        Self: Sized;
+
+    fn syntax(&self) -> &SyntaxNode;
+}
+
+pub trait AstToken {
+    fn can_cast(kind: SyntaxKind) -> bool
+    where
+        Self: Sized;
+
+    fn cast(syntax: SyntaxToken) -> Option<Self>
+    where
+        Self: Sized;
+
+    fn syntax(&self) -> &SyntaxToken;
+
+    fn text(&self) -> &str {
+        self.syntax().text()
+    }
+}
+
+impl AstNode for SyntaxNode {
+    fn can_cast(_: SyntaxKind) -> bool {
+        true
+    }
+
+    fn cast(syntax: SyntaxNode) -> Option<Self> {
+        Some(syntax)
+    }
+
+    fn syntax(&self) -> &SyntaxNode {
+        self
+    }
+}
+
+/// An iterator over `SyntaxNode` children of a particular AST type.
+#[derive(Debug, Clone)]
+pub struct AstChildren<Node: AstNode> {
+    inner: SyntaxNodeChildren,
+    ph: PhantomData<Node>,
+}
+
+impl<Node: AstNode> AstChildren<Node> {
+    #[must_use]
+    pub fn new(parent: &SyntaxNode) -> Self {
+        Self {
+            inner: parent.children(),
+            ph: PhantomData,
+        }
+    }
+}
+
+impl<Node: AstNode> Iterator for AstChildren<Node> {
+    type Item = Node;
+
+    fn next(&mut self) -> Option<Node> {
+        self.inner.find_map(Node::cast)
+    }
+}
+
+pub enum TokenText<'borrow> {
+    Borrowed(&'borrow str),
+    Owned(rowan::GreenToken),
+}
+
+impl<'borrow> TokenText<'borrow> {
+    #[must_use]
+    pub fn as_str(&'borrow self) -> &'borrow str {
+        match self {
+            TokenText::Borrowed(string) => string,
+            TokenText::Owned(green) => green.text(),
+        }
+    }
+}
+
+impl From<TokenText<'_>> for String {
+    fn from(token_text: TokenText<'_>) -> Self {
+        token_text.as_str().into()
+    }
+}
+
+impl From<TokenText<'_>> for SmolStr {
+    fn from(token_text: TokenText<'_>) -> Self {
+        Self::new(token_text.as_str())
+    }
+}
+
+impl Deref for TokenText<'_> {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_str()
+    }
+}
+
+mod support {
+    use std::borrow::Cow;
+
+    use super::{AstChildren, AstNode, SyntaxKind, SyntaxNode, SyntaxToken, TokenText};
+    use crate::AstToken;
+
+    pub(crate) fn child<Node>(parent: &SyntaxNode) -> Option<Node>
+    where
+        Node: AstNode,
+    {
+        parent.children().find_map(Node::cast)
+    }
+
+    pub(crate) fn children<Node>(parent: &SyntaxNode) -> AstChildren<Node>
+    where
+        Node: AstNode,
+    {
+        AstChildren::new(parent)
+    }
+
+    pub(crate) fn child_syntax(
+        parent: &SyntaxNode,
+        kind: SyntaxKind,
+    ) -> Option<SyntaxNode> {
+        parent.children().find(|node| node.kind() == kind)
+    }
+
+    pub(crate) fn child_token<Node>(parent: &SyntaxNode) -> Option<Node>
+    where
+        Node: AstToken,
+    {
+        parent
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find_map(Node::cast)
+    }
+
+    pub(crate) fn token(
+        parent: &SyntaxNode,
+        kind: SyntaxKind,
+    ) -> Option<SyntaxToken> {
+        parent
+            .children_with_tokens()
+            .filter_map(rowan::NodeOrToken::into_token)
+            .find(|token| token.kind() == kind)
+    }
+
+    pub(crate) fn text_of_first_token(node: &SyntaxNode) -> TokenText<'_> {
+        fn first_token(green_ref: &rowan::GreenNodeData) -> Option<&rowan::GreenTokenData> {
+            green_ref
+                .children()
+                .next()
+                .and_then(rowan::NodeOrToken::into_token)
+        }
+
+        match node.green() {
+            Cow::Borrowed(green_ref) => {
+                TokenText::Borrowed(first_token(green_ref).map_or("", rowan::GreenTokenData::text))
+            },
+            Cow::Owned(green) => first_token(&green)
+                .map(ToOwned::to_owned)
+                .map_or(TokenText::Borrowed(""), TokenText::Owned),
+        }
+    }
+}
+
+pub trait HasName: AstNode {
+    fn name(&self) -> Option<ast::Name> {
+        crate::support::child(self.syntax())
+    }
+}
+
+pub trait HasTemplateParameters: AstNode {
+    fn template_parameters(&self) -> Option<ast::TemplateList> {
+        support::child(self.syntax())
+    }
+}
+
+pub trait HasAttributes: AstNode {
+    fn attributes(&self) -> Option<AstChildren<ast::Attribute>> {
+        let prev_sibling = self.syntax().prev_sibling()?;
+        if let Some(node) = AttributeList::cast(prev_sibling) {
+            return Some(node.attributes());
+        }
+        None
+    }
+}
+
+#[macro_export]
+macro_rules! match_ast {
+    (match $node:ident { $($tt:tt)* }) => { match_ast!{match ($node) { $($tt)* }} };
+
+    (match ($node:expr) {
+        $( ast::$ast:ident($it:ident) => $result:expr, )*
+        _ => $catch_all:expr $(,)?
+    }) => {{
+        $( if let Some($it) = <ast::$ast as $crate::AstNode>::cast($node.clone()) { $result } else )*
+        { $catch_all }
+    }};
+}
+
+impl<A: AstNode, B: AstNode> AstNode for Either<A, B> {
+    fn can_cast(kind: SyntaxKind) -> bool
+    where
+        Self: Sized,
+    {
+        A::can_cast(kind) || B::can_cast(kind)
+    }
+
+    fn cast(syntax: SyntaxNode) -> Option<Self>
+    where
+        Self: Sized,
+    {
+        if let Some(a_node) = A::cast(syntax.clone()) {
+            return Some(Self::Left(a_node));
+        } else if let Some(b_node) = B::cast(syntax) {
+            return Some(Self::Right(b_node));
+        }
+        None
+    }
+
+    fn syntax(&self) -> &SyntaxNode {
+        match self {
+            Self::Left(left) => left.syntax(),
+            Self::Right(right) => right.syntax(),
+        }
+    }
+}
+
+#[must_use]
+pub fn format(file: &ast::SourceFile) -> SyntaxNode {
+    file.syntax().clone_for_update()
+}
+
+#[cfg(test)]
+mod tests;

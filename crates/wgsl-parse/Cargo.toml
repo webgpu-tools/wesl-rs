@@ -37,7 +37,9 @@ lexical-parse-integer = {
   features = ["format", "power-of-two", "std"],
 }
 logos = "0.16.1"
+parser = { path = "../wesl-parser" }
 serde = { version = "1.0.229", features = ["derive", "rc"], optional = true }
+syntax = { path = "../wesl-syntax" }
 thiserror = "2.0.21"
 tokrepr = { workspace = true, optional = true }
 wgsl-types = { workspace = true }

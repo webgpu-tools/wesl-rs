@@ -1,0 +1,26 @@
+[package]
+name = "parser"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "The parser for wgsl-analyzer."
+repository.workspace = true
+license.workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+edition = { path = "../wesl-edition" }
+logos = "0.16.1"
+rowan = "0.16.1"
+unicode-ident = "1.0.26"
+
+[dev-dependencies]
+expect-test = "1.5.1"
+
+[build-dependencies]
+lelwel = "0.10.4"
+
+[lints]
+workspace = true

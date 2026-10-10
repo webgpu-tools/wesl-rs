@@ -1,0 +1,25 @@
+[package]
+name = "syntax"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Concrete syntax tree definitions for wgsl-analyzer."
+repository.workspace = true
+license.workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+either = "1.19.0"
+itertools = "0.15.0"
+parser = { path = "../wesl-parser" }
+rowan = "0.16.1"
+smol_str = "0.3.6"
+triomphe = "0.1.16"
+
+[dev-dependencies]
+expect-test = "1.5.1"
+
+[lints]
+workspace = true

@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 struct NoteInstance {
     @location(1)
     position: vec2<f32>

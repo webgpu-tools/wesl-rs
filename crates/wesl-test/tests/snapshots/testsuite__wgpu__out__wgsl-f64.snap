@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 fn f(x: f64) -> f64 {
     var z: f64;
     var w: f64 = -1lf;

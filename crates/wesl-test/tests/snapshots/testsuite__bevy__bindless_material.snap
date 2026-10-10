@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 @group(2) @binding(0)
 var<uniform> material_color: Color;
 

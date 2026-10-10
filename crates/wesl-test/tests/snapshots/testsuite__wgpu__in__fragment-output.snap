@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 struct FragmentOutputVec2Scalar {
     @location(0)
     vec2f: vec2<f32>,

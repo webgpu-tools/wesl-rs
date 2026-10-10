@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 @fragment
 fn derivatives(@builtin(position) foo: vec4<f32>) -> @location(0) vec4<f32> {
     var x: vec4<f32> = dpdxCoarse(foo);

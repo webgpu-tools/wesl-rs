@@ -403,13 +403,7 @@ pub fn validation_case(test_name: String, path: PathBuf) -> Result<(), libtest_m
         "./snapshots/testsuite__{}.snap",
         test_name.replace("/", "__")
     )];
-    let actual = format!(
-        "---
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----\n{}",
-        res.syntax.to_string()
-    );
+    let actual = res.syntax.to_string();
     expected.assert_eq(&actual);
     Ok(())
 }
@@ -467,13 +461,7 @@ pub fn bevy_case(test_name: String, path: PathBuf) -> Result<(), libtest_mimic::
     let mut res = compiler.compile_module(pkg_root_dir, &main_path)?;
     res.syntax.sort_declarations();
     let expected = expect_file![format!("./snapshots/testsuite__{}.snap", test_name)];
-    let actual = format!(
-        "---
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----\n{}",
-        res.syntax.to_string()
-    );
+    let actual = res.syntax.to_string();
     expected.assert_eq(&actual);
     Ok(())
 }

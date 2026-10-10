@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 var<private> Vertex_Normal_1: vec3<f32>;
 
 var<private> Vertex_Position_1: vec3<f32>;

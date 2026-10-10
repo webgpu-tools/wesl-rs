@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 @compute @workgroup_size(1, 1, 1)
 fn main() {
     let _e0: vec2<f32> = test_fma();

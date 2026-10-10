@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 @binding(0) @group(0)
 var<uniform> uniforms: Uniforms;
 

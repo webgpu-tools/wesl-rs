@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 struct Vertex {
     @location(0)
     position: vec3<f32>,

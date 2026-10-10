@@ -1,7 +1,3 @@
----
-source: crates/wesl-test/tests/testsuite.rs
-expression: res.syntax.to_string()
----
 @group(1) @binding(0)
 var<storage> bevy_sprite__1mesh2d_bindings_mesh: array<bevy_sprite__1mesh2d_types_Mesh2d>;
 

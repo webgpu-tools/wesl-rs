@@ -24,7 +24,6 @@ thiserror = "2.0.21"
 toml = { version = "1.1.6", default-features = false, features = ["parse", "serde", "std"] }
 wesl-core = { workspace = true }
 wesl-macros = { workspace = true }
-wesl-quote = { workspace = true, optional = true }  # dep for feature 'eval'
 wgsl-parse = { workspace = true }
 wgsl-types = { workspace = true }
 
@@ -33,7 +32,7 @@ expect-test = "1.5.1"
 tokio = { version = "1.53.1", features = ["macros", "rt"] }  # for testing async compile functions
 
 [features]
-eval = ["dep:wesl-quote"]
+eval = []  # TODO: Remove this and update Bevy
 generics = ["wgsl-parse/generics"]
 # Allow naga/wgpu extensions.
 # They are not well-documented, the best I could find is this:

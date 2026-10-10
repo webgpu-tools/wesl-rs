@@ -12,7 +12,6 @@ use wesl::resolver::StandardResolver;
 use wesl::syntax::ModulePath;
 use wesl::{Compiler, error::ResolveError};
 
-#[cfg(feature = "eval")]
 use wesl::{
     eval::{Eval, EvalAttrs, Inputs, Instance, RefInstance},
     syntax::{AccessMode, AddressSpace},
@@ -196,7 +195,6 @@ impl WeslResult {
 }
 
 impl WeslExecResult {
-    #[cfg(feature = "eval")]
     fn success(resources: *const WeslBindingArray) -> Self {
         Self {
             success: true,
@@ -377,7 +375,6 @@ fn create_c_string(s: &str) -> *const c_char {
     }
 }
 
-#[cfg(feature = "eval")]
 impl From<&WeslBindingArray> for Vec<WeslBinding> {
     fn from(array: &WeslBindingArray) -> Self {
         let mut result = Vec::new();
@@ -391,7 +388,6 @@ impl From<&WeslBindingArray> for Vec<WeslBinding> {
     }
 }
 
-#[cfg(feature = "eval")]
 fn parse_c_binding(
     b: &WeslBinding,
     wgsl: &wesl::syntax::TranslationUnit,
@@ -446,7 +442,6 @@ fn parse_c_binding(
     ))
 }
 
-#[cfg(feature = "eval")]
 fn create_c_binding_array(bindings: Vec<WeslBinding>) -> *const WeslBindingArray {
     if bindings.is_empty() {
         return ptr::null();
@@ -669,10 +664,7 @@ pub unsafe extern "C" fn wesl_compile(
     }
 }
 
-/// Requires the `eval` feature to be enabled.
-///
 /// Free with `wesl_free_result`.
-#[cfg(feature = "eval")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn wesl_eval(
     main: *const c_char,
@@ -706,26 +698,7 @@ pub unsafe extern "C" fn wesl_eval(
     }
 }
 
-/// Requires the `eval` feature to be enabled.
-///
-/// Free with `wesl_free_result`.
-#[cfg(not(feature = "eval"))]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn wesl_eval(
-    _main: *const c_char,
-    _expression: *const c_char,
-    _options: *const WeslCompileOptions,
-    _resolver: Option<&WeslResolverOptions>,
-) -> WeslResult {
-    WeslResult::error(WeslError::from(
-        "wesl_eval requires the 'eval' feature to be enabled",
-    ))
-}
-
-/// Requires the `eval` feature to be enabled.
-///
 /// Free with `wesl_free_exec_result`.
-#[cfg(feature = "eval")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn wesl_exec(
     main: &c_char,
@@ -821,24 +794,6 @@ pub unsafe extern "C" fn wesl_exec(
         }
         Err(e) => WeslExecResult::error(WeslError::from(e)),
     }
-}
-
-/// Requires the `eval` feature to be enabled.
-///
-/// Free with `wesl_free_exec_result`.
-#[cfg(not(feature = "eval"))]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn wesl_exec(
-    _main: *const c_char,
-    _entrypoint: *const c_char,
-    _options: &WeslCompileOptions,
-    _resources: Option<&WeslBindingArray>,
-    _overrides: Option<&WeslStringMap>,
-    _resolver: Option<&WeslResolverOptions>,
-) -> WeslExecResult {
-    WeslExecResult::error(WeslError::from(
-        "wesl_exec requires the 'eval' feature to be enabled",
-    ))
 }
 
 // -- memory

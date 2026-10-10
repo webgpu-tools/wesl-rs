@@ -19,7 +19,7 @@ bevy-wgsl = { git = "https://github.com/webgpu-tools/bevy-wgsl", rev = "66aa8200
 expect-test = "1.5.1"
 libtest-mimic = "0.8.2"
 serde_json = "1.0.151"
-wesl = { workspace = true, features = ["eval", "naga-ext"] }
+wesl = { workspace = true, features = ["naga-ext"] }
 wgsl-parse = { workspace = true }
 
 [lints]

@@ -63,8 +63,6 @@ pub struct CompileOptions {
     ///
     /// This will catch *some* errors, not all.
     /// See [`pass::validate_wesl`] and [`pass::validate_wgsl`] for the list of validations.
-    ///
-    /// Requires the `eval` crate feature flag.
     pub validate: bool,
     /// Enable sourcemapping, which provides better error diagnostics.
     pub sourcemap: bool,

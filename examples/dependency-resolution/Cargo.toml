@@ -12,7 +12,7 @@ edition = "2024"
 [dependencies]
 a = { path = "./a" }
 b = { path = "./b" }
-wesl = { path = "../../crates/wesl", features = ["eval", "package"] }
+wesl = { path = "../../crates/wesl", features = ["package"] }
 
 [patch.crates-io]
 c1 = { package = "c", path = "./c1" }

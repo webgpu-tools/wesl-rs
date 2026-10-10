@@ -2,7 +2,6 @@ use std::{collections::HashMap, sync::LazyLock};
 
 use wgsl_parse::syntax::*;
 use wgsl_types::idents::iter_builtin_idents;
-#[cfg(feature = "eval")]
 use wgsl_types::{
     syntax::SampledType,
     ty::{SamplerType, TextureType, Type},
@@ -22,12 +21,10 @@ pub fn builtin_ident(name: &str) -> Option<&'static Ident> {
     BUILTIN_IDENTS.get(name)
 }
 
-#[cfg(feature = "eval")]
 pub trait BuiltinIdent {
     fn builtin_ident(&self) -> Option<&'static Ident>;
 }
 
-#[cfg(feature = "eval")]
 impl BuiltinIdent for Type {
     fn builtin_ident(&self) -> Option<&'static Ident> {
         match self {
@@ -80,7 +77,6 @@ impl BuiltinIdent for Type {
     }
 }
 
-#[cfg(feature = "eval")]
 impl BuiltinIdent for TextureType {
     fn builtin_ident(&self) -> Option<&'static Ident> {
         builtin_ident(match self {
@@ -111,7 +107,6 @@ impl BuiltinIdent for TextureType {
     }
 }
 
-#[cfg(feature = "eval")]
 impl BuiltinIdent for SamplerType {
     fn builtin_ident(&self) -> Option<&'static Ident> {
         match self {
@@ -121,7 +116,6 @@ impl BuiltinIdent for SamplerType {
     }
 }
 
-#[cfg(feature = "eval")]
 impl BuiltinIdent for SampledType {
     fn builtin_ident(&self) -> Option<&'static Ident> {
         match self {
@@ -134,7 +128,6 @@ impl BuiltinIdent for SampledType {
     }
 }
 
-#[cfg(feature = "eval")]
 impl BuiltinIdent for AddressSpace {
     fn builtin_ident(&self) -> Option<&'static Ident> {
         match self {
@@ -155,7 +148,6 @@ impl BuiltinIdent for AddressSpace {
     }
 }
 
-#[cfg(feature = "eval")]
 impl BuiltinIdent for AccessMode {
     fn builtin_ident(&self) -> Option<&'static Ident> {
         match self {

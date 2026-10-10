@@ -8,7 +8,6 @@ use wgsl_parse::{
     syntax::{Expression, Ident, ModulePath, Visibility},
 };
 
-#[cfg(feature = "eval")]
 use crate::eval::EvalError;
 use crate::{Mangler, sourcemap::SourceMap};
 
@@ -126,7 +125,6 @@ pub enum Error {
     CondCompError(#[from] CondCompError),
     #[error("{0}")]
     TomlError(#[from] TomlError),
-    #[cfg(feature = "eval")]
     #[error("{0}")]
     EvalError(#[from] EvalError),
     #[error("{0}")]
@@ -210,7 +208,6 @@ impl From<TomlError> for Diagnostic<Error> {
     }
 }
 
-#[cfg(feature = "eval")]
 impl From<EvalError> for Diagnostic<Error> {
     fn from(error: EvalError) -> Self {
         Self::new(error.into())
@@ -228,7 +225,6 @@ impl From<Error> for Diagnostic<Error> {
             Error::ValidateError(e) => e.into(),
             Error::CondCompError(e) => e.into(),
             Error::TomlError(e) => e.into(),
-            #[cfg(feature = "eval")]
             Error::EvalError(e) => e.into(),
             Error::Custom(_) => Self::new(error),
         }
@@ -291,7 +287,6 @@ impl<E> Diagnostic<E> {
         self
     }
     /// Add metadata collected by the evaluation/execution context.
-    #[cfg(feature = "eval")]
     pub fn with_ctx(mut self, ctx: &crate::eval::Context) -> Self {
         let (decl, span) = ctx.err_ctx();
         self.detail.declaration = decl.map(|id| id.to_string());
@@ -424,7 +419,6 @@ impl Diagnostic<Error> {
             }
         }
 
-        #[cfg(feature = "eval")]
         fn unmangle_ty(
             mangled: &mut wgsl_types::ty::Type,
             sourcemap: Option<&impl SourceMap>,
@@ -447,7 +441,6 @@ impl Diagnostic<Error> {
             }
         }
 
-        #[cfg(feature = "eval")]
         fn unmangle_inst(
             mangled: &mut wgsl_types::inst::Instance,
             sourcemap: Option<&impl SourceMap>,
@@ -517,7 +510,6 @@ impl Diagnostic<Error> {
             Error::TomlError(_) => {}
             // #[cfg(feature = "generics")]
             // Error::GenericsError(_) => {}
-            #[cfg(feature = "eval")]
             Error::EvalError(e) => match e {
                 EvalError::NotScalar(ty) => unmangle_ty(ty, sourcemap, mangler),
                 EvalError::NotConstructible(ty) => unmangle_ty(ty, sourcemap, mangler),

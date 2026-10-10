@@ -2,7 +2,6 @@
 #![doc = include_str!("../README.md")]
 
 mod frontend;
-#[cfg(feature = "eval")]
 mod frontend_eval;
 mod idents;
 mod util;
@@ -10,7 +9,6 @@ mod util;
 pub(crate) use util::*;
 
 pub mod error;
-#[cfg(feature = "eval")]
 pub mod eval;
 pub mod mangler;
 pub mod package;
@@ -28,7 +26,6 @@ pub use crate::{
     resolver::{AsyncResolver, Constants, Resolver},
 };
 
-#[cfg(feature = "eval")]
 pub use crate::frontend_eval::*;
 
 // re-exports

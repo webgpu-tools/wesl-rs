@@ -11,6 +11,7 @@ mod parser_support;
 mod syntax_display;
 mod syntax_impl;
 
+mod parser2;
 #[cfg(feature = "tokrepr")]
 mod tokrepr;
 #[cfg(feature = "tokrepr")]

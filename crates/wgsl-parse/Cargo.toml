@@ -11,6 +11,14 @@ license.workspace = true
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
+[features]
+# experimental
+generics = []
+# See crates/wesl/Cargo.toml
+naga-ext = ["wgsl-types/naga-ext"]
+serde = ["dep:serde", "wgsl-types/serde"]
+tokrepr = ["dep:tokrepr", "wgsl-types/tokrepr"]
+
 [dependencies]
 annotate-snippets = "0.12.16"
 derive_more = {
@@ -24,6 +32,7 @@ derive_more = {
     "unwrap",
   ]
 }
+hex-float = { git = "https://github.com/jimblandy/wgsl-hex-float" }
 itertools = "0.15.0"
 lalrpop-util = { version = "0.23.1", default-features = false }
 lexical-parse-float = {
@@ -38,17 +47,13 @@ lexical-parse-integer = {
 }
 logos = "0.16.1"
 serde = { version = "1.0.229", features = ["derive", "rc"], optional = true }
+syntax = { git = "https://github.com/stefnotch/wgsl-analyzer", branch = "public-parsing" }
 thiserror = "2.0.21"
 tokrepr = { workspace = true, optional = true }
 wgsl-types = { workspace = true }
 
-[features]
-# experimental
-generics = []
-# See crates/wesl/Cargo.toml
-naga-ext = ["wgsl-types/naga-ext"]
-serde = ["dep:serde", "wgsl-types/serde"]
-tokrepr = ["dep:tokrepr", "wgsl-types/tokrepr"]
+[dev-dependencies]
+expect-test = "1.5.1"
 
 [lints]
 workspace = true

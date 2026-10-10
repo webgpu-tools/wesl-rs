@@ -1,6 +1,7 @@
 use std::ops::Range;
 
 use derive_more::derive::{AsMut, AsRef, Deref, DerefMut, From};
+use syntax::TextRange;
 
 pub type Id = u32;
 
@@ -35,6 +36,20 @@ impl Span {
 impl From<Range<usize>> for Span {
     fn from(value: Range<usize>) -> Self {
         Span::new(value)
+    }
+}
+
+impl From<TextRange> for Span {
+    fn from(value: TextRange) -> Self {
+        let start = usize::from(value.start());
+        let end = usize::from(value.end());
+        Span { start, end }
+    }
+}
+
+impl std::fmt::Display for Span {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}..{}", self.start, self.end)
     }
 }
 

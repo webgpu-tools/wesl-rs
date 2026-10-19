@@ -529,6 +529,38 @@ unsafe fn resolver_path_to_string<T, F: FnOnce(Cow<'_, str>) -> T>(
 }
 
 impl wesl::Resolver for CustomResolver {
+    fn display_name(&self, path: &ModulePath) -> Option<String> {
+        unsafe {
+            resolver_path_to_string(
+                path,
+                |str| str.into_owned(),
+                self.options.display_name,
+                self.options.free_display_name,
+                self.options.userdata,
+            )
+        }
+    }
+
+    fn fs_path(&self, path: &ModulePath) -> Result<std::path::PathBuf, ResolveError> {
+        unsafe {
+            resolver_path_to_string(
+                path,
+                |str| str.deref().into(),
+                self.options.fs_path,
+                self.options.free_fs_path,
+                self.options.userdata,
+            )
+            .ok_or_else(|| {
+                if self.options.fs_path.is_none() || self.options.free_fs_path.is_none() {
+                    ResolveError::FilesystemNotSupported
+                } else {
+                    ResolveError::ModuleNotFound(path.clone(), "user-provided resolver".to_string())
+                }
+            })
+        }
+    }
+}
+impl wesl::SyncResolver for CustomResolver {
     fn resolve_source<'a>(
         &'a self,
         path: &ModulePath,
@@ -566,37 +598,6 @@ impl wesl::Resolver for CustomResolver {
 
         Ok(result_str.to_owned().into())
     }
-
-    fn display_name(&self, path: &ModulePath) -> Option<String> {
-        unsafe {
-            resolver_path_to_string(
-                path,
-                |str| str.into_owned(),
-                self.options.display_name,
-                self.options.free_display_name,
-                self.options.userdata,
-            )
-        }
-    }
-
-    fn fs_path(&self, path: &ModulePath) -> Result<std::path::PathBuf, ResolveError> {
-        unsafe {
-            resolver_path_to_string(
-                path,
-                |str| str.deref().into(),
-                self.options.fs_path,
-                self.options.free_fs_path,
-                self.options.userdata,
-            )
-            .ok_or_else(|| {
-                if self.options.fs_path.is_none() || self.options.free_fs_path.is_none() {
-                    ResolveError::FilesystemNotSupported
-                } else {
-                    ResolveError::ModuleNotFound(path.clone(), "user-provided resolver".to_string())
-                }
-            })
-        }
-    }
 }
 
 fn validate_resolver_options(options: &WeslResolverOptions) -> Result<(), &'static str> {
@@ -614,7 +615,7 @@ fn validate_resolver_options(options: &WeslResolverOptions) -> Result<(), &'stat
 fn create_resolver(
     root: &str,
     resolver: Option<&WeslResolverOptions>,
-) -> Result<Box<dyn wesl::Resolver>, &'static str> {
+) -> Result<Box<dyn wesl::SyncResolver>, &'static str> {
     if let Some(resolver_options) = resolver {
         validate_resolver_options(resolver_options)?;
 

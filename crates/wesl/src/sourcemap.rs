@@ -4,7 +4,10 @@ use std::{cell::RefCell, collections::HashMap, path::PathBuf};
 
 use wgsl_parse::{span::Span, syntax::TypeExpression};
 
-use crate::{ModulePath, error::ResolveError, mangler::Mangler, resolver::Resolver};
+use crate::{
+    AsyncResolver, ModulePath, SyncResolver, error::ResolveError, mangler::Mangler,
+    resolver::Resolver,
+};
 
 /// A SourceMap is a lookup from compiled WGSL to source WESL. It translates a mangled
 /// name into a module path and declaration name.
@@ -130,7 +133,7 @@ impl SourceMap for NoSourceMap {
 /// recording.
 pub struct SourceMapper<'a> {
     pub main_path: ModulePath,
-    pub resolver: &'a dyn Resolver,
+    pub resolver: &'a dyn SyncResolver,
     pub mangler: &'a dyn Mangler,
     pub sourcemap: RefCell<BasicSourceMap>,
 }
@@ -139,7 +142,7 @@ impl<'a> SourceMapper<'a> {
     /// Create a new `SourceMapper` from a mangler and a resolver.
     pub fn new(
         main_path: ModulePath,
-        resolver: &'a dyn Resolver,
+        resolver: &'a dyn SyncResolver,
         mangler: &'a dyn Mangler,
     ) -> Self {
         Self {
@@ -160,6 +163,17 @@ impl<'a> SourceMapper<'a> {
 }
 
 impl<'a> Resolver for SourceMapper<'a> {
+    fn display_name(&self, path: &ModulePath) -> Option<String> {
+        self.resolver.display_name(path)
+    }
+    fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
+        self.resolver.fs_path(path)
+    }
+    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
+        self.resolver.canonical_path(path)
+    }
+}
+impl<'a> SyncResolver for SourceMapper<'a> {
     fn resolve_source(&self, path: &ModulePath) -> Result<std::borrow::Cow<'a, str>, ResolveError> {
         let res = self.resolver.resolve_source(path)?;
         let mut sourcemap = self.sourcemap.borrow_mut();
@@ -173,18 +187,88 @@ impl<'a> Resolver for SourceMapper<'a> {
         );
         Ok(res)
     }
+}
+
+impl<'a> Mangler for SourceMapper<'a> {
+    fn mangle(&self, path: &ModulePath, item: &str) -> String {
+        let res = self.mangler.mangle(path, item);
+        let mut sourcemap = self.sourcemap.borrow_mut();
+        let entry = SourceMapEntry {
+            path: path.clone(),
+            name: item.to_string(),
+            span: None,
+        };
+        sourcemap.add_item(res.clone(), entry);
+        res
+    }
+    fn unmangle(&self, mangled: &str) -> Option<(ModulePath, String)> {
+        self.mangler.unmangle(mangled)
+    }
+    fn mangle_types(&self, item: &str, variant: u32, types: &[TypeExpression]) -> String {
+        self.mangler.mangle_types(item, variant, types)
+    }
+}
+
+/// Generate a SourceMap by keeping track of loaded files and mangled identifiers.
+///
+/// `SourceMapper` is a proxy that implements [`Mangler`] and [`Resolver`]. To record a
+/// SourceMap, invoke the compiler with this instance as both the mangler and the
+/// resolver. Call [`SourceMapper::finish`] to get the final SourceMap once finished
+/// recording.
+pub struct AsyncSourceMapper<'a, R: AsyncResolver> {
+    pub main_path: ModulePath,
+    pub resolver: &'a R,
+    pub mangler: &'a dyn Mangler,
+    pub sourcemap: RefCell<BasicSourceMap>,
+}
+
+impl<'a, R: AsyncResolver> AsyncSourceMapper<'a, R> {
+    /// Create a new `SourceMapper` from a mangler and a resolver.
+    pub fn new(main_path: ModulePath, resolver: &'a R, mangler: &'a dyn Mangler) -> Self {
+        Self {
+            main_path,
+            resolver,
+            mangler,
+            sourcemap: Default::default(),
+        }
+    }
+    /// Consume this and return a [`BasicSourceMap`].
+    pub fn finish(self) -> BasicSourceMap {
+        let mut sourcemap = self.sourcemap.into_inner();
+        if let Some(file) = sourcemap.file(&self.main_path) {
+            sourcemap.set_default_source(file.source.to_string());
+        }
+        sourcemap
+    }
+}
+
+impl<R: AsyncResolver> Resolver for AsyncSourceMapper<'_, R> {
     fn display_name(&self, path: &ModulePath) -> Option<String> {
         self.resolver.display_name(path)
     }
-    fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
-        self.resolver.fs_path(path)
+
+    fn fs_path(&self, module_path: &ModulePath) -> Result<PathBuf, ResolveError> {
+        self.resolver.fs_path(module_path)
     }
+
+    fn module_path(&self, fs_path: &std::path::Path) -> Result<ModulePath, ResolveError> {
+        self.resolver.module_path(fs_path)
+    }
+
     fn canonical_path(&self, path: &ModulePath) -> ModulePath {
         self.resolver.canonical_path(path)
     }
 }
+impl<R: AsyncResolver> AsyncResolver for AsyncSourceMapper<'_, R> {
+    fn resolve_source_async<'a>(
+        &'a self,
+        path: &ModulePath,
+    ) -> impl Future<Output = Result<std::borrow::Cow<'a, str>, ResolveError>> {
+        self.resolver.resolve_source_async(path)
+    }
+}
 
-impl<'a> Mangler for SourceMapper<'a> {
+impl<'a, R: AsyncResolver> Mangler for AsyncSourceMapper<'a, R> {
     fn mangle(&self, path: &ModulePath, item: &str) -> String {
         let res = self.mangler.mangle(path, item);
         let mut sourcemap = self.sourcemap.borrow_mut();

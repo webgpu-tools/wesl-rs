@@ -89,11 +89,6 @@ pub trait CompilerDriver: Sized {
         Ok(())
     }
 
-    /// Get the [`TranslationUnit`] for a module at a given path.
-    ///
-    /// This function is called only once per module path.
-    fn load_module(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error>;
-
     /// Assemble the list of loaded module into a final output.
     ///
     /// `used_items` contains the result of static usage analysis, i.e the list identifiers
@@ -103,6 +98,13 @@ pub trait CompilerDriver: Sized {
         modules: &mut Vec<Module>,
         used_items: &UsedItems,
     ) -> Result<TranslationUnit, Error>;
+}
+
+pub trait SyncCompilerDriver: CompilerDriver {
+    /// Get the [`TranslationUnit`] for a module at a given path.
+    ///
+    /// This function is called only once per module path.
+    fn load_module(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error>;
 
     /// Run the compilation pipeline.
     ///
@@ -110,14 +112,14 @@ pub trait CompilerDriver: Sized {
     fn compile(&mut self) -> Result<CompileResult, Error> {
         pass::compile(self)
     }
+}
 
+pub trait AsyncCompilerDriver: CompilerDriver {
     /// Async version of [`Self::load_module`].
     fn load_module_async(
         &mut self,
         path: &ModulePath,
-    ) -> impl Future<Output = Result<TranslationUnit, Error>> {
-        async { self.load_module(path) }
-    }
+    ) -> impl Future<Output = Result<TranslationUnit, Error>>;
 
     /// Async version of [`Self::compile`].
     fn compile_async(&mut self) -> impl Future<Output = Result<CompileResult, Error>> {

@@ -24,8 +24,6 @@ type E = ResolveError;
 /// Calls to `Resolver` functions must respect these preconditions:
 /// * the import path must not be relative.
 pub trait Resolver {
-    /// Try to resolve a source file identified by a module path.
-    fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError>;
     /// Get the display name of the module path. Implementing this is optional.
     fn display_name(&self, _path: &ModulePath) -> Option<String> {
         None
@@ -44,38 +42,48 @@ pub trait Resolver {
     }
 }
 
+pub trait SyncResolver: Resolver {
+    /// Try to resolve a source file identified by a module path.
+    fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError>;
+}
+
 pub trait AsyncResolver: Resolver {
-    /// Async version of [`Resolver::resolve_source`].
+    /// Try to resolve a source file identified by a module path.
+    fn resolve_source_async<'a>(
+        &'a self,
+        path: &ModulePath,
+    ) -> impl Future<Output = Result<Cow<'a, str>, ResolveError>>;
+}
+
+impl<T: Resolver + ?Sized> Resolver for Box<T> {
+    fn display_name(&self, path: &ModulePath) -> Option<String> {
+        (**self).display_name(path)
+    }
+    fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
+        (**self).fs_path(path)
+    }
+    fn module_path(&self, path: &Path) -> Result<ModulePath, ResolveError> {
+        (**self).module_path(path)
+    }
+    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
+        (**self).canonical_path(path)
+    }
+}
+impl<T: SyncResolver + ?Sized> SyncResolver for Box<T> {
+    fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
+        (**self).resolve_source(path)
+    }
+}
+impl<T: AsyncResolver + ?Sized> AsyncResolver for Box<T> {
     fn resolve_source_async<'a>(
         &'a self,
         path: &ModulePath,
     ) -> impl Future<Output = Result<Cow<'a, str>, ResolveError>> {
-        async { self.resolve_source(path) }
-    }
-}
-
-impl<T: Resolver + ?Sized> Resolver for Box<T> {
-    fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
-        (**self).resolve_source(path)
-    }
-    fn display_name(&self, path: &ModulePath) -> Option<String> {
-        (**self).display_name(path)
-    }
-    fn fs_path(&self, path: &ModulePath) -> Result<PathBuf, ResolveError> {
-        (**self).fs_path(path)
-    }
-    fn module_path(&self, path: &Path) -> Result<ModulePath, ResolveError> {
-        (**self).module_path(path)
-    }
-    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
-        (**self).canonical_path(path)
+        (**self).resolve_source_async(path)
     }
 }
 
 impl<T: Resolver + ?Sized> Resolver for &T {
-    fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
-        (**self).resolve_source(path)
-    }
     fn display_name(&self, path: &ModulePath) -> Option<String> {
         (**self).display_name(path)
     }
@@ -90,14 +98,39 @@ impl<T: Resolver + ?Sized> Resolver for &T {
     }
 }
 
+impl<T: SyncResolver + ?Sized> SyncResolver for &T {
+    fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
+        (**self).resolve_source(path)
+    }
+}
+impl<T: AsyncResolver + ?Sized> AsyncResolver for &T {
+    fn resolve_source_async<'a>(
+        &'a self,
+        path: &ModulePath,
+    ) -> impl Future<Output = Result<Cow<'a, str>, ResolveError>> {
+        (**self).resolve_source_async(path)
+    }
+}
 /// A resolver that never resolves anything.
 ///
 /// Returns [`ResolveError::ModuleNotFound`] when calling [`Resolver::resolve_source`].
 #[derive(Default, Clone, Debug)]
 pub struct NoResolver;
 
-impl Resolver for NoResolver {
+impl Resolver for NoResolver {}
+impl SyncResolver for NoResolver {
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
+        Err(E::ModuleNotFound(
+            path.clone(),
+            "no module resolver, imports are effectively disabled here".to_string(),
+        ))
+    }
+}
+impl AsyncResolver for NoResolver {
+    async fn resolve_source_async<'a>(
+        &'a self,
+        path: &ModulePath,
+    ) -> Result<Cow<'a, str>, ResolveError> {
         Err(E::ModuleNotFound(
             path.clone(),
             "no module resolver, imports are effectively disabled here".to_string(),
@@ -172,13 +205,6 @@ impl FileResolver {
 }
 
 impl Resolver for FileResolver {
-    fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
-        let fs_path = self.file_path(path)?;
-        let source = fs::read_to_string(&fs_path)
-            .map_err(|_| E::FileNotFound(fs_path, "physical file".to_string()))?;
-
-        Ok(source.into())
-    }
     fn display_name(&self, path: &ModulePath) -> Option<String> {
         self.file_path(path)
             .ok()
@@ -196,6 +222,15 @@ impl Resolver for FileResolver {
 
         // TODO: from_path can panic, we don't want that here.
         Ok(ModulePath::from_path(rel_path))
+    }
+}
+impl SyncResolver for FileResolver {
+    fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
+        let fs_path = self.file_path(path)?;
+        let source = fs::read_to_string(&fs_path)
+            .map_err(|_| E::FileNotFound(fs_path, "physical file".to_string()))?;
+
+        Ok(source.into())
     }
 }
 
@@ -246,7 +281,8 @@ impl<'a> VirtualResolver<'a> {
     }
 }
 
-impl Resolver for VirtualResolver<'_> {
+impl Resolver for VirtualResolver<'_> {}
+impl SyncResolver for VirtualResolver<'_> {
     fn resolve_source<'b>(&'b self, path: &ModulePath) -> Result<Cow<'b, str>, ResolveError> {
         let source = self.get_module(path)?;
         Ok(source.into())
@@ -264,8 +300,8 @@ impl<T: Fn(&mut TranslationUnit) -> Result<(), Error>> ResolveFn for T {}
 ///
 /// This resolver is not thread-safe (not [`Send`] or [`Sync`]).
 pub struct Router {
-    mount_points: Vec<(ModulePath, Box<dyn Resolver>)>,
-    fallback: Option<Box<dyn Resolver>>,
+    mount_points: Vec<(ModulePath, Box<dyn SyncResolver>)>,
+    fallback: Option<Box<dyn SyncResolver>>,
 }
 
 /// Dispatches resolution of a module path to sub-resolvers.
@@ -287,16 +323,16 @@ impl Router {
     /// origin and the suffix path will be given an `Absolute` origin.
     ///
     /// If none of the `prefix`es match, the fallback resolver will be used.
-    pub fn mount_resolver(&mut self, prefix: ModulePath, resolver: impl Resolver + 'static) {
+    pub fn mount_resolver(&mut self, prefix: ModulePath, resolver: impl SyncResolver + 'static) {
         self.mount_points.push((prefix, Box::new(resolver)));
     }
 
     /// Mount a fallback resolver that is used when no other prefix match.
-    pub fn mount_fallback_resolver(&mut self, resolver: impl Resolver + 'static) {
+    pub fn mount_fallback_resolver(&mut self, resolver: impl SyncResolver + 'static) {
         self.fallback = Some(Box::new(resolver));
     }
 
-    fn route(&self, path: &ModulePath) -> Result<(&dyn Resolver, ModulePath), ResolveError> {
+    fn route(&self, path: &ModulePath) -> Result<(&dyn SyncResolver, ModulePath), ResolveError> {
         if let Some((mount_path, resolver)) = self
             .mount_points
             .iter()
@@ -330,10 +366,6 @@ impl Default for Router {
 }
 
 impl Resolver for Router {
-    fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
-        let (resolver, path) = self.route(path)?;
-        resolver.resolve_source(&path)
-    }
     fn display_name(&self, path: &ModulePath) -> Option<String> {
         let (resolver, path) = self.route(path).ok()?;
         resolver.display_name(&path)
@@ -348,6 +380,12 @@ impl Resolver for Router {
             Ok((resolver, routed)) if routed == *path => resolver.canonical_path(path),
             _ => path.clone(),
         }
+    }
+}
+impl SyncResolver for Router {
+    fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
+        let (resolver, path) = self.route(path)?;
+        resolver.resolve_source(&path)
     }
 }
 
@@ -374,6 +412,48 @@ impl PackageResolver {
 }
 
 impl Resolver for PackageResolver {
+    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
+        let PathOrigin::Package(pkg_path) = &path.origin else {
+            return path.clone();
+        };
+
+        // same package lookup as resolve_source, but failures return the path unchanged
+        let pkg_parts = pkg_path.split('/').collect_vec();
+        let Some(root_pkg) = pkg_parts
+            .first()
+            .and_then(|name| self.packages.iter().find(|p| p.root.name == *name))
+        else {
+            return path.clone();
+        };
+        let Ok(pkg) = pkg_parts.iter().skip(1).try_fold(root_pkg, |dep, name| {
+            dep.dependencies
+                .iter()
+                .find(|p| p.root.name == *name)
+                .ok_or(())
+        }) else {
+            return path.clone();
+        };
+
+        // pick the first name found in BFS order over registered packages
+        let mut queue = std::collections::VecDeque::new();
+        queue.extend(self.packages.iter().map(|p| (p.root.name.to_string(), *p)));
+        let mut visited = Vec::new();
+        while let Some((name, candidate)) = queue.pop_front() {
+            if std::ptr::eq(candidate, *pkg) {
+                return ModulePath::new(PathOrigin::Package(name), path.components.clone());
+            }
+            if visited.contains(&std::ptr::from_ref(candidate)) {
+                continue;
+            }
+            visited.push(std::ptr::from_ref(candidate));
+            for dep in candidate.dependencies {
+                queue.push_back((format!("{name}/{}", dep.root.name), *dep));
+            }
+        }
+        path.clone()
+    }
+}
+impl SyncResolver for PackageResolver {
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<std::borrow::Cow<'a, str>, E> {
         let pkg_path = match &path.origin {
             PathOrigin::Package(pkg) => pkg,
@@ -430,47 +510,6 @@ impl Resolver for PackageResolver {
             }
         }
         Ok(cur_mod.source.into())
-    }
-
-    fn canonical_path(&self, path: &ModulePath) -> ModulePath {
-        let PathOrigin::Package(pkg_path) = &path.origin else {
-            return path.clone();
-        };
-
-        // same package lookup as resolve_source, but failures return the path unchanged
-        let pkg_parts = pkg_path.split('/').collect_vec();
-        let Some(root_pkg) = pkg_parts
-            .first()
-            .and_then(|name| self.packages.iter().find(|p| p.root.name == *name))
-        else {
-            return path.clone();
-        };
-        let Ok(pkg) = pkg_parts.iter().skip(1).try_fold(root_pkg, |dep, name| {
-            dep.dependencies
-                .iter()
-                .find(|p| p.root.name == *name)
-                .ok_or(())
-        }) else {
-            return path.clone();
-        };
-
-        // pick the first name found in BFS order over registered packages
-        let mut queue = std::collections::VecDeque::new();
-        queue.extend(self.packages.iter().map(|p| (p.root.name.to_string(), *p)));
-        let mut visited = Vec::new();
-        while let Some((name, candidate)) = queue.pop_front() {
-            if std::ptr::eq(candidate, *pkg) {
-                return ModulePath::new(PathOrigin::Package(name), path.components.clone());
-            }
-            if visited.contains(&std::ptr::from_ref(candidate)) {
-                continue;
-            }
-            visited.push(std::ptr::from_ref(candidate));
-            for dep in candidate.dependencies {
-                queue.push_back((format!("{name}/{}", dep.root.name), *dep));
-            }
-        }
-        path.clone()
     }
 }
 
@@ -563,22 +602,6 @@ impl StandardResolver {
 }
 
 impl Resolver for StandardResolver {
-    fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
-        // a special case to handle the constants virtual module. For now, this module
-        // is shared for all sub-dependencies.
-        // TODO: in the future we'll change that.
-        if let PathOrigin::Package(pkg_name) = &path.origin
-            && (pkg_name == "constants" || pkg_name.ends_with("/constants"))
-        {
-            return Ok(self.generate_constant_module().into());
-        }
-
-        if path.origin.is_package() {
-            self.pkg.resolve_source(path)
-        } else {
-            self.files.resolve_source(path)
-        }
-    }
     fn display_name(&self, path: &ModulePath) -> Option<String> {
         if path.origin.is_package() {
             self.pkg.display_name(path)
@@ -611,6 +634,25 @@ impl Resolver for StandardResolver {
             self.pkg.canonical_path(path)
         } else {
             path.clone()
+        }
+    }
+}
+
+impl SyncResolver for StandardResolver {
+    fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
+        // a special case to handle the constants virtual module. For now, this module
+        // is shared for all sub-dependencies.
+        // TODO: in the future we'll change that.
+        if let PathOrigin::Package(pkg_name) = &path.origin
+            && (pkg_name == "constants" || pkg_name.ends_with("/constants"))
+        {
+            return Ok(self.generate_constant_module().into());
+        }
+
+        if path.origin.is_package() {
+            self.pkg.resolve_source(path)
+        } else {
+            self.files.resolve_source(path)
         }
     }
 }

@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    Resolver, SyntaxUtil,
+    AsyncResolver, Resolver, SyncResolver, SyntaxUtil,
     idents::builtin_ident,
     pass::{Imports, Module, UsedItems, Visit, imported_item_path},
 };

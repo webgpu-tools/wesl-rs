@@ -32,7 +32,7 @@ fn compile_wgsl() {
     let mut compiler = Compiler::default();
 
     compiler.options.lower = false;
-    compiler.options.strip = false;
+    compiler.options.strip = None;
     let mut result = compiler
         .compile(&test_path)
         .inspect_err(|e| eprintln!("{e}"))
@@ -49,7 +49,7 @@ async fn compile_wgsl_async() {
     let mut compiler = Compiler::default();
 
     compiler.options.lower = false;
-    compiler.options.strip = false;
+    compiler.options.strip = None;
     let mut result = compiler
         .compile_async(&test_path)
         .await
@@ -67,7 +67,7 @@ fn compile_wgsl_lower_eval() {
     let mut compiler = Compiler::default();
 
     compiler.options.lower = true;
-    compiler.options.strip = false;
+    compiler.options.strip = None;
     let mut result = compiler
         .compile(&test_path)
         .inspect_err(|e| eprintln!("{e}"))
@@ -86,7 +86,7 @@ fn compile_wgsl_strip() {
     let mut compiler = Compiler::default();
 
     compiler.options.lower = false;
-    compiler.options.strip = true;
+    compiler.options.strip = Some(wesl::StrippingOptions::KeepPipelineVisible);
     let mut result = compiler
         .compile(&test_path)
         .inspect_err(|e| eprintln!("{e}"))
@@ -106,7 +106,7 @@ fn compile_wesl_directory() {
     let mut compiler = Compiler::default();
 
     compiler.options.lower = false;
-    compiler.options.strip = false;
+    compiler.options.strip = None;
     compiler.options.mangle_main = true;
 
     let mut constants = Constants::new();
@@ -134,7 +134,7 @@ fn compile_wesl_file() {
     let mut compiler = Compiler::default();
 
     compiler.options.lower = false;
-    compiler.options.strip = false;
+    compiler.options.strip = None;
     compiler.options.mangle_main = true;
 
     let mut constants = Constants::new();

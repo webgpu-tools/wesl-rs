@@ -176,13 +176,6 @@ struct CompOptsArgs {
     #[cfg(feature = "naga")]
     #[arg(long)]
     no_naga: bool,
-    /// Main module declaration names to keep. Keeps all main module entrypoints by
-    /// default. Can be repeated to keep multiple declarations
-    #[arg(long)]
-    keep: Option<Vec<String>>,
-    /// Keep all main module declarations instead of just the entrypoints
-    #[arg(long)]
-    keep_main: bool,
     /// Set a conditional compilation feature flag. Can be repeated
     #[arg(short='D', long, value_name="NAME | NAME=[enable, disable, keep, error]", value_parser = parse_key_val_opt::<String, ClapFeature>)]
     feature: Vec<(String, ClapFeature)>,
@@ -225,17 +218,15 @@ impl TryFrom<&CompOptsArgs> for CompileOptions {
             condcomp: !opts.no_cond_comp,
             visibility: !opts.no_visibility,
             generics: opts.generics,
-            strip: !opts.no_strip,
+            strip: if !opts.no_strip {
+                Some(wesl::StrippingOptions::KeepPipelineVisible)
+            } else {
+                None
+            },
             lower: opts.lower,
             validate: !opts.no_validate,
             sourcemap: !opts.no_sourcemap,
             mangle_main: opts.mangle_main,
-            keep: if opts.no_strip {
-                None
-            } else {
-                opts.keep.clone()
-            },
-            keep_main: opts.keep_main,
             features: Features {
                 default: opts.feature_default.into(),
                 flags,

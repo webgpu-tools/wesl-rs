@@ -76,10 +76,6 @@ pub struct CompileOptions {
     pub lower: bool,
     pub validate: bool,
     pub naga: bool,
-    pub lazy: bool,
-    #[serde(default)]
-    pub keep: Option<Vec<String>>,
-    pub keep_main: bool,
     pub mangle_main: bool,
     #[tsify(type = "{ [name: string]: Feature }")]
     pub features: HashMap<String, Feature>,
@@ -207,14 +203,16 @@ fn run_compile(args: CompileOptions) -> Result<CompileResult, wesl::Error> {
         condcomp: args.condcomp,
         visibility: args.visibility,
         generics: args.generics,
-        strip: args.strip,
+        strip: if args.strip {
+            Some(wesl::StrippingOptions::KeepPipelineVisible)
+        } else {
+            None
+        },
         lower: args.lower,
         validate: args.validate,
         sourcemap: args.sourcemap,
         mangler: args.mangler.into(),
         mangle_main: args.mangle_main,
-        keep: args.keep,
-        keep_main: args.keep_main,
         features: wesl::Features {
             default: args.features_default.into(),
             flags: args

@@ -297,7 +297,7 @@ fn json_case(case: &Test) -> Result<(), libtest_mimic::Failed> {
             resolver.add_module(main_module.clone(), case.code.clone().into());
 
             let compile_options = CompileOptions {
-                keep_main: true,
+                strip: Some(wesl::StrippingOptions::KeepMainModule),
                 ..Default::default()
             };
 
@@ -360,7 +360,7 @@ pub fn testsuite_case(case: &WgslTestSrc) -> Result<(), libtest_mimic::Failed> {
 
     let main_module = ModulePath::from_str("package::main")?;
     let compile_options = CompileOptions {
-        keep_main: true,
+        strip: Some(wesl::StrippingOptions::KeepMainModule),
         ..Default::default()
     };
 
@@ -383,7 +383,7 @@ pub fn validation_case(test_name: String, path: PathBuf) -> Result<(), libtest_m
     let main_path = ModulePath::from_str("package::main")?;
     resolver.add_module(main_path.clone(), input.into());
     let compile_options = CompileOptions {
-        strip: false,
+        strip: None,
         lower: true,
         validate: true,
         mangler: ManglerKind::None,
@@ -396,7 +396,7 @@ pub fn validation_case(test_name: String, path: PathBuf) -> Result<(), libtest_m
     let _ = compiler.compile_module(&main_path)?;
 
     // second, we run with strip: true, which is the default for WESL, and save the snapshot.
-    compiler.options.strip = true;
+    compiler.options.strip = Some(wesl::StrippingOptions::KeepPipelineVisible);
     let mut res = compiler.compile_module(&main_path)?;
     res.syntax.sort_declarations();
     let expected = expect_file![format!(
@@ -441,7 +441,7 @@ pub fn bevy_case(test_name: String, path: PathBuf) -> Result<(), libtest_mimic::
     }
 
     let compile_options = CompileOptions {
-        strip: false,
+        strip: None,
         lower: true,
         validate: true,
         constants,
@@ -457,7 +457,7 @@ pub fn bevy_case(test_name: String, path: PathBuf) -> Result<(), libtest_mimic::
     let _ = compiler.compile_module(pkg_root_dir, &main_path)?;
 
     // second, we run with strip: true, which is the default for WESL, and save the snapshot.
-    compiler.options.strip = true;
+    compiler.options.strip = Some(wesl::StrippingOptions::KeepPipelineVisible);
     let mut res = compiler.compile_module(pkg_root_dir, &main_path)?;
     res.syntax.sort_declarations();
     let expected = expect_file![format!("./snapshots/testsuite__{}.snap", test_name)];

@@ -49,12 +49,11 @@ pub struct CompileOptions {
     ///
     /// By default, all declarations reachable by entrypoint functions, const_asserts and
     /// pipeline-overridable constants in the main module are kept.
-    /// See [`Self::keep`] and [`Self::keep_main`] to control what gets stripped.
     ///
     /// Stripping can have side-effects: modules are loaded only if statically accessed,
     /// and `const_assert` statements are not always preserved.
     /// Refer to the WESL docs to learn more.
-    pub strip: bool,
+    pub strip: Option<StrippingOptions>,
     /// Enable lowering/polyfills. This transforms the output code in various ways.
     ///
     /// See [`pass::lower`] for the list of transforms.
@@ -72,17 +71,6 @@ pub struct CompileOptions {
     ///
     /// By default, WESL does not mangle main module declarations.
     pub mangle_main: bool,
-    /// If `Some`, specify a list of main module declarations to keep.
-    /// If `None`, only the entrypoint functions (and their dependencies) are kept.
-    ///
-    /// This option has no effect if [`Self::keep_main`] is enabled or  [`Self::strip`] is
-    /// disabled.
-    pub keep: Option<Vec<String>>,
-    /// If `true`, all main module declarations are preserved when stripping is enabled.
-    ///
-    /// This option takes precedence over [`Self::keep`], and has no effect if
-    /// [`Self::strip`] is disabled.
-    pub keep_main: bool,
     /// Conditional Translation feature flags.
     ///
     /// This option has no effect if [`Self::condcomp`] is disabled.
@@ -95,6 +83,17 @@ pub struct CompileOptions {
     pub constants: Constants,
     /// Importable packages dependencies.
     pub dependencies: Vec<&'static StaticPackage>,
+}
+
+#[derive(Clone, Debug, PartialEq, Default)]
+pub enum StrippingOptions {
+    /// Strip everything that is not reachable from the main module entrypoints, const_asserts and pipeline-overridable constants.
+    #[default]
+    KeepPipelineVisible,
+    /// Strip everything that is not reachable from any of the main module declarations
+    KeepMainModule,
+    /// Keep only the specified list of declarations in the main module and their dependencies.
+    Keep(Vec<String>),
 }
 
 /// Declaration name mangling scheme. Used in [`CompileOptions::mangler`].
@@ -132,14 +131,12 @@ impl Default for CompileOptions {
             condcomp: true,
             visibility: true,
             generics: false,
-            strip: true,
+            strip: Some(StrippingOptions::KeepPipelineVisible),
             lower: false,
             validate: true,
             sourcemap: true,
             mangler: Default::default(),
             mangle_main: false,
-            keep: Default::default(),
-            keep_main: false,
             features: Default::default(),
             constants: Default::default(),
             dependencies: Default::default(),
@@ -161,7 +158,7 @@ impl Default for CompileOptions {
 /// # let shader_string = "fn my_fn() {\n\n}\n";
 /// # resolver.add_module("package::path::to::shader".parse().unwrap(), shader_string.into());
 /// # let mut compiler = compiler.with_resolver(resolver);
-/// # compiler.options.keep_main = true; // prevent dead code elimination
+/// # compiler.options.strip = None; // prevent dead code elimination
 /// #
 /// let wgsl_string = compiler
 ///     .compile("path/to/shader.wgsl")
@@ -564,27 +561,21 @@ impl CompilerDriver for CompilationPass<'_> {
     }
 
     fn main_entry_points(&self, main_module: &TranslationUnit) -> Result<HashSet<Ident>, Error> {
-        // keep all declarations when strip is disabled or keep_main is enabled.
-        if !self.options.strip || self.options.keep_main {
-            Ok(main_module
+        match &self.options.strip {
+            Some(StrippingOptions::KeepPipelineVisible) => Ok(main_module.entry_points().collect()),
+            Some(StrippingOptions::KeepMainModule) | None => Ok(main_module
                 .global_declarations
                 .iter()
                 .filter_map(|decl| decl.ident())
-                .collect())
-        }
-        // user provided an explicit list of entry points to start from.
-        else if let Some(keep) = &self.options.keep {
-            keep.iter()
+                .collect()),
+            Some(StrippingOptions::Keep(declarations)) => declarations
+                .iter()
                 .map(|name| {
                     main_module.decl_ident(name).ok_or_else(|| {
                         UsageError::NotFound(self.main_path.clone(), name.to_string()).into()
                     })
                 })
-                .collect::<Result<HashSet<Ident>, Error>>()
-        }
-        // otherwise, we keep the WGSL entry points. this is the default.
-        else {
-            Ok(main_module.entry_points().collect())
+                .collect::<Result<HashSet<Ident>, Error>>(),
         }
     }
 
@@ -598,7 +589,7 @@ impl CompilerDriver for CompilationPass<'_> {
 
         // when strip is disabled, all declarations in the module are included so they
         // must be usage-analyzed.
-        if !self.options.strip {
+        if self.options.strip.is_none() {
             for decl in &module.syntax.global_declarations {
                 if let Some(ident) = decl.ident() {
                     self.usage_analysis(
@@ -664,7 +655,7 @@ impl CompilerDriver for CompilationPass<'_> {
             pass::mangle(&mut module.syntax, &module.path, &self.mangler);
         }
 
-        let mut module = pass::link(modules, self.options.strip.then_some(used_items));
+        let mut module = pass::link(modules, self.options.strip.as_ref().map(|_| used_items));
 
         if self.options.lower {
             pass::lower(&mut module)?;

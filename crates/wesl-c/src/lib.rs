@@ -8,6 +8,7 @@ use std::ops::Deref;
 use std::os::raw::{c_char, c_void};
 use std::ptr;
 
+use wesl::eval::TyContext;
 use wesl::resolver::StandardResolver;
 use wesl::syntax::ModulePath;
 use wesl::{Compiler, error::ResolveError};
@@ -223,6 +224,40 @@ impl From<&str> for WeslError {
     }
 }
 
+impl From<wesl::error::Diagnostic> for WeslError {
+    fn from(error: wesl::error::Diagnostic) -> Self {
+        let diagnostic =
+            if let (Some(span), Some(res)) = (&error.detail.span, &error.detail.module_path) {
+                let diag = WeslDiagnostic {
+                    file: create_c_string(&res.components.join("/")),
+                    span_start: span.start,
+                    span_end: span.end,
+                    title: create_c_string(&error.error.to_string()),
+                };
+
+                let boxed = Box::new(diag);
+                Box::into_raw(boxed)
+            } else {
+                ptr::null()
+            };
+
+        WeslError {
+            source: error
+                .detail
+                .output
+                .as_ref()
+                .map_or(ptr::null(), |s| create_c_string(s)),
+            message: create_c_string(&error.to_string()),
+            diagnostics: diagnostic,
+            diagnostics_len: if diagnostic.is_null() {
+                0
+            } else {
+                1
+            },
+        }
+    }
+}
+
 impl From<WeslManglerKind> for wesl::ManglerKind {
     fn from(kind: WeslManglerKind) -> Self {
         match kind {
@@ -265,38 +300,34 @@ impl From<&WeslCompileOptions> for wesl::CompileOptions {
     }
 }
 
-impl From<wesl::Error> for WeslError {
-    fn from(e: wesl::Error) -> Self {
-        let d = wesl::error::Diagnostic::from(e);
-
-        let diagnostic = if let (Some(span), Some(res)) = (&d.detail.span, &d.detail.module_path) {
-            let diag = WeslDiagnostic {
-                file: create_c_string(&res.components.join("/")),
-                span_start: span.start,
-                span_end: span.end,
-                title: create_c_string(&d.error.to_string()),
-            };
-
-            let boxed = Box::new(diag);
-            Box::into_raw(boxed)
-        } else {
-            ptr::null()
+fn from_wesl_diagnostic(d: wesl::error::Diagnostic) -> WeslError {
+    let diagnostic = if let (Some(span), Some(res)) = (&d.detail.span, &d.detail.module_path) {
+        let diag = WeslDiagnostic {
+            file: create_c_string(&res.components.join("/")),
+            span_start: span.start,
+            span_end: span.end,
+            title: create_c_string(&d.error.to_string()),
         };
 
-        WeslError {
-            source: d
-                .detail
-                .output
-                .as_ref()
-                .map_or(ptr::null(), |s| create_c_string(s)),
-            message: create_c_string(&d.to_string()),
-            diagnostics: diagnostic,
-            diagnostics_len: if diagnostic.is_null() {
-                0
-            } else {
-                1
-            },
-        }
+        let boxed = Box::new(diag);
+        Box::into_raw(boxed)
+    } else {
+        ptr::null()
+    };
+
+    WeslError {
+        source: d
+            .detail
+            .output
+            .as_ref()
+            .map_or(ptr::null(), |s| create_c_string(s)),
+        message: create_c_string(&d.to_string()),
+        diagnostics: diagnostic,
+        diagnostics_len: if diagnostic.is_null() {
+            0
+        } else {
+            1
+        },
     }
 }
 
@@ -386,8 +417,9 @@ impl From<&WeslBindingArray> for Vec<WeslBinding> {
 fn parse_c_binding(
     b: &WeslBinding,
     wgsl: &wesl::syntax::TranslationUnit,
-) -> Result<((u32, u32), RefInstance), wesl::Error> {
-    let mut ctx = wesl::eval::Context::new(wgsl);
+    ty_ctx: &mut TyContext,
+) -> Result<((u32, u32), RefInstance), wesl::error::Diagnostic> {
+    let mut ctx = wesl::eval::Context::new(wgsl, ty_ctx);
 
     let ty_expr = wgsl
         .global_declarations
@@ -410,24 +442,25 @@ fn parse_c_binding(
             ))
         })?;
 
-    let ty = wesl::eval::ty_eval_ty(&ty_expr, &mut ctx)
-        .map_err(|e| wesl::Error::Custom(format!("Failed to evaluate type: {e}")))?;
+    let ty = wesl::eval::ty_eval_ty(&ty_expr, &mut ctx).map_err(|e| {
+        wesl::Error::Custom(format!("Failed to evaluate type: {}", ty_ctx.display(&e)))
+    })?;
 
     let (storage, access) = match b.kind {
         WeslBindingType::WeslBindingUniform => (AddressSpace::Uniform, AccessMode::Read),
         WeslBindingType::WeslBindingStorage => (AddressSpace::Storage, AccessMode::ReadWrite),
         WeslBindingType::WeslBindingReadOnlyStorage => (AddressSpace::Storage, AccessMode::Read),
-        _ => return Err(wesl::Error::Custom("Unsupported binding type".to_string())),
+        _ => return Err(wesl::Error::Custom("Unsupported binding type".to_string()).diagnostic()),
     };
 
     let data_slice = unsafe { std::slice::from_raw_parts(b.data, b.data_len) };
-    let inst = Instance::from_buffer(data_slice, &ty).ok_or_else(|| {
+    let inst = Instance::from_buffer(data_slice, &ty, ty_ctx).ok_or_else(|| {
         wesl::Error::Custom(format!(
             "Resource @group({}) @binding({}) ({} bytes) incompatible with type ({} bytes)",
             b.group,
             b.binding,
             b.data_len,
-            ty.size_of().unwrap_or_default()
+            ty.size_of(ty_ctx).unwrap_or_default()
         ))
     })?;
 
@@ -534,8 +567,8 @@ impl wesl::Resolver for CustomResolver {
             unsafe { (self.options.resolve_source)(cstring.as_ptr(), self.options.userdata) };
 
         if result.is_null() {
-            return Err(ResolveError::Error(
-                wesl::Error::Custom("No value returned from resolver".into()).into(),
+            return Err(ResolveError::Custom(
+                "No value returned from resolver".to_owned(),
             ));
         }
 
@@ -547,17 +580,13 @@ impl wesl::Resolver for CustomResolver {
 
         if !result.success {
             // TODO: Better error reporting.
-            return Err(ResolveError::Error(
-                wesl::Error::Custom("Custom resolver failed".into()).into(),
-            ));
+            return Err(ResolveError::Custom("Custom resolver failed".to_owned()));
         }
 
         let result_cstr = unsafe { CStr::from_ptr(result.source) };
-        let result_str = result_cstr.to_str().map_err(|_| {
-            ResolveError::Error(
-                wesl::Error::Custom("Resolved source is not valid UTF-8".into()).into(),
-            )
-        })?;
+        let result_str = result_cstr
+            .to_str()
+            .map_err(|_| ResolveError::Custom("Resolved source is not valid UTF-8".to_owned()))?;
 
         Ok(result_str.to_owned().into())
     }
@@ -655,7 +684,7 @@ pub unsafe extern "C" fn wesl_compile(
             let output = result.to_string();
             WeslResult::success(create_c_string(&output))
         }
-        Err(e) => WeslResult::error(WeslError::from(e)),
+        Err(e) => WeslResult::error(from_wesl_diagnostic(e)),
     }
 }
 
@@ -683,10 +712,17 @@ pub unsafe extern "C" fn wesl_eval(
     };
 
     let compiler = Compiler::new(wesl::CompileOptions::from(options)).with_resolver(resolver);
+    let mut ty_ctx = TyContext::default();
 
     match compiler.compile_module(&main_path) {
-        Ok(result) => match result.eval(&expr_str) {
-            Ok(eval_result) => WeslResult::success(create_c_string(&eval_result.inst.to_string())),
+        Ok(result) => match result.eval(&expr_str, &mut ty_ctx) {
+            Ok(eval_result) => WeslResult::success(create_c_string(
+                &eval_result
+                    .ctx
+                    .ty_ctx()
+                    .display(&eval_result.inst)
+                    .to_string(),
+            )),
             Err(e) => WeslResult::error(WeslError::from(e)),
         },
         Err(e) => WeslResult::error(WeslError::from(e)),
@@ -723,15 +759,15 @@ pub unsafe extern "C" fn wesl_exec(
     };
 
     let compiler = Compiler::new(wesl::CompileOptions::from(options)).with_resolver(resolver);
+    let mut ty_ctx = TyContext::default();
 
     match compiler.compile_module(&main_path) {
         Ok(result) => {
             // parse resources
-            let parsed_resources: Result<HashMap<(u32, u32), RefInstance>, wesl::Error> =
-                resources_vec
-                    .iter()
-                    .map(|r| parse_c_binding(r, &result.syntax))
-                    .collect();
+            let parsed_resources: Result<HashMap<(u32, u32), RefInstance>, _> = resources_vec
+                .iter()
+                .map(|r| parse_c_binding(r, &result.syntax, &mut ty_ctx))
+                .collect();
 
             let parsed_resources = match parsed_resources {
                 Ok(resources) => resources,
@@ -741,19 +777,25 @@ pub unsafe extern "C" fn wesl_exec(
             };
 
             // parse overrides
-            let parsed_overrides: Result<HashMap<String, Instance>, wesl::Error> = overrides_map
-                .iter()
-                .map(|(name, expr)| {
-                    let mut ctx = wesl::eval::Context::new(&result.syntax);
-                    let expr = expr.parse::<wesl::syntax::Expression>().map_err(|e| {
-                        wesl::Error::Custom(format!("Failed to parse override expression: {e}"))
-                    })?;
-                    let inst = expr.eval_value(&mut ctx).map_err(|e| {
-                        wesl::Error::Custom(format!("Failed to evaluate override: {e}"))
-                    })?;
-                    Ok((name.clone(), inst))
-                })
-                .collect();
+            let parsed_overrides: Result<HashMap<String, Instance>, wesl::error::Diagnostic> =
+                overrides_map
+                    .iter()
+                    .map(|(name, expr)| {
+                        let mut ctx = wesl::eval::Context::new(&result.syntax, &mut ty_ctx);
+                        let expr = expr.parse::<wesl::syntax::Expression>().map_err(|e| {
+                            wesl::Error::Custom(format!("Failed to parse override expression: {e}"))
+                                .diagnostic()
+                        })?;
+                        let inst = expr.eval_value(&mut ctx).map_err(|e| {
+                            wesl::Error::Custom(format!(
+                                "Failed to evaluate override: {}",
+                                ty_ctx.display(&e)
+                            ))
+                            .diagnostic()
+                        })?;
+                        Ok((name.clone(), inst))
+                    })
+                    .collect();
 
             let parsed_overrides = match parsed_overrides {
                 Ok(overrides) => overrides,
@@ -763,17 +805,23 @@ pub unsafe extern "C" fn wesl_exec(
             };
 
             // execute
-            let inputs = Inputs::new_zero_initialized();
-            match result.exec(&entrypoint_str, inputs, parsed_resources, parsed_overrides) {
+            let inputs = Inputs::new_zero_initialized(&ty_ctx);
+            match result.exec(
+                &entrypoint_str,
+                inputs,
+                parsed_resources,
+                parsed_overrides,
+                &mut ty_ctx,
+            ) {
                 Ok(exec_result) => {
                     // convert resources back to C format
                     let output_resources: Vec<WeslBinding> = resources_vec
                         .iter()
                         .filter_map(|r| {
                             let resource = exec_result.resource(r.group, r.binding)?;
-                            let inst = resource.read().ok()?.to_owned();
+                            let inst = resource.read(exec_result.ctx.ty_ctx()).ok()?.to_owned();
                             let mut new_binding = *r;
-                            if let Some(buffer) = inst.to_buffer() {
+                            if let Some(buffer) = inst.to_buffer(exec_result.ctx.ty_ctx()) {
                                 let boxed_data = buffer.into_boxed_slice();
                                 new_binding.data_len = boxed_data.len();
                                 new_binding.data = Box::into_raw(boxed_data) as *const u8;

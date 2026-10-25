@@ -107,8 +107,6 @@ pub struct WeslCompileOptions {
     pub sourcemap: bool,
     pub mangler: WeslManglerKind,
     pub mangle_main: bool,
-    pub keep: WeslStringArray,
-    pub keep_main: bool,
     pub features: WeslBoolMap,
     // pub constants: todo!() // TODO
     pub naga: bool,
@@ -237,7 +235,6 @@ impl From<WeslManglerKind> for wesl::ManglerKind {
 
 impl From<&WeslCompileOptions> for wesl::CompileOptions {
     fn from(options: &WeslCompileOptions) -> Self {
-        let keep_vec = Vec::from(&options.keep);
         let features_map = HashMap::from(&options.features);
 
         wesl::CompileOptions {
@@ -245,18 +242,16 @@ impl From<&WeslCompileOptions> for wesl::CompileOptions {
             condcomp: options.condcomp,
             visibility: options.visibility,
             generics: options.generics,
-            strip: options.strip,
+            strip: if options.strip {
+                Some(wesl::StrippingOptions::KeepPipelineVisible)
+            } else {
+                None
+            },
             lower: options.lower,
             validate: options.validate,
             sourcemap: options.sourcemap,
             mangler: options.mangler.into(),
             mangle_main: options.mangle_main,
-            keep: if keep_vec.is_empty() {
-                None
-            } else {
-                Some(keep_vec)
-            },
-            keep_main: options.keep_main,
             features: wesl::Features {
                 default: wesl::Feature::Disable,
                 flags: features_map

@@ -68,11 +68,6 @@ typedef struct WeslResult {
   struct WeslError error;
 } WeslResult;
 
-typedef struct WeslStringArray {
-  const char *const *items;
-  uintptr_t len;
-} WeslStringArray;
-
 typedef struct WeslBoolMap {
   const char *const *keys;
   const bool *values;
@@ -90,8 +85,6 @@ typedef struct WeslCompileOptions {
   bool sourcemap;
   WeslManglerKind mangler;
   bool mangle_main;
-  struct WeslStringArray keep;
-  bool keep_main;
   struct WeslBoolMap features;
   bool naga;
 } WeslCompileOptions;

@@ -20,87 +20,51 @@ pub use lower::*;
 pub use prelude::*;
 pub use to_expr::*;
 pub use ty::*;
+use wgsl_types::arena::{Arena, Id};
 pub use wgsl_types::{ShaderStage, builtin::*, conv::*, inst::*, tplt::*, ty::*, ty_ctx::*};
 
 use derive_more::Display;
-use std::{collections::HashMap, rc::Rc};
+use std::collections::HashMap;
 use wgsl_parse::{
     span::{Span, Spanned},
     syntax::*,
 };
 
-use crate::util::IteratorExt;
-
-#[derive(Debug)]
-struct ScopeInner<T> {
-    local: HashMap<String, T>,
-    parent: Option<Rc<ScopeInner<T>>>,
-    transparent: bool,
-}
+pub type ScopeId<T> = Id<ScopeData<T>>;
 
 #[derive(Debug)]
 pub struct Scope<T> {
-    inner: Rc<ScopeInner<T>>,
+    scopes: Arena<ScopeData<T>>,
+    inner: ScopeId<T>,
+}
+
+#[derive(Debug)]
+pub struct ScopeData<T> {
+    parent: Option<ScopeId<T>>,
+    local: HashMap<String, T>,
+    transparent: bool,
 }
 
 impl<T> Default for Scope<T> {
     fn default() -> Self {
-        Self {
-            inner: Rc::new(ScopeInner {
-                local: Default::default(),
-                parent: Default::default(),
-                transparent: false,
-            }),
-        }
-    }
-}
-
-impl<T> ScopeInner<T> {
-    pub fn depth(&self) -> u32 {
-        if let Some(parent) = &self.parent {
-            parent.depth() + 1
-        } else {
-            0
-        }
-    }
-    pub fn get(&self, name: &str) -> Option<&T> {
-        self.local
-            .get(name)
-            .or_else(|| self.parent.as_ref().and_then(|parent| parent.get(name)))
-    }
-    pub fn contains(&self, name: &str) -> bool {
-        self.local.contains_key(name)
-            || self
-                .parent
-                .as_ref()
-                .is_some_and(|parent| parent.contains(name))
-    }
-    pub fn iter_keys(&self) -> impl Iterator<Item = &str> {
-        self.local.keys().map(|k| k.as_str()).chain(
-            self.parent
-                .iter()
-                .flat_map(|parent| parent.iter_keys())
-                .boxed(),
-        )
+        Self::new()
     }
 }
 
 impl<T> Scope<T> {
     pub fn new() -> Self {
-        Self {
-            inner: Rc::new(ScopeInner {
-                local: Default::default(),
-                parent: None,
-                transparent: false,
-            }),
-        }
+        let mut scopes = Arena::default();
+        let inner = scopes.add(ScopeData {
+            local: Default::default(),
+            parent: Default::default(),
+            transparent: false,
+        });
+        Self { scopes, inner }
     }
     pub fn is_root(&self) -> bool {
-        self.inner.parent.is_none()
+        self.scopes[self.inner].parent.is_none()
     }
-    pub fn depth(&self) -> u32 {
-        self.inner.depth()
-    }
+
     /// variables in a 'transparent' scope have the same scope as the parent scope.
     /// this is useful for 'for' loops and function calls which have the same
     /// end-of-scope for initializer and formal parameters as the body.
@@ -108,63 +72,58 @@ impl<T> Scope<T> {
     ///
     /// see <https://github.com/gpuweb/gpuweb/issues/5024>
     pub fn make_transparent(&mut self) {
-        Rc::get_mut(&mut self.inner)
-            .expect("cannot edit a parent scope")
-            .transparent = true;
+        self.scopes[self.inner].transparent = true;
     }
     pub fn push(&mut self) {
-        self.inner = Rc::new(ScopeInner {
+        self.inner = self.scopes.add(ScopeData {
             local: Default::default(),
-            parent: Some(self.inner.clone()),
+            parent: Some(self.inner),
             transparent: false,
         });
     }
     pub fn push_transparent(&mut self) {
-        self.inner = Rc::new(ScopeInner {
+        self.inner = self.scopes.add(ScopeData {
             local: Default::default(),
-            parent: Some(self.inner.clone()),
+            parent: Some(self.inner),
             transparent: true,
         });
     }
     pub fn pop(&mut self) {
-        self.inner = self.inner.parent.clone().expect("failed to pop scope");
+        self.inner = self.scopes[self.inner].parent.expect("failed to pop scope");
     }
     pub fn add(&mut self, name: String, value: T) -> bool {
         if self.local_contains(&name) {
             false
         } else {
-            Rc::get_mut(&mut self.inner)
-                .expect("cannot edit a parent scope")
-                .local
-                .insert(name, value);
+            self.scopes[self.inner].local.insert(name, value);
             true
         }
     }
     pub fn local_get_mut(&mut self, name: &str) -> Option<&mut T> {
-        Rc::get_mut(&mut self.inner)
-            .expect("cannot edit a parent scope")
-            .local
-            .get_mut(name)
+        self.scopes[self.inner].local.get_mut(name)
     }
     pub fn get(&self, name: &str) -> Option<&T> {
-        self.inner.get(name)
+        self.scope_chain()
+            .find_map(|scope| self.scopes[scope].local.get(name))
     }
     pub fn local_contains(&self, name: &str) -> bool {
-        self.inner.local.contains_key(name)
-            || self.inner.transparent
-                && self
-                    .inner
-                    .parent
-                    .as_ref()
-                    .expect("transparent scope must have a parent")
+        let inner = &self.scopes[self.inner];
+        inner.local.contains_key(name)
+            || inner.transparent
+                && self.scopes[inner.parent.expect("transparent scope must have a parent")]
                     .local
                     .contains_key(name)
     }
     pub fn contains(&self, name: &str) -> bool {
-        self.inner.contains(name)
+        self.scope_chain()
+            .any(|scope| self.scopes[scope].local.contains_key(name))
+    }
+    pub fn scope_chain(&self) -> impl Iterator<Item = ScopeId<T>> + '_ {
+        std::iter::successors(Some(self.inner), move |&scope| self.scopes[scope].parent)
     }
     pub fn iter_keys(&self) -> impl Iterator<Item = &str> {
-        self.inner.iter_keys()
+        self.scope_chain()
+            .flat_map(move |scope| self.scopes[scope].local.keys().map(|k| k.as_str()))
     }
 }
 

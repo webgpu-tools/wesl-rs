@@ -1,7 +1,9 @@
+use std::fmt::Debug;
+
 use crate::FastIndexSet;
 
 /// An append-only arena
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Arena<T> {
     items: Vec<T>,
 }
@@ -22,6 +24,9 @@ impl<T> Arena<T> {
     pub fn get(&self, id: Id<T>) -> Option<&T> {
         self.items.get(id.as_usize())
     }
+    pub fn get_mut(&mut self, id: Id<T>) -> Option<&mut T> {
+        self.items.get_mut(id.as_usize())
+    }
 }
 
 impl<T> std::ops::Index<Id<T>> for Arena<T> {
@@ -30,6 +35,12 @@ impl<T> std::ops::Index<Id<T>> for Arena<T> {
     #[inline]
     fn index(&self, id: Id<T>) -> &Self::Output {
         &self.items[id.as_usize()]
+    }
+}
+
+impl<T> std::ops::IndexMut<Id<T>> for Arena<T> {
+    fn index_mut(&mut self, id: Id<T>) -> &mut Self::Output {
+        &mut self.items[id.as_usize()]
     }
 }
 

@@ -1,5 +1,6 @@
-// auto-generated: "lalrpop 0.23.1"
+// auto-generated: "lalrpop 0.23.2"
 // sha3: 42590313a69f7271ecef0a680030a45e780de0359f17c19174f5d6ebe2ecbf16
+// features: 
 use std::str::FromStr;
 use crate::{error::ParseError, lexer::Token};
 use crate::span::{Spanned, Span};
@@ -10164,8 +10165,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ","? =  => ActionFn(294);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action294::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant8(__nt), __end));
         (0, 0)
@@ -10193,8 +10194,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ":"? =  => ActionFn(322);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action322::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant8(__nt), __end));
         (0, 1)
@@ -10243,8 +10244,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ("->" <Attributes> <TemplateElaboratedIdent>)? =  => ActionFn(302);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action302::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant10(__nt), __end));
         (0, 3)
@@ -10291,8 +10292,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // (":" <TypeSpecifier>)? =  => ActionFn(360);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action360::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant12(__nt), __end));
         (0, 5)
@@ -10339,8 +10340,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ("=" <ExpressionNode>)? =  => ActionFn(357);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action357::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant14(__nt), __end));
         (0, 7)
@@ -10387,8 +10388,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ("as" <PathIdent>)? =  => ActionFn(283);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action283::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant15(__nt), __end));
         (0, 9)
@@ -10418,8 +10419,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ("super" "::")* =  => ActionFn(290);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action290::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant17(__nt), __end));
         (0, 11)
@@ -10499,8 +10500,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // (<CaseSelector> ",")* =  => ActionFn(421);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action421::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant19(__nt), __end));
         (0, 14)
@@ -10580,8 +10581,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // (<EnableExtensionName> ",")* =  => ActionFn(440);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action440::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant20(__nt), __end));
         (0, 17)
@@ -10661,8 +10662,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // (<ExpressionNode> ",")* =  => ActionFn(431);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action431::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant21(__nt), __end));
         (0, 20)
@@ -10742,8 +10743,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // (<Import> ",")* =  => ActionFn(415);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action415::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant23(__nt), __end));
         (0, 23)
@@ -10823,8 +10824,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // (<Param> ",")* =  => ActionFn(418);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action418::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant25(__nt), __end));
         (0, 26)
@@ -10904,8 +10905,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // (<PathIdent> "::")* =  => ActionFn(287);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action287::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant20(__nt), __end));
         (0, 29)
@@ -10985,8 +10986,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // (<SoftwareExtensionName> ",")* =  => ActionFn(437);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action437::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant20(__nt), __end));
         (0, 32)
@@ -11066,8 +11067,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // (<Spanned<StructMember>> ",")* =  => ActionFn(434);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action434::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant27(__nt), __end));
         (0, 35)
@@ -11147,8 +11148,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // (<TemplateArgExpression> ",")* =  => ActionFn(443);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action443::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant29(__nt), __end));
         (0, 38)
@@ -11315,8 +11316,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // @L =  => ActionFn(382);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action382::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant32(__nt), __end));
         (0, 44)
@@ -11329,8 +11330,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // @R =  => ActionFn(381);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action381::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant32(__nt), __end));
         (0, 45)
@@ -11456,8 +11457,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ArgumentExpressionList? =  => ActionFn(299);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action299::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant36(__nt), __end));
         (0, 49)
@@ -11563,8 +11564,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // Attributes =  => ActionFn(691);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action691::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant39(__nt), __end));
         (0, 52)
@@ -11759,8 +11760,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // BreakIfStatement? =  => ActionFn(308);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action308::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant41(__nt), __end));
         (0, 60)
@@ -12394,8 +12395,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ContinuingStatement? =  => ActionFn(319);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action319::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant57(__nt), __end));
         (0, 82)
@@ -12846,8 +12847,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ElseClause? =  => ActionFn(326);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action326::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant65(__nt), __end));
         (0, 94)
@@ -12879,8 +12880,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ElseIfClause* =  => ActionFn(327);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action327::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant67(__nt), __end));
         (0, 96)
@@ -13230,8 +13231,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ExpressionCommaList? =  => ActionFn(355);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action355::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant36(__nt), __end));
         (0, 105)
@@ -13304,8 +13305,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ExpressionNode? =  => ActionFn(315);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action315::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant14(__nt), __end));
         (0, 108)
@@ -13721,8 +13722,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ForInit? =  => ActionFn(317);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action317::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant72(__nt), __end));
         (0, 116)
@@ -13801,8 +13802,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ForUpdate? =  => ActionFn(313);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action313::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant72(__nt), __end));
         (0, 119)
@@ -14079,8 +14080,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // GlobalDeclarationNode* =  => ActionFn(375);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action375::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant79(__nt), __end));
         (0, 125)
@@ -14185,8 +14186,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // GlobalDirective* =  => ActionFn(377);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action377::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant81(__nt), __end));
         (0, 128)
@@ -14619,8 +14620,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ImportStatement* =  => ActionFn(379);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action379::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant88(__nt), __end));
         (0, 140)
@@ -15719,8 +15720,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ModulePath? =  => ActionFn(365);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action365::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant93(__nt), __end));
         (0, 157)
@@ -15911,8 +15912,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // ParamList? =  => ActionFn(305);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action305::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant94(__nt), __end));
         (0, 166)
@@ -17297,8 +17298,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // Spanned<Attribute>* =  => ActionFn(295);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action295::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant100(__nt), __end));
         (0, 194)
@@ -17824,8 +17825,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // StatementNode* =  => ActionFn(331);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action331::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant105(__nt), __end));
         (0, 212)
@@ -18258,8 +18259,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // TemplateList? =  => ActionFn(363);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action363::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant112(__nt), __end));
         (0, 226)
@@ -18272,8 +18273,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // TranslationUnit =  => ActionFn(671);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action671::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant113(__nt), __end));
         (0, 227)
@@ -18656,8 +18657,8 @@ mod __parse__EntryPoint {
     ) -> (usize, usize)
     {
         // Visibility? =  => ActionFn(369);
-        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2)).unwrap_or_default();
-        let __end = __start;
+        let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
+        let __end = __start.clone();
         let __nt = super::__action369::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant118(__nt), __end));
         (0, 236)
@@ -18745,7 +18746,7 @@ mod __parse__EntryPoint {
 #[allow(unused_imports)]
 pub use self::__parse__EntryPoint::EntryPointParser;
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action0<
 >(
     (_, __0, _): (usize, ParseEntryPoint, usize),
@@ -18754,7 +18755,7 @@ fn __action0<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action1<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18763,7 +18764,7 @@ fn __action1<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action2<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18772,7 +18773,7 @@ fn __action2<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action3<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18781,7 +18782,7 @@ fn __action3<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action4<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18790,7 +18791,7 @@ fn __action4<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action5<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18799,7 +18800,7 @@ fn __action5<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action6<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18808,7 +18809,7 @@ fn __action6<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action7<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18817,7 +18818,7 @@ fn __action7<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action8<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18826,7 +18827,7 @@ fn __action8<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action9<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18835,7 +18836,7 @@ fn __action9<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action10<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18844,7 +18845,7 @@ fn __action10<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action11<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18853,7 +18854,7 @@ fn __action11<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action12<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18862,7 +18863,7 @@ fn __action12<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action13<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18871,7 +18872,7 @@ fn __action13<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action14<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18880,7 +18881,7 @@ fn __action14<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action15<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18889,7 +18890,7 @@ fn __action15<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action16<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18898,7 +18899,7 @@ fn __action16<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action17<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18907,7 +18908,7 @@ fn __action17<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action18<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18916,7 +18917,7 @@ fn __action18<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action19<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18925,7 +18926,7 @@ fn __action19<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action20<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18934,7 +18935,7 @@ fn __action20<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action21<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18943,7 +18944,7 @@ fn __action21<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action22<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18952,7 +18953,7 @@ fn __action22<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action23<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18961,7 +18962,7 @@ fn __action23<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action24<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18970,7 +18971,7 @@ fn __action24<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action25<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18979,7 +18980,7 @@ fn __action25<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action26<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18988,7 +18989,7 @@ fn __action26<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action27<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -18997,7 +18998,7 @@ fn __action27<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action28<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19006,7 +19007,7 @@ fn __action28<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action29<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19015,7 +19016,7 @@ fn __action29<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action30<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19024,7 +19025,7 @@ fn __action30<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action31<
 >(
     (_, _, _): (usize, Token, usize),
@@ -19034,7 +19035,7 @@ fn __action31<
     ParseEntryPoint::TryTemplateList(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action32<
 >(
     (_, _, _): (usize, Token, usize),
@@ -19044,7 +19045,7 @@ fn __action32<
     ParseEntryPoint::TranslationUnit(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action33<
 >(
     (_, _, _): (usize, Token, usize),
@@ -19054,7 +19055,7 @@ fn __action33<
     ParseEntryPoint::GlobalDecl(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action34<
 >(
     (_, _, _): (usize, Token, usize),
@@ -19064,7 +19065,7 @@ fn __action34<
     ParseEntryPoint::Literal(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action35<
 >(
     (_, _, _): (usize, Token, usize),
@@ -19074,7 +19075,7 @@ fn __action35<
     ParseEntryPoint::GlobalDirective(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action36<
 >(
     (_, _, _): (usize, Token, usize),
@@ -19084,7 +19085,7 @@ fn __action36<
     ParseEntryPoint::Expression(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action37<
 >(
     (_, _, _): (usize, Token, usize),
@@ -19094,7 +19095,7 @@ fn __action37<
     ParseEntryPoint::Statement(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action38<
 >(
     (_, _, _): (usize, Token, usize),
@@ -19104,7 +19105,7 @@ fn __action38<
     ParseEntryPoint::ImportStatement(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action39<
 >(
     (_, l, _): (usize, usize, usize),
@@ -19117,7 +19118,7 @@ fn __action39<
     Span::new(l..r)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action40<
 >(
     (_, imports, _): (usize, alloc::vec::Vec<ImportStatement>, usize),
@@ -19130,7 +19131,7 @@ fn __action40<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action41<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19139,7 +19140,7 @@ fn __action41<
     GlobalDeclaration::Void
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action42<
 >(
     (_, __0, _): (usize, Declaration, usize),
@@ -19149,7 +19150,7 @@ fn __action42<
     GlobalDeclaration::Declaration(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action43<
 >(
     (_, __0, _): (usize, TypeAlias, usize),
@@ -19159,7 +19160,7 @@ fn __action43<
     GlobalDeclaration::TypeAlias(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action44<
 >(
     (_, __0, _): (usize, Struct, usize),
@@ -19168,7 +19169,7 @@ fn __action44<
     GlobalDeclaration::Struct(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action45<
 >(
     (_, __0, _): (usize, Function, usize),
@@ -19177,7 +19178,7 @@ fn __action45<
     GlobalDeclaration::Function(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action46<
 >(
     (_, __0, _): (usize, ConstAssertStatement, usize),
@@ -19187,7 +19188,7 @@ fn __action46<
     GlobalDeclaration::ConstAssert(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action47<
 >(
     (_, __0, _): (usize, CompoundGlobalDeclaration, usize),
@@ -19196,7 +19197,7 @@ fn __action47<
     GlobalDeclaration::Compound(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action48<
 >(
     (_, __0, _): (usize, Spanned<GlobalDeclaration>, usize),
@@ -19205,7 +19206,7 @@ fn __action48<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action49<
 >(
     (_, __0, _): (usize, String, usize),
@@ -19214,7 +19215,7 @@ fn __action49<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action50<
 >(
     (_, first, _): (usize, String, usize),
@@ -19225,7 +19226,7 @@ fn __action50<
     format!("{first}.{last}")
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action51<
 >(
     (_, __0, _): (usize, i64, usize),
@@ -19234,7 +19235,7 @@ fn __action51<
     LiteralExpression::AbstractInt(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action52<
 >(
     (_, __0, _): (usize, f64, usize),
@@ -19243,7 +19244,7 @@ fn __action52<
     LiteralExpression::AbstractFloat(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action53<
 >(
     (_, __0, _): (usize, i32, usize),
@@ -19252,7 +19253,7 @@ fn __action53<
     LiteralExpression::I32(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action54<
 >(
     (_, __0, _): (usize, u32, usize),
@@ -19261,7 +19262,7 @@ fn __action54<
     LiteralExpression::U32(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action55<
 >(
     (_, __0, _): (usize, f32, usize),
@@ -19270,7 +19271,7 @@ fn __action55<
     LiteralExpression::F32(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action56<
 >(
     (_, __0, _): (usize, f32, usize),
@@ -19279,7 +19280,7 @@ fn __action56<
     LiteralExpression::F16(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action57<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19288,7 +19289,7 @@ fn __action57<
     LiteralExpression::Bool(true)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action58<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19297,7 +19298,7 @@ fn __action58<
     LiteralExpression::Bool(false)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action59<
 >(
     (_, _l, _): (usize, usize, usize),
@@ -19317,7 +19318,7 @@ fn __action59<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action60<
 >(
     (_, _l, _): (usize, usize, usize),
@@ -19337,7 +19338,7 @@ fn __action60<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action61<
 >(
     (_, _l, _): (usize, usize, usize),
@@ -19357,7 +19358,7 @@ fn __action61<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action62<
 >(
     (_, __0, _): (usize, String, usize),
@@ -19366,7 +19367,7 @@ fn __action62<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action63<
 >(
     (_, l, _): (usize, usize, usize),
@@ -19379,7 +19380,7 @@ fn __action63<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action64<
 >(
     (_, __0, _): (usize, String, usize),
@@ -19388,7 +19389,7 @@ fn __action64<
     Ident::new(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action65<
 >(
     (_, __0, _): (usize, Ident, usize),
@@ -19397,7 +19398,7 @@ fn __action65<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action66<
 >(
     (_, __0, _): (usize, String, usize),
@@ -19406,7 +19407,7 @@ fn __action66<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action67<
 >(
     (_, l, _): (usize, usize, usize),
@@ -19420,7 +19421,7 @@ fn __action67<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action68<
 >(
     (_, __0, _): (usize, String, usize),
@@ -19429,7 +19430,7 @@ fn __action68<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action69<
 >(
     (_, __0, _): (usize, String, usize),
@@ -19438,7 +19439,7 @@ fn __action69<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action70<
 >(
     (_, __0, _): (usize, String, usize),
@@ -19447,7 +19448,7 @@ fn __action70<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action71<
 >(
     (_, __0, _): (usize, String, usize),
@@ -19456,7 +19457,7 @@ fn __action71<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action72<
 >(
     (_, _, _): (usize, Token, usize),
@@ -19467,7 +19468,7 @@ fn __action72<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action73<
 >(
     (_, __0, _): (usize, Vec<TemplateArg>, usize),
@@ -19476,7 +19477,7 @@ fn __action73<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action74<
 >(
     (_, __0, _): (usize, ExpressionNode, usize),
@@ -19485,7 +19486,7 @@ fn __action74<
     TemplateArg { expression: __0 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action75<
 >(
     (_, __0, _): (usize, (Token, Span), usize),
@@ -19499,7 +19500,7 @@ fn __action75<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action76<
 >(
     (_, __0, _): (usize, DiagnosticDirective, usize),
@@ -19508,7 +19509,7 @@ fn __action76<
     GlobalDirective::Diagnostic(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action77<
 >(
     (_, __0, _): (usize, EnableDirective, usize),
@@ -19517,7 +19518,7 @@ fn __action77<
     GlobalDirective::Enable(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action78<
 >(
     (_, __0, _): (usize, RequiresDirective, usize),
@@ -19526,7 +19527,7 @@ fn __action78<
     GlobalDirective::Requires(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action79<
 >(
     (_, __0, _): (usize, Vec<AttributeNode>, usize),
@@ -19541,7 +19542,7 @@ fn __action79<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action80<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -19555,7 +19556,7 @@ fn __action80<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action81<
 >(
     (_, __0, _): (usize, Vec<String>, usize),
@@ -19564,7 +19565,7 @@ fn __action81<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action82<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -19578,7 +19579,7 @@ fn __action82<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action83<
 >(
     (_, __0, _): (usize, Vec<String>, usize),
@@ -19587,7 +19588,7 @@ fn __action83<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action84<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -19602,7 +19603,7 @@ fn __action84<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action85<
 >(
     (_, _, _): (usize, Token, usize),
@@ -19613,7 +19614,7 @@ fn __action85<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action86<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -19627,7 +19628,7 @@ fn __action86<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action87<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -19643,7 +19644,7 @@ fn __action87<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action88<
 >(
     (_, __0, _): (usize, TypeExpression, usize),
@@ -19652,7 +19653,7 @@ fn __action88<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action89<
 >(
     (_, path, _): (usize, Option<ModulePath>, usize),
@@ -19665,7 +19666,7 @@ fn __action89<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action90<
 >(
     (_, l, _): (usize, usize, usize),
@@ -19680,7 +19681,7 @@ fn __action90<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action91<
 >(
     (_, l, _): (usize, usize, usize),
@@ -19695,7 +19696,7 @@ fn __action91<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action92<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -19718,7 +19719,7 @@ fn __action92<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action93<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19727,7 +19728,7 @@ fn __action93<
     DeclarationKind::Const
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action94<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19736,7 +19737,7 @@ fn __action94<
     DeclarationKind::Override
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action95<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19745,7 +19746,7 @@ fn __action95<
     DeclarationKind::Let
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action96<
 >(
     (_, l, _): (usize, usize, usize),
@@ -19761,7 +19762,7 @@ fn __action96<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action97<
 >(
     (_, __0, _): (usize, TypeExpression, usize),
@@ -19770,7 +19771,7 @@ fn __action97<
     Expression::TypeOrIdentifier(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action98<
 >(
     (_, __0, _): (usize, LiteralExpression, usize),
@@ -19779,7 +19780,7 @@ fn __action98<
     Expression::Literal(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action99<
 >(
     (_, __0, _): (usize, FunctionCall, usize),
@@ -19788,7 +19789,7 @@ fn __action99<
     Expression::FunctionCall(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action100<
 >(
     (_, ty, _): (usize, TypeExpression, usize),
@@ -19802,7 +19803,7 @@ fn __action100<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action101<
 >(
     (_, _, _): (usize, Token, usize),
@@ -19813,7 +19814,7 @@ fn __action101<
     __0.unwrap_or_default()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action102<
 >(
     (_, __0, _): (usize, Vec<ExpressionNode>, usize),
@@ -19822,7 +19823,7 @@ fn __action102<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action103<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19831,7 +19832,7 @@ fn __action103<
     UnaryOperator::Negation
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action104<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19840,7 +19841,7 @@ fn __action104<
     UnaryOperator::LogicalNegation
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action105<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19849,7 +19850,7 @@ fn __action105<
     UnaryOperator::BitwiseComplement
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action106<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19858,7 +19859,7 @@ fn __action106<
     UnaryOperator::Indirection
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action107<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19867,7 +19868,7 @@ fn __action107<
     UnaryOperator::AddressOf
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action108<
 >(
     (_, __0, _): (usize, TypeExpression, usize),
@@ -19876,7 +19877,7 @@ fn __action108<
     Expression::TypeOrIdentifier(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action109<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -19885,7 +19886,7 @@ fn __action109<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action110<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -19894,7 +19895,7 @@ fn __action110<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action111<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -19903,7 +19904,7 @@ fn __action111<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action112<
 >(
     (_, _, _): (usize, Token, usize),
@@ -19915,7 +19916,7 @@ fn __action112<
     })
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action113<
 >(
     (_, _, _): (usize, Token, usize),
@@ -19927,7 +19928,7 @@ fn __action113<
     })
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action114<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -19936,7 +19937,7 @@ fn __action114<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action115<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -19945,7 +19946,7 @@ fn __action115<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action116<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -19954,7 +19955,7 @@ fn __action116<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action117<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -19963,7 +19964,7 @@ fn __action117<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action118<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -19972,7 +19973,7 @@ fn __action118<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action119<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -19981,7 +19982,7 @@ fn __action119<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action120<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19990,7 +19991,7 @@ fn __action120<
     BinaryOperator::Multiplication
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action121<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -19999,7 +20000,7 @@ fn __action121<
     BinaryOperator::Division
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action122<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20008,7 +20009,7 @@ fn __action122<
     BinaryOperator::Remainder
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action123<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20017,7 +20018,7 @@ fn __action123<
     BinaryOperator::Addition
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action124<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20026,7 +20027,7 @@ fn __action124<
     BinaryOperator::Subtraction
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action125<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20035,7 +20036,7 @@ fn __action125<
     BinaryOperator::ShiftLeft
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action126<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20044,7 +20045,7 @@ fn __action126<
     BinaryOperator::ShiftRight
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action127<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20053,7 +20054,7 @@ fn __action127<
     BinaryOperator::LessThan
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action128<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20062,7 +20063,7 @@ fn __action128<
     BinaryOperator::GreaterThan
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action129<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20071,7 +20072,7 @@ fn __action129<
     BinaryOperator::LessThanEqual
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action130<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20080,7 +20081,7 @@ fn __action130<
     BinaryOperator::GreaterThanEqual
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action131<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20089,7 +20090,7 @@ fn __action131<
     BinaryOperator::Equality
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action132<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20098,7 +20099,7 @@ fn __action132<
     BinaryOperator::Inequality
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action133<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20107,7 +20108,7 @@ fn __action133<
     BinaryOperator::ShortCircuitAnd
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action134<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20116,7 +20117,7 @@ fn __action134<
     BinaryOperator::ShortCircuitOr
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action135<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20125,7 +20126,7 @@ fn __action135<
     BinaryOperator::BitwiseOr
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action136<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20134,7 +20135,7 @@ fn __action136<
     BinaryOperator::BitwiseAnd
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action137<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20143,7 +20144,7 @@ fn __action137<
     BinaryOperator::BitwiseXor
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action138<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20152,7 +20153,7 @@ fn __action138<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action139<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20161,7 +20162,7 @@ fn __action139<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action140<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20170,7 +20171,7 @@ fn __action140<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action141<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20179,7 +20180,7 @@ fn __action141<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action142<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20188,7 +20189,7 @@ fn __action142<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action143<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20197,7 +20198,7 @@ fn __action143<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action144<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20206,7 +20207,7 @@ fn __action144<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action145<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20215,7 +20216,7 @@ fn __action145<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action146<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20224,7 +20225,7 @@ fn __action146<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action147<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20233,7 +20234,7 @@ fn __action147<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action148<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20242,7 +20243,7 @@ fn __action148<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action149<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20251,7 +20252,7 @@ fn __action149<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action150<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20260,7 +20261,7 @@ fn __action150<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action151<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20269,7 +20270,7 @@ fn __action151<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action152<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20278,7 +20279,7 @@ fn __action152<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action153<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20287,7 +20288,7 @@ fn __action153<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action154<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20296,7 +20297,7 @@ fn __action154<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action155<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20305,7 +20306,7 @@ fn __action155<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action156<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -20314,7 +20315,7 @@ fn __action156<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action157<
 >(
     (_, __0, _): (usize, Spanned<Expression>, usize),
@@ -20323,7 +20324,7 @@ fn __action157<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action158<
 >(
     (_, __0, _): (usize, Spanned<Expression>, usize),
@@ -20332,7 +20333,7 @@ fn __action158<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action159<
 >(
     (_, __0, _): (usize, Spanned<Expression>, usize),
@@ -20341,7 +20342,7 @@ fn __action159<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action160<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20355,7 +20356,7 @@ fn __action160<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action161<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20369,7 +20370,7 @@ fn __action161<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action162<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20383,7 +20384,7 @@ fn __action162<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action163<
 >(
     (_, lhs, _): (usize, Spanned<Expression>, usize),
@@ -20396,7 +20397,7 @@ fn __action163<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action164<
 >(
     (_, lhs, _): (usize, Spanned<Expression>, usize),
@@ -20409,7 +20410,7 @@ fn __action164<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action165<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20428,7 +20429,7 @@ fn __action165<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action166<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20437,7 +20438,7 @@ fn __action166<
     AssignmentOperator::PlusEqual
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action167<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20446,7 +20447,7 @@ fn __action167<
     AssignmentOperator::MinusEqual
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action168<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20455,7 +20456,7 @@ fn __action168<
     AssignmentOperator::TimesEqual
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action169<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20464,7 +20465,7 @@ fn __action169<
     AssignmentOperator::DivisionEqual
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action170<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20473,7 +20474,7 @@ fn __action170<
     AssignmentOperator::ModuloEqual
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action171<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20482,7 +20483,7 @@ fn __action171<
     AssignmentOperator::AndEqual
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action172<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20491,7 +20492,7 @@ fn __action172<
     AssignmentOperator::OrEqual
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action173<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20500,7 +20501,7 @@ fn __action173<
     AssignmentOperator::XorEqual
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action174<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20509,7 +20510,7 @@ fn __action174<
     AssignmentOperator::ShiftRightAssign
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action175<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20518,7 +20519,7 @@ fn __action175<
     AssignmentOperator::ShiftLeftAssign
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action176<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20531,7 +20532,7 @@ fn __action176<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action177<
 >(
     (_, expression, _): (usize, Spanned<Expression>, usize),
@@ -20543,7 +20544,7 @@ fn __action177<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action178<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20556,7 +20557,7 @@ fn __action178<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action179<
 >(
     (_, expression, _): (usize, Spanned<Expression>, usize),
@@ -20568,7 +20569,7 @@ fn __action179<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action180<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20582,7 +20583,7 @@ fn __action180<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action181<
 >(
     (_, _, _): (usize, Token, usize),
@@ -20595,7 +20596,7 @@ fn __action181<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action182<
 >(
     (_, _, _): (usize, Token, usize),
@@ -20609,7 +20610,7 @@ fn __action182<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action183<
 >(
     (_, _, _): (usize, Token, usize),
@@ -20621,7 +20622,7 @@ fn __action183<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action184<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20638,7 +20639,7 @@ fn __action184<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action185<
 >(
     (_, __0, _): (usize, Vec<AttributeNode>, usize),
@@ -20650,7 +20651,7 @@ fn __action185<
     (__0, __1)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action186<
 >(
     (_, __0, _): (usize, SwitchClause, usize),
@@ -20659,7 +20660,7 @@ fn __action186<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action187<
 >(
     (_, __0, _): (usize, SwitchClause, usize),
@@ -20668,7 +20669,7 @@ fn __action187<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action188<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20683,7 +20684,7 @@ fn __action188<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action189<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20697,7 +20698,7 @@ fn __action189<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action190<
 >(
     (_, __0, _): (usize, Vec<CaseSelector>, usize),
@@ -20706,7 +20707,7 @@ fn __action190<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action191<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20715,7 +20716,7 @@ fn __action191<
     CaseSelector::Default
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action192<
 >(
     (_, __0, _): (usize, ExpressionNode, usize),
@@ -20724,7 +20725,7 @@ fn __action192<
     CaseSelector::Expression(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action193<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20744,7 +20745,7 @@ fn __action193<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action194<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20763,7 +20764,7 @@ fn __action194<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action195<
 >(
     (_, __0, _): (usize, Option<StatementNode>, usize),
@@ -20776,7 +20777,7 @@ fn __action195<
     (__0, __1, __2)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action196<
 >(
     (_, statement, _): (usize, (Declaration, Span), usize),
@@ -20788,7 +20789,7 @@ fn __action196<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action197<
 >(
     (_, statement, _): (usize, (Statement, Span), usize),
@@ -20800,7 +20801,7 @@ fn __action197<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action198<
 >(
     (_, statement, _): (usize, (FunctionCallStatement, Span), usize),
@@ -20812,7 +20813,7 @@ fn __action198<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action199<
 >(
     (_, statement, _): (usize, (Statement, Span), usize),
@@ -20824,7 +20825,7 @@ fn __action199<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action200<
 >(
     (_, statement, _): (usize, (FunctionCallStatement, Span), usize),
@@ -20836,7 +20837,7 @@ fn __action200<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action201<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20850,7 +20851,7 @@ fn __action201<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action202<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20862,7 +20863,7 @@ fn __action202<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action203<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20877,7 +20878,7 @@ fn __action203<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action204<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20889,7 +20890,7 @@ fn __action204<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action205<
 >(
     (_, __0, _): (usize, Vec<AttributeNode>, usize),
@@ -20904,7 +20905,7 @@ fn __action205<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action206<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20920,7 +20921,7 @@ fn __action206<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action207<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20933,7 +20934,7 @@ fn __action207<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action208<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20945,7 +20946,7 @@ fn __action208<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action209<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20957,7 +20958,7 @@ fn __action209<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action210<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -20970,7 +20971,7 @@ fn __action210<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action211<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -20979,7 +20980,7 @@ fn __action211<
     Statement::Void
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action212<
 >(
     (_, __0, _): (usize, ReturnStatement, usize),
@@ -20989,7 +20990,7 @@ fn __action212<
     Statement::Return(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action213<
 >(
     (_, __0, _): (usize, IfStatement, usize),
@@ -20998,7 +20999,7 @@ fn __action213<
     Statement::If(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action214<
 >(
     (_, __0, _): (usize, SwitchStatement, usize),
@@ -21007,7 +21008,7 @@ fn __action214<
     Statement::Switch(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action215<
 >(
     (_, __0, _): (usize, LoopStatement, usize),
@@ -21016,7 +21017,7 @@ fn __action215<
     Statement::Loop(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action216<
 >(
     (_, __0, _): (usize, ForStatement, usize),
@@ -21025,7 +21026,7 @@ fn __action216<
     Statement::For(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action217<
 >(
     (_, __0, _): (usize, WhileStatement, usize),
@@ -21034,7 +21035,7 @@ fn __action217<
     Statement::While(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action218<
 >(
     (_, __0, _): (usize, FunctionCallStatement, usize),
@@ -21044,7 +21045,7 @@ fn __action218<
     Statement::FunctionCall(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action219<
 >(
     (_, __0, _): (usize, Declaration, usize),
@@ -21054,7 +21055,7 @@ fn __action219<
     Statement::Declaration(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action220<
 >(
     (_, __0, _): (usize, BreakStatement, usize),
@@ -21064,7 +21065,7 @@ fn __action220<
     Statement::Break(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action221<
 >(
     (_, __0, _): (usize, ContinueStatement, usize),
@@ -21074,7 +21075,7 @@ fn __action221<
     Statement::Continue(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action222<
 >(
     (_, __0, _): (usize, DiscardStatement, usize),
@@ -21084,7 +21085,7 @@ fn __action222<
     Statement::Discard(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action223<
 >(
     (_, __0, _): (usize, Statement, usize),
@@ -21094,7 +21095,7 @@ fn __action223<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action224<
 >(
     (_, __0, _): (usize, CompoundStatement, usize),
@@ -21103,7 +21104,7 @@ fn __action224<
     Statement::Compound(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action225<
 >(
     (_, __0, _): (usize, ConstAssertStatement, usize),
@@ -21113,7 +21114,7 @@ fn __action225<
     Statement::ConstAssert(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action226<
 >(
     (_, __0, _): (usize, Spanned<Statement>, usize),
@@ -21122,7 +21123,7 @@ fn __action226<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action227<
 >(
     (_, __0, _): (usize, AssignmentStatement, usize),
@@ -21131,7 +21132,7 @@ fn __action227<
     Statement::Assignment(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action228<
 >(
     (_, __0, _): (usize, IncrementStatement, usize),
@@ -21140,7 +21141,7 @@ fn __action228<
     Statement::Increment(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action229<
 >(
     (_, __0, _): (usize, DecrementStatement, usize),
@@ -21149,7 +21150,7 @@ fn __action229<
     Statement::Decrement(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action230<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -21164,7 +21165,7 @@ fn __action230<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action231<
 >(
     (_, _, _): (usize, Token, usize),
@@ -21184,7 +21185,7 @@ fn __action231<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action232<
 >(
     (_, __0, _): (usize, Vec<FormalParameter>, usize),
@@ -21193,7 +21194,7 @@ fn __action232<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action233<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -21207,7 +21208,7 @@ fn __action233<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action234<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -21221,7 +21222,7 @@ fn __action234<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action235<
 >(
     (_, l, _): (usize, usize, usize),
@@ -21237,7 +21238,7 @@ fn __action235<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action236<
 >(
     (_, l, _): (usize, usize, usize),
@@ -21253,7 +21254,7 @@ fn __action236<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action237<
 >(
     (_, l, _): (usize, usize, usize),
@@ -21269,7 +21270,7 @@ fn __action237<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action238<
 >(
     (_, __0, _): (usize, alloc::vec::Vec<Spanned<Attribute>>, usize),
@@ -21278,7 +21279,7 @@ fn __action238<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action239<
 >(
     (_, _, _): (usize, Token, usize),
@@ -21292,7 +21293,7 @@ fn __action239<
     (__0, __1)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action240<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21301,7 +21302,7 @@ fn __action240<
     Visibility::Public
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action241<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21310,7 +21311,7 @@ fn __action241<
     Visibility::Private
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action242<
 >(
     (_, __0, _): (usize, String, usize),
@@ -21319,7 +21320,7 @@ fn __action242<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action243<
 >(
     (_, __0, _): (usize, String, usize),
@@ -21328,7 +21329,7 @@ fn __action243<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action244<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21337,7 +21338,7 @@ fn __action244<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action245<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21346,7 +21347,7 @@ fn __action245<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action246<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21355,7 +21356,7 @@ fn __action246<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action247<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21364,7 +21365,7 @@ fn __action247<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action248<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21373,7 +21374,7 @@ fn __action248<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action249<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21382,7 +21383,7 @@ fn __action249<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action250<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21391,7 +21392,7 @@ fn __action250<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action251<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21400,7 +21401,7 @@ fn __action251<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action252<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21409,7 +21410,7 @@ fn __action252<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action253<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21418,7 +21419,7 @@ fn __action253<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action254<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21427,7 +21428,7 @@ fn __action254<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action255<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21436,7 +21437,7 @@ fn __action255<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action256<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21445,7 +21446,7 @@ fn __action256<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action257<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21454,7 +21455,7 @@ fn __action257<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action258<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21463,7 +21464,7 @@ fn __action258<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action259<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21472,7 +21473,7 @@ fn __action259<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action260<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21481,7 +21482,7 @@ fn __action260<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action261<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21490,7 +21491,7 @@ fn __action261<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action262<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21499,7 +21500,7 @@ fn __action262<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action263<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21508,7 +21509,7 @@ fn __action263<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action264<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21517,7 +21518,7 @@ fn __action264<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action265<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21526,7 +21527,7 @@ fn __action265<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action266<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21535,7 +21536,7 @@ fn __action266<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action267<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21544,7 +21545,7 @@ fn __action267<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action268<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21553,7 +21554,7 @@ fn __action268<
     __0.to_string()
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action269<
 >(
     (_, attributes, _): (usize, Vec<AttributeNode>, usize),
@@ -21569,7 +21570,7 @@ fn __action269<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action270<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21581,7 +21582,7 @@ fn __action270<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action271<
 >(
     (_, _, _): (usize, Token, usize),
@@ -21595,7 +21596,7 @@ fn __action271<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action272<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21607,7 +21608,7 @@ fn __action272<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action273<
 >(
     (_, name, _): (usize, String, usize),
@@ -21619,7 +21620,7 @@ fn __action273<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action274<
 >(
     (_, origin, _): (usize, PathOrigin, usize),
@@ -21631,7 +21632,7 @@ fn __action274<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action275<
 >(
     (_, path, _): (usize, alloc::vec::Vec<String>, usize),
@@ -21643,7 +21644,7 @@ fn __action275<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action276<
 >(
     (_, path, _): (usize, alloc::vec::Vec<String>, usize),
@@ -21655,7 +21656,7 @@ fn __action276<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action277<
 >(
     (_, __0, _): (usize, ImportItem, usize),
@@ -21664,7 +21665,7 @@ fn __action277<
     ImportContent::Item(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action278<
 >(
     (_, __0, _): (usize, Vec<Import>, usize),
@@ -21673,7 +21674,7 @@ fn __action278<
     ImportContent::Collection(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action279<
 >(
     (_, ident, _): (usize, String, usize),
@@ -21685,7 +21686,7 @@ fn __action279<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action280<
 >(
     (_, _, _): (usize, Token, usize),
@@ -21696,7 +21697,7 @@ fn __action280<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action281<
 >(
     (_, __0, _): (usize, Vec<Import>, usize),
@@ -21705,7 +21706,7 @@ fn __action281<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action282<
 >(
     (_, __0, _): (usize, String, usize),
@@ -21714,7 +21715,7 @@ fn __action282<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action283<
 >(
     __lookbehind: &usize,
@@ -21724,7 +21725,7 @@ fn __action283<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action284<
 >(
     (_, _, _): (usize, Token, usize),
@@ -21734,7 +21735,7 @@ fn __action284<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action285<
 >(
     (_, __0, _): (usize, String, usize),
@@ -21743,7 +21744,7 @@ fn __action285<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action286<
 >(
     (_, v, _): (usize, alloc::vec::Vec<String>, usize),
@@ -21753,7 +21754,7 @@ fn __action286<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action287<
 >(
     __lookbehind: &usize,
@@ -21763,7 +21764,7 @@ fn __action287<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action288<
 >(
     (_, v, _): (usize, alloc::vec::Vec<String>, usize),
@@ -21772,7 +21773,7 @@ fn __action288<
     v
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action289<
 >(
     (_, __0, _): (usize, String, usize),
@@ -21782,7 +21783,7 @@ fn __action289<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action290<
 >(
     __lookbehind: &usize,
@@ -21792,7 +21793,7 @@ fn __action290<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action291<
 >(
     (_, v, _): (usize, alloc::vec::Vec<(Token, Token)>, usize),
@@ -21801,7 +21802,7 @@ fn __action291<
     v
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action292<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21811,7 +21812,7 @@ fn __action292<
     (__0, __1)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action293<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -21820,7 +21821,7 @@ fn __action293<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action294<
 >(
     __lookbehind: &usize,
@@ -21830,7 +21831,7 @@ fn __action294<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action295<
 >(
     __lookbehind: &usize,
@@ -21840,7 +21841,7 @@ fn __action295<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action296<
 >(
     (_, v, _): (usize, alloc::vec::Vec<Spanned<Attribute>>, usize),
@@ -21849,7 +21850,7 @@ fn __action296<
     v
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action297<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -21864,7 +21865,7 @@ fn __action297<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action298<
 >(
     (_, __0, _): (usize, Vec<ExpressionNode>, usize),
@@ -21873,7 +21874,7 @@ fn __action298<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action299<
 >(
     __lookbehind: &usize,
@@ -21883,7 +21884,7 @@ fn __action299<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action300<
 >(
     (_, __0, _): (usize, Vec<FormalParameter>, usize),
@@ -21892,7 +21893,7 @@ fn __action300<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action301<
 >(
     (_, __0, _): (usize, (Vec<AttributeNode>, TypeExpression), usize),
@@ -21901,7 +21902,7 @@ fn __action301<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action302<
 >(
     __lookbehind: &usize,
@@ -21911,7 +21912,7 @@ fn __action302<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action303<
 >(
     (_, _, _): (usize, Token, usize),
@@ -21922,7 +21923,7 @@ fn __action303<
     (__0, __1)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action304<
 >(
     (_, __0, _): (usize, Vec<FormalParameter>, usize),
@@ -21931,7 +21932,7 @@ fn __action304<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action305<
 >(
     __lookbehind: &usize,
@@ -21941,7 +21942,7 @@ fn __action305<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action306<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -21956,7 +21957,7 @@ fn __action306<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action307<
 >(
     (_, __0, _): (usize, BreakIfStatement, usize),
@@ -21965,7 +21966,7 @@ fn __action307<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action308<
 >(
     __lookbehind: &usize,
@@ -21975,7 +21976,7 @@ fn __action308<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action309<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -21990,7 +21991,7 @@ fn __action309<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action310<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -22005,7 +22006,7 @@ fn __action310<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action311<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -22020,7 +22021,7 @@ fn __action311<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action312<
 >(
     (_, __0, _): (usize, StatementNode, usize),
@@ -22029,7 +22030,7 @@ fn __action312<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action313<
 >(
     __lookbehind: &usize,
@@ -22039,7 +22040,7 @@ fn __action313<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action314<
 >(
     (_, __0, _): (usize, ExpressionNode, usize),
@@ -22048,7 +22049,7 @@ fn __action314<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action315<
 >(
     __lookbehind: &usize,
@@ -22058,7 +22059,7 @@ fn __action315<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action316<
 >(
     (_, __0, _): (usize, StatementNode, usize),
@@ -22067,7 +22068,7 @@ fn __action316<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action317<
 >(
     __lookbehind: &usize,
@@ -22077,7 +22078,7 @@ fn __action317<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action318<
 >(
     (_, __0, _): (usize, ContinuingStatement, usize),
@@ -22086,7 +22087,7 @@ fn __action318<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action319<
 >(
     __lookbehind: &usize,
@@ -22096,7 +22097,7 @@ fn __action319<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action320<
 >(
     (_, __0, _): (usize, Vec<CaseSelector>, usize),
@@ -22105,7 +22106,7 @@ fn __action320<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action321<
 >(
     (_, __0, _): (usize, Token, usize),
@@ -22114,7 +22115,7 @@ fn __action321<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action322<
 >(
     __lookbehind: &usize,
@@ -22124,7 +22125,7 @@ fn __action322<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action323<
 >(
     (_, __0, _): (usize, SwitchClause, usize),
@@ -22133,7 +22134,7 @@ fn __action323<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action324<
 >(
     (_, v, _): (usize, alloc::vec::Vec<SwitchClause>, usize),
@@ -22143,7 +22144,7 @@ fn __action324<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action325<
 >(
     (_, __0, _): (usize, ElseClause, usize),
@@ -22152,7 +22153,7 @@ fn __action325<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action326<
 >(
     __lookbehind: &usize,
@@ -22162,7 +22163,7 @@ fn __action326<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action327<
 >(
     __lookbehind: &usize,
@@ -22172,7 +22173,7 @@ fn __action327<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action328<
 >(
     (_, v, _): (usize, alloc::vec::Vec<ElseIfClause>, usize),
@@ -22181,7 +22182,7 @@ fn __action328<
     v
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action329<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -22196,7 +22197,7 @@ fn __action329<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action330<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -22211,7 +22212,7 @@ fn __action330<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action331<
 >(
     __lookbehind: &usize,
@@ -22221,7 +22222,7 @@ fn __action331<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action332<
 >(
     (_, v, _): (usize, alloc::vec::Vec<StatementNode>, usize),
@@ -22230,7 +22231,7 @@ fn __action332<
     v
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action333<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -22245,7 +22246,7 @@ fn __action333<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action334<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -22260,7 +22261,7 @@ fn __action334<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action335<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -22275,7 +22276,7 @@ fn __action335<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action336<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -22284,7 +22285,7 @@ fn __action336<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action337<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -22293,7 +22294,7 @@ fn __action337<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action338<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -22302,7 +22303,7 @@ fn __action338<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action339<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -22311,7 +22312,7 @@ fn __action339<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action340<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -22320,7 +22321,7 @@ fn __action340<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action341<
 >(
     (_, left, _): (usize, Spanned<Expression>, usize),
@@ -22340,7 +22341,7 @@ fn __action341<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action342<
 >(
     (_, __0, _): (usize, Expression, usize),
@@ -22349,7 +22350,7 @@ fn __action342<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action343<
 >(
     (_, operator, _): (usize, UnaryOperator, usize),
@@ -22361,7 +22362,7 @@ fn __action343<
     })
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action344<
 >(
     (_, base, _): (usize, Spanned<Expression>, usize),
@@ -22375,7 +22376,7 @@ fn __action344<
     })
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action345<
 >(
     (_, base, _): (usize, Spanned<Expression>, usize),
@@ -22388,7 +22389,7 @@ fn __action345<
     })
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action346<
 >(
     (_, _, _): (usize, Token, usize),
@@ -22401,7 +22402,7 @@ fn __action346<
     })
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action347<
 >(
     (_, base, _): (usize, Spanned<Expression>, usize),
@@ -22415,7 +22416,7 @@ fn __action347<
     })
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action348<
 >(
     (_, base, _): (usize, Spanned<Expression>, usize),
@@ -22428,7 +22429,7 @@ fn __action348<
     })
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action349<
 >(
     (_, _, _): (usize, Token, usize),
@@ -22441,7 +22442,7 @@ fn __action349<
     })
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action350<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -22456,7 +22457,7 @@ fn __action350<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action351<
 >(
     (_, base, _): (usize, Spanned<Expression>, usize),
@@ -22470,7 +22471,7 @@ fn __action351<
     })
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action352<
 >(
     (_, base, _): (usize, Spanned<Expression>, usize),
@@ -22483,7 +22484,7 @@ fn __action352<
     })
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action353<
 >(
     (_, __0, _): (usize, Vec<ExpressionNode>, usize),
@@ -22492,7 +22493,7 @@ fn __action353<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action354<
 >(
     (_, __0, _): (usize, Vec<ExpressionNode>, usize),
@@ -22501,7 +22502,7 @@ fn __action354<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action355<
 >(
     __lookbehind: &usize,
@@ -22511,7 +22512,7 @@ fn __action355<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action356<
 >(
     (_, __0, _): (usize, ExpressionNode, usize),
@@ -22520,7 +22521,7 @@ fn __action356<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action357<
 >(
     __lookbehind: &usize,
@@ -22530,7 +22531,7 @@ fn __action357<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action358<
 >(
     (_, _, _): (usize, Token, usize),
@@ -22540,7 +22541,7 @@ fn __action358<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action359<
 >(
     (_, __0, _): (usize, TypeExpression, usize),
@@ -22549,7 +22550,7 @@ fn __action359<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action360<
 >(
     __lookbehind: &usize,
@@ -22559,7 +22560,7 @@ fn __action360<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action361<
 >(
     (_, _, _): (usize, Token, usize),
@@ -22569,7 +22570,7 @@ fn __action361<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action362<
 >(
     (_, __0, _): (usize, Vec<TemplateArg>, usize),
@@ -22578,7 +22579,7 @@ fn __action362<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action363<
 >(
     __lookbehind: &usize,
@@ -22588,7 +22589,7 @@ fn __action363<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action364<
 >(
     (_, __0, _): (usize, ModulePath, usize),
@@ -22597,7 +22598,7 @@ fn __action364<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action365<
 >(
     __lookbehind: &usize,
@@ -22607,7 +22608,7 @@ fn __action365<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action366<
 >(
     (_, __0, _): (usize, Vec<Spanned<StructMember>>, usize),
@@ -22616,7 +22617,7 @@ fn __action366<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action367<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -22631,7 +22632,7 @@ fn __action367<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action368<
 >(
     (_, __0, _): (usize, Visibility, usize),
@@ -22640,7 +22641,7 @@ fn __action368<
     Some(__0)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action369<
 >(
     __lookbehind: &usize,
@@ -22650,7 +22651,7 @@ fn __action369<
     None
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action370<
 >(
     (_, __0, _): (usize, Vec<String>, usize),
@@ -22659,7 +22660,7 @@ fn __action370<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action371<
 >(
     (_, __0, _): (usize, Vec<String>, usize),
@@ -22668,7 +22669,7 @@ fn __action371<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action372<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -22683,7 +22684,7 @@ fn __action372<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action373<
 >(
     (_, __0, _): (usize, Vec<TemplateArg>, usize),
@@ -22692,7 +22693,7 @@ fn __action373<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action374<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -22707,7 +22708,7 @@ fn __action374<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action375<
 >(
     __lookbehind: &usize,
@@ -22717,7 +22718,7 @@ fn __action375<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action376<
 >(
     (_, v, _): (usize, alloc::vec::Vec<GlobalDeclarationNode>, usize),
@@ -22726,7 +22727,7 @@ fn __action376<
     v
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action377<
 >(
     __lookbehind: &usize,
@@ -22736,7 +22737,7 @@ fn __action377<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action378<
 >(
     (_, v, _): (usize, alloc::vec::Vec<GlobalDirective>, usize),
@@ -22745,7 +22746,7 @@ fn __action378<
     v
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action379<
 >(
     __lookbehind: &usize,
@@ -22755,7 +22756,7 @@ fn __action379<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action380<
 >(
     (_, v, _): (usize, alloc::vec::Vec<ImportStatement>, usize),
@@ -22784,7 +22785,7 @@ fn __action382<
     *__lookahead
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action383<
 >(
     (_, __0, _): (usize, ImportStatement, usize),
@@ -22793,7 +22794,7 @@ fn __action383<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action384<
 >(
     (_, v, _): (usize, alloc::vec::Vec<ImportStatement>, usize),
@@ -22803,7 +22804,7 @@ fn __action384<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action385<
 >(
     (_, __0, _): (usize, GlobalDirective, usize),
@@ -22812,7 +22813,7 @@ fn __action385<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action386<
 >(
     (_, v, _): (usize, alloc::vec::Vec<GlobalDirective>, usize),
@@ -22822,7 +22823,7 @@ fn __action386<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action387<
 >(
     (_, __0, _): (usize, GlobalDeclarationNode, usize),
@@ -22831,7 +22832,7 @@ fn __action387<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action388<
 >(
     (_, v, _): (usize, alloc::vec::Vec<GlobalDeclarationNode>, usize),
@@ -22841,7 +22842,7 @@ fn __action388<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action389<
 >(
     (_, mut v, _): (usize, alloc::vec::Vec<TemplateArg>, usize),
@@ -22855,7 +22856,7 @@ fn __action389<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action390<
 >(
     (_, mut v, _): (usize, alloc::vec::Vec<String>, usize),
@@ -22869,7 +22870,7 @@ fn __action390<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action391<
 >(
     (_, mut v, _): (usize, alloc::vec::Vec<String>, usize),
@@ -22883,7 +22884,7 @@ fn __action391<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action392<
 >(
     (_, mut v, _): (usize, alloc::vec::Vec<Spanned<StructMember>>, usize),
@@ -22897,7 +22898,7 @@ fn __action392<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action393<
 >(
     (_, mut v, _): (usize, alloc::vec::Vec<ExpressionNode>, usize),
@@ -22911,7 +22912,7 @@ fn __action393<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action394<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -22926,7 +22927,7 @@ fn __action394<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action395<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -22941,7 +22942,7 @@ fn __action395<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action396<
 >(
     (_, left, _): (usize, Spanned<Expression>, usize),
@@ -22954,7 +22955,7 @@ fn __action396<
     })
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action397<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -22969,7 +22970,7 @@ fn __action397<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action398<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -22984,7 +22985,7 @@ fn __action398<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action399<
 >(
     (_, left, _): (usize, Spanned<Expression>, usize),
@@ -22997,7 +22998,7 @@ fn __action399<
     })
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action400<
 >(
     (_, left, _): (usize, Spanned<Expression>, usize),
@@ -23010,7 +23011,7 @@ fn __action400<
     })
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action401<
 >(
     (_, left, _): (usize, Spanned<Expression>, usize),
@@ -23023,7 +23024,7 @@ fn __action401<
     })
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action402<
 >(
     (_, l, _): (usize, usize, usize),
@@ -23038,7 +23039,7 @@ fn __action402<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action403<
 >(
     (_, l, _): (usize, usize, usize),
@@ -23053,7 +23054,7 @@ fn __action403<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action404<
 >(
     (_, __0, _): (usize, StatementNode, usize),
@@ -23062,7 +23063,7 @@ fn __action404<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action405<
 >(
     (_, v, _): (usize, alloc::vec::Vec<StatementNode>, usize),
@@ -23072,7 +23073,7 @@ fn __action405<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action406<
 >(
     (_, __0, _): (usize, ElseIfClause, usize),
@@ -23081,7 +23082,7 @@ fn __action406<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action407<
 >(
     (_, v, _): (usize, alloc::vec::Vec<ElseIfClause>, usize),
@@ -23091,7 +23092,7 @@ fn __action407<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action408<
 >(
     (_, mut v, _): (usize, alloc::vec::Vec<CaseSelector>, usize),
@@ -23105,7 +23106,7 @@ fn __action408<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action409<
 >(
     (_, mut v, _): (usize, alloc::vec::Vec<FormalParameter>, usize),
@@ -23119,7 +23120,7 @@ fn __action409<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action410<
 >(
     (_, __0, _): (usize, Spanned<Attribute>, usize),
@@ -23128,7 +23129,7 @@ fn __action410<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action411<
 >(
     (_, v, _): (usize, alloc::vec::Vec<Spanned<Attribute>>, usize),
@@ -23138,7 +23139,7 @@ fn __action411<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action412<
 >(
     (_, __0, _): (usize, (Token, Token), usize),
@@ -23147,7 +23148,7 @@ fn __action412<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action413<
 >(
     (_, v, _): (usize, alloc::vec::Vec<(Token, Token)>, usize),
@@ -23157,7 +23158,7 @@ fn __action413<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action414<
 >(
     (_, mut v, _): (usize, alloc::vec::Vec<Import>, usize),
@@ -23171,7 +23172,7 @@ fn __action414<
     }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action415<
 >(
     __lookbehind: &usize,
@@ -23181,7 +23182,7 @@ fn __action415<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action416<
 >(
     (_, v, _): (usize, alloc::vec::Vec<Import>, usize),
@@ -23190,7 +23191,7 @@ fn __action416<
     v
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action417<
 >(
     (_, __0, _): (usize, Import, usize),
@@ -23200,7 +23201,7 @@ fn __action417<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action418<
 >(
     __lookbehind: &usize,
@@ -23210,7 +23211,7 @@ fn __action418<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action419<
 >(
     (_, v, _): (usize, alloc::vec::Vec<FormalParameter>, usize),
@@ -23219,7 +23220,7 @@ fn __action419<
     v
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action420<
 >(
     (_, __0, _): (usize, FormalParameter, usize),
@@ -23229,7 +23230,7 @@ fn __action420<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action421<
 >(
     __lookbehind: &usize,
@@ -23239,7 +23240,7 @@ fn __action421<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action422<
 >(
     (_, v, _): (usize, alloc::vec::Vec<CaseSelector>, usize),
@@ -23248,7 +23249,7 @@ fn __action422<
     v
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action423<
 >(
     (_, __0, _): (usize, CaseSelector, usize),
@@ -23258,7 +23259,7 @@ fn __action423<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action424<
 >(
     (_, __0, _): (usize, (BinaryOperator, Spanned<Expression>), usize),
@@ -23267,7 +23268,7 @@ fn __action424<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action425<
 >(
     (_, v, _): (usize, alloc::vec::Vec<(BinaryOperator, Spanned<Expression>)>, usize),
@@ -23277,7 +23278,7 @@ fn __action425<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action426<
 >(
     (_, __0, _): (usize, BinaryOperator, usize),
@@ -23287,7 +23288,7 @@ fn __action426<
     (__0, __1)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action427<
 >(
     (_, __0, _): (usize, (BinaryOperator, Spanned<Expression>), usize),
@@ -23296,7 +23297,7 @@ fn __action427<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action428<
 >(
     (_, v, _): (usize, alloc::vec::Vec<(BinaryOperator, Spanned<Expression>)>, usize),
@@ -23306,7 +23307,7 @@ fn __action428<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action429<
 >(
     (_, __0, _): (usize, BinaryOperator, usize),
@@ -23316,7 +23317,7 @@ fn __action429<
     (__0, __1)
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action430<
 >(
     (_, __0, _): (usize, usize, usize),
@@ -23331,7 +23332,7 @@ fn __action430<
 }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action431<
 >(
     __lookbehind: &usize,
@@ -23341,7 +23342,7 @@ fn __action431<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action432<
 >(
     (_, v, _): (usize, alloc::vec::Vec<ExpressionNode>, usize),
@@ -23350,7 +23351,7 @@ fn __action432<
     v
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action433<
 >(
     (_, __0, _): (usize, ExpressionNode, usize),
@@ -23360,7 +23361,7 @@ fn __action433<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action434<
 >(
     __lookbehind: &usize,
@@ -23370,7 +23371,7 @@ fn __action434<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action435<
 >(
     (_, v, _): (usize, alloc::vec::Vec<Spanned<StructMember>>, usize),
@@ -23379,7 +23380,7 @@ fn __action435<
     v
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action436<
 >(
     (_, __0, _): (usize, Spanned<StructMember>, usize),
@@ -23389,7 +23390,7 @@ fn __action436<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action437<
 >(
     __lookbehind: &usize,
@@ -23399,7 +23400,7 @@ fn __action437<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action438<
 >(
     (_, v, _): (usize, alloc::vec::Vec<String>, usize),
@@ -23408,7 +23409,7 @@ fn __action438<
     v
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action439<
 >(
     (_, __0, _): (usize, String, usize),
@@ -23418,7 +23419,7 @@ fn __action439<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action440<
 >(
     __lookbehind: &usize,
@@ -23428,7 +23429,7 @@ fn __action440<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action441<
 >(
     (_, v, _): (usize, alloc::vec::Vec<String>, usize),
@@ -23437,7 +23438,7 @@ fn __action441<
     v
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action442<
 >(
     (_, __0, _): (usize, String, usize),
@@ -23447,7 +23448,7 @@ fn __action442<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action443<
 >(
     __lookbehind: &usize,
@@ -23457,7 +23458,7 @@ fn __action443<
     alloc::vec![]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action444<
 >(
     (_, v, _): (usize, alloc::vec::Vec<TemplateArg>, usize),
@@ -23466,7 +23467,7 @@ fn __action444<
     v
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action445<
 >(
     (_, __0, _): (usize, TemplateArg, usize),
@@ -23476,7 +23477,7 @@ fn __action445<
     __0
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action446<
 >(
     (_, __0, _): (usize, TemplateArg, usize),
@@ -23485,7 +23486,7 @@ fn __action446<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action447<
 >(
     (_, v, _): (usize, alloc::vec::Vec<TemplateArg>, usize),
@@ -23495,7 +23496,7 @@ fn __action447<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action448<
 >(
     (_, __0, _): (usize, String, usize),
@@ -23504,7 +23505,7 @@ fn __action448<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action449<
 >(
     (_, v, _): (usize, alloc::vec::Vec<String>, usize),
@@ -23514,7 +23515,7 @@ fn __action449<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action450<
 >(
     (_, __0, _): (usize, String, usize),
@@ -23523,7 +23524,7 @@ fn __action450<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action451<
 >(
     (_, v, _): (usize, alloc::vec::Vec<String>, usize),
@@ -23533,7 +23534,7 @@ fn __action451<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action452<
 >(
     (_, __0, _): (usize, Spanned<StructMember>, usize),
@@ -23542,7 +23543,7 @@ fn __action452<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action453<
 >(
     (_, v, _): (usize, alloc::vec::Vec<Spanned<StructMember>>, usize),
@@ -23552,7 +23553,7 @@ fn __action453<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action454<
 >(
     (_, __0, _): (usize, ExpressionNode, usize),
@@ -23561,7 +23562,7 @@ fn __action454<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action455<
 >(
     (_, v, _): (usize, alloc::vec::Vec<ExpressionNode>, usize),
@@ -23571,7 +23572,7 @@ fn __action455<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action456<
 >(
     (_, __0, _): (usize, CaseSelector, usize),
@@ -23580,7 +23581,7 @@ fn __action456<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action457<
 >(
     (_, v, _): (usize, alloc::vec::Vec<CaseSelector>, usize),
@@ -23590,7 +23591,7 @@ fn __action457<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action458<
 >(
     (_, __0, _): (usize, FormalParameter, usize),
@@ -23599,7 +23600,7 @@ fn __action458<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action459<
 >(
     (_, v, _): (usize, alloc::vec::Vec<FormalParameter>, usize),
@@ -23609,7 +23610,7 @@ fn __action459<
     { let mut v = v; v.push(e); v }
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action460<
 >(
     (_, __0, _): (usize, Import, usize),
@@ -23618,7 +23619,7 @@ fn __action460<
     alloc::vec![__0]
 }
 
-#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]
+#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits, clippy::extra_unused_type_parameters)]
 fn __action461<
 >(
     (_, v, _): (usize, alloc::vec::Vec<Import>, usize),
@@ -23629,7 +23630,7 @@ fn __action461<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action462<
 >(
     __0: (usize, Token, usize),
@@ -23640,8 +23641,8 @@ fn __action462<
     __5: (usize, Token, usize),
 ) -> (DiagnosticSeverity, String)
 {
-    let __start0 = __4.0;
-    let __end0 = __4.2;
+    let __start0 = __4.0.clone();
+    let __end0 = __4.2.clone();
     let __temp0 = __action293(
         __4,
     );
@@ -23657,7 +23658,7 @@ fn __action462<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action463<
 >(
     __0: (usize, Token, usize),
@@ -23667,8 +23668,8 @@ fn __action463<
     __4: (usize, Token, usize),
 ) -> (DiagnosticSeverity, String)
 {
-    let __start0 = __3.2;
-    let __end0 = __4.0;
+    let __start0 = __3.2.clone();
+    let __end0 = __4.0.clone();
     let __temp0 = __action294(
         &__start0,
         &__end0,
@@ -23685,7 +23686,7 @@ fn __action463<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action464<
 >(
     __0: (usize, alloc::vec::Vec<CaseSelector>, usize),
@@ -23693,8 +23694,8 @@ fn __action464<
     __2: (usize, Token, usize),
 ) -> Vec<CaseSelector>
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action293(
         __2,
     );
@@ -23707,15 +23708,15 @@ fn __action464<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action465<
 >(
     __0: (usize, alloc::vec::Vec<CaseSelector>, usize),
     __1: (usize, CaseSelector, usize),
 ) -> Vec<CaseSelector>
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action294(
         &__start0,
         &__end0,
@@ -23729,7 +23730,7 @@ fn __action465<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action466<
 >(
     __0: (usize, alloc::vec::Vec<String>, usize),
@@ -23737,8 +23738,8 @@ fn __action466<
     __2: (usize, Token, usize),
 ) -> Vec<String>
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action293(
         __2,
     );
@@ -23751,15 +23752,15 @@ fn __action466<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action467<
 >(
     __0: (usize, alloc::vec::Vec<String>, usize),
     __1: (usize, String, usize),
 ) -> Vec<String>
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action294(
         &__start0,
         &__end0,
@@ -23773,7 +23774,7 @@ fn __action467<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action468<
 >(
     __0: (usize, alloc::vec::Vec<ExpressionNode>, usize),
@@ -23781,8 +23782,8 @@ fn __action468<
     __2: (usize, Token, usize),
 ) -> Vec<ExpressionNode>
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action293(
         __2,
     );
@@ -23795,15 +23796,15 @@ fn __action468<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action469<
 >(
     __0: (usize, alloc::vec::Vec<ExpressionNode>, usize),
     __1: (usize, ExpressionNode, usize),
 ) -> Vec<ExpressionNode>
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action294(
         &__start0,
         &__end0,
@@ -23817,7 +23818,7 @@ fn __action469<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action470<
 >(
     __0: (usize, alloc::vec::Vec<Import>, usize),
@@ -23825,8 +23826,8 @@ fn __action470<
     __2: (usize, Token, usize),
 ) -> Vec<Import>
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action293(
         __2,
     );
@@ -23839,15 +23840,15 @@ fn __action470<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action471<
 >(
     __0: (usize, alloc::vec::Vec<Import>, usize),
     __1: (usize, Import, usize),
 ) -> Vec<Import>
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action294(
         &__start0,
         &__end0,
@@ -23861,7 +23862,7 @@ fn __action471<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action472<
 >(
     __0: (usize, alloc::vec::Vec<FormalParameter>, usize),
@@ -23869,8 +23870,8 @@ fn __action472<
     __2: (usize, Token, usize),
 ) -> Vec<FormalParameter>
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action293(
         __2,
     );
@@ -23883,15 +23884,15 @@ fn __action472<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action473<
 >(
     __0: (usize, alloc::vec::Vec<FormalParameter>, usize),
     __1: (usize, FormalParameter, usize),
 ) -> Vec<FormalParameter>
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action294(
         &__start0,
         &__end0,
@@ -23905,7 +23906,7 @@ fn __action473<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action474<
 >(
     __0: (usize, alloc::vec::Vec<String>, usize),
@@ -23913,8 +23914,8 @@ fn __action474<
     __2: (usize, Token, usize),
 ) -> Vec<String>
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action293(
         __2,
     );
@@ -23927,15 +23928,15 @@ fn __action474<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action475<
 >(
     __0: (usize, alloc::vec::Vec<String>, usize),
     __1: (usize, String, usize),
 ) -> Vec<String>
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action294(
         &__start0,
         &__end0,
@@ -23949,7 +23950,7 @@ fn __action475<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action476<
 >(
     __0: (usize, alloc::vec::Vec<Spanned<StructMember>>, usize),
@@ -23957,8 +23958,8 @@ fn __action476<
     __2: (usize, Token, usize),
 ) -> Vec<Spanned<StructMember>>
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action293(
         __2,
     );
@@ -23971,15 +23972,15 @@ fn __action476<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action477<
 >(
     __0: (usize, alloc::vec::Vec<Spanned<StructMember>>, usize),
     __1: (usize, Spanned<StructMember>, usize),
 ) -> Vec<Spanned<StructMember>>
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action294(
         &__start0,
         &__end0,
@@ -23993,7 +23994,7 @@ fn __action477<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action478<
 >(
     __0: (usize, alloc::vec::Vec<TemplateArg>, usize),
@@ -24001,8 +24002,8 @@ fn __action478<
     __2: (usize, Token, usize),
 ) -> Vec<TemplateArg>
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action293(
         __2,
     );
@@ -24015,15 +24016,15 @@ fn __action478<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action479<
 >(
     __0: (usize, alloc::vec::Vec<TemplateArg>, usize),
     __1: (usize, TemplateArg, usize),
 ) -> Vec<TemplateArg>
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action294(
         &__start0,
         &__end0,
@@ -24037,7 +24038,7 @@ fn __action479<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action480<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -24047,8 +24048,8 @@ fn __action480<
     __4: (usize, CompoundStatement, usize),
 ) -> SwitchClause
 {
-    let __start0 = __3.0;
-    let __end0 = __3.2;
+    let __start0 = __3.0.clone();
+    let __end0 = __3.2.clone();
     let __temp0 = __action321(
         __3,
     );
@@ -24063,7 +24064,7 @@ fn __action480<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action481<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -24072,8 +24073,8 @@ fn __action481<
     __3: (usize, CompoundStatement, usize),
 ) -> SwitchClause
 {
-    let __start0 = __2.2;
-    let __end0 = __3.0;
+    let __start0 = __2.2.clone();
+    let __end0 = __3.0.clone();
     let __temp0 = __action322(
         &__start0,
         &__end0,
@@ -24089,7 +24090,7 @@ fn __action481<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action482<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -24098,8 +24099,8 @@ fn __action482<
     __3: (usize, CompoundStatement, usize),
 ) -> SwitchClause
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action321(
         __2,
     );
@@ -24113,7 +24114,7 @@ fn __action482<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action483<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -24121,8 +24122,8 @@ fn __action483<
     __2: (usize, CompoundStatement, usize),
 ) -> SwitchClause
 {
-    let __start0 = __1.2;
-    let __end0 = __2.0;
+    let __start0 = __1.2.clone();
+    let __end0 = __2.0.clone();
     let __temp0 = __action322(
         &__start0,
         &__end0,
@@ -24137,7 +24138,7 @@ fn __action483<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action484<
 >(
     __0: (usize, Token, usize),
@@ -24145,8 +24146,8 @@ fn __action484<
     __2: (usize, TypeExpression, usize),
 ) -> Option<(Vec<AttributeNode>, TypeExpression)>
 {
-    let __start0 = __0.0;
-    let __end0 = __2.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action303(
         __0,
         __1,
@@ -24159,7 +24160,7 @@ fn __action484<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action485<
 >(
     __0: (usize, Token, usize),
@@ -24172,8 +24173,8 @@ fn __action485<
     __7: (usize, TypeExpression, usize),
 ) -> (Ident, Vec<FormalParameter>, Vec<AttributeNode>, Option<TypeExpression>)
 {
-    let __start0 = __5.0;
-    let __end0 = __7.2;
+    let __start0 = __5.0.clone();
+    let __end0 = __7.2.clone();
     let __temp0 = __action484(
         __5,
         __6,
@@ -24191,7 +24192,7 @@ fn __action485<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action486<
 >(
     __0: (usize, Token, usize),
@@ -24201,8 +24202,8 @@ fn __action486<
     __4: (usize, Token, usize),
 ) -> (Ident, Vec<FormalParameter>, Vec<AttributeNode>, Option<TypeExpression>)
 {
-    let __start0 = __4.2;
-    let __end0 = __4.2;
+    let __start0 = __4.2.clone();
+    let __end0 = __4.2.clone();
     let __temp0 = __action302(
         &__start0,
         &__end0,
@@ -24219,15 +24220,15 @@ fn __action486<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action487<
 >(
     __0: (usize, Token, usize),
     __1: (usize, TypeExpression, usize),
 ) -> Option<TypeExpression>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action361(
         __0,
         __1,
@@ -24239,7 +24240,7 @@ fn __action487<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action488<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -24251,8 +24252,8 @@ fn __action488<
     __6: (usize, Option<ExpressionNode>, usize),
 ) -> Declaration
 {
-    let __start0 = __4.0;
-    let __end0 = __5.2;
+    let __start0 = __4.0.clone();
+    let __end0 = __5.2.clone();
     let __temp0 = __action487(
         __4,
         __5,
@@ -24269,7 +24270,7 @@ fn __action488<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action489<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -24279,8 +24280,8 @@ fn __action489<
     __4: (usize, Option<ExpressionNode>, usize),
 ) -> Declaration
 {
-    let __start0 = __3.2;
-    let __end0 = __4.0;
+    let __start0 = __3.2.clone();
+    let __end0 = __4.0.clone();
     let __temp0 = __action360(
         &__start0,
         &__end0,
@@ -24297,15 +24298,15 @@ fn __action489<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action490<
 >(
     __0: (usize, Token, usize),
     __1: (usize, ExpressionNode, usize),
 ) -> Option<ExpressionNode>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action358(
         __0,
         __1,
@@ -24317,7 +24318,7 @@ fn __action490<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action491<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -24330,8 +24331,8 @@ fn __action491<
     __7: (usize, ExpressionNode, usize),
 ) -> Declaration
 {
-    let __start0 = __6.0;
-    let __end0 = __7.2;
+    let __start0 = __6.0.clone();
+    let __end0 = __7.2.clone();
     let __temp0 = __action490(
         __6,
         __7,
@@ -24349,7 +24350,7 @@ fn __action491<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action492<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -24360,8 +24361,8 @@ fn __action492<
     __5: (usize, TypeExpression, usize),
 ) -> Declaration
 {
-    let __start0 = __5.2;
-    let __end0 = __5.2;
+    let __start0 = __5.2.clone();
+    let __end0 = __5.2.clone();
     let __temp0 = __action357(
         &__start0,
         &__end0,
@@ -24379,7 +24380,7 @@ fn __action492<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action493<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -24390,8 +24391,8 @@ fn __action493<
     __5: (usize, ExpressionNode, usize),
 ) -> Declaration
 {
-    let __start0 = __4.0;
-    let __end0 = __5.2;
+    let __start0 = __4.0.clone();
+    let __end0 = __5.2.clone();
     let __temp0 = __action490(
         __4,
         __5,
@@ -24407,7 +24408,7 @@ fn __action493<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action494<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -24416,8 +24417,8 @@ fn __action494<
     __3: (usize, Ident, usize),
 ) -> Declaration
 {
-    let __start0 = __3.2;
-    let __end0 = __3.2;
+    let __start0 = __3.2.clone();
+    let __end0 = __3.2.clone();
     let __temp0 = __action357(
         &__start0,
         &__end0,
@@ -24433,15 +24434,15 @@ fn __action494<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action495<
 >(
     __0: (usize, Token, usize),
     __1: (usize, String, usize),
 ) -> Option<String>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action284(
         __0,
         __1,
@@ -24453,7 +24454,7 @@ fn __action495<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action496<
 >(
     __0: (usize, String, usize),
@@ -24461,8 +24462,8 @@ fn __action496<
     __2: (usize, String, usize),
 ) -> ImportItem
 {
-    let __start0 = __1.0;
-    let __end0 = __2.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action495(
         __1,
         __2,
@@ -24475,14 +24476,14 @@ fn __action496<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action497<
 >(
     __0: (usize, String, usize),
 ) -> ImportItem
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action283(
         &__start0,
         &__end0,
@@ -24495,15 +24496,15 @@ fn __action497<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action498<
 >(
     __0: (usize, Token, usize),
     __1: (usize, Token, usize),
 ) -> alloc::vec::Vec<(Token, Token)>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action292(
         __0,
         __1,
@@ -24515,7 +24516,7 @@ fn __action498<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action499<
 >(
     __0: (usize, alloc::vec::Vec<(Token, Token)>, usize),
@@ -24523,8 +24524,8 @@ fn __action499<
     __2: (usize, Token, usize),
 ) -> alloc::vec::Vec<(Token, Token)>
 {
-    let __start0 = __1.0;
-    let __end0 = __2.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action292(
         __1,
         __2,
@@ -24537,15 +24538,15 @@ fn __action499<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action500<
 >(
     __0: (usize, Token, usize),
     __1: (usize, Token, usize),
 ) -> PathOrigin
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action290(
         &__start0,
         &__end0,
@@ -24559,7 +24560,7 @@ fn __action500<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action501<
 >(
     __0: (usize, Token, usize),
@@ -24567,8 +24568,8 @@ fn __action501<
     __2: (usize, alloc::vec::Vec<(Token, Token)>, usize),
 ) -> PathOrigin
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action291(
         __2,
     );
@@ -24581,15 +24582,15 @@ fn __action501<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action502<
 >(
     __0: (usize, CaseSelector, usize),
     __1: (usize, Token, usize),
 ) -> alloc::vec::Vec<CaseSelector>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action423(
         __0,
         __1,
@@ -24601,7 +24602,7 @@ fn __action502<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action503<
 >(
     __0: (usize, alloc::vec::Vec<CaseSelector>, usize),
@@ -24609,8 +24610,8 @@ fn __action503<
     __2: (usize, Token, usize),
 ) -> alloc::vec::Vec<CaseSelector>
 {
-    let __start0 = __1.0;
-    let __end0 = __2.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action423(
         __1,
         __2,
@@ -24623,15 +24624,15 @@ fn __action503<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action504<
 >(
     __0: (usize, CaseSelector, usize),
     __1: (usize, Token, usize),
 ) -> Vec<CaseSelector>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action421(
         &__start0,
         &__end0,
@@ -24645,7 +24646,7 @@ fn __action504<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action505<
 >(
     __0: (usize, alloc::vec::Vec<CaseSelector>, usize),
@@ -24653,8 +24654,8 @@ fn __action505<
     __2: (usize, Token, usize),
 ) -> Vec<CaseSelector>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action422(
         __0,
     );
@@ -24667,14 +24668,14 @@ fn __action505<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action506<
 >(
     __0: (usize, CaseSelector, usize),
 ) -> Vec<CaseSelector>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action421(
         &__start0,
         &__end0,
@@ -24687,15 +24688,15 @@ fn __action506<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action507<
 >(
     __0: (usize, alloc::vec::Vec<CaseSelector>, usize),
     __1: (usize, CaseSelector, usize),
 ) -> Vec<CaseSelector>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action422(
         __0,
     );
@@ -24707,15 +24708,15 @@ fn __action507<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action508<
 >(
     __0: (usize, String, usize),
     __1: (usize, Token, usize),
 ) -> alloc::vec::Vec<String>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action442(
         __0,
         __1,
@@ -24727,7 +24728,7 @@ fn __action508<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action509<
 >(
     __0: (usize, alloc::vec::Vec<String>, usize),
@@ -24735,8 +24736,8 @@ fn __action509<
     __2: (usize, Token, usize),
 ) -> alloc::vec::Vec<String>
 {
-    let __start0 = __1.0;
-    let __end0 = __2.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action442(
         __1,
         __2,
@@ -24749,15 +24750,15 @@ fn __action509<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action510<
 >(
     __0: (usize, String, usize),
     __1: (usize, Token, usize),
 ) -> Vec<String>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action440(
         &__start0,
         &__end0,
@@ -24771,7 +24772,7 @@ fn __action510<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action511<
 >(
     __0: (usize, alloc::vec::Vec<String>, usize),
@@ -24779,8 +24780,8 @@ fn __action511<
     __2: (usize, Token, usize),
 ) -> Vec<String>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action441(
         __0,
     );
@@ -24793,14 +24794,14 @@ fn __action511<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action512<
 >(
     __0: (usize, String, usize),
 ) -> Vec<String>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action440(
         &__start0,
         &__end0,
@@ -24813,15 +24814,15 @@ fn __action512<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action513<
 >(
     __0: (usize, alloc::vec::Vec<String>, usize),
     __1: (usize, String, usize),
 ) -> Vec<String>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action441(
         __0,
     );
@@ -24833,15 +24834,15 @@ fn __action513<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action514<
 >(
     __0: (usize, ExpressionNode, usize),
     __1: (usize, Token, usize),
 ) -> alloc::vec::Vec<ExpressionNode>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action433(
         __0,
         __1,
@@ -24853,7 +24854,7 @@ fn __action514<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action515<
 >(
     __0: (usize, alloc::vec::Vec<ExpressionNode>, usize),
@@ -24861,8 +24862,8 @@ fn __action515<
     __2: (usize, Token, usize),
 ) -> alloc::vec::Vec<ExpressionNode>
 {
-    let __start0 = __1.0;
-    let __end0 = __2.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action433(
         __1,
         __2,
@@ -24875,15 +24876,15 @@ fn __action515<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action516<
 >(
     __0: (usize, ExpressionNode, usize),
     __1: (usize, Token, usize),
 ) -> Vec<ExpressionNode>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action431(
         &__start0,
         &__end0,
@@ -24897,7 +24898,7 @@ fn __action516<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action517<
 >(
     __0: (usize, alloc::vec::Vec<ExpressionNode>, usize),
@@ -24905,8 +24906,8 @@ fn __action517<
     __2: (usize, Token, usize),
 ) -> Vec<ExpressionNode>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action432(
         __0,
     );
@@ -24919,14 +24920,14 @@ fn __action517<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action518<
 >(
     __0: (usize, ExpressionNode, usize),
 ) -> Vec<ExpressionNode>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action431(
         &__start0,
         &__end0,
@@ -24939,15 +24940,15 @@ fn __action518<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action519<
 >(
     __0: (usize, alloc::vec::Vec<ExpressionNode>, usize),
     __1: (usize, ExpressionNode, usize),
 ) -> Vec<ExpressionNode>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action432(
         __0,
     );
@@ -24959,15 +24960,15 @@ fn __action519<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action520<
 >(
     __0: (usize, Import, usize),
     __1: (usize, Token, usize),
 ) -> alloc::vec::Vec<Import>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action417(
         __0,
         __1,
@@ -24979,7 +24980,7 @@ fn __action520<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action521<
 >(
     __0: (usize, alloc::vec::Vec<Import>, usize),
@@ -24987,8 +24988,8 @@ fn __action521<
     __2: (usize, Token, usize),
 ) -> alloc::vec::Vec<Import>
 {
-    let __start0 = __1.0;
-    let __end0 = __2.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action417(
         __1,
         __2,
@@ -25001,15 +25002,15 @@ fn __action521<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action522<
 >(
     __0: (usize, Import, usize),
     __1: (usize, Token, usize),
 ) -> Vec<Import>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action415(
         &__start0,
         &__end0,
@@ -25023,7 +25024,7 @@ fn __action522<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action523<
 >(
     __0: (usize, alloc::vec::Vec<Import>, usize),
@@ -25031,8 +25032,8 @@ fn __action523<
     __2: (usize, Token, usize),
 ) -> Vec<Import>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action416(
         __0,
     );
@@ -25045,14 +25046,14 @@ fn __action523<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action524<
 >(
     __0: (usize, Import, usize),
 ) -> Vec<Import>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action415(
         &__start0,
         &__end0,
@@ -25065,15 +25066,15 @@ fn __action524<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action525<
 >(
     __0: (usize, alloc::vec::Vec<Import>, usize),
     __1: (usize, Import, usize),
 ) -> Vec<Import>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action416(
         __0,
     );
@@ -25085,15 +25086,15 @@ fn __action525<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action526<
 >(
     __0: (usize, FormalParameter, usize),
     __1: (usize, Token, usize),
 ) -> alloc::vec::Vec<FormalParameter>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action420(
         __0,
         __1,
@@ -25105,7 +25106,7 @@ fn __action526<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action527<
 >(
     __0: (usize, alloc::vec::Vec<FormalParameter>, usize),
@@ -25113,8 +25114,8 @@ fn __action527<
     __2: (usize, Token, usize),
 ) -> alloc::vec::Vec<FormalParameter>
 {
-    let __start0 = __1.0;
-    let __end0 = __2.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action420(
         __1,
         __2,
@@ -25127,15 +25128,15 @@ fn __action527<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action528<
 >(
     __0: (usize, FormalParameter, usize),
     __1: (usize, Token, usize),
 ) -> Vec<FormalParameter>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action418(
         &__start0,
         &__end0,
@@ -25149,7 +25150,7 @@ fn __action528<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action529<
 >(
     __0: (usize, alloc::vec::Vec<FormalParameter>, usize),
@@ -25157,8 +25158,8 @@ fn __action529<
     __2: (usize, Token, usize),
 ) -> Vec<FormalParameter>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action419(
         __0,
     );
@@ -25171,14 +25172,14 @@ fn __action529<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action530<
 >(
     __0: (usize, FormalParameter, usize),
 ) -> Vec<FormalParameter>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action418(
         &__start0,
         &__end0,
@@ -25191,15 +25192,15 @@ fn __action530<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action531<
 >(
     __0: (usize, alloc::vec::Vec<FormalParameter>, usize),
     __1: (usize, FormalParameter, usize),
 ) -> Vec<FormalParameter>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action419(
         __0,
     );
@@ -25211,15 +25212,15 @@ fn __action531<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action532<
 >(
     __0: (usize, String, usize),
     __1: (usize, Token, usize),
 ) -> alloc::vec::Vec<String>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action289(
         __0,
         __1,
@@ -25231,7 +25232,7 @@ fn __action532<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action533<
 >(
     __0: (usize, alloc::vec::Vec<String>, usize),
@@ -25239,8 +25240,8 @@ fn __action533<
     __2: (usize, Token, usize),
 ) -> alloc::vec::Vec<String>
 {
-    let __start0 = __1.0;
-    let __end0 = __2.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action289(
         __1,
         __2,
@@ -25253,14 +25254,14 @@ fn __action533<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action534<
 >(
     __0: (usize, ImportItem, usize),
 ) -> Import
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action287(
         &__start0,
         &__end0,
@@ -25273,15 +25274,15 @@ fn __action534<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action535<
 >(
     __0: (usize, alloc::vec::Vec<String>, usize),
     __1: (usize, ImportItem, usize),
 ) -> Import
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action288(
         __0,
     );
@@ -25293,14 +25294,14 @@ fn __action535<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action536<
 >(
     __0: (usize, PathOrigin, usize),
 ) -> ModulePath
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action287(
         &__start0,
         &__end0,
@@ -25313,15 +25314,15 @@ fn __action536<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action537<
 >(
     __0: (usize, PathOrigin, usize),
     __1: (usize, alloc::vec::Vec<String>, usize),
 ) -> ModulePath
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action288(
         __1,
     );
@@ -25333,15 +25334,15 @@ fn __action537<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action538<
 >(
     __0: (usize, String, usize),
     __1: (usize, Token, usize),
 ) -> alloc::vec::Vec<String>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action439(
         __0,
         __1,
@@ -25353,7 +25354,7 @@ fn __action538<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action539<
 >(
     __0: (usize, alloc::vec::Vec<String>, usize),
@@ -25361,8 +25362,8 @@ fn __action539<
     __2: (usize, Token, usize),
 ) -> alloc::vec::Vec<String>
 {
-    let __start0 = __1.0;
-    let __end0 = __2.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action439(
         __1,
         __2,
@@ -25375,15 +25376,15 @@ fn __action539<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action540<
 >(
     __0: (usize, String, usize),
     __1: (usize, Token, usize),
 ) -> Vec<String>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action437(
         &__start0,
         &__end0,
@@ -25397,7 +25398,7 @@ fn __action540<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action541<
 >(
     __0: (usize, alloc::vec::Vec<String>, usize),
@@ -25405,8 +25406,8 @@ fn __action541<
     __2: (usize, Token, usize),
 ) -> Vec<String>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action438(
         __0,
     );
@@ -25419,14 +25420,14 @@ fn __action541<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action542<
 >(
     __0: (usize, String, usize),
 ) -> Vec<String>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action437(
         &__start0,
         &__end0,
@@ -25439,15 +25440,15 @@ fn __action542<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action543<
 >(
     __0: (usize, alloc::vec::Vec<String>, usize),
     __1: (usize, String, usize),
 ) -> Vec<String>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action438(
         __0,
     );
@@ -25459,15 +25460,15 @@ fn __action543<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action544<
 >(
     __0: (usize, Spanned<StructMember>, usize),
     __1: (usize, Token, usize),
 ) -> alloc::vec::Vec<Spanned<StructMember>>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action436(
         __0,
         __1,
@@ -25479,7 +25480,7 @@ fn __action544<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action545<
 >(
     __0: (usize, alloc::vec::Vec<Spanned<StructMember>>, usize),
@@ -25487,8 +25488,8 @@ fn __action545<
     __2: (usize, Token, usize),
 ) -> alloc::vec::Vec<Spanned<StructMember>>
 {
-    let __start0 = __1.0;
-    let __end0 = __2.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action436(
         __1,
         __2,
@@ -25501,15 +25502,15 @@ fn __action545<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action546<
 >(
     __0: (usize, Spanned<StructMember>, usize),
     __1: (usize, Token, usize),
 ) -> Vec<Spanned<StructMember>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action434(
         &__start0,
         &__end0,
@@ -25523,7 +25524,7 @@ fn __action546<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action547<
 >(
     __0: (usize, alloc::vec::Vec<Spanned<StructMember>>, usize),
@@ -25531,8 +25532,8 @@ fn __action547<
     __2: (usize, Token, usize),
 ) -> Vec<Spanned<StructMember>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action435(
         __0,
     );
@@ -25545,14 +25546,14 @@ fn __action547<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action548<
 >(
     __0: (usize, Spanned<StructMember>, usize),
 ) -> Vec<Spanned<StructMember>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action434(
         &__start0,
         &__end0,
@@ -25565,15 +25566,15 @@ fn __action548<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action549<
 >(
     __0: (usize, alloc::vec::Vec<Spanned<StructMember>>, usize),
     __1: (usize, Spanned<StructMember>, usize),
 ) -> Vec<Spanned<StructMember>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action435(
         __0,
     );
@@ -25585,15 +25586,15 @@ fn __action549<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action550<
 >(
     __0: (usize, TemplateArg, usize),
     __1: (usize, Token, usize),
 ) -> alloc::vec::Vec<TemplateArg>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action445(
         __0,
         __1,
@@ -25605,7 +25606,7 @@ fn __action550<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action551<
 >(
     __0: (usize, alloc::vec::Vec<TemplateArg>, usize),
@@ -25613,8 +25614,8 @@ fn __action551<
     __2: (usize, Token, usize),
 ) -> alloc::vec::Vec<TemplateArg>
 {
-    let __start0 = __1.0;
-    let __end0 = __2.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action445(
         __1,
         __2,
@@ -25627,15 +25628,15 @@ fn __action551<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action552<
 >(
     __0: (usize, TemplateArg, usize),
     __1: (usize, Token, usize),
 ) -> Vec<TemplateArg>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action443(
         &__start0,
         &__end0,
@@ -25649,7 +25650,7 @@ fn __action552<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action553<
 >(
     __0: (usize, alloc::vec::Vec<TemplateArg>, usize),
@@ -25657,8 +25658,8 @@ fn __action553<
     __2: (usize, Token, usize),
 ) -> Vec<TemplateArg>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action444(
         __0,
     );
@@ -25671,14 +25672,14 @@ fn __action553<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action554<
 >(
     __0: (usize, TemplateArg, usize),
 ) -> Vec<TemplateArg>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action443(
         &__start0,
         &__end0,
@@ -25691,15 +25692,15 @@ fn __action554<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action555<
 >(
     __0: (usize, alloc::vec::Vec<TemplateArg>, usize),
     __1: (usize, TemplateArg, usize),
 ) -> Vec<TemplateArg>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action444(
         __0,
     );
@@ -25711,15 +25712,15 @@ fn __action555<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action556<
 >(
     __0: (usize, BinaryOperator, usize),
     __1: (usize, Spanned<Expression>, usize),
 ) -> alloc::vec::Vec<(BinaryOperator, Spanned<Expression>)>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action426(
         __0,
         __1,
@@ -25731,7 +25732,7 @@ fn __action556<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action557<
 >(
     __0: (usize, alloc::vec::Vec<(BinaryOperator, Spanned<Expression>)>, usize),
@@ -25739,8 +25740,8 @@ fn __action557<
     __2: (usize, Spanned<Expression>, usize),
 ) -> alloc::vec::Vec<(BinaryOperator, Spanned<Expression>)>
 {
-    let __start0 = __1.0;
-    let __end0 = __2.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action426(
         __1,
         __2,
@@ -25753,15 +25754,15 @@ fn __action557<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action558<
 >(
     __0: (usize, BinaryOperator, usize),
     __1: (usize, Spanned<Expression>, usize),
 ) -> alloc::vec::Vec<(BinaryOperator, Spanned<Expression>)>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action429(
         __0,
         __1,
@@ -25773,7 +25774,7 @@ fn __action558<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action559<
 >(
     __0: (usize, alloc::vec::Vec<(BinaryOperator, Spanned<Expression>)>, usize),
@@ -25781,8 +25782,8 @@ fn __action559<
     __2: (usize, Spanned<Expression>, usize),
 ) -> alloc::vec::Vec<(BinaryOperator, Spanned<Expression>)>
 {
-    let __start0 = __1.0;
-    let __end0 = __2.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action429(
         __1,
         __2,
@@ -25795,7 +25796,7 @@ fn __action559<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action560<
 >(
     __0: (usize, Spanned<Expression>, usize),
@@ -25803,8 +25804,8 @@ fn __action560<
     __2: (usize, Spanned<Expression>, usize),
 ) -> Expression
 {
-    let __start0 = __0.2;
-    let __end0 = __1.0;
+    let __start0 = __0.2.clone();
+    let __end0 = __1.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -25819,7 +25820,7 @@ fn __action560<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action561<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -25829,8 +25830,8 @@ fn __action561<
     __4: (usize, ExpressionNode, usize),
 ) -> AssignmentStatement
 {
-    let __start0 = __0.2;
-    let __end0 = __1.0;
+    let __start0 = __0.2.clone();
+    let __end0 = __1.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -25847,7 +25848,7 @@ fn __action561<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action562<
 >(
     __0: (usize, Token, usize),
@@ -25856,8 +25857,8 @@ fn __action562<
     __3: (usize, usize, usize),
 ) -> Result<Attribute,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -25873,7 +25874,7 @@ fn __action562<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action563<
 >(
     __0: (usize, Token, usize),
@@ -25882,8 +25883,8 @@ fn __action563<
     __3: (usize, usize, usize),
 ) -> Result<Attribute,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -25899,7 +25900,7 @@ fn __action563<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action564<
 >(
     __0: (usize, Token, usize),
@@ -25908,8 +25909,8 @@ fn __action564<
     __3: (usize, usize, usize),
 ) -> Result<Attribute,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -25925,7 +25926,7 @@ fn __action564<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action565<
 >(
     __0: (usize, Token, usize),
@@ -25933,8 +25934,8 @@ fn __action565<
     __2: (usize, usize, usize),
 ) -> Result<DeclarationKind,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -25949,15 +25950,15 @@ fn __action565<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action566<
 >(
     __0: (usize, Declaration, usize),
     __1: (usize, usize, usize),
 ) -> Result<Declaration,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -25971,15 +25972,15 @@ fn __action566<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action567<
 >(
     __0: (usize, i64, usize),
     __1: (usize, usize, usize),
 ) -> Result<LiteralExpression,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -25993,15 +25994,15 @@ fn __action567<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action568<
 >(
     __0: (usize, u64, usize),
     __1: (usize, usize, usize),
 ) -> Result<LiteralExpression,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26015,15 +26016,15 @@ fn __action568<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action569<
 >(
     __0: (usize, f64, usize),
     __1: (usize, usize, usize),
 ) -> Result<LiteralExpression,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26037,15 +26038,15 @@ fn __action569<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action570<
 >(
     __0: (usize, String, usize),
     __1: (usize, usize, usize),
 ) -> Result<String,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26059,7 +26060,7 @@ fn __action570<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action571<
 >(
     __0: (usize, Spanned<Expression>, usize),
@@ -26067,8 +26068,8 @@ fn __action571<
     __2: (usize, usize, usize),
 ) -> Result<Expression,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26083,7 +26084,7 @@ fn __action571<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action572<
 >(
     __0: (usize, Spanned<Expression>, usize),
@@ -26091,8 +26092,8 @@ fn __action572<
     __2: (usize, usize, usize),
 ) -> Result<Expression,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26107,15 +26108,15 @@ fn __action572<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action573<
 >(
     __0: (usize, String, usize),
     __1: (usize, usize, usize),
 ) -> Result<DiagnosticSeverity,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26129,15 +26130,15 @@ fn __action573<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action574<
 >(
     __0: (usize, Attribute, usize),
     __1: (usize, usize, usize),
 ) -> Spanned<Attribute>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26151,15 +26152,15 @@ fn __action574<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action575<
 >(
     __0: (usize, Expression, usize),
     __1: (usize, usize, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26173,15 +26174,15 @@ fn __action575<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action576<
 >(
     __0: (usize, Expression, usize),
     __1: (usize, usize, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26195,15 +26196,15 @@ fn __action576<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action577<
 >(
     __0: (usize, Expression, usize),
     __1: (usize, usize, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26217,15 +26218,15 @@ fn __action577<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action578<
 >(
     __0: (usize, Expression, usize),
     __1: (usize, usize, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26239,15 +26240,15 @@ fn __action578<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action579<
 >(
     __0: (usize, Expression, usize),
     __1: (usize, usize, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26261,15 +26262,15 @@ fn __action579<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action580<
 >(
     __0: (usize, Expression, usize),
     __1: (usize, usize, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26283,15 +26284,15 @@ fn __action580<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action581<
 >(
     __0: (usize, Expression, usize),
     __1: (usize, usize, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26305,15 +26306,15 @@ fn __action581<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action582<
 >(
     __0: (usize, GlobalDeclaration, usize),
     __1: (usize, usize, usize),
 ) -> Spanned<GlobalDeclaration>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26327,15 +26328,15 @@ fn __action582<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action583<
 >(
     __0: (usize, Expression, usize),
     __1: (usize, usize, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26349,15 +26350,15 @@ fn __action583<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action584<
 >(
     __0: (usize, Expression, usize),
     __1: (usize, usize, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26371,15 +26372,15 @@ fn __action584<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action585<
 >(
     __0: (usize, Expression, usize),
     __1: (usize, usize, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26393,15 +26394,15 @@ fn __action585<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action586<
 >(
     __0: (usize, Expression, usize),
     __1: (usize, usize, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26415,15 +26416,15 @@ fn __action586<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action587<
 >(
     __0: (usize, Statement, usize),
     __1: (usize, usize, usize),
 ) -> Spanned<Statement>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26437,15 +26438,15 @@ fn __action587<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action588<
 >(
     __0: (usize, StructMember, usize),
     __1: (usize, usize, usize),
 ) -> Spanned<StructMember>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26459,7 +26460,7 @@ fn __action588<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action589<
 >(
     __0: (usize, Token, usize),
@@ -26468,8 +26469,8 @@ fn __action589<
     __3: (usize, usize, usize),
 ) -> Span
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26485,15 +26486,15 @@ fn __action589<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action590<
 >(
     __0: (usize, Declaration, usize),
     __1: (usize, usize, usize),
 ) -> Result<Declaration,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26507,15 +26508,15 @@ fn __action590<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action591<
 >(
     __0: (usize, Token, usize),
     __1: (usize, usize, usize),
 ) -> (Token, Span)
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26529,15 +26530,15 @@ fn __action591<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action592<
 >(
     __0: (usize, FunctionCallStatement, usize),
     __1: (usize, usize, usize),
 ) -> (FunctionCallStatement, Span)
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26551,15 +26552,15 @@ fn __action592<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action593<
 >(
     __0: (usize, Declaration, usize),
     __1: (usize, usize, usize),
 ) -> (Declaration, Span)
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26573,15 +26574,15 @@ fn __action593<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action594<
 >(
     __0: (usize, Statement, usize),
     __1: (usize, usize, usize),
 ) -> (Statement, Span)
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action382(
         &__start0,
         &__end0,
@@ -26595,7 +26596,7 @@ fn __action594<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action595<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -26604,8 +26605,8 @@ fn __action595<
     __3: (usize, ExpressionNode, usize),
 ) -> AssignmentStatement
 {
-    let __start0 = __1.2;
-    let __end0 = __2.0;
+    let __start0 = __1.2.clone();
+    let __end0 = __2.0.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26621,7 +26622,7 @@ fn __action595<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action596<
 >(
     __0: (usize, Token, usize),
@@ -26629,8 +26630,8 @@ fn __action596<
     __2: (usize, Option<Vec<ExpressionNode>>, usize),
 ) -> Result<Attribute,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __2.2;
-    let __end0 = __2.2;
+    let __start0 = __2.2.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26645,7 +26646,7 @@ fn __action596<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action597<
 >(
     __0: (usize, Token, usize),
@@ -26653,8 +26654,8 @@ fn __action597<
     __2: (usize, Option<Vec<ExpressionNode>>, usize),
 ) -> Result<Attribute,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __2.2;
-    let __end0 = __2.2;
+    let __start0 = __2.2.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26669,7 +26670,7 @@ fn __action597<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action598<
 >(
     __0: (usize, Token, usize),
@@ -26677,8 +26678,8 @@ fn __action598<
     __2: (usize, Option<Vec<ExpressionNode>>, usize),
 ) -> Result<Attribute,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __2.2;
-    let __end0 = __2.2;
+    let __start0 = __2.2.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26693,15 +26694,15 @@ fn __action598<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action599<
 >(
     __0: (usize, Token, usize),
     __1: (usize, Option<Vec<TemplateArg>>, usize),
 ) -> Result<DeclarationKind,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26715,14 +26716,14 @@ fn __action599<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action600<
 >(
     __0: (usize, Declaration, usize),
 ) -> Result<Declaration,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26735,14 +26736,14 @@ fn __action600<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action601<
 >(
     __0: (usize, i64, usize),
 ) -> Result<LiteralExpression,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26755,14 +26756,14 @@ fn __action601<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action602<
 >(
     __0: (usize, u64, usize),
 ) -> Result<LiteralExpression,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26775,14 +26776,14 @@ fn __action602<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action603<
 >(
     __0: (usize, f64, usize),
 ) -> Result<LiteralExpression,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26795,14 +26796,14 @@ fn __action603<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action604<
 >(
     __0: (usize, String, usize),
 ) -> Result<String,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26815,15 +26816,15 @@ fn __action604<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action605<
 >(
     __0: (usize, Spanned<Expression>, usize),
     __1: (usize, alloc::vec::Vec<(BinaryOperator, Spanned<Expression>)>, usize),
 ) -> Result<Expression,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26837,15 +26838,15 @@ fn __action605<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action606<
 >(
     __0: (usize, Spanned<Expression>, usize),
     __1: (usize, alloc::vec::Vec<(BinaryOperator, Spanned<Expression>)>, usize),
 ) -> Result<Expression,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26859,14 +26860,14 @@ fn __action606<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action607<
 >(
     __0: (usize, String, usize),
 ) -> Result<DiagnosticSeverity,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26879,14 +26880,14 @@ fn __action607<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action608<
 >(
     __0: (usize, Attribute, usize),
 ) -> Spanned<Attribute>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26899,14 +26900,14 @@ fn __action608<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action609<
 >(
     __0: (usize, Expression, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26919,14 +26920,14 @@ fn __action609<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action610<
 >(
     __0: (usize, Expression, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26939,14 +26940,14 @@ fn __action610<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action611<
 >(
     __0: (usize, Expression, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26959,14 +26960,14 @@ fn __action611<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action612<
 >(
     __0: (usize, Expression, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26979,14 +26980,14 @@ fn __action612<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action613<
 >(
     __0: (usize, Expression, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -26999,14 +27000,14 @@ fn __action613<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action614<
 >(
     __0: (usize, Expression, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -27019,14 +27020,14 @@ fn __action614<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action615<
 >(
     __0: (usize, Expression, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -27039,14 +27040,14 @@ fn __action615<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action616<
 >(
     __0: (usize, GlobalDeclaration, usize),
 ) -> Spanned<GlobalDeclaration>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -27059,14 +27060,14 @@ fn __action616<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action617<
 >(
     __0: (usize, Expression, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -27079,14 +27080,14 @@ fn __action617<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action618<
 >(
     __0: (usize, Expression, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -27099,14 +27100,14 @@ fn __action618<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action619<
 >(
     __0: (usize, Expression, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -27119,14 +27120,14 @@ fn __action619<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action620<
 >(
     __0: (usize, Expression, usize),
 ) -> Spanned<Expression>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -27139,14 +27140,14 @@ fn __action620<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action621<
 >(
     __0: (usize, Statement, usize),
 ) -> Spanned<Statement>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -27159,14 +27160,14 @@ fn __action621<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action622<
 >(
     __0: (usize, StructMember, usize),
 ) -> Spanned<StructMember>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -27179,7 +27180,7 @@ fn __action622<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action623<
 >(
     __0: (usize, Token, usize),
@@ -27187,8 +27188,8 @@ fn __action623<
     __2: (usize, Token, usize),
 ) -> Span
 {
-    let __start0 = __2.2;
-    let __end0 = __2.2;
+    let __start0 = __2.2.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -27203,14 +27204,14 @@ fn __action623<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action624<
 >(
     __0: (usize, Declaration, usize),
 ) -> Result<Declaration,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -27223,14 +27224,14 @@ fn __action624<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action625<
 >(
     __0: (usize, Token, usize),
 ) -> (Token, Span)
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -27243,14 +27244,14 @@ fn __action625<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action626<
 >(
     __0: (usize, FunctionCallStatement, usize),
 ) -> (FunctionCallStatement, Span)
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -27263,14 +27264,14 @@ fn __action626<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action627<
 >(
     __0: (usize, Declaration, usize),
 ) -> (Declaration, Span)
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -27283,14 +27284,14 @@ fn __action627<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action628<
 >(
     __0: (usize, Statement, usize),
 ) -> (Statement, Span)
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action381(
         &__start0,
         &__end0,
@@ -27303,7 +27304,7 @@ fn __action628<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action629<
 >(
     __0: (usize, Token, usize),
@@ -27311,8 +27312,8 @@ fn __action629<
     __2: (usize, Vec<ExpressionNode>, usize),
 ) -> Result<Attribute,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action298(
         __2,
     );
@@ -27325,15 +27326,15 @@ fn __action629<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action630<
 >(
     __0: (usize, Token, usize),
     __1: (usize, String, usize),
 ) -> Result<Attribute,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action299(
         &__start0,
         &__end0,
@@ -27347,7 +27348,7 @@ fn __action630<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action631<
 >(
     __0: (usize, Token, usize),
@@ -27355,8 +27356,8 @@ fn __action631<
     __2: (usize, Vec<ExpressionNode>, usize),
 ) -> Result<Attribute,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action298(
         __2,
     );
@@ -27369,15 +27370,15 @@ fn __action631<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action632<
 >(
     __0: (usize, Token, usize),
     __1: (usize, String, usize),
 ) -> Result<Attribute,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action299(
         &__start0,
         &__end0,
@@ -27391,7 +27392,7 @@ fn __action632<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action633<
 >(
     __0: (usize, Token, usize),
@@ -27399,8 +27400,8 @@ fn __action633<
     __2: (usize, Vec<ExpressionNode>, usize),
 ) -> Result<Attribute,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action298(
         __2,
     );
@@ -27413,15 +27414,15 @@ fn __action633<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action634<
 >(
     __0: (usize, Token, usize),
     __1: (usize, String, usize),
 ) -> Result<Attribute,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action299(
         &__start0,
         &__end0,
@@ -27435,7 +27436,7 @@ fn __action634<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action635<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -27445,8 +27446,8 @@ fn __action635<
     __4: (usize, Token, usize),
 ) -> ContinuingStatement
 {
-    let __start0 = __3.0;
-    let __end0 = __3.2;
+    let __start0 = __3.0.clone();
+    let __end0 = __3.2.clone();
     let __temp0 = __action307(
         __3,
     );
@@ -27461,7 +27462,7 @@ fn __action635<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action636<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -27470,8 +27471,8 @@ fn __action636<
     __3: (usize, Token, usize),
 ) -> ContinuingStatement
 {
-    let __start0 = __2.2;
-    let __end0 = __3.0;
+    let __start0 = __2.2.clone();
+    let __end0 = __3.0.clone();
     let __temp0 = __action308(
         &__start0,
         &__end0,
@@ -27487,7 +27488,7 @@ fn __action636<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action637<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -27499,8 +27500,8 @@ fn __action637<
     __6: (usize, Token, usize),
 ) -> LoopStatement
 {
-    let __start0 = __5.0;
-    let __end0 = __5.2;
+    let __start0 = __5.0.clone();
+    let __end0 = __5.2.clone();
     let __temp0 = __action318(
         __5,
     );
@@ -27517,7 +27518,7 @@ fn __action637<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action638<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -27528,8 +27529,8 @@ fn __action638<
     __5: (usize, Token, usize),
 ) -> LoopStatement
 {
-    let __start0 = __4.2;
-    let __end0 = __5.0;
+    let __start0 = __4.2.clone();
+    let __end0 = __5.0.clone();
     let __temp0 = __action319(
         &__start0,
         &__end0,
@@ -27547,7 +27548,7 @@ fn __action638<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action639<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -27556,8 +27557,8 @@ fn __action639<
     __3: (usize, ElseClause, usize),
 ) -> IfStatement
 {
-    let __start0 = __3.0;
-    let __end0 = __3.2;
+    let __start0 = __3.0.clone();
+    let __end0 = __3.2.clone();
     let __temp0 = __action325(
         __3,
     );
@@ -27571,7 +27572,7 @@ fn __action639<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action640<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -27579,8 +27580,8 @@ fn __action640<
     __2: (usize, alloc::vec::Vec<ElseIfClause>, usize),
 ) -> IfStatement
 {
-    let __start0 = __2.2;
-    let __end0 = __2.2;
+    let __start0 = __2.2.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action326(
         &__start0,
         &__end0,
@@ -27595,7 +27596,7 @@ fn __action640<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action641<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -27603,8 +27604,8 @@ fn __action641<
     __2: (usize, ElseClause, usize),
 ) -> IfStatement
 {
-    let __start0 = __1.2;
-    let __end0 = __2.0;
+    let __start0 = __1.2.clone();
+    let __end0 = __2.0.clone();
     let __temp0 = __action327(
         &__start0,
         &__end0,
@@ -27619,7 +27620,7 @@ fn __action641<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action642<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -27628,8 +27629,8 @@ fn __action642<
     __3: (usize, ElseClause, usize),
 ) -> IfStatement
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action328(
         __2,
     );
@@ -27643,15 +27644,15 @@ fn __action642<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action643<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
     __1: (usize, IfClause, usize),
 ) -> IfStatement
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action327(
         &__start0,
         &__end0,
@@ -27665,7 +27666,7 @@ fn __action643<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action644<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -27673,8 +27674,8 @@ fn __action644<
     __2: (usize, alloc::vec::Vec<ElseIfClause>, usize),
 ) -> IfStatement
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action328(
         __2,
     );
@@ -27687,7 +27688,7 @@ fn __action644<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action645<
 >(
     __0: (usize, Token, usize),
@@ -27695,8 +27696,8 @@ fn __action645<
     __2: (usize, Token, usize),
 ) -> Vec<ExpressionNode>
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action354(
         __1,
     );
@@ -27709,15 +27710,15 @@ fn __action645<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action646<
 >(
     __0: (usize, Token, usize),
     __1: (usize, Token, usize),
 ) -> Vec<ExpressionNode>
 {
-    let __start0 = __0.2;
-    let __end0 = __1.0;
+    let __start0 = __0.2.clone();
+    let __end0 = __1.0.clone();
     let __temp0 = __action355(
         &__start0,
         &__end0,
@@ -27731,7 +27732,7 @@ fn __action646<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action647<
 >(
     __0: (usize, Option<StatementNode>, usize),
@@ -27741,8 +27742,8 @@ fn __action647<
     __4: (usize, Option<StatementNode>, usize),
 ) -> (Option<StatementNode>, Option<ExpressionNode>, Option<StatementNode>)
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action314(
         __2,
     );
@@ -27757,7 +27758,7 @@ fn __action647<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action648<
 >(
     __0: (usize, Option<StatementNode>, usize),
@@ -27766,8 +27767,8 @@ fn __action648<
     __3: (usize, Option<StatementNode>, usize),
 ) -> (Option<StatementNode>, Option<ExpressionNode>, Option<StatementNode>)
 {
-    let __start0 = __1.2;
-    let __end0 = __2.0;
+    let __start0 = __1.2.clone();
+    let __end0 = __2.0.clone();
     let __temp0 = __action315(
         &__start0,
         &__end0,
@@ -27783,7 +27784,7 @@ fn __action648<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action649<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -27791,8 +27792,8 @@ fn __action649<
     __2: (usize, ExpressionNode, usize),
 ) -> ReturnStatement
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action314(
         __2,
     );
@@ -27805,15 +27806,15 @@ fn __action649<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action650<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
     __1: (usize, Token, usize),
 ) -> ReturnStatement
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action315(
         &__start0,
         &__end0,
@@ -27827,7 +27828,7 @@ fn __action650<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action651<
 >(
     __0: (usize, StatementNode, usize),
@@ -27837,8 +27838,8 @@ fn __action651<
     __4: (usize, Option<StatementNode>, usize),
 ) -> (Option<StatementNode>, Option<ExpressionNode>, Option<StatementNode>)
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action316(
         __0,
     );
@@ -27853,7 +27854,7 @@ fn __action651<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action652<
 >(
     __0: (usize, Token, usize),
@@ -27862,8 +27863,8 @@ fn __action652<
     __3: (usize, Option<StatementNode>, usize),
 ) -> (Option<StatementNode>, Option<ExpressionNode>, Option<StatementNode>)
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action317(
         &__start0,
         &__end0,
@@ -27879,7 +27880,7 @@ fn __action652<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action653<
 >(
     __0: (usize, StatementNode, usize),
@@ -27888,8 +27889,8 @@ fn __action653<
     __3: (usize, Option<StatementNode>, usize),
 ) -> (Option<StatementNode>, Option<ExpressionNode>, Option<StatementNode>)
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action316(
         __0,
     );
@@ -27903,7 +27904,7 @@ fn __action653<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action654<
 >(
     __0: (usize, Token, usize),
@@ -27911,8 +27912,8 @@ fn __action654<
     __2: (usize, Option<StatementNode>, usize),
 ) -> (Option<StatementNode>, Option<ExpressionNode>, Option<StatementNode>)
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action317(
         &__start0,
         &__end0,
@@ -27927,7 +27928,7 @@ fn __action654<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action655<
 >(
     __0: (usize, StatementNode, usize),
@@ -27937,8 +27938,8 @@ fn __action655<
     __4: (usize, StatementNode, usize),
 ) -> (Option<StatementNode>, Option<ExpressionNode>, Option<StatementNode>)
 {
-    let __start0 = __4.0;
-    let __end0 = __4.2;
+    let __start0 = __4.0.clone();
+    let __end0 = __4.2.clone();
     let __temp0 = __action312(
         __4,
     );
@@ -27953,7 +27954,7 @@ fn __action655<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action656<
 >(
     __0: (usize, StatementNode, usize),
@@ -27962,8 +27963,8 @@ fn __action656<
     __3: (usize, Token, usize),
 ) -> (Option<StatementNode>, Option<ExpressionNode>, Option<StatementNode>)
 {
-    let __start0 = __3.2;
-    let __end0 = __3.2;
+    let __start0 = __3.2.clone();
+    let __end0 = __3.2.clone();
     let __temp0 = __action313(
         &__start0,
         &__end0,
@@ -27979,7 +27980,7 @@ fn __action656<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action657<
 >(
     __0: (usize, Token, usize),
@@ -27988,8 +27989,8 @@ fn __action657<
     __3: (usize, StatementNode, usize),
 ) -> (Option<StatementNode>, Option<ExpressionNode>, Option<StatementNode>)
 {
-    let __start0 = __3.0;
-    let __end0 = __3.2;
+    let __start0 = __3.0.clone();
+    let __end0 = __3.2.clone();
     let __temp0 = __action312(
         __3,
     );
@@ -28003,7 +28004,7 @@ fn __action657<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action658<
 >(
     __0: (usize, Token, usize),
@@ -28011,8 +28012,8 @@ fn __action658<
     __2: (usize, Token, usize),
 ) -> (Option<StatementNode>, Option<ExpressionNode>, Option<StatementNode>)
 {
-    let __start0 = __2.2;
-    let __end0 = __2.2;
+    let __start0 = __2.2.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action313(
         &__start0,
         &__end0,
@@ -28027,7 +28028,7 @@ fn __action658<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action659<
 >(
     __0: (usize, StatementNode, usize),
@@ -28036,8 +28037,8 @@ fn __action659<
     __3: (usize, StatementNode, usize),
 ) -> (Option<StatementNode>, Option<ExpressionNode>, Option<StatementNode>)
 {
-    let __start0 = __3.0;
-    let __end0 = __3.2;
+    let __start0 = __3.0.clone();
+    let __end0 = __3.2.clone();
     let __temp0 = __action312(
         __3,
     );
@@ -28051,7 +28052,7 @@ fn __action659<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action660<
 >(
     __0: (usize, StatementNode, usize),
@@ -28059,8 +28060,8 @@ fn __action660<
     __2: (usize, Token, usize),
 ) -> (Option<StatementNode>, Option<ExpressionNode>, Option<StatementNode>)
 {
-    let __start0 = __2.2;
-    let __end0 = __2.2;
+    let __start0 = __2.2.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action313(
         &__start0,
         &__end0,
@@ -28075,7 +28076,7 @@ fn __action660<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action661<
 >(
     __0: (usize, Token, usize),
@@ -28083,8 +28084,8 @@ fn __action661<
     __2: (usize, StatementNode, usize),
 ) -> (Option<StatementNode>, Option<ExpressionNode>, Option<StatementNode>)
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action312(
         __2,
     );
@@ -28097,15 +28098,15 @@ fn __action661<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action662<
 >(
     __0: (usize, Token, usize),
     __1: (usize, Token, usize),
 ) -> (Option<StatementNode>, Option<ExpressionNode>, Option<StatementNode>)
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action313(
         &__start0,
         &__end0,
@@ -28119,7 +28120,7 @@ fn __action662<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action663<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -28127,8 +28128,8 @@ fn __action663<
     __2: (usize, Token, usize),
 ) -> CompoundGlobalDeclaration
 {
-    let __start0 = __1.2;
-    let __end0 = __2.0;
+    let __start0 = __1.2.clone();
+    let __end0 = __2.0.clone();
     let __temp0 = __action375(
         &__start0,
         &__end0,
@@ -28143,7 +28144,7 @@ fn __action663<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action664<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -28152,8 +28153,8 @@ fn __action664<
     __3: (usize, Token, usize),
 ) -> CompoundGlobalDeclaration
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action376(
         __2,
     );
@@ -28167,15 +28168,15 @@ fn __action664<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action665<
 >(
     __0: (usize, alloc::vec::Vec<ImportStatement>, usize),
     __1: (usize, alloc::vec::Vec<GlobalDirective>, usize),
 ) -> TranslationUnit
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action375(
         &__start0,
         &__end0,
@@ -28189,7 +28190,7 @@ fn __action665<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action666<
 >(
     __0: (usize, alloc::vec::Vec<ImportStatement>, usize),
@@ -28197,8 +28198,8 @@ fn __action666<
     __2: (usize, alloc::vec::Vec<GlobalDeclarationNode>, usize),
 ) -> TranslationUnit
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action376(
         __2,
     );
@@ -28211,14 +28212,14 @@ fn __action666<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action667<
 >(
     __0: (usize, alloc::vec::Vec<ImportStatement>, usize),
 ) -> TranslationUnit
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action377(
         &__start0,
         &__end0,
@@ -28231,15 +28232,15 @@ fn __action667<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action668<
 >(
     __0: (usize, alloc::vec::Vec<ImportStatement>, usize),
     __1: (usize, alloc::vec::Vec<GlobalDirective>, usize),
 ) -> TranslationUnit
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action378(
         __1,
     );
@@ -28251,15 +28252,15 @@ fn __action668<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action669<
 >(
     __0: (usize, alloc::vec::Vec<ImportStatement>, usize),
     __1: (usize, alloc::vec::Vec<GlobalDeclarationNode>, usize),
 ) -> TranslationUnit
 {
-    let __start0 = __0.2;
-    let __end0 = __1.0;
+    let __start0 = __0.2.clone();
+    let __end0 = __1.0.clone();
     let __temp0 = __action377(
         &__start0,
         &__end0,
@@ -28273,7 +28274,7 @@ fn __action669<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action670<
 >(
     __0: (usize, alloc::vec::Vec<ImportStatement>, usize),
@@ -28281,8 +28282,8 @@ fn __action670<
     __2: (usize, alloc::vec::Vec<GlobalDeclarationNode>, usize),
 ) -> TranslationUnit
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action378(
         __1,
     );
@@ -28295,15 +28296,15 @@ fn __action670<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action671<
 >(
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> TranslationUnit
 {
-    let __start0 = *__lookbehind;
-    let __end0 = *__lookahead;
+    let __start0 = __lookbehind.clone();
+    let __end0 = __lookahead.clone();
     let __temp0 = __action379(
         &__start0,
         &__end0,
@@ -28315,14 +28316,14 @@ fn __action671<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action672<
 >(
     __0: (usize, alloc::vec::Vec<ImportStatement>, usize),
 ) -> TranslationUnit
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action380(
         __0,
     );
@@ -28333,14 +28334,14 @@ fn __action672<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action673<
 >(
     __0: (usize, alloc::vec::Vec<GlobalDirective>, usize),
 ) -> TranslationUnit
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action379(
         &__start0,
         &__end0,
@@ -28353,15 +28354,15 @@ fn __action673<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action674<
 >(
     __0: (usize, alloc::vec::Vec<ImportStatement>, usize),
     __1: (usize, alloc::vec::Vec<GlobalDirective>, usize),
 ) -> TranslationUnit
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action380(
         __0,
     );
@@ -28373,14 +28374,14 @@ fn __action674<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action675<
 >(
     __0: (usize, alloc::vec::Vec<GlobalDeclarationNode>, usize),
 ) -> TranslationUnit
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action379(
         &__start0,
         &__end0,
@@ -28393,15 +28394,15 @@ fn __action675<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action676<
 >(
     __0: (usize, alloc::vec::Vec<ImportStatement>, usize),
     __1: (usize, alloc::vec::Vec<GlobalDeclarationNode>, usize),
 ) -> TranslationUnit
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action380(
         __0,
     );
@@ -28413,15 +28414,15 @@ fn __action676<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action677<
 >(
     __0: (usize, alloc::vec::Vec<GlobalDirective>, usize),
     __1: (usize, alloc::vec::Vec<GlobalDeclarationNode>, usize),
 ) -> TranslationUnit
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action379(
         &__start0,
         &__end0,
@@ -28435,7 +28436,7 @@ fn __action677<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action678<
 >(
     __0: (usize, alloc::vec::Vec<ImportStatement>, usize),
@@ -28443,8 +28444,8 @@ fn __action678<
     __2: (usize, alloc::vec::Vec<GlobalDeclarationNode>, usize),
 ) -> TranslationUnit
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action380(
         __0,
     );
@@ -28457,14 +28458,14 @@ fn __action678<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action679<
 >(
     __0: (usize, PathOrigin, usize),
 ) -> Option<ModulePath>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action536(
         __0,
     );
@@ -28475,15 +28476,15 @@ fn __action679<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action680<
 >(
     __0: (usize, PathOrigin, usize),
     __1: (usize, alloc::vec::Vec<String>, usize),
 ) -> Option<ModulePath>
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action537(
         __0,
         __1,
@@ -28495,7 +28496,7 @@ fn __action680<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action681<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -28506,8 +28507,8 @@ fn __action681<
     __5: (usize, Token, usize),
 ) -> ImportStatement
 {
-    let __start0 = __3.0;
-    let __end0 = __3.2;
+    let __start0 = __3.0.clone();
+    let __end0 = __3.2.clone();
     let __temp0 = __action679(
         __3,
     );
@@ -28523,7 +28524,7 @@ fn __action681<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action682<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -28535,8 +28536,8 @@ fn __action682<
     __6: (usize, Token, usize),
 ) -> ImportStatement
 {
-    let __start0 = __3.0;
-    let __end0 = __4.2;
+    let __start0 = __3.0.clone();
+    let __end0 = __4.2.clone();
     let __temp0 = __action680(
         __3,
         __4,
@@ -28553,7 +28554,7 @@ fn __action682<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action683<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -28563,8 +28564,8 @@ fn __action683<
     __4: (usize, Token, usize),
 ) -> ImportStatement
 {
-    let __start0 = __2.2;
-    let __end0 = __3.0;
+    let __start0 = __2.2.clone();
+    let __end0 = __3.0.clone();
     let __temp0 = __action365(
         &__start0,
         &__end0,
@@ -28581,7 +28582,7 @@ fn __action683<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action684<
 >(
     __0: (usize, PathOrigin, usize),
@@ -28589,8 +28590,8 @@ fn __action684<
     __2: (usize, Option<Vec<TemplateArg>>, usize),
 ) -> TypeExpression
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action679(
         __0,
     );
@@ -28603,7 +28604,7 @@ fn __action684<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action685<
 >(
     __0: (usize, PathOrigin, usize),
@@ -28612,8 +28613,8 @@ fn __action685<
     __3: (usize, Option<Vec<TemplateArg>>, usize),
 ) -> TypeExpression
 {
-    let __start0 = __0.0;
-    let __end0 = __1.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action680(
         __0,
         __1,
@@ -28627,15 +28628,15 @@ fn __action685<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action686<
 >(
     __0: (usize, Ident, usize),
     __1: (usize, Option<Vec<TemplateArg>>, usize),
 ) -> TypeExpression
 {
-    let __start0 = __0.0;
-    let __end0 = __0.0;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.0.clone();
     let __temp0 = __action365(
         &__start0,
         &__end0,
@@ -28649,7 +28650,7 @@ fn __action686<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action687<
 >(
     __0: (usize, Token, usize),
@@ -28662,8 +28663,8 @@ fn __action687<
     __7: (usize, TypeExpression, usize),
 ) -> (Ident, Vec<FormalParameter>, Vec<AttributeNode>, Option<TypeExpression>)
 {
-    let __start0 = __3.0;
-    let __end0 = __3.2;
+    let __start0 = __3.0.clone();
+    let __end0 = __3.2.clone();
     let __temp0 = __action304(
         __3,
     );
@@ -28681,7 +28682,7 @@ fn __action687<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action688<
 >(
     __0: (usize, Token, usize),
@@ -28693,8 +28694,8 @@ fn __action688<
     __6: (usize, TypeExpression, usize),
 ) -> (Ident, Vec<FormalParameter>, Vec<AttributeNode>, Option<TypeExpression>)
 {
-    let __start0 = __2.2;
-    let __end0 = __3.0;
+    let __start0 = __2.2.clone();
+    let __end0 = __3.0.clone();
     let __temp0 = __action305(
         &__start0,
         &__end0,
@@ -28713,7 +28714,7 @@ fn __action688<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action689<
 >(
     __0: (usize, Token, usize),
@@ -28723,8 +28724,8 @@ fn __action689<
     __4: (usize, Token, usize),
 ) -> (Ident, Vec<FormalParameter>, Vec<AttributeNode>, Option<TypeExpression>)
 {
-    let __start0 = __3.0;
-    let __end0 = __3.2;
+    let __start0 = __3.0.clone();
+    let __end0 = __3.2.clone();
     let __temp0 = __action304(
         __3,
     );
@@ -28739,7 +28740,7 @@ fn __action689<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action690<
 >(
     __0: (usize, Token, usize),
@@ -28748,8 +28749,8 @@ fn __action690<
     __3: (usize, Token, usize),
 ) -> (Ident, Vec<FormalParameter>, Vec<AttributeNode>, Option<TypeExpression>)
 {
-    let __start0 = __2.2;
-    let __end0 = __3.0;
+    let __start0 = __2.2.clone();
+    let __end0 = __3.0.clone();
     let __temp0 = __action305(
         &__start0,
         &__end0,
@@ -28765,15 +28766,15 @@ fn __action690<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action691<
 >(
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> Vec<AttributeNode>
 {
-    let __start0 = *__lookbehind;
-    let __end0 = *__lookahead;
+    let __start0 = __lookbehind.clone();
+    let __end0 = __lookahead.clone();
     let __temp0 = __action295(
         &__start0,
         &__end0,
@@ -28785,14 +28786,14 @@ fn __action691<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action692<
 >(
     __0: (usize, alloc::vec::Vec<Spanned<Attribute>>, usize),
 ) -> Vec<AttributeNode>
 {
-    let __start0 = __0.0;
-    let __end0 = __0.2;
+    let __start0 = __0.0.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action296(
         __0,
     );
@@ -28803,7 +28804,7 @@ fn __action692<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action693<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -28811,8 +28812,8 @@ fn __action693<
     __2: (usize, Token, usize),
 ) -> CompoundStatement
 {
-    let __start0 = __1.2;
-    let __end0 = __2.0;
+    let __start0 = __1.2.clone();
+    let __end0 = __2.0.clone();
     let __temp0 = __action331(
         &__start0,
         &__end0,
@@ -28827,7 +28828,7 @@ fn __action693<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action694<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -28836,8 +28837,8 @@ fn __action694<
     __3: (usize, Token, usize),
 ) -> CompoundStatement
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action332(
         __2,
     );
@@ -28851,7 +28852,7 @@ fn __action694<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action695<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -28860,8 +28861,8 @@ fn __action695<
     __3: (usize, Token, usize),
 ) -> ContinuingStatement
 {
-    let __start0 = __1.2;
-    let __end0 = __2.0;
+    let __start0 = __1.2.clone();
+    let __end0 = __2.0.clone();
     let __temp0 = __action331(
         &__start0,
         &__end0,
@@ -28877,7 +28878,7 @@ fn __action695<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action696<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -28887,8 +28888,8 @@ fn __action696<
     __4: (usize, Token, usize),
 ) -> ContinuingStatement
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action332(
         __2,
     );
@@ -28903,7 +28904,7 @@ fn __action696<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action697<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -28911,8 +28912,8 @@ fn __action697<
     __2: (usize, Token, usize),
 ) -> ContinuingStatement
 {
-    let __start0 = __1.2;
-    let __end0 = __2.0;
+    let __start0 = __1.2.clone();
+    let __end0 = __2.0.clone();
     let __temp0 = __action331(
         &__start0,
         &__end0,
@@ -28927,7 +28928,7 @@ fn __action697<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action698<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -28936,8 +28937,8 @@ fn __action698<
     __3: (usize, Token, usize),
 ) -> ContinuingStatement
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action332(
         __2,
     );
@@ -28951,7 +28952,7 @@ fn __action698<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action699<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -28962,8 +28963,8 @@ fn __action699<
     __5: (usize, Token, usize),
 ) -> LoopStatement
 {
-    let __start0 = __3.2;
-    let __end0 = __4.0;
+    let __start0 = __3.2.clone();
+    let __end0 = __4.0.clone();
     let __temp0 = __action331(
         &__start0,
         &__end0,
@@ -28981,7 +28982,7 @@ fn __action699<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action700<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -28993,8 +28994,8 @@ fn __action700<
     __6: (usize, Token, usize),
 ) -> LoopStatement
 {
-    let __start0 = __4.0;
-    let __end0 = __4.2;
+    let __start0 = __4.0.clone();
+    let __end0 = __4.2.clone();
     let __temp0 = __action332(
         __4,
     );
@@ -29011,7 +29012,7 @@ fn __action700<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action701<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29021,8 +29022,8 @@ fn __action701<
     __4: (usize, Token, usize),
 ) -> LoopStatement
 {
-    let __start0 = __3.2;
-    let __end0 = __4.0;
+    let __start0 = __3.2.clone();
+    let __end0 = __4.0.clone();
     let __temp0 = __action331(
         &__start0,
         &__end0,
@@ -29039,7 +29040,7 @@ fn __action701<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action702<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29050,8 +29051,8 @@ fn __action702<
     __5: (usize, Token, usize),
 ) -> LoopStatement
 {
-    let __start0 = __4.0;
-    let __end0 = __4.2;
+    let __start0 = __4.0.clone();
+    let __end0 = __4.2.clone();
     let __temp0 = __action332(
         __4,
     );
@@ -29067,15 +29068,15 @@ fn __action702<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action703<
 >(
     __0: (usize, Token, usize),
     __1: (usize, Vec<TemplateArg>, usize),
 ) -> Result<DeclarationKind,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action362(
         __1,
     );
@@ -29087,14 +29088,14 @@ fn __action703<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action704<
 >(
     __0: (usize, Token, usize),
 ) -> Result<DeclarationKind,__lalrpop_util::ParseError<usize,Token,(usize, ParseError, usize)>>
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action363(
         &__start0,
         &__end0,
@@ -29107,7 +29108,7 @@ fn __action704<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action705<
 >(
     __0: (usize, PathOrigin, usize),
@@ -29115,8 +29116,8 @@ fn __action705<
     __2: (usize, Vec<TemplateArg>, usize),
 ) -> TypeExpression
 {
-    let __start0 = __2.0;
-    let __end0 = __2.2;
+    let __start0 = __2.0.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action362(
         __2,
     );
@@ -29129,15 +29130,15 @@ fn __action705<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action706<
 >(
     __0: (usize, PathOrigin, usize),
     __1: (usize, Ident, usize),
 ) -> TypeExpression
 {
-    let __start0 = __1.2;
-    let __end0 = __1.2;
+    let __start0 = __1.2.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action363(
         &__start0,
         &__end0,
@@ -29151,7 +29152,7 @@ fn __action706<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action707<
 >(
     __0: (usize, PathOrigin, usize),
@@ -29160,8 +29161,8 @@ fn __action707<
     __3: (usize, Vec<TemplateArg>, usize),
 ) -> TypeExpression
 {
-    let __start0 = __3.0;
-    let __end0 = __3.2;
+    let __start0 = __3.0.clone();
+    let __end0 = __3.2.clone();
     let __temp0 = __action362(
         __3,
     );
@@ -29175,7 +29176,7 @@ fn __action707<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action708<
 >(
     __0: (usize, PathOrigin, usize),
@@ -29183,8 +29184,8 @@ fn __action708<
     __2: (usize, Ident, usize),
 ) -> TypeExpression
 {
-    let __start0 = __2.2;
-    let __end0 = __2.2;
+    let __start0 = __2.2.clone();
+    let __end0 = __2.2.clone();
     let __temp0 = __action363(
         &__start0,
         &__end0,
@@ -29199,15 +29200,15 @@ fn __action708<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action709<
 >(
     __0: (usize, Ident, usize),
     __1: (usize, Vec<TemplateArg>, usize),
 ) -> TypeExpression
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action362(
         __1,
     );
@@ -29219,14 +29220,14 @@ fn __action709<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action710<
 >(
     __0: (usize, Ident, usize),
 ) -> TypeExpression
 {
-    let __start0 = __0.2;
-    let __end0 = __0.2;
+    let __start0 = __0.2.clone();
+    let __end0 = __0.2.clone();
     let __temp0 = __action363(
         &__start0,
         &__end0,
@@ -29239,7 +29240,7 @@ fn __action710<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action711<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29252,8 +29253,8 @@ fn __action711<
     __7: (usize, ExpressionNode, usize),
 ) -> Declaration
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action368(
         __1,
     );
@@ -29271,7 +29272,7 @@ fn __action711<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action712<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29283,8 +29284,8 @@ fn __action712<
     __6: (usize, ExpressionNode, usize),
 ) -> Declaration
 {
-    let __start0 = __0.2;
-    let __end0 = __1.0;
+    let __start0 = __0.2.clone();
+    let __end0 = __1.0.clone();
     let __temp0 = __action369(
         &__start0,
         &__end0,
@@ -29303,7 +29304,7 @@ fn __action712<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action713<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29314,8 +29315,8 @@ fn __action713<
     __5: (usize, TypeExpression, usize),
 ) -> Declaration
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action368(
         __1,
     );
@@ -29331,7 +29332,7 @@ fn __action713<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action714<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29341,8 +29342,8 @@ fn __action714<
     __4: (usize, TypeExpression, usize),
 ) -> Declaration
 {
-    let __start0 = __0.2;
-    let __end0 = __1.0;
+    let __start0 = __0.2.clone();
+    let __end0 = __1.0.clone();
     let __temp0 = __action369(
         &__start0,
         &__end0,
@@ -29359,7 +29360,7 @@ fn __action714<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action715<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29370,8 +29371,8 @@ fn __action715<
     __5: (usize, ExpressionNode, usize),
 ) -> Declaration
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action368(
         __1,
     );
@@ -29387,7 +29388,7 @@ fn __action715<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action716<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29397,8 +29398,8 @@ fn __action716<
     __4: (usize, ExpressionNode, usize),
 ) -> Declaration
 {
-    let __start0 = __0.2;
-    let __end0 = __1.0;
+    let __start0 = __0.2.clone();
+    let __end0 = __1.0.clone();
     let __temp0 = __action369(
         &__start0,
         &__end0,
@@ -29415,7 +29416,7 @@ fn __action716<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action717<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29424,8 +29425,8 @@ fn __action717<
     __3: (usize, Ident, usize),
 ) -> Declaration
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action368(
         __1,
     );
@@ -29439,7 +29440,7 @@ fn __action717<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action718<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29447,8 +29448,8 @@ fn __action718<
     __2: (usize, Ident, usize),
 ) -> Declaration
 {
-    let __start0 = __0.2;
-    let __end0 = __1.0;
+    let __start0 = __0.2.clone();
+    let __end0 = __1.0.clone();
     let __temp0 = __action369(
         &__start0,
         &__end0,
@@ -29463,7 +29464,7 @@ fn __action718<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action719<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29472,8 +29473,8 @@ fn __action719<
     __3: (usize, CompoundStatement, usize),
 ) -> Function
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action368(
         __1,
     );
@@ -29487,7 +29488,7 @@ fn __action719<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action720<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29495,8 +29496,8 @@ fn __action720<
     __2: (usize, CompoundStatement, usize),
 ) -> Function
 {
-    let __start0 = __0.2;
-    let __end0 = __1.0;
+    let __start0 = __0.2.clone();
+    let __end0 = __1.0.clone();
     let __temp0 = __action369(
         &__start0,
         &__end0,
@@ -29511,7 +29512,7 @@ fn __action720<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action721<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29522,8 +29523,8 @@ fn __action721<
     __5: (usize, Token, usize),
 ) -> ImportStatement
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action368(
         __1,
     );
@@ -29539,7 +29540,7 @@ fn __action721<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action722<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29549,8 +29550,8 @@ fn __action722<
     __4: (usize, Token, usize),
 ) -> ImportStatement
 {
-    let __start0 = __0.2;
-    let __end0 = __1.0;
+    let __start0 = __0.2.clone();
+    let __end0 = __1.0.clone();
     let __temp0 = __action369(
         &__start0,
         &__end0,
@@ -29567,7 +29568,7 @@ fn __action722<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action723<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29579,8 +29580,8 @@ fn __action723<
     __6: (usize, Token, usize),
 ) -> ImportStatement
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action368(
         __1,
     );
@@ -29597,7 +29598,7 @@ fn __action723<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action724<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29608,8 +29609,8 @@ fn __action724<
     __5: (usize, Token, usize),
 ) -> ImportStatement
 {
-    let __start0 = __0.2;
-    let __end0 = __1.0;
+    let __start0 = __0.2.clone();
+    let __end0 = __1.0.clone();
     let __temp0 = __action369(
         &__start0,
         &__end0,
@@ -29627,7 +29628,7 @@ fn __action724<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action725<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29637,8 +29638,8 @@ fn __action725<
     __4: (usize, Token, usize),
 ) -> ImportStatement
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action368(
         __1,
     );
@@ -29653,7 +29654,7 @@ fn __action725<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action726<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29662,8 +29663,8 @@ fn __action726<
     __3: (usize, Token, usize),
 ) -> ImportStatement
 {
-    let __start0 = __0.2;
-    let __end0 = __1.0;
+    let __start0 = __0.2.clone();
+    let __end0 = __1.0.clone();
     let __temp0 = __action369(
         &__start0,
         &__end0,
@@ -29679,7 +29680,7 @@ fn __action726<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action727<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29689,8 +29690,8 @@ fn __action727<
     __4: (usize, Vec<StructMemberNode>, usize),
 ) -> Struct
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action368(
         __1,
     );
@@ -29705,7 +29706,7 @@ fn __action727<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action728<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29714,8 +29715,8 @@ fn __action728<
     __3: (usize, Vec<StructMemberNode>, usize),
 ) -> Struct
 {
-    let __start0 = __0.2;
-    let __end0 = __1.0;
+    let __start0 = __0.2.clone();
+    let __end0 = __1.0.clone();
     let __temp0 = __action369(
         &__start0,
         &__end0,
@@ -29731,7 +29732,7 @@ fn __action728<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action729<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29742,8 +29743,8 @@ fn __action729<
     __5: (usize, TypeExpression, usize),
 ) -> TypeAlias
 {
-    let __start0 = __1.0;
-    let __end0 = __1.2;
+    let __start0 = __1.0.clone();
+    let __end0 = __1.2.clone();
     let __temp0 = __action368(
         __1,
     );
@@ -29759,7 +29760,7 @@ fn __action729<
 }
 
 #[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
-    clippy::just_underscores_and_digits)]
+    clippy::just_underscores_and_digits, clippy::clone_on_copy, clippy::unit_arg)]
 fn __action730<
 >(
     __0: (usize, Vec<AttributeNode>, usize),
@@ -29769,8 +29770,8 @@ fn __action730<
     __4: (usize, TypeExpression, usize),
 ) -> TypeAlias
 {
-    let __start0 = __0.2;
-    let __end0 = __1.0;
+    let __start0 = __0.2.clone();
+    let __end0 = __1.0.clone();
     let __temp0 = __action369(
         &__start0,
         &__end0,

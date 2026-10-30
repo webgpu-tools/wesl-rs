@@ -20605,7 +20605,7 @@ fn __action182<
 ) -> ElseIfClause
 {
     ElseIfClause {
-        attributes: vec![], expression, body
+        expression, body
     }
 }
 
@@ -20617,7 +20617,7 @@ fn __action183<
 ) -> ElseClause
 {
     ElseClause {
-        attributes: vec![], body
+        body
     }
 }
 

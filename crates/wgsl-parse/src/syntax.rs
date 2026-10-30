@@ -649,8 +649,6 @@ pub struct IfClause {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ElseIfClause {
-    /// WESL extension
-    pub attributes: Attributes,
     pub expression: ExpressionNode,
     pub body: CompoundStatement,
 }
@@ -659,8 +657,6 @@ pub struct ElseIfClause {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ElseClause {
-    /// WESL extension
-    pub attributes: Attributes,
     pub body: CompoundStatement,
 }
 

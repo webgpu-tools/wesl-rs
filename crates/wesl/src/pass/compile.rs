@@ -13,7 +13,7 @@ pub fn main_entry_points(main_module: &TranslationUnit) -> HashSet<Ident> {
     main_module.entry_points().collect()
 }
 
-/// Note: it does not call [`pass::retarget_idents`], because that must be done right after [`pass::condcomp`].
+/// Note: it does not call [`pass::retarget_idents()`], because that must be done right after [`pass::condcomp()`].
 pub fn load_module(path: &ModulePath, resolver: &impl Resolver) -> Result<TranslationUnit, Error> {
     let source = resolver.resolve_source(path)?;
 

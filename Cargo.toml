@@ -33,7 +33,7 @@ default-members = [
 # version bumps managed by `cargo xtask version`
 version = "0.6.0"
 edition = "2024"
-rust-version = "1.97.1"
+rust-version = "1.99.1"
 repository = "https://github.com/webgpu-tools/wesl-rs"
 license = "MIT OR Apache-2.0"
 

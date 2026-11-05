@@ -7,7 +7,7 @@ use tokrepr::quote::{format_ident, quote};
 use crate::{SyntaxNode, span::Spanned, syntax::*};
 
 /// named nodes are those that have an identifier. We use this trait to conditionally
-/// implement TokRepr for Spanned<NamedNode>, which allows code injection in `quote_*!`
+/// implement TokRepr for `Spanned<NamedNode>`, which allows code injection in `quote_*!`
 /// macros from the `wesl` crate.
 trait NamedNode {
     fn name(&self) -> Option<String>;

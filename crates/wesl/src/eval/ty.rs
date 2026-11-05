@@ -2,8 +2,8 @@ use std::str::FromStr;
 
 use super::{
     ATTR_INTRINSIC, Context, Convert, Eval, EvalAttrs, EvalError, Exec, ScopeKind, StructType,
-    SyntaxUtil, Ty, Type, check_swizzle, convert_ty, is_ctor, type_builtin_fn, type_ctor,
-    with_stage,
+    SyntaxUtil, Ty, Type, check_swizzle, convert_ty, is_ctor, select_function, type_builtin_fn,
+    type_ctor, with_stage,
 };
 
 type E = EvalError;
@@ -416,6 +416,14 @@ impl EvalTy for FunctionCallExpression {
             .iter()
             .map(|arg| arg.eval_ty(ctx).map(|ty| ty.loaded()))
             .collect::<Result<Vec<_>, _>>()?;
+
+        if let Some(decl) = select_function(&name, &args, ctx)? {
+            let ty = decl
+                .return_type
+                .as_ref()
+                .ok_or_else(|| E::Void(decl.ident.to_string()))?;
+            return ty_eval_ty(ty, ctx);
+        }
 
         if let Some(decl) = ctx.source.decl(&ty.ident.name()) {
             match decl {

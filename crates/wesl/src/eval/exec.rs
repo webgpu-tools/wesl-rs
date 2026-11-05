@@ -13,7 +13,7 @@ use crate::eval::PRELUDE;
 
 use super::{
     ATTR_INTRINSIC, Context, Eval, EvalError, EvalTy, ScopeKind, SyntaxUtil, attrs::EvalAttrs,
-    eval_tplt_arg, ty_eval_ty,
+    eval_tplt_arg, is_overloaded, select_function, ty_eval_ty,
 };
 
 use wgsl_parse::{SyntaxNode, span::Spanned, syntax::*};
@@ -708,6 +708,13 @@ impl Exec for FunctionCall {
             .iter()
             .map(|a| a.eval_value(ctx))
             .collect::<Result<Vec<_>, _>>()?;
+
+        if is_overloaded(&fn_name, ctx) {
+            let arg_tys = args.iter().map(|arg| arg.ty()).collect::<Vec<_>>();
+            if let Some(decl) = select_function(&fn_name, &arg_tys, ctx)? {
+                return exec_fn(decl, tplt, args, ctx).map(Flow::Return);
+            }
+        }
 
         if let Some(decl) = ctx.source.decl(&fn_name) {
             if let GlobalDeclaration::Function(decl) = decl {

@@ -224,6 +224,8 @@ pub fn usage_analysis(
 }
 
 /// Find identifiers used by a declaration.
+///
+/// Overloaded functions share the same identifier, so they are analyzed together.
 fn decl_usage_analysis(
     module: &Module,
     decl: &GlobalDeclaration,
@@ -231,13 +233,35 @@ fn decl_usage_analysis(
     to_analyze: &mut UsedItems,
     ignore_visibility: bool,
 ) -> Result<(), UsageError> {
-    if decl.ident().is_some_and(|ident| {
-        !already_used.insert_ident(module.path.clone(), ident, decl.visibility())
-    }) {
+    let Some(ident) = decl.ident() else {
+        return decl_body_usage_analysis(module, decl, already_used, to_analyze, ignore_visibility);
+    };
+
+    if !already_used.insert_ident(module.path.clone(), ident.clone(), decl.visibility()) {
         // the ident has already been analyzed.
         return Ok(());
     }
 
+    for decl in module
+        .syntax
+        .global_declarations
+        .iter()
+        .filter(|decl| decl.ident().as_ref() == Some(&ident))
+    {
+        decl_body_usage_analysis(module, decl, already_used, to_analyze, ignore_visibility)?;
+    }
+
+    Ok(())
+}
+
+/// Find identifiers used by a declaration, without marking the declaration as used.
+fn decl_body_usage_analysis(
+    module: &Module,
+    decl: &GlobalDeclaration,
+    already_used: &mut UsedItems,
+    to_analyze: &mut UsedItems,
+    ignore_visibility: bool,
+) -> Result<(), UsageError> {
     // inside visit_rec below we can't simply exit the function so we mutate this instead.
     let mut res = Ok(());
 

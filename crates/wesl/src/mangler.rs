@@ -11,6 +11,7 @@ use itertools::Itertools;
 use wgsl_parse::syntax::Expression;
 use wgsl_parse::syntax::PathOrigin;
 use wgsl_parse::syntax::TypeExpression;
+use wgsl_types::ty::Type;
 
 use super::ModulePath;
 
@@ -39,6 +40,32 @@ pub trait Mangler {
     fn mangle_types(&self, item: &str, variant: u32, _types: &[TypeExpression]) -> String {
         format!("{item}_{variant}")
     }
+    /// Turn an (already mangled) overloaded function name and its parameter types into a
+    /// unique WGSL identifier for this overload.
+    ///
+    /// The default implementation appends the parameter types to the name,
+    /// e.g. `foo(f32, vec3<f32>) => foo_f32_vec3_f32`.
+    fn mangle_overload(&self, item: &str, signature: &[Type]) -> String {
+        let mut res = item.to_string();
+        for ty in signature {
+            res.push('_');
+            let ty = ty.to_string();
+            let mut prev_sep = false;
+            for c in ty.chars() {
+                if c.is_ascii_alphanumeric() {
+                    res.push(c);
+                    prev_sep = false;
+                } else if !prev_sep {
+                    res.push('_');
+                    prev_sep = true;
+                }
+            }
+            while res.ends_with('_') {
+                res.pop();
+            }
+        }
+        res
+    }
 }
 
 impl<T: Mangler + ?Sized> Mangler for Box<T> {
@@ -51,6 +78,9 @@ impl<T: Mangler + ?Sized> Mangler for Box<T> {
     fn mangle_types(&self, item: &str, variant: u32, types: &[TypeExpression]) -> String {
         (**self).mangle_types(item, variant, types)
     }
+    fn mangle_overload(&self, item: &str, signature: &[Type]) -> String {
+        (**self).mangle_overload(item, signature)
+    }
 }
 
 impl<T: Mangler + ?Sized> Mangler for &T {
@@ -62,6 +92,9 @@ impl<T: Mangler + ?Sized> Mangler for &T {
     }
     fn mangle_types(&self, item: &str, variant: u32, types: &[TypeExpression]) -> String {
         (**self).mangle_types(item, variant, types)
+    }
+    fn mangle_overload(&self, item: &str, signature: &[Type]) -> String {
+        (**self).mangle_overload(item, signature)
     }
 }
 
@@ -274,6 +307,14 @@ impl<T: Mangler> Mangler for CacheMangler<'_, T> {
         }
 
         self.mangler.unmangle(mangled)
+    }
+    fn mangle_overload(&self, item: &str, signature: &[Type]) -> String {
+        let res = self.mangler.mangle_overload(item, signature);
+        let mut cache = self.cache.borrow_mut();
+        if let Some(entry) = cache.get(item).cloned() {
+            cache.insert(res.clone(), entry);
+        }
+        res
     }
 }
 

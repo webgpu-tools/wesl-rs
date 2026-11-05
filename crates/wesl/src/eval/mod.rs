@@ -7,6 +7,7 @@ mod error;
 mod eval;
 mod exec;
 mod lower;
+mod overload;
 mod prelude;
 mod to_expr;
 mod ty;
@@ -17,6 +18,8 @@ pub use error::*;
 pub use eval::*;
 pub use exec::*;
 pub use lower::*;
+pub use overload::{OverloadSets, fn_signature, select_overload};
+pub(crate) use overload::{init_module_scope, is_overloaded, resolve_calls, select_function};
 pub use prelude::*;
 pub use to_expr::*;
 pub use ty::*;
@@ -280,6 +283,9 @@ pub trait SyntaxUtil {
     /// find a function declaration by name.
     fn decl_function(&self, name: &str) -> Option<&Function>;
 
+    /// find all function declarations with a given name (overloads).
+    fn decl_functions(&self, name: &str) -> Vec<&Function>;
+
     /// resolve an alias name.
     fn resolve_alias(&self, name: &str) -> Option<&TypeExpression>;
 
@@ -349,6 +355,24 @@ impl SyntaxUtil for TranslationUnit {
         match self.decl(name) {
             Some(GlobalDeclaration::Function(f)) => Some(f),
             _ => None,
+        }
+    }
+    fn decl_functions(&self, name: &str) -> Vec<&Function> {
+        // note: declarations in PRELUDE can be shadowed by user-defined declarations.
+        fn find<'a>(module: &'a TranslationUnit, name: &str) -> Vec<&'a Function> {
+            module
+                .global_declarations
+                .iter()
+                .filter_map(|d| match d.node() {
+                    GlobalDeclaration::Function(f) if *f.ident.name() == name => Some(f),
+                    _ => None,
+                })
+                .collect()
+        }
+        if self.user_decl(name).is_some() {
+            find(self, name)
+        } else {
+            find(&PRELUDE, name)
         }
     }
 

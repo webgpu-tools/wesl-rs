@@ -32,6 +32,7 @@ pub struct CompileResult {
 /// * Conditional translation runs after module loading.
 /// * Import resolution runs at usage analysis.
 /// * Name mangling runs before assembly.
+/// * Function overload resolution runs after assembly.
 pub trait CompilerDriver: Sized {
     /// Get the path of the main module.
     fn main_path(&self) -> &ModulePath;

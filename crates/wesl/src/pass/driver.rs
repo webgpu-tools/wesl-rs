@@ -106,7 +106,7 @@ pub trait CompilerDriver: Sized {
 
     /// Run the compilation pipeline.
     ///
-    /// See standalone default implementation in [`pass::compile`].
+    /// See standalone default implementation in [`pass::compile()`].
     fn compile(&mut self) -> Result<CompileResult, Error> {
         pass::compile(self)
     }

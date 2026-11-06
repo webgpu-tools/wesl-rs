@@ -38,7 +38,7 @@ fn compile_wgsl() {
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    let expected = expect_file![format!("./snapshots/frontend__compile_wgsl.snap")];
+    let expected = expect_file!["./snapshots/frontend__compile_wgsl.snap".to_string()];
     expected.assert_eq(&result.syntax.to_string());
 }
 
@@ -56,7 +56,7 @@ async fn compile_wgsl_async() {
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    let expected = expect_file![format!("./snapshots/frontend__compile_wgsl_async.snap")];
+    let expected = expect_file!["./snapshots/frontend__compile_wgsl_async.snap".to_string()];
     expected.assert_eq(&result.syntax.to_string());
 }
 
@@ -73,9 +73,7 @@ fn compile_wgsl_lower_eval() {
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    let expected = expect_file![format!(
-        "./snapshots/frontend__compile_wgsl_lower_eval.snap"
-    )];
+    let expected = expect_file!["./snapshots/frontend__compile_wgsl_lower_eval.snap".to_string()];
     expected.assert_eq(&result.syntax.to_string());
 }
 
@@ -92,7 +90,7 @@ fn compile_wgsl_strip() {
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    let expected = expect_file![format!("./snapshots/frontend__compile_wgsl_strip.snap")];
+    let expected = expect_file!["./snapshots/frontend__compile_wgsl_strip.snap".to_string()];
     expected.assert_eq(&result.syntax.to_string());
 }
 
@@ -120,7 +118,7 @@ fn compile_wesl_directory() {
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    let expected = expect_file![format!("./snapshots/frontend__compile_wesl_directory.snap")];
+    let expected = expect_file!["./snapshots/frontend__compile_wesl_directory.snap".to_string()];
     expected.assert_eq(&result.syntax.to_string());
 }
 
@@ -148,7 +146,7 @@ fn compile_wesl_file() {
         .inspect_err(|e| eprintln!("{e}"))
         .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    let expected = expect_file![format!("./snapshots/frontend__compile_wesl_file.snap")];
+    let expected = expect_file!["./snapshots/frontend__compile_wesl_file.snap".to_string()];
     expected.assert_eq(&result.syntax.to_string());
 }
 
@@ -175,9 +173,7 @@ fn compile_wesl_toml_feat1() {
     .inspect_err(|e| eprintln!("{e}"))
     .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    let expected = expect_file![format!(
-        "./snapshots/frontend__compile_wesl_toml_feat1.snap"
-    )];
+    let expected = expect_file!["./snapshots/frontend__compile_wesl_toml_feat1.snap".to_string()];
     expected.assert_eq(&result.syntax.to_string());
 }
 
@@ -204,9 +200,7 @@ fn compile_wesl_toml_feat2() {
     .inspect_err(|e| eprintln!("{e}"))
     .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    let expected = expect_file![format!(
-        "./snapshots/frontend__compile_wesl_toml_feat2.snap"
-    )];
+    let expected = expect_file!["./snapshots/frontend__compile_wesl_toml_feat2.snap".to_string()];
     expected.assert_eq(&result.syntax.to_string());
 }
 
@@ -237,8 +231,7 @@ fn compile_dependency_unification() {
     .inspect_err(|e| eprintln!("{e}"))
     .unwrap();
     result.syntax.sort_declarations(); // normalize for comparison
-    let expected = expect_file![format!(
-        "./snapshots/frontend__compile_dependency_unification.snap"
-    )];
+    let expected =
+        expect_file!["./snapshots/frontend__compile_dependency_unification.snap".to_string()];
     expected.assert_eq(&result.syntax.to_string());
 }

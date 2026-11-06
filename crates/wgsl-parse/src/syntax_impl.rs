@@ -879,13 +879,9 @@ impl SyntaxNode for IfStatement {
 
 impl SyntaxNode for IfClause {}
 
-impl SyntaxNode for ElseIfClause {
-    impl_attrs_struct! {}
-}
+impl SyntaxNode for ElseIfClause {}
 
-impl SyntaxNode for ElseClause {
-    impl_attrs_struct! {}
-}
+impl SyntaxNode for ElseClause {}
 
 impl SyntaxNode for SwitchStatement {
     impl_attrs_struct! {}

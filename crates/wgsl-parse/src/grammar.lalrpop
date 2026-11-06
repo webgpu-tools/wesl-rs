@@ -729,13 +729,13 @@ IfClause: IfClause = "if" <expression: ExpressionNode> <body: CompoundStatement>
 
 ElseIfClause: ElseIfClause = {
     "else" "if" <expression: ExpressionNode> <body: CompoundStatement> => ElseIfClause {
-        attributes: vec![], expression, body
+        expression, body
     },
 } ;
 
 ElseClause: ElseClause = {
     "else" <body: CompoundStatement> => ElseClause {
-        attributes: vec![], body
+        body
     },
 }
 

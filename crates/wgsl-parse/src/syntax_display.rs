@@ -600,7 +600,6 @@ impl Display for IfClause {
 
 impl Display for ElseIfClause {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let expr = &self.expression;
         let stmt = &self.body;
         write!(f, "else if {expr} {stmt}")
@@ -609,7 +608,6 @@ impl Display for ElseIfClause {
 
 impl Display for ElseClause {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", fmt_attrs(&self.attributes, false))?;
         let stmt = &self.body;
         write!(f, "else {stmt}")
     }

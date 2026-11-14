@@ -156,6 +156,36 @@ mod test {
     }
 
     #[test]
+    fn if_statement_else_clauses_have_no_attributes() {
+        use crate::SyntaxNode;
+        use crate::syntax::{ElseClause, ElseIfClause, Statement};
+        use std::str::FromStr;
+
+        let src = "if (a) {} else if (b) {} else {}";
+        let stmt = Statement::from_str(src).expect("parse if with else branches");
+        let Statement::If(if_stmt) = stmt else {
+            panic!("expected if statement");
+        };
+
+        assert_eq!(if_stmt.else_if_clauses.len(), 1);
+        assert!(if_stmt.else_clause.is_some());
+
+        let elif = &if_stmt.else_if_clauses[0];
+        assert!(elif.attributes().is_empty());
+        let ElseIfClause {
+            expression,
+            body: _,
+        } = elif;
+        assert_eq!(expression.to_string(), "(b)");
+
+        let else_clause = if_stmt.else_clause.as_ref().unwrap();
+        assert!(else_clause.attributes().is_empty());
+        let ElseClause { body: _ } = else_clause;
+
+        assert!(!if_stmt.to_string().contains('@'));
+    }
+
+    #[test]
     fn lhs_expression() {
         expect_ok::<Statement>("(x) = 1;");
         expect_ok::<Statement>("(*x) += 1;");

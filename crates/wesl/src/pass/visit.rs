@@ -206,7 +206,6 @@ impl_visit! { Statement => TypeExpression,
                 }
             },
             else_if_clauses.[].{
-                attributes.[].(x => visit::<Attribute, TypeExpression>(x)),
                 expression.(x => visit::<Expression, TypeExpression>(x)),
                 body.{
                     attributes.[].(x => visit::<Attribute, TypeExpression>(x)),
@@ -214,7 +213,6 @@ impl_visit! { Statement => TypeExpression,
                 }
             },
             else_clause.[].{
-                attributes.[].(x => visit::<Attribute, TypeExpression>(x)),
                 body.{
                     attributes.[].(x => visit::<Attribute, TypeExpression>(x)),
                     statements.[].(x => recurse(x)),

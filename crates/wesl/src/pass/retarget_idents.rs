@@ -170,14 +170,12 @@ pub fn retarget_idents(module: &mut TranslationUnit) {
                         }
                     },
                     else_if_clauses.[].{
-                        attributes.[].(x => x.visit_mut()),
                         expression.(x => Visit::<TypeExpression>::visit_mut(&mut **x)),
                         body.{
                             attributes.[].(x => x.visit_mut()),
                         }
                     },
                     else_clause.[].{
-                        attributes.[].(x => x.visit_mut()),
                         body.{
                             attributes.[].(x => x.visit_mut()),
                         },

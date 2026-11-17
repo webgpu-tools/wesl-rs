@@ -552,10 +552,7 @@ fn eval_expr(src: &str, module: &TranslationUnit) -> Result<Instance, CliError> 
 }
 
 fn main() {
-    let cli = match Cli::try_parse() {
-        Ok(cli) => cli,
-        Err(err) => err.exit(),
-    };
+    let cli = Cli::parse();
     run(cli).inspect_err(|e| eprintln!("{e}")).ok();
 }
 

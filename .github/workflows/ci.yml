@@ -82,8 +82,6 @@ jobs:
         with:
           toolchain: ${{ env.STABLE_TOOLCHAIN }}
           components: rustfmt, clippy
-      - name: Check for duplicate wesl versions in Cargo.lock
-        run: bash .github/scripts/check-single-wesl-lockfile.sh
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Clippy

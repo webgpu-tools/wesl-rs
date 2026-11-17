@@ -29,7 +29,7 @@ multiple-versions = "warn"
 wildcards = "deny"
 allow-wildcard-paths = true
 # Certain crates that we don't want multiple versions of in the dependency tree
-deny = []
+deny = [{ name = "wesl", deny-multiple-versions = true }]
 skip = []
 
 [[bans.features]]

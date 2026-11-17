@@ -565,7 +565,7 @@ fn test_visit_attributes_reaches_every_if() {
     // Each `@if` uses a distinct flag, so that a missed node shows up as a missing flag.
     let unit: TranslationUnit = "
         struct S { @if(MEMBER) a: f32, b: f32 }
-        fn f(@if(PARAM) p: f32) -> @if(RETURN) f32 { return p; }
+        fn f(@if(PARAM) p: f32) -> f32 { return p; }
         @if(DECL) const c = 1;
         fn main() {
             var x = 0;

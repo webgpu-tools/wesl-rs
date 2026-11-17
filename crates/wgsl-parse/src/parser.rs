@@ -14,16 +14,6 @@ mod grammar {
 pub use crate::parser_support::ParseEntryPoint;
 use grammar::EntryPointParser;
 
-macro_rules! parse {
-    ($source:expr, $token:ident, $entrypoint:ident) => {{
-        match parse_tokens(Lexer::new($source), Token::$token) {
-            Ok(ParseEntryPoint::$entrypoint(res)) => Ok(res),
-            Ok(_) => unreachable!("parser parsed the wrong entrypoint"),
-            Err(e) => Err(e),
-        }
-    }};
-}
-
 /// Parse a token stream into a syntax tree.
 ///
 /// Low-level implementation, you probably don't want to use this. See [`parse_str`].
@@ -48,7 +38,6 @@ pub fn parse_str(source: &str) -> Result<TranslationUnit, Error> {
         return Err(diagnostics.errors.remove(0));
     }
     Ok(result)
-    // parse!(source, EntryPointTranslationUnit, TranslationUnit)
 }
 
 pub fn recognize_template_list(lexer: impl TokenIterator) -> Result<(), Error> {
@@ -63,49 +52,44 @@ impl FromStr for TranslationUnit {
     type Err = Error;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
-        parse!(source, EntryPointTranslationUnit, TranslationUnit)
-    }
-}
-impl FromStr for GlobalDirective {
-    type Err = Error;
-
-    fn from_str(source: &str) -> Result<Self, Self::Err> {
-        parse!(source, EntryPointGlobalDirective, GlobalDirective)
-    }
-}
-impl FromStr for GlobalDeclaration {
-    type Err = Error;
-
-    fn from_str(source: &str) -> Result<Self, Self::Err> {
-        parse!(source, EntryPointGlobalDecl, GlobalDecl)
+        parse_str(source)
     }
 }
 impl FromStr for Statement {
     type Err = Error;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
-        parse!(source, EntryPointStatement, Statement)
+        let (result, mut diagnostics) = crate::parser2::parse_str_statement(source);
+        if !diagnostics.errors.is_empty() {
+            return Err(diagnostics.errors.remove(0));
+        }
+        Ok(result.into_inner())
     }
 }
 impl FromStr for Expression {
     type Err = Error;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
-        parse!(source, EntryPointExpression, Expression)
+        let (result, mut diagnostics) = crate::parser2::parse_str_expression(source);
+        if !diagnostics.errors.is_empty() {
+            return Err(diagnostics.errors.remove(0));
+        }
+        Ok(result.into_inner())
     }
 }
 impl FromStr for LiteralExpression {
     type Err = Error;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
-        parse!(source, EntryPointLiteral, Literal)
-    }
-}
-impl FromStr for crate::syntax::ImportStatement {
-    type Err = Error;
-
-    fn from_str(source: &str) -> Result<Self, Self::Err> {
-        parse!(source, EntryPointImportStatement, ImportStatement)
+        match parse_tokens(Lexer::new(source), Token::EntryPointLiteral) {
+            Ok(ParseEntryPoint::Literal(res)) => Ok(res),
+            Ok(_) => {
+                panic!(
+                    "internal error: entered unreachable code: parser parsed the wrong entrypoint",
+                );
+            }
+            Err(e) => Err(e),
+        }
     }
 }
 

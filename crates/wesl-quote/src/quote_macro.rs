@@ -1,4 +1,4 @@
-use std::iter::Peekable;
+use std::{iter::Peekable, str::FromStr};
 
 use itertools::Itertools;
 use proc_macro_error3::{abort, abort_call_site};
@@ -468,13 +468,12 @@ impl Iterator for Lexer {
 
 impl wgsl_parse::lexer::TokenIterator for Lexer {}
 
+/// Parse a part of WGSL/WESL syntax.
+/// For global declarations and directives, just use the translation unit parser and pick out the pieces you need.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum QuoteNodeKind {
     TranslationUnit,
-    ImportStatement,
-    GlobalDeclaration,
     Literal,
-    GlobalDirective,
     Expression,
     Statement,
 }
@@ -509,10 +508,7 @@ fn quote_impl_inline(kind: QuoteNodeKind, input: TokenStream) -> TokenStream {
 
     match kind {
         QuoteNodeKind::TranslationUnit => parser_impl!(EntryPointTranslationUnit, TranslationUnit),
-        QuoteNodeKind::ImportStatement => parser_impl!(EntryPointImportStatement, ImportStatement),
-        QuoteNodeKind::GlobalDeclaration => parser_impl!(EntryPointGlobalDecl, GlobalDecl),
         QuoteNodeKind::Literal => parser_impl!(EntryPointLiteral, Literal),
-        QuoteNodeKind::GlobalDirective => parser_impl!(EntryPointGlobalDirective, GlobalDirective),
         QuoteNodeKind::Expression => parser_impl!(EntryPointExpression, Expression),
         QuoteNodeKind::Statement => parser_impl!(EntryPointStatement, Statement),
     }
@@ -536,13 +532,27 @@ fn quote_impl_str(kind: QuoteNodeKind, str: &str) -> TokenStream {
     }
 
     match kind {
-        QuoteNodeKind::TranslationUnit => parser_impl!(EntryPointTranslationUnit, TranslationUnit),
-        QuoteNodeKind::ImportStatement => parser_impl!(EntryPointImportStatement, ImportStatement),
-        QuoteNodeKind::GlobalDeclaration => parser_impl!(EntryPointGlobalDecl, GlobalDecl),
+        QuoteNodeKind::TranslationUnit => {
+            match wgsl_parse::syntax::TranslationUnit::from_str(str) {
+                Ok(res) => res.tok_repr(),
+                Err(e) => {
+                    abort_call_site!("{}", e)
+                }
+            }
+        }
         QuoteNodeKind::Literal => parser_impl!(EntryPointLiteral, Literal),
-        QuoteNodeKind::GlobalDirective => parser_impl!(EntryPointGlobalDirective, GlobalDirective),
-        QuoteNodeKind::Expression => parser_impl!(EntryPointExpression, Expression),
-        QuoteNodeKind::Statement => parser_impl!(EntryPointStatement, Statement),
+        QuoteNodeKind::Expression => match wgsl_parse::syntax::Expression::from_str(str) {
+            Ok(res) => res.tok_repr(),
+            Err(e) => {
+                abort_call_site!("{}", e)
+            }
+        },
+        QuoteNodeKind::Statement => match wgsl_parse::syntax::Statement::from_str(str) {
+            Ok(res) => res.tok_repr(),
+            Err(e) => {
+                abort_call_site!("{}", e)
+            }
+        },
     }
 }
 

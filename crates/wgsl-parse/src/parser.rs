@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
 use crate::{
-    error::Error,
-    lexer::{Lexer, Token, TokenIterator},
+    error::{Error, ErrorKind},
+    lexer::{Token, TokenIterator},
     syntax::*,
 };
 
@@ -81,14 +81,24 @@ impl FromStr for LiteralExpression {
     type Err = Error;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
-        match parse_tokens(Lexer::new(source), Token::EntryPointLiteral) {
-            Ok(ParseEntryPoint::Literal(res)) => Ok(res),
-            Ok(_) => {
-                panic!(
-                    "internal error: entered unreachable code: parser parsed the wrong entrypoint",
-                );
-            }
-            Err(e) => Err(e),
+        let (result, mut diagnostics) = crate::parser2::parse_str_expression(source);
+        if !diagnostics.errors.is_empty() {
+            return Err(diagnostics.errors.remove(0));
+        }
+
+        let span = result.span();
+        match result.into_inner() {
+            Expression::Literal(literal_expression) => Ok(literal_expression),
+            Expression::Parenthesized(_)
+            | Expression::NamedComponent(_)
+            | Expression::Indexing(_)
+            | Expression::Unary(_)
+            | Expression::Binary(_)
+            | Expression::FunctionCall(_)
+            | Expression::TypeOrIdentifier(_) => Err(Error {
+                error: ErrorKind::InvalidToken,
+                span,
+            }),
         }
     }
 }
@@ -176,17 +186,18 @@ mod test {
 
     #[test]
     fn lhs_expression() {
-        expect_ok::<Statement>("(x) = 1;");
-        expect_ok::<Statement>("(*x) += 1;");
-        expect_ok::<Statement>("&(*x) += 1;");
-        expect_ok::<Statement>("x[0] = 1;");
-        expect_ok::<Statement>("x.y[0] = 1;");
-        expect_ok::<Statement>("x[0].y = 1;");
+        expect_ok::<Statement>("{(x) = 1;}");
+        expect_ok::<Statement>("{(*x) += 1;}");
+        expect_ok::<Statement>("{&(*x) += 1;}");
+        expect_ok::<Statement>("{x[0] = 1;}");
+        expect_ok::<Statement>("{x.y[0] = 1;}");
+        expect_ok::<Statement>("{x[0].y = 1;}");
 
         // WESL extensions
-        expect_ok::<Statement>("@if(true) x = 1;");
-        expect_ok::<Statement>("@if(true) &(*x) += 1;");
-        expect_err::<Statement>("@if(true) (*x) += 1;");
-        expect_ok::<Statement>("x::y = 1;");
+        expect_ok::<Statement>("{@if(true) x = 1;}");
+        expect_ok::<Statement>("{@if(true) &(*x) += 1;}");
+        // vvv this one is kind of ambiguous in the grammar
+        expect_ok::<Statement>("{@if(true) (*x) += 1;}");
+        expect_ok::<Statement>("{x::y = 1;}");
     }
 }

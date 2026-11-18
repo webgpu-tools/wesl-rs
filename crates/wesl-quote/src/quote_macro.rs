@@ -515,22 +515,6 @@ fn quote_impl_inline(kind: QuoteNodeKind, input: TokenStream) -> TokenStream {
 }
 
 fn quote_impl_str(kind: QuoteNodeKind, str: &str) -> TokenStream {
-    use wgsl_parse::parser::{ParseEntryPoint, parse_tokens};
-    let lexer = wgsl_parse::lexer::Lexer::new(str);
-
-    macro_rules! parser_impl {
-        ($token:ident, $entrypoint:ident) => {{
-            match parse_tokens(lexer, Token::$token) {
-                Ok(ParseEntryPoint::$entrypoint(res)) => res.tok_repr(),
-                Ok(_) => unreachable!("parser parsed the wrong entrypoint"),
-                Err(e) => {
-                    let err = wgsl_parse::Error::from(e);
-                    abort_call_site!("{}", err)
-                }
-            }
-        }};
-    }
-
     match kind {
         QuoteNodeKind::TranslationUnit => {
             match wgsl_parse::syntax::TranslationUnit::from_str(str) {
@@ -540,7 +524,12 @@ fn quote_impl_str(kind: QuoteNodeKind, str: &str) -> TokenStream {
                 }
             }
         }
-        QuoteNodeKind::Literal => parser_impl!(EntryPointLiteral, Literal),
+        QuoteNodeKind::Literal => match wgsl_parse::syntax::LiteralExpression::from_str(str) {
+            Ok(res) => res.tok_repr(),
+            Err(e) => {
+                abort_call_site!("{}", e)
+            }
+        },
         QuoteNodeKind::Expression => match wgsl_parse::syntax::Expression::from_str(str) {
             Ok(res) => res.tok_repr(),
             Err(e) => {

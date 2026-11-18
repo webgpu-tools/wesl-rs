@@ -2,6 +2,33 @@ use wesl::syntax::*;
 use wesl_quote::quote_module;
 
 #[test]
+fn simple_string_quoting() {
+    let wgsl = quote_module!(
+        "
+        struct mystruct { a: f32 }
+        fn foo() {
+            let x: f32 = 7;
+            let y = mystruct(x + 2);
+        }
+    "
+    );
+
+    let actual = wgsl.to_string();
+
+    expect_test::expect![[r#"
+        struct mystruct {
+            a: f32
+        }
+
+        fn foo() {
+            let x: f32 = 7;
+            let y = mystruct(x + 2);
+        }
+    "#]]
+    .assert_eq(&actual);
+}
+
+#[test]
 fn marker_injection() {
     let inject_struct = Struct::new(Ident::new("mystruct".to_string()));
     let inject_func = Function::new(Ident::new("myfunc".to_string()));

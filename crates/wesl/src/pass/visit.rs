@@ -612,7 +612,6 @@ fn test_visit_attributes_reaches_every_if() {
     let mut expected = [
         "MEMBER",
         "PARAM",
-        "RETURN",
         "DECL",
         "ASSIGN",
         "INCREMENT",

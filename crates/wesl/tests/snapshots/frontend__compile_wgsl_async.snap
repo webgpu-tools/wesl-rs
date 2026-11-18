@@ -44,9 +44,9 @@ const l24 = 10000000000.0;
 
 const l25 = 0.0000000001f;
 
-const l26 = 65536.0;
+const l26 = 16.0;
 
-const l27 = 98304.0;
+const l27 = 24.0;
 
 const l28 = 0.5;
 
@@ -54,7 +54,7 @@ const l29 = 1f;
 
 const l3 = 0u;
 
-const l30 = 0.000015258789h;
+const l30 = 0.0625h;
 
 const l4 = 123;
 

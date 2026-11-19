@@ -9,6 +9,7 @@ members = [
   "crates/wesl-core",
   "crates/wesl-macros",
   "crates/wesl-quote",
+  "crates/wesl-quote-impl",
   "crates/wesl-rs-web",
   "crates/wesl-test",
   "crates/wgsl-parse",
@@ -25,6 +26,7 @@ default-members = [
   "crates/wesl-core",
   "crates/wesl-macros",
   "crates/wesl-quote",
+  "crates/wesl-quote-impl",
   "crates/wgsl-parse",
   "crates/wgsl-types",
 ]
@@ -43,6 +45,7 @@ tokrepr-derive = { path = "crates/tokrepr-derive", version = "0.1.0" }
 wesl = { path = "crates/wesl", version = "0.6.0" }
 wesl-core = { path = "crates/wesl-core", version = "0.1.0" }
 wesl-macros = { path = "crates/wesl-macros", version = "0.6.0" }
+wesl-quote-impl = { path = "crates/wesl-quote-impl", version = "0.6.0" }
 wgsl-parse = { path = "crates/wgsl-parse", version = "0.6.0" }
 wgsl-types = { path = "crates/wgsl-types", version = "0.6.0" }
 

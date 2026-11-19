@@ -3,6 +3,7 @@ use std::{iter::Peekable, str::FromStr};
 use itertools::Itertools;
 use proc_macro_error3::{abort, abort_call_site};
 use proc_macro2::{Ident, Literal, Punct, Spacing, TokenStream};
+use quote::ToTokens;
 use token_stream_flatten::{
     Delimiter, DelimiterKind, DelimiterPosition, FlattenRec, Token as RustToken,
 };
@@ -506,52 +507,246 @@ fn quote_impl_inline(kind: QuoteNodeKind, input: TokenStream) -> TokenStream {
         }};
     }
 
+    let shader_code = Lexer2::new(input.clone())
+        .map(|token| token.as_wgsl_code().to_owned())
+        .collect::<String>();
+
     match kind {
-        QuoteNodeKind::TranslationUnit => parser_impl!(EntryPointTranslationUnit, TranslationUnit),
-        QuoteNodeKind::Literal => parser_impl!(EntryPointLiteral, Literal),
-        QuoteNodeKind::Expression => parser_impl!(EntryPointExpression, Expression),
-        QuoteNodeKind::Statement => parser_impl!(EntryPointStatement, Statement),
+        QuoteNodeKind::TranslationUnit => {
+            match wgsl_parse::syntax::TranslationUnit::from_str(&shader_code) {
+                Ok(_) => {
+                    to_wesl_tokens(input, quote::quote! { wgsl_parse::syntax::TranslationUnit })
+                }
+                Err(e) => {
+                    abort!(get_error_span(input, e.span.range()), "{}", e)
+                }
+            }
+            // parser_impl!(EntryPointTranslationUnit, TranslationUnit)
+        }
+        QuoteNodeKind::Literal => {
+            match wgsl_parse::syntax::LiteralExpression::from_str(&shader_code) {
+                Ok(_) => to_wesl_tokens(
+                    input,
+                    quote::quote! { wgsl_parse::syntax::LiteralExpression },
+                ),
+                Err(e) => {
+                    abort!(get_error_span(input, e.span.range()), "{}", e)
+                }
+            }
+            // parser_impl!(EntryPointLiteral, Literal)
+        }
+        QuoteNodeKind::Expression => {
+            match wgsl_parse::syntax::Expression::from_str(&shader_code) {
+                Ok(_) => to_wesl_tokens(input, quote::quote! { wgsl_parse::syntax::Expression }),
+                Err(e) => {
+                    abort!(get_error_span(input, e.span.range()), "{}", e)
+                }
+            }
+            // parser_impl!(EntryPointExpression, Expression)
+        }
+        QuoteNodeKind::Statement => {
+            match wgsl_parse::syntax::Statement::from_str(&shader_code) {
+                Ok(_) => to_wesl_tokens(input, quote::quote! { wgsl_parse::syntax::Statement }),
+                Err(e) => {
+                    abort!(get_error_span(input, e.span.range()), "{}", e)
+                }
+            }
+            // parser_impl!(EntryPointStatement, Statement)
+        }
     }
 }
 
-fn quote_impl_str(kind: QuoteNodeKind, str: &str) -> TokenStream {
+struct Lexer2 {
+    token_stream: Peekable<FlattenRec>,
+}
+
+impl Lexer2 {
+    fn new(input: TokenStream) -> Self {
+        Self {
+            token_stream: FlattenRec::from(input.into_iter()).peekable(),
+        }
+    }
+
+    /// Expand a variable interpolation composed of a marker and a variable identifier (e.g. `#expr@ident`).
+    fn marker2wesl(&mut self, span: proc_macro2::Span) -> Lexer2Item {
+        let Some(RustToken::Ident(marker)) = self.token_stream.next() else {
+            abort!(span, "expected an interpolation marker after `#`",)
+        };
+        let is_marker =
+            matches!(self.token_stream.peek(), Some(RustToken::Punct(p)) if p.as_char() == '@');
+        if !is_marker {
+            // no marker (#ident) is equivalent to #expr@ident.
+            return Lexer2Item::Interpolate(MarkerType::Expression, marker);
+        }
+
+        let _ = self.token_stream.next(); // consume the `@`.
+
+        // consume the variable ident.
+        let ident = match self.token_stream.next() {
+            Some(RustToken::Ident(id)) => id,
+            Some(tok) => abort!(tok.span(), "expected an identifier after `#{}@`", marker),
+            None => abort!(span, "expected an identifier after `#{}@`", marker),
+        };
+
+        // syntactically valid placeholder
+        // name clashes are allowed, since we do not check for semantic correctness
+        match marker.to_string().as_str() {
+            "expr" => Lexer2Item::Interpolate(MarkerType::Expression, ident),
+            "decl" => Lexer2Item::Interpolate(MarkerType::Declaration, ident),
+            "stmt" => Lexer2Item::Interpolate(MarkerType::Statement, ident),
+            "mem" => Lexer2Item::Interpolate(MarkerType::StructMember, ident),
+            "attr" => Lexer2Item::Interpolate(MarkerType::Attribute, ident),
+            _ => abort!(span, "not a valid marker name"),
+        }
+    }
+}
+
+enum Lexer2Item {
+    WgslCode(String, proc_macro2::Span),
+    Interpolate(MarkerType, proc_macro2::Ident),
+}
+
+impl Lexer2Item {
+    fn as_wgsl_code(&self) -> &str {
+        match self {
+            Lexer2Item::WgslCode(text, _) => text,
+            Lexer2Item::Interpolate(MarkerType::Expression, _) => "dummy_expr",
+            Lexer2Item::Interpolate(MarkerType::Declaration | MarkerType::Statement, _) => {
+                "const dummy_name = dummy_expr;"
+            }
+            Lexer2Item::Interpolate(MarkerType::StructMember, _) => "dummy_name: dummy_type",
+            Lexer2Item::Interpolate(MarkerType::Attribute, _) => "@dummy_attribute()",
+        }
+    }
+
+    fn span(&self) -> proc_macro2::Span {
+        match self {
+            Lexer2Item::WgslCode(_, span) => *span,
+            Lexer2Item::Interpolate(_, ident) => ident.span(),
+        }
+    }
+}
+
+enum MarkerType {
+    Expression,
+    Declaration,
+    Statement,
+    StructMember,
+    Attribute,
+}
+
+impl Iterator for Lexer2 {
+    type Item = Lexer2Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let token = self.token_stream.next()?;
+        let span = token.span();
+        let mut text = token.to_string();
+        match token {
+            RustToken::Delimiter(_) => Some(Lexer2Item::WgslCode(text, span)),
+            RustToken::Ident(_) => {
+                text.push(' ');
+                Some(Lexer2Item::WgslCode(text, span))
+            }
+            RustToken::Literal(_) => {
+                text.push(' ');
+                Some(Lexer2Item::WgslCode(text, span))
+            }
+            RustToken::Punct(_) if text == "#" => Some(self.marker2wesl(span)),
+            RustToken::Punct(punct) if punct.spacing() == proc_macro2::Spacing::Alone => {
+                text.push(' ');
+                Some(Lexer2Item::WgslCode(text, span))
+            }
+            RustToken::Punct(_) => Some(Lexer2Item::WgslCode(text, span)),
+        }
+    }
+}
+
+/// Our spans are reported in terms of where the generated WGSL has an error.
+/// To map it back to tokens, we iterate over them until we find the corresponding range.
+fn get_error_span(input: TokenStream, text_span: Span) -> proc_macro2::Span {
+    Lexer2::new(input)
+        .scan((0, 0), |range, token| {
+            range.0 = range.1;
+            range.1 += token.as_wgsl_code().len();
+            Some((*range, token))
+        })
+        .skip_while(|(range, _)| range.1 <= text_span.start)
+        .take_while(|(range, _)| range.0 < text_span.end)
+        .map(|(_, token)| token.span())
+        .reduce(|base_span, extra_span| base_span.join(extra_span).unwrap_or(base_span))
+        .unwrap_or_else(proc_macro2::Span::call_site)
+}
+
+fn to_wesl_tokens(input: TokenStream, ty: TokenStream) -> TokenStream {
+    let mut format_arguments = Vec::new();
+    let mut current_string = String::new();
+    for token in Lexer2::new(input.clone()) {
+        match token {
+            Lexer2Item::WgslCode(code, _) => {
+                current_string.push_str(&code);
+            }
+            Lexer2Item::Interpolate(_, ident) => {
+                if !current_string.is_empty() {
+                    format_arguments
+                        .push(proc_macro2::Literal::string(&current_string).to_token_stream());
+                    current_string.clear();
+                }
+                format_arguments.push(quote::quote! { ::wesl_quote::QuoteWgsl(&#ident) });
+            }
+        }
+    }
+    if !current_string.is_empty() {
+        format_arguments.push(proc_macro2::Literal::string(&current_string).to_token_stream());
+        current_string.clear();
+    }
+
+    let format_string = "{}".repeat(format_arguments.len());
+    quote::quote! {
+        format!(#format_string, #(#format_arguments),*)
+            .parse::<#ty>()
+            .unwrap()
+    }
+}
+
+fn quote_impl_str(kind: QuoteNodeKind, str: &str, lit: &Literal) -> TokenStream {
+    fn error_span(lit: &Literal, e: &wgsl_parse::Error) -> proc_macro2::Span {
+        lit.subspan(e.span.range())
+            .unwrap_or_else(proc_macro2::Span::call_site)
+    }
     match kind {
         QuoteNodeKind::TranslationUnit => {
             match wgsl_parse::syntax::TranslationUnit::from_str(str) {
                 Ok(res) => res.tok_repr(),
-                Err(e) => {
-                    abort_call_site!("{}", e)
-                }
+                Err(e) => abort!(error_span(lit, &e), "{}", e),
             }
         }
         QuoteNodeKind::Literal => match wgsl_parse::syntax::LiteralExpression::from_str(str) {
             Ok(res) => res.tok_repr(),
-            Err(e) => {
-                abort_call_site!("{}", e)
-            }
+            Err(e) => abort!(error_span(lit, &e), "{}", e),
         },
         QuoteNodeKind::Expression => match wgsl_parse::syntax::Expression::from_str(str) {
             Ok(res) => res.tok_repr(),
-            Err(e) => {
-                abort_call_site!("{}", e)
-            }
+            Err(e) => abort!(error_span(lit, &e), "{}", e),
         },
         QuoteNodeKind::Statement => match wgsl_parse::syntax::Statement::from_str(str) {
             Ok(res) => res.tok_repr(),
-            Err(e) => {
-                abort_call_site!("{}", e)
-            }
+            Err(e) => abort!(error_span(lit, &e), "{}", e),
         },
     }
 }
 
 pub(crate) fn quote_impl(kind: QuoteNodeKind, input: TokenStream) -> TokenStream {
     let mut token_stream = FlattenRec::from(input.clone().into_iter()).peekable();
+
     match token_stream.peek() {
-        Some(RustToken::Literal(lit)) => match syn::Lit::new(lit.clone()) {
-            syn::Lit::Str(str) => quote_impl_str(kind, &str.value()),
-            _ => quote_impl_inline(kind, input),
-        },
+        Some(RustToken::Literal(lit)) => {
+            // TODO: Remove syn dependency once we have https://github.com/rust-lang/rust/issues/136652
+            match syn::Lit::new(lit.clone()) {
+                syn::Lit::Str(str) => quote_impl_str(kind, &str.value(), lit),
+                _ => quote_impl_inline(kind, input),
+            }
+        }
         _ => quote_impl_inline(kind, input),
     }
 }

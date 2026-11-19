@@ -7,16 +7,8 @@ description = "Write WESL code inline with quote macros"
 repository.workspace = true
 license.workspace = true
 
-[lib]
-proc-macro = true
-
 [dependencies]
-itertools = "0.15.0"
-proc-macro-error3 = { version = "3.1.1" }
-proc-macro2 = "1.0.107"
-quote = "1.0.47"
-syn = "3.0.6"
-token_stream_flatten = { version = "0.1.0" }
+wesl-quote-impl = { workspace = true }
 wgsl-parse = { workspace = true, features = ["tokrepr"] }
 
 [dev-dependencies]

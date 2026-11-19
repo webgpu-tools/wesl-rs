@@ -40,6 +40,7 @@ fn marker_injection() {
         Span::default(),
     ));
     let inject_func = Function::new(Ident::new("myfunc".to_string()));
+
     let inject_stmt = Statement::Void;
     let inject_expr = 1f32;
     let wgsl = quote_module! {

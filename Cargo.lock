@@ -1570,13 +1570,21 @@ name = "wesl-quote"
 version = "0.6.0"
 dependencies = [
  "expect-test",
+ "wesl",
+ "wesl-quote-impl",
+ "wgsl-parse",
+]
+
+[[package]]
+name = "wesl-quote-impl"
+version = "0.6.0"
+dependencies = [
  "itertools",
  "proc-macro-error3",
  "proc-macro2",
  "quote",
  "syn 3.0.10",
  "token_stream_flatten",
- "wesl",
  "wgsl-parse",
 ]
 

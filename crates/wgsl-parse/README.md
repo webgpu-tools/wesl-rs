@@ -10,10 +10,6 @@ It supports WESL language extensions guarded by feature flags.
 
 | name         | description                                    | WESL Specification       |
 |--------------|------------------------------------------------|--------------------------|
-| `wesl`       | enable all WESL extensions below               |                          |
-| `imports`    | `import` statements and inline qualified paths | [complete][imports]      |
-| `attributes` | extra attributes locations on statements       | [complete][condcomp]     |
-| `condcomp`   | `@if` attributes                               | [complete][condcomp]     |
 | `generics`   | `@type` attributes                             | [experimental][generics] |
 
 ## Other Features

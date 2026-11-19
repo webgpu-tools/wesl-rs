@@ -1,5 +1,8 @@
 #![doc = include_str!("../README.md")]
 
+#[cfg(test)]
+mod tests;
+
 use std::fmt::{Display, Formatter};
 pub use wesl_quote_impl::{quote_expression, quote_literal, quote_module, quote_statement};
 use wgsl_parse::{

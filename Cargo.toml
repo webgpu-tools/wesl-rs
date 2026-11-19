@@ -24,7 +24,6 @@ default-members = [
   "crates/wesl-core",
   "crates/wesl-macros",
   "crates/wesl-quote",
-  "crates/wesl-quote-impl",
   "crates/wgsl-parse",
   "crates/wgsl-types",
 ]

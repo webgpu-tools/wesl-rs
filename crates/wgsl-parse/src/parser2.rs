@@ -762,7 +762,7 @@ impl ToStrictAst for ast::SwitchBodyCase {
             case_selectors: self
                 .selectors()
                 .map(|selectors| selectors.exprs().gen_ast(diagnostics))
-                .unwrap_or_default(),
+                .unwrap_or_else(|| vec![CaseSelector::Default]),
             body: self.block().unwrap().gen_ast(diagnostics),
         }
     }

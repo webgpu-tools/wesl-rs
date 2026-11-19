@@ -1298,25 +1298,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tokrepr"
-version = "0.1.1"
-dependencies = [
- "proc-macro2",
- "quote",
- "tokrepr-derive",
-]
-
-[[package]]
-name = "tokrepr-derive"
-version = "0.1.0"
-dependencies = [
- "itertools",
- "proc-macro2",
- "quote",
- "syn 3.0.10",
-]
-
-[[package]]
 name = "toml"
 version = "0.9.12+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1570,7 +1551,6 @@ name = "wesl-quote"
 version = "0.6.0"
 dependencies = [
  "expect-test",
- "wesl",
  "wesl-quote-impl",
  "wgsl-parse",
 ]
@@ -1579,7 +1559,6 @@ dependencies = [
 name = "wesl-quote-impl"
 version = "0.6.0"
 dependencies = [
- "itertools",
  "proc-macro-error3",
  "proc-macro2",
  "quote",
@@ -1635,7 +1614,6 @@ dependencies = [
  "serde",
  "syntax",
  "thiserror",
- "tokrepr",
  "wgsl-types",
 ]
 
@@ -1647,7 +1625,6 @@ dependencies = [
  "itertools",
  "num-traits",
  "serde",
- "tokrepr",
 ]
 
 [[package]]

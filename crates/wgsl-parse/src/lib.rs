@@ -12,10 +12,6 @@ mod syntax_display;
 mod syntax_impl;
 
 mod parser2;
-#[cfg(feature = "tokrepr")]
-mod tokrepr;
-#[cfg(feature = "tokrepr")]
-pub use ::tokrepr::TokRepr;
 
 pub use error::Error;
 pub use parser::parse_str;

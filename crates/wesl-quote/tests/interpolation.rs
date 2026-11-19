@@ -1,5 +1,5 @@
-use wesl::syntax::*;
 use wesl_quote::quote_module;
+use wgsl_parse::syntax::*;
 
 #[test]
 fn simple_string_quoting() {

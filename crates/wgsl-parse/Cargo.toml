@@ -18,7 +18,6 @@ generics = []
 # See crates/wesl/Cargo.toml
 naga-ext = ["wgsl-types/naga-ext"]
 serde = ["dep:serde", "wgsl-types/serde"]
-tokrepr = ["dep:tokrepr", "wgsl-types/tokrepr"]
 
 [dependencies]
 annotate-snippets = "0.12.16"
@@ -50,7 +49,6 @@ logos = "0.16.1"
 serde = { version = "1.0.229", features = ["derive", "rc"], optional = true }
 syntax = { git = "https://github.com/stefnotch/wgsl-analyzer", branch = "public-parsing" }
 thiserror = "2.0.21"
-tokrepr = { workspace = true, optional = true }
 wgsl-types = { workspace = true }
 
 [dev-dependencies]

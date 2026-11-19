@@ -9,11 +9,10 @@ license.workspace = true
 
 [dependencies]
 wesl-quote-impl = { workspace = true }
-wgsl-parse = { workspace = true, features = ["tokrepr"] }
+wgsl-parse = { workspace = true }
 
 [dev-dependencies]
 expect-test = "1.5.1"
-wesl = { path = "../wesl" }  # for unit tests. We can't use { workspace = true } because of a dependency cycle. see Cargo#4242.
 
 [lints]
 workspace = true

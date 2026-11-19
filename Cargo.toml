@@ -1,8 +1,6 @@
 [workspace]
 resolver = "3"
 members = [
-  "crates/tokrepr",
-  "crates/tokrepr-derive",
   "crates/wesl",
   "crates/wesl-c",
   "crates/wesl-cli",
@@ -40,8 +38,6 @@ repository = "https://github.com/webgpu-tools/wesl-rs"
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-tokrepr = { path = "crates/tokrepr", version = "0.1.1" }
-tokrepr-derive = { path = "crates/tokrepr-derive", version = "0.1.0" }
 wesl = { path = "crates/wesl", version = "0.6.0" }
 wesl-core = { path = "crates/wesl-core", version = "0.1.0" }
 wesl-macros = { path = "crates/wesl-macros", version = "0.6.0" }

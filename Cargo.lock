@@ -349,7 +349,7 @@ checksum = "aeda16ab4059c5fd2a83f2b9c9e9c981327b18aa8e3b313f7e6563799d4f093e"
 [[package]]
 name = "edition"
 version = "0.0.0"
-source = "git+https://github.com/stefnotch/wgsl-analyzer?branch=public-parsing#cdb27df754e2657dec942d509bdee955bb63f331"
+source = "git+https://github.com/stefnotch/wgsl-analyzer?branch=public-parsing#609b264c3f510f8f60b91d7195b4b1c1e580229b"
 
 [[package]]
 name = "either"
@@ -818,7 +818,7 @@ dependencies = [
 [[package]]
 name = "parser"
 version = "0.0.0"
-source = "git+https://github.com/stefnotch/wgsl-analyzer?branch=public-parsing#cdb27df754e2657dec942d509bdee955bb63f331"
+source = "git+https://github.com/stefnotch/wgsl-analyzer?branch=public-parsing#609b264c3f510f8f60b91d7195b4b1c1e580229b"
 dependencies = [
  "edition",
  "lelwel",
@@ -1200,7 +1200,7 @@ dependencies = [
 [[package]]
 name = "syntax"
 version = "0.0.0"
-source = "git+https://github.com/stefnotch/wgsl-analyzer?branch=public-parsing#cdb27df754e2657dec942d509bdee955bb63f331"
+source = "git+https://github.com/stefnotch/wgsl-analyzer?branch=public-parsing#609b264c3f510f8f60b91d7195b4b1c1e580229b"
 dependencies = [
  "either",
  "itertools",

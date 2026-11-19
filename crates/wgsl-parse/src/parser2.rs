@@ -682,6 +682,7 @@ impl ToStrictAst for ast::Statement {
             ast::Statement::ReturnStatement(return_statement) => {
                 Statement::Return(return_statement.gen_ast(diagnostics))
             }
+            ast::Statement::EmptyStatement(_) => Statement::Void,
             ast::Statement::ContinuingStatement(_) => Statement::Void,
             ast::Statement::BreakIfStatement(_) => Statement::Void,
         };

@@ -10,10 +10,6 @@ It supports WESL language extensions guarded by feature flags.
 
 | name         | description                                    | WESL Specification       |
 |--------------|------------------------------------------------|--------------------------|
-| `wesl`       | enable all WESL extensions below               |                          |
-| `imports`    | `import` statements and inline qualified paths | [complete][imports]      |
-| `attributes` | extra attributes locations on statements       | [complete][condcomp]     |
-| `condcomp`   | `@if` attributes                               | [complete][condcomp]     |
 | `generics`   | `@type` attributes                             | [experimental][generics] |
 
 ## Other Features
@@ -22,7 +18,6 @@ It supports WESL language extensions guarded by feature flags.
 |------------|------------------------------------------------------------|
 | `naga-ext` | enable all Naga/WGPU extensions (experimental)             |
 | `serde`    | derive `Serialize` and `Deserialize` for syntax tree nodes |
-| `tokrepr`  | derive [`TokRepr`][tokrepr] for syntax tree nodes          |
 
 ## Parsing and Stringification
 
@@ -46,4 +41,3 @@ println!("{module}");
 [imports]: https://wesl-lang.dev/spec/Imports
 [condcomp]: https://wesl-lang.dev/spec/ConditionalTranslation
 [generics]: https://github.com/k2d222/wesl-spec/blob/generics/Generics.md
-[tokrepr]: https://docs.rs/tokrepr

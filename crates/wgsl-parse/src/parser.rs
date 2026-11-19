@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
 use crate::{
-    error::Error,
-    lexer::{Lexer, Token, TokenIterator},
+    error::{Error, ErrorKind},
+    lexer::{Token, TokenIterator},
     syntax::*,
 };
 
@@ -13,16 +13,6 @@ mod grammar {
 
 pub use crate::parser_support::ParseEntryPoint;
 use grammar::EntryPointParser;
-
-macro_rules! parse {
-    ($source:expr, $token:ident, $entrypoint:ident) => {{
-        match parse_tokens(Lexer::new($source), Token::$token) {
-            Ok(ParseEntryPoint::$entrypoint(res)) => Ok(res),
-            Ok(_) => unreachable!("parser parsed the wrong entrypoint"),
-            Err(e) => Err(e),
-        }
-    }};
-}
 
 /// Parse a token stream into a syntax tree.
 ///
@@ -43,7 +33,11 @@ pub fn parse_tokens(
 ///
 /// Identical to [`TranslationUnit::from_str`].
 pub fn parse_str(source: &str) -> Result<TranslationUnit, Error> {
-    parse!(source, EntryPointTranslationUnit, TranslationUnit)
+    let (result, mut diagnostics) = crate::parser2::parse_str(source);
+    if !diagnostics.errors.is_empty() {
+        return Err(diagnostics.errors.remove(0));
+    }
+    Ok(result)
 }
 
 pub fn recognize_template_list(lexer: impl TokenIterator) -> Result<(), Error> {
@@ -58,49 +52,54 @@ impl FromStr for TranslationUnit {
     type Err = Error;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
-        parse!(source, EntryPointTranslationUnit, TranslationUnit)
-    }
-}
-impl FromStr for GlobalDirective {
-    type Err = Error;
-
-    fn from_str(source: &str) -> Result<Self, Self::Err> {
-        parse!(source, EntryPointGlobalDirective, GlobalDirective)
-    }
-}
-impl FromStr for GlobalDeclaration {
-    type Err = Error;
-
-    fn from_str(source: &str) -> Result<Self, Self::Err> {
-        parse!(source, EntryPointGlobalDecl, GlobalDecl)
+        parse_str(source)
     }
 }
 impl FromStr for Statement {
     type Err = Error;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
-        parse!(source, EntryPointStatement, Statement)
+        let (result, mut diagnostics) = crate::parser2::parse_str_statement(source);
+        if !diagnostics.errors.is_empty() {
+            return Err(diagnostics.errors.remove(0));
+        }
+        Ok(result.into_inner())
     }
 }
 impl FromStr for Expression {
     type Err = Error;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
-        parse!(source, EntryPointExpression, Expression)
+        let (result, mut diagnostics) = crate::parser2::parse_str_expression(source);
+        if !diagnostics.errors.is_empty() {
+            return Err(diagnostics.errors.remove(0));
+        }
+        Ok(result.into_inner())
     }
 }
 impl FromStr for LiteralExpression {
     type Err = Error;
 
     fn from_str(source: &str) -> Result<Self, Self::Err> {
-        parse!(source, EntryPointLiteral, Literal)
-    }
-}
-impl FromStr for crate::syntax::ImportStatement {
-    type Err = Error;
+        let (result, mut diagnostics) = crate::parser2::parse_str_expression(source);
+        if !diagnostics.errors.is_empty() {
+            return Err(diagnostics.errors.remove(0));
+        }
 
-    fn from_str(source: &str) -> Result<Self, Self::Err> {
-        parse!(source, EntryPointImportStatement, ImportStatement)
+        let span = result.span();
+        match result.into_inner() {
+            Expression::Literal(literal_expression) => Ok(literal_expression),
+            Expression::Parenthesized(_)
+            | Expression::NamedComponent(_)
+            | Expression::Indexing(_)
+            | Expression::Unary(_)
+            | Expression::Binary(_)
+            | Expression::FunctionCall(_)
+            | Expression::TypeOrIdentifier(_) => Err(Error {
+                error: ErrorKind::InvalidToken,
+                span,
+            }),
+        }
     }
 }
 
@@ -187,17 +186,18 @@ mod test {
 
     #[test]
     fn lhs_expression() {
-        expect_ok::<Statement>("(x) = 1;");
-        expect_ok::<Statement>("(*x) += 1;");
-        expect_ok::<Statement>("&(*x) += 1;");
-        expect_ok::<Statement>("x[0] = 1;");
-        expect_ok::<Statement>("x.y[0] = 1;");
-        expect_ok::<Statement>("x[0].y = 1;");
+        expect_ok::<Statement>("{(x) = 1;}");
+        expect_ok::<Statement>("{(*x) += 1;}");
+        expect_ok::<Statement>("{&(*x) += 1;}");
+        expect_ok::<Statement>("{x[0] = 1;}");
+        expect_ok::<Statement>("{x.y[0] = 1;}");
+        expect_ok::<Statement>("{x[0].y = 1;}");
 
         // WESL extensions
-        expect_ok::<Statement>("@if(true) x = 1;");
-        expect_ok::<Statement>("@if(true) &(*x) += 1;");
-        expect_err::<Statement>("@if(true) (*x) += 1;");
-        expect_ok::<Statement>("x::y = 1;");
+        expect_ok::<Statement>("{@if(true) x = 1;}");
+        expect_ok::<Statement>("{@if(true) &(*x) += 1;}");
+        // vvv this one is kind of ambiguous in the grammar
+        expect_ok::<Statement>("{@if(true) (*x) += 1;}");
+        expect_ok::<Statement>("{x::y = 1;}");
     }
 }

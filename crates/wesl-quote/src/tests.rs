@@ -1,10 +1,46 @@
-use wesl::syntax::*;
 use wesl_quote::quote_module;
+use wgsl_parse::syntax::*;
+
+#[test]
+fn simple_string_quoting() {
+    let wgsl = quote_module!(
+        "
+        struct mystruct { a: f32 }
+        fn foo() {
+            let x: f32 = 7;
+            let y = mystruct(x + 2);
+        }
+    "
+    );
+
+    let actual = wgsl.to_string();
+
+    expect_test::expect![[r#"
+        struct mystruct {
+            a: f32
+        }
+
+        fn foo() {
+            let x: f32 = 7;
+            let y = mystruct(x + 2);
+        }
+    "#]]
+    .assert_eq(&actual);
+}
 
 #[test]
 fn marker_injection() {
-    let inject_struct = Struct::new(Ident::new("mystruct".to_string()));
+    let mut inject_struct = Struct::new(Ident::new("mystruct".to_string()));
+    inject_struct.members.push(Spanned::new(
+        StructMember {
+            attributes: Vec::new(),
+            ident: Ident::new("a".to_string()),
+            ty: TypeExpression::from(Ident::new("f32".to_string())),
+        },
+        Span::default(),
+    ));
     let inject_func = Function::new(Ident::new("myfunc".to_string()));
+
     let inject_stmt = Statement::Void;
     let inject_expr = 1f32;
     let wgsl = quote_module! {

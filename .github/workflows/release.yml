@@ -203,9 +203,9 @@ jobs:
         run: |
           set -euo pipefail
           # publishes crates in dependency order, and ignores if it already exists.
-          # tokrepr, tokrepr-derive and wesl-core have independent versions.
+          # wesl-core has an independent version.
           # The rest share the same versioning.
-          for crate in tokrepr-derive tokrepr wesl-core wesl-macros wgsl-types wgsl-parse wesl-quote wesl wesl-cli; do
+          for crate in wesl-core wesl-macros wgsl-types wgsl-parse wesl-quote wesl wesl-cli; do
             echo "publishing ${crate}"
             if ! output="$(cargo publish --locked -p "$crate" 2>&1)"; then
               echo "$output"

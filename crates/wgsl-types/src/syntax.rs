@@ -5,8 +5,6 @@ use std::{fmt::Display, str::FromStr};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "tokrepr")]
-use tokrepr::TokRepr;
 
 // ------------
 // ENUMERATIONS
@@ -16,7 +14,6 @@ use tokrepr::TokRepr;
 /// Address space enumeration.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#address-spaces>
-#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum AddressSpace {
@@ -60,7 +57,6 @@ impl AddressSpace {
 /// Memory access mode enumeration.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#access-mode>
-#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum AccessMode {
@@ -74,7 +70,6 @@ pub enum AccessMode {
 /// Texel format enumeration.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#texel-format>
-#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum TexelFormat {
@@ -147,7 +142,6 @@ pub enum TexelFormat {
 
 /// Acceleration structure flags (naga extension)
 #[cfg(feature = "naga-ext")]
-#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum AccelerationStructureTag {
@@ -192,7 +186,6 @@ impl FromStr for Enumerant {
 /// Context-dependent tokens.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#builtin-value-names>
-#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BuiltinValue {
@@ -297,7 +290,6 @@ pub enum BuiltinValue {
 /// Context-dependent tokens.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#diagnostic-severity-control-names>
-#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DiagnosticSeverity {
@@ -312,7 +304,6 @@ pub enum DiagnosticSeverity {
 /// Context-dependent tokens.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#interpolation-type-names>
-#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InterpolationType {
@@ -326,7 +317,6 @@ pub enum InterpolationType {
 /// Context-dependent tokens.
 ///
 /// Reference: <https://www.w3.org/TR/WGSL/#interpolation-sampling-names>
-#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InterpolationSampling {
@@ -339,7 +329,6 @@ pub enum InterpolationSampling {
 
 /// Naga extension: Conservative Depth.
 #[cfg(feature = "naga-ext")]
-#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ConservativeDepth {
@@ -353,7 +342,6 @@ pub enum ConservativeDepth {
 // -----------------------
 // reference: <https://www.w3.org/TR/WGSL/#context-dependent-names>
 
-#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UnaryOperator {
@@ -369,7 +357,6 @@ pub enum UnaryOperator {
     Indirection,
 }
 
-#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BinaryOperator {
@@ -413,7 +400,6 @@ pub enum BinaryOperator {
     ShiftRight,
 }
 
-#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AssignmentOperator {
@@ -456,7 +442,6 @@ impl AccessMode {
     }
 }
 
-#[cfg_attr(feature = "tokrepr", derive(TokRepr))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SampledType {

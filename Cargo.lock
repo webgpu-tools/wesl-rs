@@ -237,6 +237,8 @@ version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af491d569909a7e4dee0ad7db7f5341fef5c614d5b8ec8cf765732aba3cff681"
 dependencies = [
+ "serde",
+ "termcolor",
  "unicode-width",
 ]
 
@@ -275,6 +277,12 @@ checksum = "633458d4ef8c78b72454de2d54fd6ab2e60f9e02be22f3c6104cdc8a4e0fceb9"
 dependencies = [
  "unicode-segmentation",
 ]
+
+[[package]]
+name = "countme"
+version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7704b5fdd17b18ae31c4c1da5a2e0305a2bf17b5249300a9ee9ed7b72114c636"
 
 [[package]]
 name = "cpufeatures"
@@ -337,6 +345,11 @@ name = "dissimilar"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aeda16ab4059c5fd2a83f2b9c9e9c981327b18aa8e3b313f7e6563799d4f093e"
+
+[[package]]
+name = "edition"
+version = "0.0.0"
+source = "git+https://github.com/stefnotch/wgsl-analyzer?branch=public-parsing#609b264c3f510f8f60b91d7195b4b1c1e580229b"
 
 [[package]]
 name = "either"
@@ -470,6 +483,12 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
+version = "0.14.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
+
+[[package]]
+name = "hashbrown"
 version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
@@ -491,6 +510,15 @@ name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
+
+[[package]]
+name = "hex-float"
+version = "0.1.0"
+source = "git+https://github.com/jimblandy/wgsl-hex-float#5bc6d54466f6153dc3210229455a14e46eab65e2"
+dependencies = [
+ "bitflags",
+ "thiserror",
+]
 
 [[package]]
 name = "hybrid-array"
@@ -579,6 +607,17 @@ name = "lalrpop-util"
 version = "0.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "364b49d1c98c07972e16fe1346463becc08bcd663da04e6e37ab1bea068dce6a"
+
+[[package]]
+name = "lelwel"
+version = "0.10.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02f137b31922f1bbf9be8f857ef72dad2fe7b69fec11de207a0ae64a936ceec9"
+dependencies = [
+ "codespan-reporting",
+ "logos",
+ "rustc-hash 2.1.3",
+]
 
 [[package]]
 name = "lexical-parse-float"
@@ -708,7 +747,7 @@ dependencies = [
  "naga-types",
  "num-traits",
  "once_cell",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "thiserror",
  "unicode-ident",
 ]
@@ -721,7 +760,7 @@ checksum = "590afbf58a6f4f62873cd5cff4468061844bafa1cdf399cc954537c22d768d49"
 dependencies = [
  "hashbrown 0.17.1",
  "indexmap",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "thiserror",
 ]
 
@@ -774,6 +813,18 @@ dependencies = [
  "redox_syscall",
  "smallvec",
  "windows-link",
+]
+
+[[package]]
+name = "parser"
+version = "0.0.0"
+source = "git+https://github.com/stefnotch/wgsl-analyzer?branch=public-parsing#609b264c3f510f8f60b91d7195b4b1c1e580229b"
+dependencies = [
+ "edition",
+ "lelwel",
+ "logos",
+ "rowan",
+ "unicode-ident",
 ]
 
 [[package]]
@@ -901,6 +952,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
+name = "rowan"
+version = "0.16.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "417a3a9f582e349834051b8a10c8d71ca88da4211e4093528e36b9845f6b5f21"
+dependencies = [
+ "countme",
+ "hashbrown 0.14.5",
+ "rustc-hash 1.1.0",
+ "text-size",
+]
+
+[[package]]
 name = "runtime_wesl"
 version = "0.6.0"
 dependencies = [
@@ -913,6 +976,12 @@ name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
+
+[[package]]
+name = "rustc-hash"
+version = "2.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b1e7f9a428571be2dc5bc0505c13fb6bf936822b894ec87abf8a08a4e51742d"
 
 [[package]]
 name = "rustc_version"
@@ -1077,6 +1146,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9395f0f0eee849a9b707b2f06bb92a6a422090e2123bb2ef8e87a0e61892a8e"
 
 [[package]]
+name = "smol_str"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eeb7109d23f319619d4cc0de5464613c8b7b1a09db2774a58101459cf6be2f10"
+
+[[package]]
 name = "sponge-cursor"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1123,6 +1198,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "syntax"
+version = "0.0.0"
+source = "git+https://github.com/stefnotch/wgsl-analyzer?branch=public-parsing#609b264c3f510f8f60b91d7195b4b1c1e580229b"
+dependencies = [
+ "either",
+ "itertools",
+ "parser",
+ "rowan",
+ "smol_str",
+ "triomphe",
+]
+
+[[package]]
 name = "tempfile"
 version = "3.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1143,6 +1231,21 @@ checksum = "d8c27177b12a6399ffc08b98f76f7c9a1f4fe9fc967c784c5a071fa8d93cf7e1"
 dependencies = [
  "windows-sys",
 ]
+
+[[package]]
+name = "termcolor"
+version = "1.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06794f8f6c5c898b3275aebefa6b8a1cb24cd2c6c79397ab15774837a0bc5755"
+dependencies = [
+ "winapi-util",
+]
+
+[[package]]
+name = "text-size"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f18aa187839b2bdb1ad2fa35ead8c4c2976b64e4363c386d45ac0f7ee85c9233"
 
 [[package]]
 name = "thiserror"
@@ -1189,25 +1292,6 @@ version = "2.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e"
 dependencies = [
- "proc-macro2",
- "quote",
- "syn 3.0.10",
-]
-
-[[package]]
-name = "tokrepr"
-version = "0.1.1"
-dependencies = [
- "proc-macro2",
- "quote",
- "tokrepr-derive",
-]
-
-[[package]]
-name = "tokrepr-derive"
-version = "0.1.0"
-dependencies = [
- "itertools",
  "proc-macro2",
  "quote",
  "syn 3.0.10",
@@ -1275,6 +1359,12 @@ name = "toml_writer"
 version = "1.2.0+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "009dbb7700f11c55ef83aebbe4c0e9cf1f1ac0844bd8d6f00dc38f302026e13a"
+
+[[package]]
+name = "triomphe"
+version = "0.1.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d15f4f5898bcfc5d8a8e45ed30b2f108d710c1a2e5489dbf80e078f707181bc"
 
 [[package]]
 name = "tsify"
@@ -1460,13 +1550,20 @@ dependencies = [
 name = "wesl-quote"
 version = "0.6.0"
 dependencies = [
- "itertools",
+ "expect-test",
+ "wesl-quote-impl",
+ "wgsl-parse",
+]
+
+[[package]]
+name = "wesl-quote-impl"
+version = "0.6.0"
+dependencies = [
  "proc-macro-error3",
  "proc-macro2",
  "quote",
  "syn 3.0.10",
  "token_stream_flatten",
- "wesl",
  "wgsl-parse",
 ]
 
@@ -1507,14 +1604,16 @@ version = "0.6.0"
 dependencies = [
  "annotate-snippets",
  "derive_more",
+ "expect-test",
+ "hex-float",
  "itertools",
  "lalrpop-util",
  "lexical-parse-float",
  "lexical-parse-integer",
  "logos",
  "serde",
+ "syntax",
  "thiserror",
- "tokrepr",
  "wgsl-types",
 ]
 
@@ -1526,7 +1625,6 @@ dependencies = [
  "itertools",
  "num-traits",
  "serde",
- "tokrepr",
 ]
 
 [[package]]

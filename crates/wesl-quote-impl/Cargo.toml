@@ -1,9 +1,9 @@
 [package]
-name = "tokrepr-derive"
-version = "0.1.0"
+name = "wesl-quote-impl"
+version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-description = "Derive macro for tokrepr"
+description = "Write WESL code inline with quote macros"
 repository.workspace = true
 license.workspace = true
 
@@ -11,10 +11,12 @@ license.workspace = true
 proc-macro = true
 
 [dependencies]
-itertools = "0.15.0"
+proc-macro-error3 = { version = "3.1.1" }
 proc-macro2 = "1.0.107"
 quote = "1.0.47"
 syn = "3.0.6"
+token_stream_flatten = { version = "0.1.0" }
+wgsl-parse = { workspace = true }
 
 [lints]
 workspace = true

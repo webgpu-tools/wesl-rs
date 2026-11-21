@@ -51,7 +51,7 @@ where
 }
 
 #[derive(Parser)]
-#[command(version, author, about)]
+#[command(name = "wesl", version, author, about)]
 #[command(propagate_version = true)]
 struct Cli {
     /// Main command
@@ -552,12 +552,7 @@ fn eval_expr(src: &str, module: &TranslationUnit) -> Result<Instance, CliError> 
 }
 
 fn main() {
-    let cli = Cli::try_parse()
-        .inspect_err(|e| {
-            eprintln!("invalid arguments: {e}");
-            std::process::exit(1)
-        })
-        .unwrap();
+    let cli = Cli::parse();
     run(cli).inspect_err(|e| eprintln!("{e}")).ok();
 }
 

@@ -7,15 +7,15 @@ description = "Turn Rust instances into token representations"
 repository.workspace = true
 license.workspace = true
 
-[dependencies]
-proc-macro2 = "1.0.107"
-quote = "1.0.47"
-tokrepr-derive = { workspace = true, optional = true }
-
 [features]
 default = ["derive"]
 derive = ["dep:tokrepr-derive"]
 rc = []
+
+[dependencies]
+proc-macro2 = "1.0.107"
+quote = "1.0.47"
+tokrepr-derive = { workspace = true, optional = true }
 
 [lints]
 workspace = true

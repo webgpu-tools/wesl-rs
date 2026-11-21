@@ -7,6 +7,11 @@ description = "WESL compiler in WebAssembly"
 repository.workspace = true
 license.workspace = true
 
+[features]
+default = ["ansi-to-html", "naga"]
+debug = ["console_error_panic_hook", "console_log"]
+naga = ["dep:naga", "wesl/naga-ext"]
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -34,11 +39,6 @@ thiserror = "2.0.21"
 tsify = { version = "0.5.8", default-features = false, features = ["js"] }
 wasm-bindgen = "0.2.129"
 wesl = { workspace = true, features = ["serde"] }
-
-[features]
-default = ["ansi-to-html", "naga"]
-debug = ["console_error_panic_hook", "console_log"]
-naga = ["dep:naga", "wesl/naga-ext"]
 
 [lints]
 workspace = true

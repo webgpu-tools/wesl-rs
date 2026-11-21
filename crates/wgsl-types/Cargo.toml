@@ -11,18 +11,18 @@ license.workspace = true
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
+[features]
+# See crates/wesl/Cargo.toml
+naga-ext = []
+serde = ["dep:serde"]
+tokrepr = ["dep:tokrepr"]
+
 [dependencies]
 half = { version = "2.7.1", features = ["num-traits"] }
 itertools = "0.15.0"
 num-traits = "0.2.19"
 serde = { version = "1.0.229", features = ["derive", "rc"], optional = true }
 tokrepr = { workspace = true, optional = true }
-
-[features]
-# See crates/wesl/Cargo.toml
-naga-ext = []
-serde = ["dep:serde"]
-tokrepr = ["dep:tokrepr"]
 
 [lints]
 workspace = true

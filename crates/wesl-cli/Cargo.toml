@@ -8,6 +8,10 @@ repository.workspace = true
 license.workspace = true
 default-run = "wesl"
 
+[features]
+default = ["naga"]
+naga = ["dep:naga", "wesl/naga-ext"]
+
 [[bin]]
 name = "wesl"
 path = "src/main.rs"
@@ -18,10 +22,6 @@ naga = { version = "30.0.1", features = ["wgsl-in"], optional = true }
 thiserror = "2.0.21"
 wesl = { workspace = true, features = ["generics", "package"] }
 wgsl-parse = { workspace = true }
-
-[features]
-default = ["naga"]
-naga = ["dep:naga", "wesl/naga-ext"]
 
 [lints]
 workspace = true

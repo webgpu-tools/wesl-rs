@@ -3,16 +3,16 @@ name = "dependency-resolution"
 version = "0.1.0"
 edition = "2024"
 
+[dependencies]
+a = { path = "./a" }
+b = { path = "./b" }
+wesl = { path = "../../crates/wesl", features = ["package"] }
+
 [workspace]
 # members = ["a", "b", "c1", "c2", "d2", "d2"]
 
 # [workspace.dependencies]
 # wesl = { path = "../../crates/wesl" }
-
-[dependencies]
-a = { path = "./a" }
-b = { path = "./b" }
-wesl = { path = "../../crates/wesl", features = ["package"] }
 
 [patch.crates-io]
 c1 = { package = "c", path = "./c1" }

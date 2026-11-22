@@ -1,6 +1,6 @@
 [
 	{
-		"name": "wildcard-import",
+		"name": "wildcard",
 		"desc": "simple wildcard import",
 		"kind": "modules",
 		"code": "import package::other::*; fn f() { x++; }",
@@ -11,7 +11,30 @@
 		"result": "var<private> package_other_x: u32 = 0; fn f() { package_other_x++; }"
 	},
 	{
-		"name": "wildcard-import-shadow",
+		"name": "wildcard-repeated-reference",
+		"desc": "multiple references to the same wildcard-imported declaration",
+		"kind": "modules",
+		"code": "import package::other::*; const result = x + x;",
+		"modules": {
+			"package::other": "const x = 1u;"
+		},
+		"expect": "pass",
+		"result": "const package_other_x = 1u; const result = package_other_x + package_other_x;"
+	},
+	{
+		"name": "wildcard-collection",
+		"desc": "a nested import collection can combine a wildcard with an explicitly imported item",
+		"kind": "modules",
+		"code": "import package::outer::{y, inner::*}; const result = x + y;",
+		"modules": {
+			"package::outer": "const y = 2u;",
+			"package::outer::inner": "const x = 1u; const unused = 3u;"
+		},
+		"expect": "pass",
+		"result": "const package_outer_inner_x = 1u; const package_outer_y = 2u; const result = package_outer_inner_x + package_outer_y;"
+	},
+	{
+		"name": "wildcard-shadow",
 		"desc": "local declaration shadows a wildcard import",
 		"kind": "modules",
 		"code": "import package::other::*; var<private> x: f32 = 0; fn f() { x++; }",
@@ -20,5 +43,109 @@
 		},
 		"expect": "pass",
 		"result": "var<private> x: f32 = 0; fn f() { x++; }"
+	},
+	{
+		"name": "wildcard-block-shadow",
+		"desc": "an inner block shadows the wildcard, but the outside reference is unaffected",
+		"kind": "modules",
+		"code": "import package::other::*; fn f() -> u32 { { let x = 2u; } return x; }",
+		"modules": {
+			"package::other": "const x = 1u;"
+		},
+		"expect": "pass",
+		"result": "const package_other_x = 1u; fn f() -> u32 { { let x = 2u; } return package_other_x; }"
+	},
+	{
+		"name": "wildcard-import-shadow",
+		"desc": "an explicit import shadows a wilcard import",
+		"kind": "modules",
+		"code": "import package::foo::x; import package::other::*; const result = x;",
+		"modules": {
+			"package::foo": "const x = 2u;",
+			"package::other": "const x = 1u;"
+		},
+		"expect": "pass",
+		"result": "const package_foo_x = 2u; const result = package_foo_x;"
+	},
+	{
+		"name": "wildcard-import-shadow-renamed",
+		"desc": "an 'as'-renamed import shadows a wilcard import",
+		"kind": "modules",
+		"code": "import package::foo::y as x; import package::other::*; const result = x;",
+		"modules": {
+			"package::foo": "const y = 2u;",
+			"package::other": "const x = 1u;"
+		},
+		"expect": "pass",
+		"result": "const package_foo_y = 2u; const result = package_foo_y;"
+	},
+	{
+		"name": "wildcard-indirect",
+		"desc": "use a declaration from an outside module, that depends on a wildcard",
+		"kind": "modules",
+		"code": "import package::outer::read; const result = read;",
+		"modules": {
+			"package::outer": "import self::inner::*; const read = x;",
+			"package::outer::inner": "const x = 1u;"
+		},
+		"expect": "pass",
+		"result": "const package_outer_inner_x = 1u; const package_outer_read = package_outer_inner_x; const result = package_outer_read;"
+	},
+	{
+		"name": "wildcard-reexport",
+		"desc": "a wildcard import includes re-exports",
+		"kind": "modules",
+		"code": "import package::prelude::*; const result = x;",
+		"modules": {
+			"package::prelude": "public import package::other::x;",
+			"package::other": "public const x = 1u;"
+		},
+		"expect": "pass",
+		"result": "const package_other_x = 1u; const result = package_other_x;"
+	},
+	{
+		"name": "wildcard-reexport-renamed",
+		"desc": "a wildcard import includes re-exports",
+		"kind": "modules",
+		"code": "import package::prelude::*; const result = x;",
+		"modules": {
+			"package::prelude": "public import package::other::y as x;",
+			"package::other": "public const y = 1u;"
+		},
+		"expect": "pass",
+		"result": "const package_other_y = 1u; const result = package_other_y;"
+	},
+	{
+		"name": "wildcard-undeclared-ident",
+		"desc": "fails if the ident does not exist in the wilcard-imported module",
+		"kind": "modules",
+		"code": "import package::other::*; const result = missing;",
+		"modules": {
+			"package::other": "const x = 1u;"
+		},
+		"expect": "fail"
+	},
+	{
+		"name": "wildcard-twice-unambiguous",
+		"desc": "allows two wildcard imports, if there are no ambiguous names used",
+		"kind": "modules",
+		"code": "import package::foo::*; import package::bar::*; const z = x + y;",
+		"modules": {
+			"package::foo": "const x = 1u; const conflict = 2u;",
+			"package::bar": "const y = 1u; const conflict = 2u;"
+		},
+		"expect": "pass",
+		"result": "const package_foo_x = 1u; const package_bar_y = 1u; const z = package_foo_x + package_bar_y;"
+	},
+	{
+		"name": "wildcard-twice-ambiguous",
+		"desc": "multiple wilcard imports cannot expose the same identifier",
+		"kind": "modules",
+		"code": "import package::foo::*; import package::bar::*; const z = conflict;",
+		"modules": {
+			"package::foo": "const conflict = 2u;",
+			"package::bar": "const conflict = 2u;"
+		},
+		"expect": "fail"
 	}
 ]

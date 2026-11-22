@@ -1,9 +1,9 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use wesl_macros::query;
 use wgsl_parse::SyntaxNode;
 use wgsl_parse::syntax::{
-    Expression, ExpressionNode, FunctionCall, GlobalDeclaration, Ident, ImportContent,
+    Expression, ExpressionNode, Function, FunctionCall, GlobalDeclaration, Ident, ImportContent,
     TranslationUnit, TypeExpression,
 };
 use wgsl_types::idents::{BUILTIN_CONSTRUCTOR_NAMES, BUILTIN_FUNCTION_NAMES};
@@ -157,8 +157,13 @@ fn check_function_calls(module: &TranslationUnit) -> Result<(), Diagnostic<Error
     Ok(())
 }
 
-fn check_duplicate_decl(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
+fn check_duplicate_decl(
+    module: &TranslationUnit,
+    allow_overloads: bool,
+) -> Result<(), Diagnostic<Error>> {
     let mut unique = HashSet::new();
+    // function overloads seen so far, by name.
+    let mut overloads: HashMap<String, Vec<&Function>> = HashMap::new();
 
     fn check_ident(id: &Ident, unique: &mut HashSet<String>) -> Result<(), Diagnostic<Error>> {
         if unique.contains(id.name().as_str()) {
@@ -167,6 +172,32 @@ fn check_duplicate_decl(module: &TranslationUnit) -> Result<(), Diagnostic<Error
             unique.insert(id.to_string());
             Ok(())
         }
+    }
+
+    fn signature(decl: &Function) -> Vec<String> {
+        decl.parameters.iter().map(|p| p.ty.to_string()).collect()
+    }
+
+    fn check_overload(prev: &[&Function], decl: &Function) -> Result<(), E> {
+        fn is_entry_point(decl: &Function) -> bool {
+            decl.attributes
+                .iter()
+                .any(|attr| attr.node().is_entry_point())
+        }
+        let name = decl.ident.to_string();
+        let sig = signature(decl);
+        for prev in prev {
+            if prev.visibility != decl.visibility {
+                return Err(E::OverloadVisibility(name));
+            }
+            if is_entry_point(prev) || is_entry_point(decl) {
+                return Err(E::OverloadedEntryPoint(name));
+            }
+            if signature(prev) == sig {
+                return Err(E::DuplicateOverload(name, sig.join(", ")));
+            }
+        }
+        Ok(())
     }
 
     fn check_import_content(
@@ -208,24 +239,39 @@ fn check_duplicate_decl(module: &TranslationUnit) -> Result<(), Diagnostic<Error
             // we skip checking declarations that have conditional compilation flags.
             continue;
         }
+        if allow_overloads
+            && let GlobalDeclaration::Function(decl) = decl.node()
+            && let Some(prev) = overloads.get_mut(decl.ident.name().as_str())
+        {
+            check_overload(prev, decl)
+                .map_err(|e| Diagnostic::from(e).with_declaration(decl.ident.to_string()))?;
+            prev.push(decl);
+            continue;
+        }
         if let Some(id) = decl.ident() {
             check_ident(&id, &mut unique)?;
+        }
+        if let GlobalDeclaration::Function(decl) = decl.node() {
+            overloads.insert(decl.ident.to_string(), vec![decl]);
         }
     }
     Ok(())
 }
 
+/// Overloaded function calls are not checked, because they are not resolved yet. Cycles
+/// via overloaded functions are detected after overload resolution.
 fn check_cycles(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
     fn check_decl(
         id: &Ident,
         decl: &GlobalDeclaration,
         unique: &mut HashSet<Ident>,
+        overloaded: &HashSet<Ident>,
         module: &TranslationUnit,
     ) -> Result<(), E> {
         let mut res = Ok(());
 
         Visit::<TypeExpression>::visit_rec(decl, &mut |ty| {
-            if res.is_ok() {
+            if res.is_ok() && !overloaded.contains(&ty.ident) {
                 if ty.ident == *id {
                     res = Err(E::Cycle(id.to_string(), decl.ident().unwrap().to_string()));
                 } else if unique.insert(ty.ident.clone())
@@ -234,17 +280,26 @@ fn check_cycles(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
                         .iter()
                         .find(|decl| decl.ident().as_ref() == Some(&ty.ident))
                 {
-                    res = check_decl(id, decl, unique, module);
+                    res = check_decl(id, decl, unique, overloaded, module);
                 }
             }
         });
 
         res
     }
+
+    let mut idents = HashSet::new();
+    let overloaded = module
+        .global_declarations
+        .iter()
+        .filter_map(|decl| decl.ident())
+        .filter(|id| !idents.insert(id.clone()))
+        .collect::<HashSet<_>>();
+
     for decl in &module.global_declarations {
         if let Some(id) = decl.ident() {
             let mut unique = HashSet::new();
-            check_decl(&id, decl, &mut unique, module)
+            check_decl(&id, decl, &mut unique, &overloaded, module)
                 .map_err(|e| Diagnostic::from(e).with_declaration(id.to_string()))?;
         }
     }
@@ -260,11 +315,13 @@ fn check_cycles(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
 /// * Defined declarations: all identifiers refer to a user declaration, import or
 ///   built-in name.
 /// * Duplicate declarations: declarations in the same scope cannot have the same name.
-///   (except for unresolved conditional compilation)
+///   (except for unresolved conditional compilation and function overloads)
+/// * Function overloads: overloads must have different parameter types, the same visibility,
+///   and cannot be entry points.
 /// * Cyclic declarations: no cycles are allowed in declarations.
 pub fn validate_wesl(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
     check_defined_symbols(module)?;
-    check_duplicate_decl(module)?;
+    check_duplicate_decl(module, true)?;
     check_cycles(module)?;
     Ok(())
 }
@@ -279,7 +336,7 @@ pub fn validate_wesl(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> 
 ///   Check the number of arguments but not their type.
 pub fn validate_wgsl(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
     check_defined_symbols(module)?;
-    check_duplicate_decl(module)?;
+    check_duplicate_decl(module, false)?;
     check_cycles(module)?;
     check_function_calls(module)?;
     Ok(())

@@ -646,6 +646,18 @@ impl CompilerDriver for CompilationPass<'_> {
         modules: &mut Vec<Module>,
         used_items: &UsedItems,
     ) -> Result<TranslationUnit, Error> {
+        // declarations that must be kept, even if they are not called.
+        let keep = match &self.options.strip {
+            Some(_) => {
+                let main_module = modules
+                    .iter()
+                    .find(|module| module.path == *self.main_path)
+                    .expect("main module must be loaded");
+                Some(self.main_entry_points(&main_module.syntax)?)
+            }
+            None => None,
+        };
+
         pass::retarget_modules(modules, used_items, &self.resolver);
 
         for module in modules.iter_mut() {
@@ -656,6 +668,8 @@ impl CompilerDriver for CompilationPass<'_> {
         }
 
         let mut module = pass::link(modules, self.options.strip.as_ref().map(|_| used_items));
+
+        pass::resolve_overloads(&mut module, &self.mangler, keep.as_ref())?;
 
         if self.options.lower {
             pass::lower(&mut module)?;

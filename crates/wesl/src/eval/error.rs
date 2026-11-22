@@ -8,6 +8,13 @@ use wgsl_types::{
 
 use super::{Flow, ScopeKind};
 
+fn fmt_types(tys: &[Type]) -> String {
+    tys.iter()
+        .map(|ty| ty.to_string())
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 /// Evaluation and Execution errors.
 #[derive(Clone, Debug, Error)]
 pub enum EvalError {
@@ -115,6 +122,12 @@ pub enum EvalError {
     TemplateArgs(&'static str),
     #[error("incorrect number of arguments to `{0}`, expected `{1}`, got `{2}`")]
     ParamCount(String, usize, usize),
+    #[error("no overload of function `{0}` matches the arguments `({args})`", args = fmt_types(.1))]
+    NoOverload(String, Vec<Type>),
+    #[error("call to overloaded function `{0}` with arguments `({args})` is ambiguous", args = fmt_types(.1))]
+    AmbiguousOverload(String, Vec<Type>),
+    #[error("function `{0}` has multiple overloads with the same parameter types `({args})`", args = fmt_types(.1))]
+    DuplicateOverload(String, Vec<Type>),
     #[error("invalid parameter type, expected `{0}`, got `{1}`")]
     ParamType(Type, Type),
     #[error("returned `{0}` from function `{1}` that returns `{2}`")]

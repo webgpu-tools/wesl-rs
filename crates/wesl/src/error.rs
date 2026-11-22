@@ -54,6 +54,12 @@ pub enum ValidateError {
     NotCallable(String),
     #[error("duplicate declaration of `{0}`")]
     Duplicate(String),
+    #[error("function `{0}` has multiple overloads with the same parameter types `({1})`")]
+    DuplicateOverload(String, String),
+    #[error("overloads of function `{0}` must have the same visibility")]
+    OverloadVisibility(String),
+    #[error("entry point `{0}` cannot be overloaded")]
+    OverloadedEntryPoint(String),
     #[error("declaration of `{0}` is cyclic via `{1}`")]
     Cycle(String, String),
 }
@@ -483,7 +489,12 @@ impl Diagnostic<Error> {
                 ValidateError::UndefinedSymbol(name)
                 | ValidateError::ParamCount(name, _, _)
                 | ValidateError::NotCallable(name)
-                | ValidateError::Duplicate(name) => unmangle_name(name, sourcemap, mangler),
+                | ValidateError::Duplicate(name)
+                | ValidateError::DuplicateOverload(name, _)
+                | ValidateError::OverloadVisibility(name)
+                | ValidateError::OverloadedEntryPoint(name) => {
+                    unmangle_name(name, sourcemap, mangler)
+                }
                 ValidateError::Cycle(name1, name2) => {
                     unmangle_name(name1, sourcemap, mangler);
                     unmangle_name(name2, sourcemap, mangler);
@@ -572,6 +583,14 @@ impl Diagnostic<Error> {
                     }
                 }
                 EvalError::ParamCount(name, _, _) => unmangle_name(name, sourcemap, mangler),
+                EvalError::NoOverload(name, tys)
+                | EvalError::AmbiguousOverload(name, tys)
+                | EvalError::DuplicateOverload(name, tys) => {
+                    unmangle_name(name, sourcemap, mangler);
+                    for ty in tys {
+                        unmangle_ty(ty, sourcemap, mangler);
+                    }
+                }
                 EvalError::ParamType(ty1, ty2) => {
                     unmangle_ty(ty1, sourcemap, mangler);
                     unmangle_ty(ty2, sourcemap, mangler);

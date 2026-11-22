@@ -298,9 +298,13 @@ impl IsConst for FunctionCall {
                     *is_const
                 } else if let Some(decl) = module.decl_struct(&fn_name) {
                     decl.is_const(module, locals)
-                } else if let Some(decl) = module.decl_function(&fn_name) {
+                } else if !module.decl_functions(&fn_name).is_empty() {
                     // TODO: this is not optimal as it will be recomputed for the same functions.
-                    decl.is_const(module, locals)
+                    // overloads may not be resolved yet, so all overloads must be const.
+                    module
+                        .decl_functions(&fn_name)
+                        .iter()
+                        .all(|decl| decl.is_const(module, locals))
                 } else {
                     is_ctor(&fn_name)
                 }

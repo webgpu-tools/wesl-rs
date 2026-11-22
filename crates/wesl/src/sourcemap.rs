@@ -3,6 +3,7 @@
 use std::{cell::RefCell, collections::HashMap, path::PathBuf};
 
 use wgsl_parse::{span::Span, syntax::TypeExpression};
+use wgsl_types::ty::Type;
 
 use crate::{ModulePath, error::ResolveError, mangler::Mangler, resolver::Resolver};
 
@@ -201,5 +202,13 @@ impl<'a> Mangler for SourceMapper<'a> {
     }
     fn mangle_types(&self, item: &str, variant: u32, types: &[TypeExpression]) -> String {
         self.mangler.mangle_types(item, variant, types)
+    }
+    fn mangle_overload(&self, item: &str, signature: &[Type]) -> String {
+        let res = self.mangler.mangle_overload(item, signature);
+        let mut sourcemap = self.sourcemap.borrow_mut();
+        if let Some(entry) = sourcemap.item(item).cloned() {
+            sourcemap.add_item(res.clone(), entry);
+        }
+        res
     }
 }

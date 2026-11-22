@@ -122,19 +122,5 @@ pub fn imported_item_path(
             .idents
             .get(&ty_expr.ident)
             .map(|item| (item.path.clone(), item.ident.clone()))
-            .or_else(|| {
-                if ty_expr.ident.use_count() == 1 {
-                    // XXX: this is hacky
-                    // the name may refer to a wildcard import (which `retarget_idents` can't link)
-                    // but only if the use_count is 1. Otherwise, it means that the ident is shadowed.
-                    imports
-                        .idents
-                        .iter()
-                        .find(|(id, _)| &**id.name() == &**ty_expr.ident.name())
-                        .map(|(_, item)| (item.path.clone(), item.ident.clone()))
-                } else {
-                    None
-                }
-            })
     }
 }

@@ -3,12 +3,12 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use itertools::Itertools;
 use wgsl_parse::{
     SyntaxNode,
-    syntax::{Ident, ModulePath, TranslationUnit, Visibility},
+    syntax::{Ident, ModulePath, PathOrigin, TranslationUnit, Visibility},
 };
 
 use crate::{
     SyntaxUtil,
-    error::{Diagnostic, Error},
+    error::{Diagnostic, Error, ImportError},
     pass::{self, CompileResult, CompilerDriver, ImportedItem, Module, UsedItems},
     resolver::{AsyncResolver, Resolver},
 };
@@ -47,61 +47,92 @@ pub async fn load_module_async(
     Ok(module)
 }
 
-fn get_or_load_module<'a>(
+/// Insert explicit imports in place of wildcards for the module with path `path`
+///
+/// # Panics
+///
+/// If a module path (either `path` or `wildcards`) is not loaded in `modules`.
+fn resolve_wildcards(
     path: &ModulePath,
-    modules: &'a mut BTreeMap<ModulePath, Module>,
-    driver: &mut impl CompilerDriver,
-) -> Result<&'a mut Module, Error> {
-    let canonical_path = driver.canonical_path(path);
-    ensure_module_loaded(&canonical_path, modules, driver)?;
-
-    Ok(modules
-        .get_mut(&canonical_path)
-        .unwrap(/* SAFETY: module was just loaded */))
-}
-
-fn ensure_module_loaded(
-    canonical_path: &ModulePath,
     modules: &mut BTreeMap<ModulePath, Module>,
-    driver: &mut impl CompilerDriver,
+    wildcards: &[ModulePath],
 ) -> Result<(), Error> {
-    if modules.contains_key(canonical_path) {
+    if wildcards.is_empty() {
         return Ok(());
     }
 
-    let syntax = driver.load_module(canonical_path)?;
-    let mut module = Module::new(canonical_path.clone(), syntax);
-    // take the wildcards out and insert imports below in the for loop
-    let wildcards = std::mem::take(&mut module.imports.wildcards);
-    modules.insert(canonical_path.clone(), module);
+    // There can be multiple wilcard-imports, and they can have conflicts (same name).
+    // Conflicts are allowed, so long as the identifier is not used.
+    let mut candidates = HashMap::<String, Vec<ImportedItem>>::new();
 
     for wildcard_path in wildcards {
-        let wildcard_imports = get_or_load_module(&wildcard_path, modules, driver)?
-            .syntax
-            .global_declarations
-            .iter()
-            .filter_map(|decl| decl.ident())
-            .map(|ident| {
-                (
-                    ident.clone(),
-                    ImportedItem {
-                        path: wildcard_path.clone(),
-                        ident,
-                        visibility: Visibility::Private, // TODO wildcard visibility
-                    },
-                )
-            })
-            .collect_vec();
+        let imported_module = modules.get(wildcard_path).unwrap();
 
-        modules
-            .get_mut(canonical_path)
-            .unwrap(/* SAFETY: module was inserted above */)
-            .imports
-            .idents
-            .extend(wildcard_imports);
+        // wilcard-importing from a different package requires public declarations.
+        // TODO: also check that the source package has `@!wilcardable`.
+        let min_vis = match (&path.origin, &wildcard_path.origin) {
+            (PathOrigin::Package(a), PathOrigin::Package(b)) if a != b => Visibility::Public,
+            _ => Visibility::Package,
+        };
+
+        for ident in wildcard_exports(imported_module, min_vis) {
+            candidates
+                .entry(ident.to_string())
+                .or_default()
+                .push(ImportedItem {
+                    path: wildcard_path.clone(),
+                    ident,
+                    visibility: Visibility::Private,
+                });
+        }
+    }
+
+    let module = modules.get_mut(path).unwrap();
+    for unknown_ident in pass::retarget_idents(&mut module.syntax) {
+        if &*unknown_ident.name() == "_" {
+            continue;
+        }
+
+        match candidates.get(&*unknown_ident.name()).map(Vec::as_slice) {
+            Some([item]) => {
+                module
+                    .imports
+                    .idents
+                    .insert(unknown_ident.clone(), item.clone());
+            }
+            Some(_) => {
+                return Err(Diagnostic::from(ImportError::AmbiguousWildcard(
+                    unknown_ident.to_string(),
+                ))
+                .with_module_path(module.path.clone(), None)
+                .into());
+            }
+            None => {
+                // this is probably undefined. Validation (if enabled) will catch it.
+            }
+        };
     }
 
     Ok(())
+}
+
+/// Get the idents exported by the module and importable as wildcard-import with the given visibility
+/// (public or package)
+fn wildcard_exports(module: &Module, min_vis: Visibility) -> impl Iterator<Item = Ident> + '_ {
+    module
+        .syntax
+        .global_declarations
+        .iter()
+        .filter_map(|decl| decl.ident().map(|ident| (ident, decl.visibility())))
+        .chain(
+            module
+                .imports
+                .idents
+                .iter()
+                .map(|(ident, item)| (ident.clone(), item.visibility)),
+        )
+        .filter(move |(_, vis)| *vis >= min_vis)
+        .map(|(ident, _)| ident)
 }
 
 /// Default implementation of [`CompilerDriver::compile`]
@@ -115,7 +146,10 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
         .collect::<HashMap<Ident, Visibility>>();
 
     let mut modules = BTreeMap::new();
-    get_or_load_module(&main_path, &mut modules, driver)?;
+    modules.insert(
+        main_path.clone(),
+        Module::new(main_path.clone(), main_module),
+    );
 
     let mut used_items = UsedItems::new();
     let mut to_analyze = UsedItems::new();
@@ -125,7 +159,21 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
         let mut next_to_analyze = UsedItems::new();
 
         for (path, items_to_analyze) in to_analyze.iter() {
-            let module = get_or_load_module(path, &mut modules, driver)?;
+            let path = driver.canonical_path(path);
+            if !modules.contains_key(&path) {
+                let syntax = driver.load_module(&path)?;
+                modules.insert(path.clone(), Module::new(path.clone(), syntax));
+            }
+
+            let wildcards = std::mem::take(&mut modules.get_mut(&path).unwrap().imports.wildcards);
+            for path in &wildcards {
+                if !modules.contains_key(path) {
+                    let syntax = driver.load_module(path)?;
+                    modules.insert(path.clone(), Module::new(path.clone(), syntax));
+                }
+            }
+            resolve_wildcards(&path, &mut modules, &wildcards)?;
+            let module = modules.get(&path).unwrap();
             driver.module_usage_analysis(module, &mut used_items, &mut next_to_analyze)?;
 
             for (item, min_vis) in items_to_analyze {
@@ -165,8 +213,11 @@ pub async fn compile_async(driver: &mut impl CompilerDriver) -> Result<CompileRe
         .map(|ident| (ident, Visibility::Private)) // No visibility requirements for entry points
         .collect::<HashMap<Ident, Visibility>>();
 
-    let mut modules = Vec::new();
-    modules.push(Module::new(main_path.clone(), main_module));
+    let mut modules = BTreeMap::new();
+    modules.insert(
+        main_path.clone(),
+        Module::new(main_path.clone(), main_module),
+    );
 
     let mut used_items = UsedItems::new();
     let mut to_analyze = UsedItems::new();
@@ -177,14 +228,20 @@ pub async fn compile_async(driver: &mut impl CompilerDriver) -> Result<CompileRe
 
         for (path, items_to_analyze) in to_analyze.iter() {
             let path = driver.canonical_path(path);
-            let module = match modules.iter().find(|module| module.path == path) {
-                Some(module) => module,
-                None => {
-                    let module = driver.load_module_async(&path).await?;
-                    modules.push_mut(Module::new(path, module))
-                }
-            };
+            if !modules.contains_key(&path) {
+                let syntax = driver.load_module_async(&path).await?;
+                modules.insert(path.clone(), Module::new(path.clone(), syntax));
+            }
 
+            let wildcards = std::mem::take(&mut modules.get_mut(&path).unwrap().imports.wildcards);
+            for path in &wildcards {
+                if !modules.contains_key(path) {
+                    let syntax = driver.load_module_async(path).await?;
+                    modules.insert(path.clone(), Module::new(path.clone(), syntax));
+                }
+            }
+            resolve_wildcards(&path, &mut modules, &wildcards)?;
+            let module = modules.get(&path).unwrap();
             driver.module_usage_analysis(module, &mut used_items, &mut next_to_analyze)?;
 
             for (item, min_vis) in items_to_analyze {
@@ -205,6 +262,7 @@ pub async fn compile_async(driver: &mut impl CompilerDriver) -> Result<CompileRe
         to_analyze = next_to_analyze;
     }
 
+    let mut modules = modules.into_values().collect_vec();
     let final_module = driver.link(&mut modules, &used_items)?;
 
     Ok(CompileResult {

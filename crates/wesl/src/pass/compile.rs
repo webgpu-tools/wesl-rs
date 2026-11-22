@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use itertools::Itertools;
 use wgsl_parse::{
@@ -49,7 +49,7 @@ pub async fn load_module_async(
 
 fn get_or_load_module<'a>(
     path: &ModulePath,
-    modules: &'a mut HashMap<ModulePath, Module>,
+    modules: &'a mut BTreeMap<ModulePath, Module>,
     driver: &mut impl CompilerDriver,
 ) -> Result<&'a mut Module, Error> {
     let canonical_path = driver.canonical_path(path);
@@ -62,7 +62,7 @@ fn get_or_load_module<'a>(
 
 fn ensure_module_loaded(
     canonical_path: &ModulePath,
-    modules: &mut HashMap<ModulePath, Module>,
+    modules: &mut BTreeMap<ModulePath, Module>,
     driver: &mut impl CompilerDriver,
 ) -> Result<(), Error> {
     if modules.contains_key(canonical_path) {
@@ -114,7 +114,7 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
         .map(|ident| (ident, Visibility::Private)) // No visibility requirements for entry points
         .collect::<HashMap<Ident, Visibility>>();
 
-    let mut modules = HashMap::new();
+    let mut modules = BTreeMap::new();
     get_or_load_module(&main_path, &mut modules, driver)?;
 
     let mut used_items = UsedItems::new();

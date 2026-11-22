@@ -11,7 +11,9 @@ import package::util;
 // is `package.wesl`, so this is also a circular import: root imports gfx too).
 import super::util::{cross2, EPSILON};
 
+@if(constants)
 import constants::PI;
+@if(!constants) const PI = 3.14;
 
 // a resource variable must be `public` to be re-exportable; the
 // @group/@binding annotations carry through the re-export unchanged.

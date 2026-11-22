@@ -1,8 +1,12 @@
 // module `package::shadow`: local declarations shadowing global declarations
 // and imported items.
 
+@if(constants)
 import constants::PI;
+
 import package::util::dot2;
+
+@if(!constants) const PI = 3.14;
 
 const level: f32 = 1.0;
 

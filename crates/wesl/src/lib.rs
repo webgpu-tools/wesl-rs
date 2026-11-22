@@ -23,7 +23,7 @@ pub use crate::{
     mangler::Mangler,
     package::PackageBuilder,
     pass::{Feature, Features},
-    resolver::{AsyncResolver, Constants, Resolver},
+    resolver::{AsyncResolver, Constants, Resolver, SyncResolver},
 };
 
 pub use crate::frontend_eval::*;

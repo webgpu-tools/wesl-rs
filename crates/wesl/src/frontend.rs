@@ -14,11 +14,13 @@ use wgsl_parse::{
 };
 
 use crate::{
-    SyntaxUtil,
+    AsyncResolver, SyntaxUtil,
     error::{Diagnostic, Error, ResolveError, UsageError},
     mangler::{self, Mangler},
-    pass::{self, CompilerDriver, Features, Module, UsedItems},
-    resolver::{Constants, Resolver, StandardResolver},
+    pass::{
+        self, AsyncCompilerDriver, CompilerDriver, Features, Module, SyncCompilerDriver, UsedItems,
+    },
+    resolver::{Constants, Resolver, StandardResolver, SyncResolver},
     sourcemap::{BasicSourceMap, SourceMapper},
 };
 
@@ -214,14 +216,14 @@ impl Compiler<()> {
 pub fn compile(
     main_path: &ModulePath,
     options: &CompileOptions,
-    resolver: &impl Resolver,
+    resolver: &impl SyncResolver,
 ) -> Result<CompileResult, Error> {
     let mangler = Box::<dyn Mangler>::from(options.mangler);
 
     if options.sourcemap {
         let sourcemapper = SourceMapper::new(main_path.clone(), &resolver, &mangler);
         let mut pass = CompilationPass::new(main_path, options, &sourcemapper, &sourcemapper);
-        let res = CompilerDriver::compile(&mut pass);
+        let res = SyncCompilerDriver::compile(&mut pass);
         let sourcemap = sourcemapper.finish();
         let res = res.map_err(|e| Diagnostic::from(e).with_sourcemap(&sourcemap))?;
 
@@ -233,7 +235,7 @@ pub fn compile(
         })
     } else {
         let mut pass = CompilationPass::new(main_path, options, &resolver, &mangler);
-        let res = CompilerDriver::compile(&mut pass)?;
+        let res = SyncCompilerDriver::compile(&mut pass)?;
         Ok(CompileResult {
             syntax: res.syntax,
             modules: res.modules,
@@ -247,14 +249,14 @@ pub fn compile(
 pub async fn compile_async(
     main_path: &ModulePath,
     options: &CompileOptions,
-    resolver: &impl Resolver,
+    resolver: &impl AsyncResolver,
 ) -> Result<CompileResult, Error> {
     let mangler = Box::<dyn Mangler>::from(options.mangler);
 
     if options.sourcemap {
-        let sourcemapper = SourceMapper::new(main_path.clone(), &resolver, &mangler);
+        let sourcemapper = SourceMapper::new(main_path.clone(), resolver, &mangler);
         let mut pass = CompilationPass::new(main_path, options, &sourcemapper, &sourcemapper);
-        let res = CompilerDriver::compile_async(&mut pass).await;
+        let res = AsyncCompilerDriver::compile_async(&mut pass).await;
         let sourcemap = sourcemapper.finish();
         let res = res.map_err(|e| Diagnostic::from(e).with_sourcemap(&sourcemap))?;
 
@@ -265,8 +267,8 @@ pub async fn compile_async(
             used_items: res.used_items,
         })
     } else {
-        let mut pass = CompilationPass::new(main_path, options, &resolver, &mangler);
-        let res = CompilerDriver::compile_async(&mut pass).await?;
+        let mut pass = CompilationPass::new(main_path, options, resolver, &mangler);
+        let res = AsyncCompilerDriver::compile_async(&mut pass).await?;
         Ok(CompileResult {
             syntax: res.syntax,
             modules: res.modules,
@@ -331,22 +333,6 @@ impl Compiler<()> {
         compile(main_path, &self.options, &resolver)
     }
 
-    /// Async version of [`Self::compile`].
-    pub async fn compile_async(&self, path: &Path) -> Result<CompileResult, Error> {
-        let (pkg_root_dir, main_path) = self.root_and_main(path.as_ref())?;
-        self.compile_module_async(&pkg_root_dir, &main_path).await
-    }
-
-    /// Async version of [`Self::compile_module`].
-    pub async fn compile_module_async(
-        &self,
-        pkg_root_dir: impl AsRef<Path>,
-        main_path: &ModulePath,
-    ) -> Result<CompileResult, Error> {
-        let resolver = self.create_resolver(pkg_root_dir.as_ref());
-        compile_async(main_path, &self.options, &resolver).await
-    }
-
     fn create_resolver(&self, pkg_root_dir: &Path) -> StandardResolver {
         let mut resolver = StandardResolver::new(pkg_root_dir);
 
@@ -391,7 +377,7 @@ impl Compiler<()> {
     }
 }
 
-impl<R: Resolver> Compiler<R> {
+impl<R: SyncResolver> Compiler<R> {
     /// Compile a WESL shader to WGSL.
     ///
     /// The main module defaults to the package root module.
@@ -422,7 +408,9 @@ impl<R: Resolver> Compiler<R> {
         let main_path = main_module_path(fs_main_path.as_ref(), &self.resolver)?;
         compile(&main_path, &self.options, &self.resolver)
     }
+}
 
+impl<R: AsyncResolver> Compiler<R> {
     /// Async version of [`Self::compile_root`].
     pub async fn compile_root_async(&self) -> Result<CompileResult, Error> {
         compile_async(&ModulePath::new_root(), &self.options, &self.resolver).await
@@ -528,18 +516,18 @@ impl std::fmt::Display for CompileResult {
 }
 
 /// Ephemeral type that implements [`CompilerDriver`] for a single compilation pass in [`Compiler::compile`]
-struct CompilationPass<'a> {
+struct CompilationPass<'a, R> {
     main_path: &'a ModulePath,
     options: &'a CompileOptions,
-    resolver: &'a dyn Resolver,
+    resolver: &'a R,
     mangler: &'a dyn Mangler,
 }
 
-impl<'a> CompilationPass<'a> {
+impl<'a, R> CompilationPass<'a, R> {
     fn new(
         main_path: &'a ModulePath,
         options: &'a CompileOptions,
-        resolver: &'a dyn Resolver,
+        resolver: &'a R,
         mangler: &'a dyn Mangler,
     ) -> Self {
         Self {
@@ -551,7 +539,7 @@ impl<'a> CompilationPass<'a> {
     }
 }
 
-impl CompilerDriver for CompilationPass<'_> {
+impl<R: Resolver> CompilerDriver for CompilationPass<'_, R> {
     fn main_path(&self) -> &ModulePath {
         self.main_path
     }
@@ -625,22 +613,6 @@ impl CompilerDriver for CompilationPass<'_> {
         Ok(())
     }
 
-    fn load_module(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error> {
-        let mut module = pass::load_module(path, &self.resolver)?;
-
-        if self.options.condcomp {
-            pass::condcomp(&mut module, &self.options.features)?;
-        }
-
-        pass::retarget_idents(&mut module);
-
-        if self.options.validate {
-            pass::validate_wesl(&module)?;
-        }
-
-        Ok(module)
-    }
-
     fn link(
         &self,
         modules: &mut Vec<Module>,
@@ -666,6 +638,33 @@ impl CompilerDriver for CompilationPass<'_> {
         }
 
         Ok(module)
+    }
+}
+
+impl<R> CompilationPass<'_, R> {
+    fn prepare_module(&self, mut module: TranslationUnit) -> Result<TranslationUnit, Error> {
+        if self.options.condcomp {
+            pass::condcomp(&mut module, &self.options.features)?;
+        }
+
+        pass::retarget_idents(&mut module);
+
+        if self.options.validate {
+            pass::validate_wesl(&module)?;
+        }
+
+        Ok(module)
+    }
+}
+
+impl<R: crate::SyncResolver> SyncCompilerDriver for CompilationPass<'_, R> {
+    fn load_module(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error> {
+        self.prepare_module(pass::load_module(path, self.resolver)?)
+    }
+}
+impl<R: crate::AsyncResolver> AsyncCompilerDriver for CompilationPass<'_, R> {
+    async fn load_module_async(&mut self, path: &ModulePath) -> Result<TranslationUnit, Error> {
+        self.prepare_module(pass::load_module_async(path, self.resolver).await?)
     }
 }
 

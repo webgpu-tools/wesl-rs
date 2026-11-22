@@ -5,7 +5,7 @@ use wgsl_parse::syntax::{Ident, ModulePath, TranslationUnit, Visibility};
 use crate::{
     SyntaxUtil,
     error::{Diagnostic, Error},
-    pass::{self, CompileResult, CompilerDriver, Module, UsedItems},
+    pass::{AsyncCompilerDriver, CompileResult, Module, SyncCompilerDriver, UsedItems},
     resolver::{AsyncResolver, Resolver},
 };
 
@@ -14,9 +14,27 @@ pub fn main_entry_points(main_module: &TranslationUnit) -> HashSet<Ident> {
 }
 
 /// Note: it does not call [`pass::retarget_idents()`], because that must be done right after [`pass::condcomp()`].
-pub fn load_module(path: &ModulePath, resolver: &impl Resolver) -> Result<TranslationUnit, Error> {
+pub fn load_module(
+    path: &ModulePath,
+    resolver: &impl crate::SyncResolver,
+) -> Result<TranslationUnit, Error> {
     let source = resolver.resolve_source(path)?;
+    parse_module(path, resolver, &source)
+}
 
+pub async fn load_module_async(
+    path: &ModulePath,
+    resolver: &impl AsyncResolver,
+) -> Result<TranslationUnit, Error> {
+    let source = resolver.resolve_source_async(path).await?;
+    parse_module(path, resolver, &source)
+}
+
+fn parse_module(
+    path: &ModulePath,
+    resolver: &impl Resolver,
+    source: &str,
+) -> Result<TranslationUnit, Error> {
     let module: TranslationUnit = source.parse().map_err(|e| {
         Diagnostic::from(e)
             .with_module_path(path.clone(), resolver.display_name(path))
@@ -26,25 +44,8 @@ pub fn load_module(path: &ModulePath, resolver: &impl Resolver) -> Result<Transl
     Ok(module)
 }
 
-pub async fn load_module_async(
-    path: &ModulePath,
-    resolver: &impl AsyncResolver,
-) -> Result<TranslationUnit, Error> {
-    let source = resolver.resolve_source_async(path).await?;
-
-    let mut module: TranslationUnit = source.parse().map_err(|e| {
-        Diagnostic::from(e)
-            .with_module_path(path.clone(), resolver.display_name(path))
-            .with_source(source.to_string())
-    })?;
-
-    pass::retarget_idents(&mut module);
-
-    Ok(module)
-}
-
-/// Default implementation of [`CompilerDriver::compile`]
-pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error> {
+/// Default implementation of [`SyncCompilerDriver::compile`]
+pub fn compile(driver: &mut impl SyncCompilerDriver) -> Result<CompileResult, Error> {
     let main_path = driver.main_path().clone();
     let main_module = driver.load_module(&main_path)?;
     let main_entrypoints = driver
@@ -102,9 +103,9 @@ pub fn compile(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error>
     })
 }
 
-pub async fn compile_async(driver: &mut impl CompilerDriver) -> Result<CompileResult, Error> {
+pub async fn compile_async(driver: &mut impl AsyncCompilerDriver) -> Result<CompileResult, Error> {
     let main_path = driver.main_path().clone();
-    let main_module = driver.load_module(&main_path)?;
+    let main_module = driver.load_module_async(&main_path).await?;
     let main_entrypoints = driver
         .main_entry_points(&main_module)?
         .into_iter()

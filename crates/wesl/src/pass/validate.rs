@@ -252,6 +252,16 @@ fn check_cycles(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
     Ok(())
 }
 
+fn has_wildcard_import(content: &ImportContent) -> bool {
+    match content {
+        ImportContent::Item(_) => false,
+        ImportContent::Collection(imports) => imports
+            .iter()
+            .any(|import| has_wildcard_import(&import.content)),
+        ImportContent::Wildcard => true,
+    }
+}
+
 /// Validate an intermediate WESL module.
 ///
 /// This function only checks that a WESL module is valid on its own, without looking at
@@ -264,7 +274,15 @@ fn check_cycles(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
 ///   (except for unresolved conditional compilation)
 /// * Cyclic declarations: no cycles are allowed in declarations.
 pub fn validate_wesl(module: &TranslationUnit) -> Result<(), Diagnostic<Error>> {
-    check_defined_symbols(module)?;
+    if !module
+        .imports
+        .iter()
+        .any(|stmt| has_wildcard_import(&stmt.content))
+    {
+        // when we have a wildcard import, any ident can come from the wildcard.
+        // we can't check for defined symbols in isolation.
+        check_defined_symbols(module)?;
+    }
     check_duplicate_decl(module)?;
     check_cycles(module)?;
     Ok(())

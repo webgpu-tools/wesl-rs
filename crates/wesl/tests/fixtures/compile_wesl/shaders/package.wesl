@@ -13,6 +13,7 @@ import package::util::ops::scale as op;
 import package::util::ops::shift as op;
 
 // -- the `constants` virtual module ------------------------------------------
+@if(constants)
 import constants::{PI, TRUE};
 
 // -- import statements: single item, collections, nested collections,
@@ -40,6 +41,7 @@ import package::legacy::legacy_fn;
 import package::util::deep::mix::mix2;
 
 // package (external dependency) import statement.
+@if(random)
 import random::hash::rand11;
 
 // helper from the module whose entry points are re-exported below.
@@ -57,6 +59,21 @@ public import package::gfx::exposure;
 diagnostic(off, derivative_uniformity);
 
 // -- conditional global declarations ------------------------------------------
+@if(!constants) {
+    const PI = 3.14;
+    const TRUE = true;
+}
+@if(!random) {
+    fn rand11(n: f32) -> f32 {
+        return fract(sin(n) * 43758.5453123);
+    }
+    fn value_noise(p: f32) -> f32 {
+        let fl = floor(p);
+        return mix(rand11(fl), rand11(fl + 1.), fract(p));
+    }
+}
+
+
 // @if/@elif/@else chain on global const declarations.
 @if(feat1)
 const K: f32 = 1.0;
@@ -148,7 +165,10 @@ fn variant() {
 fn my_compute(@builtin(global_invocation_id) gid: vec3u) {
     // -- inline imports (fully qualified paths in expressions) -----------------
     let inline_pkg = package::util::norm2(vec2f(1.0, 2.0));
+    @if(random)
     let inline_dep = random::noise::value::value_noise(2.0);
+    @else
+    let inline_dep = value_noise(2.0);
 
     // named imports and virtual constants.
     let a = dot2(vec2f(PI), vec2f(1.0));

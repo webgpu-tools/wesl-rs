@@ -53,7 +53,7 @@ wgsl-types = { workspace = true }
 
 [dev-dependencies]
 expect-test = "1.5.1"
-tokio = { version = "1.53.1", features = ["macros", "rt"] }  # for testing async compile functions
+tokio = { version = "1.53.1", features = ["fs", "macros", "rt"] }  # for testing async compile functions
 
 [lints]
 workspace = true

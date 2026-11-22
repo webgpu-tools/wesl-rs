@@ -69,17 +69,19 @@ impl<T: Resolver + ?Sized> Resolver for Box<T> {
         (**self).canonical_path(path)
     }
 }
+
 impl<T: SyncResolver + ?Sized> SyncResolver for Box<T> {
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
         (**self).resolve_source(path)
     }
 }
+
 impl<T: AsyncResolver + ?Sized> AsyncResolver for Box<T> {
-    fn resolve_source_async<'a>(
+    async fn resolve_source_async<'a>(
         &'a self,
         path: &ModulePath,
-    ) -> impl Future<Output = Result<Cow<'a, str>, ResolveError>> {
-        (**self).resolve_source_async(path)
+    ) -> Result<Cow<'a, str>, ResolveError> {
+        (**self).resolve_source_async(path).await
     }
 }
 
@@ -103,14 +105,16 @@ impl<T: SyncResolver + ?Sized> SyncResolver for &T {
         (**self).resolve_source(path)
     }
 }
+
 impl<T: AsyncResolver + ?Sized> AsyncResolver for &T {
-    fn resolve_source_async<'a>(
+    async fn resolve_source_async<'a>(
         &'a self,
         path: &ModulePath,
-    ) -> impl Future<Output = Result<Cow<'a, str>, ResolveError>> {
-        (**self).resolve_source_async(path)
+    ) -> Result<Cow<'a, str>, ResolveError> {
+        (**self).resolve_source_async(path).await
     }
 }
+
 /// A resolver that never resolves anything.
 ///
 /// Returns [`ResolveError::ModuleNotFound`] when calling [`Resolver::resolve_source`].
@@ -118,6 +122,7 @@ impl<T: AsyncResolver + ?Sized> AsyncResolver for &T {
 pub struct NoResolver;
 
 impl Resolver for NoResolver {}
+
 impl SyncResolver for NoResolver {
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
         Err(E::ModuleNotFound(
@@ -126,15 +131,15 @@ impl SyncResolver for NoResolver {
         ))
     }
 }
+
+/// There is no asynchronous or blocking operation for in-memory resolvers.
+/// This is just provided as a convenience.
 impl AsyncResolver for NoResolver {
     async fn resolve_source_async<'a>(
         &'a self,
         path: &ModulePath,
     ) -> Result<Cow<'a, str>, ResolveError> {
-        Err(E::ModuleNotFound(
-            path.clone(),
-            "no module resolver, imports are effectively disabled here".to_string(),
-        ))
+        self.resolve_source(path)
     }
 }
 
@@ -224,6 +229,7 @@ impl Resolver for FileResolver {
         Ok(ModulePath::from_path(rel_path))
     }
 }
+
 impl SyncResolver for FileResolver {
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
         let fs_path = self.file_path(path)?;
@@ -282,10 +288,22 @@ impl<'a> VirtualResolver<'a> {
 }
 
 impl Resolver for VirtualResolver<'_> {}
+
 impl SyncResolver for VirtualResolver<'_> {
     fn resolve_source<'b>(&'b self, path: &ModulePath) -> Result<Cow<'b, str>, ResolveError> {
         let source = self.get_module(path)?;
         Ok(source.into())
+    }
+}
+
+/// There is no asynchronous or blocking operation for in-memory resolvers.
+/// This is just provided as a convenience.
+impl AsyncResolver for VirtualResolver<'_> {
+    async fn resolve_source_async<'a>(
+        &'a self,
+        path: &ModulePath,
+    ) -> Result<Cow<'a, str>, ResolveError> {
+        self.resolve_source(path)
     }
 }
 
@@ -382,6 +400,7 @@ impl Resolver for Router {
         }
     }
 }
+
 impl SyncResolver for Router {
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<Cow<'a, str>, ResolveError> {
         let (resolver, path) = self.route(path)?;
@@ -453,6 +472,7 @@ impl Resolver for PackageResolver {
         path.clone()
     }
 }
+
 impl SyncResolver for PackageResolver {
     fn resolve_source<'a>(&'a self, path: &ModulePath) -> Result<std::borrow::Cow<'a, str>, E> {
         let pkg_path = match &path.origin {
@@ -510,6 +530,17 @@ impl SyncResolver for PackageResolver {
             }
         }
         Ok(cur_mod.source.into())
+    }
+}
+
+/// There is no asynchronous or blocking operation for in-memory resolvers.
+/// This is just provided as a convenience.
+impl AsyncResolver for PackageResolver {
+    async fn resolve_source_async<'a>(
+        &'a self,
+        path: &ModulePath,
+    ) -> Result<Cow<'a, str>, ResolveError> {
+        self.resolve_source(path)
     }
 }
 

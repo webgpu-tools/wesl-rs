@@ -154,6 +154,7 @@ pub struct Import {
 pub enum ImportContent {
     Item(ImportItem),
     Collection(Vec<Import>),
+    Wildcard,
 }
 
 /// WESL imports extension

@@ -199,6 +199,7 @@ pub fn usage_analysis(
             }
         } else if let Some((decl_ident, item)) = module
             .imports
+            .idents
             .iter()
             .find(|(ident, _)| *ident.name() == decl_name)
         {

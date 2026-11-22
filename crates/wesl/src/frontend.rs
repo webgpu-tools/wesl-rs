@@ -656,6 +656,7 @@ impl CompilerDriver for CompilationPass<'_> {
         }
 
         let mut module = pass::link(modules, self.options.strip.as_ref().map(|_| used_items));
+        modules.clear(); // we need to get rid of extra ident references
 
         if self.options.lower {
             pass::lower(&mut module)?;

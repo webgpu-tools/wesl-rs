@@ -63,6 +63,8 @@ pub enum ValidateError {
 pub enum ImportError {
     #[error("duplicate declaration of `{0}`")]
     DuplicateSymbol(String),
+    #[error("`{0}` is provided by more than one wildcard import")]
+    AmbiguousWildcard(String),
     #[error("{0}")]
     ResolveError(#[from] ResolveError),
 }

@@ -57,7 +57,7 @@
 	},
 	{
 		"name": "wildcard-import-shadow",
-		"desc": "an explicit import shadows a wilcard import",
+		"desc": "an explicit import shadows a wildcard import",
 		"kind": "modules",
 		"code": "import package::foo::x; import package::other::*; const result = x;",
 		"modules": {
@@ -69,7 +69,7 @@
 	},
 	{
 		"name": "wildcard-import-shadow-renamed",
-		"desc": "an 'as'-renamed import shadows a wilcard import",
+		"desc": "an 'as'-renamed import shadows a wildcard import",
 		"kind": "modules",
 		"code": "import package::foo::y as x; import package::other::*; const result = x;",
 		"modules": {
@@ -117,7 +117,7 @@
 	},
 	{
 		"name": "wildcard-undeclared-ident",
-		"desc": "fails if the ident does not exist in the wilcard-imported module",
+		"desc": "fails if the ident does not exist in the wildcard-imported module",
 		"kind": "modules",
 		"code": "import package::other::*; const result = missing;",
 		"modules": {
@@ -139,7 +139,7 @@
 	},
 	{
 		"name": "wildcard-twice-ambiguous",
-		"desc": "multiple wilcard imports cannot expose the same identifier",
+		"desc": "multiple wildcard imports cannot expose the same identifier",
 		"kind": "modules",
 		"code": "import package::foo::*; import package::bar::*; const z = conflict;",
 		"modules": {

@@ -61,15 +61,15 @@ fn resolve_wildcards(
         return Ok(());
     }
 
-    // There can be multiple wilcard-imports, and they can have conflicts (same name).
+    // There can be multiple wildcard-imports, and they can have conflicts (same name).
     // Conflicts are allowed, so long as the identifier is not used.
     let mut candidates = HashMap::<String, Vec<ImportedItem>>::new();
 
     for wildcard_path in wildcards {
         let imported_module = modules.get(wildcard_path).unwrap();
 
-        // wilcard-importing from a different package requires public declarations.
-        // TODO: also check that the source package has `@!wilcardable`.
+        // wildcard-importing from a different package requires public declarations.
+        // TODO: also check that the source package has `@!wildcardable`.
         let min_vis = match (&path.origin, &wildcard_path.origin) {
             (PathOrigin::Package(a), PathOrigin::Package(b)) if a != b => Visibility::Public,
             _ => Visibility::Package,
